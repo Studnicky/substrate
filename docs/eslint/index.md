@@ -34,8 +34,9 @@ pnpm add -D eslint@>=10 typescript-eslint@>=8 @typescript-eslint/eslint-plugin@>
 
 ## Public API
 
-Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export `plugin`, `v8Plugin`, `entitySuite`, `hygieneSuite`, `v8Suite`, and `HexagonalSuite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project services.
+Use `@studnicky/eslint-config/node` for Node-hosted ESLint and `@studnicky/eslint-config/browser` for a browser ESLint host. Both paths export the same values: `plugin`, `v8Plugin`, `entityModelSuite`, `moduleDesignSuite`, `diagnosticsSuite`, `VocabularySuite`, `classMechanicsSuite`, `LayerBoundarySuite`, `v8ObjectShapeSuite`, `v8CollectionTraversalSuite`, and `v8RepeatedWorkSuite`. Import `ProjectHostInterface` from `@studnicky/eslint-config/interfaces` when a browser host provides project services.
 
+Every rule and suite works identically from either import path today — the split exists so a browser host can depend on a package that never imports Node built-ins, not because any suite here requires a full TypeScript program a browser host cannot supply. A rule that genuinely needs one (for example, one resolving cross-package type exports) says so in its own doc page.
 
 ## Browser hosts
 
@@ -59,20 +60,27 @@ export default [
 ## Suites are opt-in
 
 A suite is a flat-config entry bundling one domain's rules at `error`. Spreading a suite is a
-deliberate choice to adopt that whole domain; registering `plugin` alone enables nothing.
+deliberate choice to adopt that whole domain; registering `plugin` alone enables nothing. A static
+suite is a plain config object; a factory suite needs project-specific options its member rules
+cannot default, and is created with `.create(...)`.
 
 | Suite | Domain |
 |---|---|
-| `entitySuite` | Entity and data-shape conventions — `all-types-are-entities`, `folder-content-shape`, `interface-must-be-contract`, `interface-suffix`, `interfaces-compose-named-types`, `no-mixed-callable-shapes`, `no-redefined-external-types`, `type-alias-invariants`, `whole-canonical-types` |
-| `hygieneSuite` | General code hygiene — `canonical-export-names`, `clean-diagnostics`, `descriptive-identifiers`, `direct-invocation-only`, `hash-private-fields`, `inline-trivial-logic`, `lexical-this-only`, `prefer-collection-types`, `require-options-object`, `single-export`, `static-method-verbs` |
-| `v8Suite` | V8 performance rules — all 27 rules in the [V8 rules](#v8-rules) table below |
-| `HexagonalSuite` | Hexagonal-architecture import boundaries — `adapter-only-import`, `domain-purity`, `known-types-outside-adapters`, `layer-import-boundary`. A factory, not a static config: call `HexagonalSuite.create(...)` with the shared layer config, since all four rules take distinct extra options on top of a common `layers`/`sourceRoot` shape. |
+| `entityModelSuite` | Type, interface, entity-namespace, and keyed-collection conventions — `all-types-are-entities`, `entity-file-shape`, `interface-must-be-contract`, `interfaces-compose-named-types`, `no-double-assertion`, `no-mixed-callable-shapes`, `no-redefined-external-types`, `no-unparsed-assertion`, `prefer-collection-types`, `type-alias-invariants` |
+| `moduleDesignSuite` | Export shape and method-body conventions — `explicit-return-binding`, `export-shape`, `inline-trivial-logic`, `no-function-registries`, `require-options-object` |
+| `diagnosticsSuite` | Diagnostic suppression — `clean-diagnostics` |
+| `VocabularySuite` | Identifier and vocabulary conventions — `descriptive-identifiers`, `static-method-verbs`, `no-threaded-vocabulary`. A factory: call `VocabularySuite.create(...)` with a `sourceRoot`, since `no-threaded-vocabulary` has no default for it. |
+| `classMechanicsSuite` | Class-mechanics conventions — `lexical-this-only`, `hash-private-fields`, `direct-invocation-only` |
+| `LayerBoundarySuite` | Hexagonal-architecture and entity-intake boundaries — `adapter-only-import`, `domain-purity`, `intake-parse-only`, `known-types-outside-adapters`, `layer-import-boundary`, `no-circular-imports`, `no-reflect-argument-laundering`, `no-unchecked-overload-implementation`. A factory, not a static config: call `LayerBoundarySuite.create(...)` with the shared layer config, since four of the eight rules take distinct extra options on top of a common `layers`/`sourceRoot` shape, `intake-parse-only` takes its own unrelated options, and the remaining three take none. |
+| `v8ObjectShapeSuite` | Constructs that destabilize V8 hidden-class/inline-cache assumptions — see the [V8 rules](#v8-rules) table |
+| `v8CollectionTraversalSuite` | How a collection is walked, not how often — see the [V8 rules](#v8-rules) table |
+| `v8RepeatedWorkSuite` | Cost that compounds per hot-loop iteration — see the [V8 rules](#v8-rules) table |
 
 Enable individual rules instead when a domain's conventions do not apply. `type-alias-invariants`
 governs how a type alias establishes schema provenance and stands on its own;
 `all-types-are-entities` additionally requires every canonical alias to be the exported `Type`
 member of an `*Entity` namespace, which is a convention a consumer adopts by enabling
-`entitySuite`, not a prerequisite for the other rules.
+`entityModelSuite`, not a prerequisite for the other rules.
 
 ```js
 // eslint.config.mjs — one rule, without the entity conventions
@@ -139,7 +147,7 @@ export default [
       '@studnicky/v8': v8Plugin
     },
     rules: {
-      '@studnicky/single-export': 'error',
+      '@studnicky/export-shape': 'error',
       '@studnicky/v8/delete-property': 'error'
     }
   }
@@ -154,48 +162,47 @@ export default [
 |------|---------|----------|
 | [`@studnicky/adapter-only-import`](/eslint/rules/adapter-only-import) | No | `error` |
 | [`@studnicky/all-types-are-entities`](/eslint/rules/all-types-are-entities) | No | `error` |
-| [`@studnicky/canonical-export-names`](/eslint/rules/canonical-export-names) | No | `error` |
 | [`@studnicky/clean-diagnostics`](/eslint/rules/clean-diagnostics) | Yes | `error` |
 | [`@studnicky/descriptive-identifiers`](/eslint/rules/descriptive-identifiers) | No | `error` |
 | [`@studnicky/direct-invocation-only`](/eslint/rules/direct-invocation-only) | No | `error` |
 | [`@studnicky/domain-purity`](/eslint/rules/domain-purity) | No | `error` |
+| [`@studnicky/entity-file-shape`](/eslint/rules/entity-file-shape) | No | `error` |
 | [`@studnicky/explicit-return-binding`](/eslint/rules/explicit-return-binding) | No | `error` |
-| [`@studnicky/folder-content-shape`](/eslint/rules/folder-content-shape) | No | `error` |
+| [`@studnicky/export-shape`](/eslint/rules/export-shape) | No | `error` |
 | [`@studnicky/hash-private-fields`](/eslint/rules/hash-private-fields) | No | `error` |
 | [`@studnicky/inline-trivial-logic`](/eslint/rules/inline-trivial-logic) | Yes | `error` |
 | [`@studnicky/intake-parse-only`](/eslint/rules/intake-parse-only) | No | `error` |
 | [`@studnicky/interface-must-be-contract`](/eslint/rules/interface-must-be-contract) | Yes | `error` |
-| [`@studnicky/interface-suffix`](/eslint/rules/interface-suffix) | No | `error` |
 | [`@studnicky/interfaces-compose-named-types`](/eslint/rules/interfaces-compose-named-types) | No | `error` |
 | [`@studnicky/known-types-outside-adapters`](/eslint/rules/known-types-outside-adapters) | No | `error` |
 | [`@studnicky/layer-import-boundary`](/eslint/rules/layer-import-boundary) | No | `error` |
 | [`@studnicky/lexical-this-only`](/eslint/rules/lexical-this-only) | No | `error` |
+| [`@studnicky/no-circular-imports`](/eslint/rules/no-circular-imports) | No | `error` |
+| [`@studnicky/no-double-assertion`](/eslint/rules/no-double-assertion) | No | `error` |
+| [`@studnicky/no-function-registries`](/eslint/rules/no-function-registries) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
+| [`@studnicky/no-caller-chosen-guard-type`](/eslint/rules/no-caller-chosen-guard-type) | No | `error` |
 | [`@studnicky/no-redefined-external-types`](/eslint/rules/no-redefined-external-types) | No | `error` |
+| [`@studnicky/no-reflect-argument-laundering`](/eslint/rules/no-reflect-argument-laundering) | No | `error` |
+| [`@studnicky/no-threaded-vocabulary`](/eslint/rules/no-threaded-vocabulary) | No | `error` |
+| [`@studnicky/no-unchecked-overload-implementation`](/eslint/rules/no-unchecked-overload-implementation) | No | `error` |
 | [`@studnicky/no-unparsed-assertion`](/eslint/rules/no-unparsed-assertion) | No | `error` |
 | [`@studnicky/prefer-collection-types`](/eslint/rules/prefer-collection-types) | No | `warn` |
 | [`@studnicky/require-options-object`](/eslint/rules/require-options-object) | No | `error` |
-| [`@studnicky/single-export`](/eslint/rules/single-export) | No | `error` |
 | [`@studnicky/static-method-verbs`](/eslint/rules/static-method-verbs) | No | `error` |
 | [`@studnicky/type-alias-invariants`](/eslint/rules/type-alias-invariants) | Partial | `error` |
-| [`@studnicky/whole-canonical-types`](/eslint/rules/whole-canonical-types) | No | `error` |
-
-`@studnicky/explicit-return-binding`, `@studnicky/intake-parse-only`, and `@studnicky/no-unparsed-assertion` are not bundled into any suite above — the latter two share the same `exemptPackages` boundary-package list (parsing primitives and the compile engine every `intake` is built from). All three are adopted individually, alongside whichever suites a consumer chooses.
 
 ## V8 rules
 
-27 rules covering V8 optimization-sensitive allocation, object-shape, iteration, and dynamic-code patterns, alongside related source constraints where measurement does not establish a V8 cost.
+27 rules covering V8 optimization-sensitive allocation, object-shape, iteration, and dynamic-code patterns, alongside related source constraints where measurement does not establish a V8 cost. Grouped into three suites by what each rule protects against.
+
+### Object shape — `v8ObjectShapeSuite`
+
+Constructs that destabilize V8 hidden-class and inline-cache assumptions.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|
 | [`@studnicky/v8/arguments-object`](/eslint/rules/v8/arguments-object) | No | `error` |
-| [`@studnicky/v8/array-concat-outside-loops`](/eslint/rules/v8/array-concat-outside-loops) | No | `error` |
-| [`@studnicky/v8/array-from-iterators`](/eslint/rules/v8/array-from-iterators) | No | `error` |
-| [`@studnicky/v8/array-from-map-callback`](/eslint/rules/v8/array-from-map-callback) | No | `error` |
-| [`@studnicky/v8/array-scan-outside-loops`](/eslint/rules/v8/array-scan-outside-loops) | No | `error` |
-| [`@studnicky/v8/array-splice-outside-loops`](/eslint/rules/v8/array-splice-outside-loops) | No | `error` |
-| [`@studnicky/v8/array-spread-outside-loops`](/eslint/rules/v8/array-spread-outside-loops) | No | `error` |
-| [`@studnicky/v8/chained-array-iteration`](/eslint/rules/v8/chained-array-iteration) | No | `error` |
 | [`@studnicky/v8/computed-class-properties`](/eslint/rules/v8/computed-class-properties) | No | `error` |
 | [`@studnicky/v8/computed-object-properties`](/eslint/rules/v8/computed-object-properties) | No | `error` |
 | [`@studnicky/v8/conditional-property-assignment`](/eslint/rules/v8/conditional-property-assignment) | No | `error` |
@@ -203,15 +210,36 @@ export default [
 | [`@studnicky/v8/delete-property`](/eslint/rules/v8/delete-property) | No | `error` |
 | [`@studnicky/v8/dynamic-property-access`](/eslint/rules/v8/dynamic-property-access) | No | `error` |
 | [`@studnicky/v8/eval-function`](/eslint/rules/v8/eval-function) | No | `error` |
+| [`@studnicky/v8/object-spread`](/eslint/rules/v8/object-spread) | No | `error` |
+| [`@studnicky/v8/prototype-modification`](/eslint/rules/v8/prototype-modification) | No | `error` |
+| [`@studnicky/v8/with-statement`](/eslint/rules/v8/with-statement) | No | `error` |
+
+### Collection traversal — `v8CollectionTraversalSuite`
+
+How a collection is walked, not how often.
+
+| Rule | Fixable | Severity |
+|------|---------|----------|
+| [`@studnicky/v8/array-from-iterators`](/eslint/rules/v8/array-from-iterators) | No | `error` |
+| [`@studnicky/v8/array-from-map-callback`](/eslint/rules/v8/array-from-map-callback) | No | `error` |
+| [`@studnicky/v8/chained-array-iteration`](/eslint/rules/v8/chained-array-iteration) | No | `error` |
 | [`@studnicky/v8/for-in-loops`](/eslint/rules/v8/for-in-loops) | No | `error` |
 | [`@studnicky/v8/for-of-arrays`](/eslint/rules/v8/for-of-arrays) | No | `error` |
+
+### Repeated work — `v8RepeatedWorkSuite`
+
+Cost that compounds per hot-loop iteration.
+
+| Rule | Fixable | Severity |
+|------|---------|----------|
+| [`@studnicky/v8/array-concat-outside-loops`](/eslint/rules/v8/array-concat-outside-loops) | No | `error` |
+| [`@studnicky/v8/array-scan-outside-loops`](/eslint/rules/v8/array-scan-outside-loops) | No | `error` |
+| [`@studnicky/v8/array-splice-outside-loops`](/eslint/rules/v8/array-splice-outside-loops) | No | `error` |
+| [`@studnicky/v8/array-spread-outside-loops`](/eslint/rules/v8/array-spread-outside-loops) | No | `error` |
 | [`@studnicky/v8/inline-arrow-functions`](/eslint/rules/v8/inline-arrow-functions) | No | `error` |
 | [`@studnicky/v8/inline-functions`](/eslint/rules/v8/inline-functions) | No | `error` |
 | [`@studnicky/v8/max-switch-cases`](/eslint/rules/v8/max-switch-cases) | No | `error` |
 | [`@studnicky/v8/memoize-array-length`](/eslint/rules/v8/memoize-array-length) | No | `error` |
-| [`@studnicky/v8/object-spread`](/eslint/rules/v8/object-spread) | No | `error` |
-| [`@studnicky/v8/prototype-modification`](/eslint/rules/v8/prototype-modification) | No | `error` |
 | [`@studnicky/v8/regexp-in-loops`](/eslint/rules/v8/regexp-in-loops) | No | `error` |
 | [`@studnicky/v8/switch-statements`](/eslint/rules/v8/switch-statements) | No | `error` |
 | [`@studnicky/v8/try-catch-in-loops`](/eslint/rules/v8/try-catch-in-loops) | No | `error` |
-| [`@studnicky/v8/with-statement`](/eslint/rules/v8/with-statement) | No | `error` |

@@ -1,1 +1,1 @@
-export type { LruCacheCreateOptionsInterface } from './LruCacheCreateOptionsInterface.js';
+export type { LruCacheCollaboratorsInterface } from './LruCacheCollaboratorsInterface.js';

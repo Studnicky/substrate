@@ -1,13 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
 
+import { ValidateUrlScenarioCaseEntity } from './entities/ValidateUrlScenarioCaseEntity.js';
 import scenarioGroups from './validate-url.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: { shape: 'ok' }; input: { value: unknown }; shape: 'valid'; name: string }
-  | { description: string; expected: { message: string }; input: { value: unknown }; shape: 'empty' | 'invalid' | 'non-string'; name: string };
+type ScenarioCase = ValidateUrlScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ValidateUrlScenarioCaseEntity.Schema, ValidateUrlScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -38,7 +40,7 @@ function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<Scen
 }
 
 void describe('validate url schema', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

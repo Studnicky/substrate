@@ -1,9 +1,10 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Predicates } from '@studnicky/types/browser';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';
@@ -16,8 +17,8 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 //
 // Three rules already guarantee that every data shape in this codebase IS an entity:
 // `all-types-are-entities` requires each canonical pure-data alias to be an exported
-// `*Entity.Type` derived from its own `Schema`, `whole-canonical-types` forbids subsetting one
-// positionally, and `folder-content-shape` fixes the members an entity namespace exposes.
+// `*Entity.Type` derived from its own `Schema`, `type-alias-invariants` forbids subsetting one
+// positionally, and `entity-file-shape` fixes the members an entity namespace exposes.
 //
 // What none of them constrains is the DIRECTION IN. Nothing required `unknown` to become an
 // entity by passing through one, so it did not: measured before this rule, 483 functions took an
@@ -27,8 +28,9 @@ import { OpaqueValueShape } from './OpaqueValueShape.js';
 // namespace's `intake` member:
 //
 //   export namespace LogRecordEntity {
-//     export const Schema = { ... } as const satisfies JSONSchema;
-//     export type Type = FromSchema<typeof Schema>;
+//     export const Schema = { ... } as const;
+//     export const Node = SchemaNode.defineObject(...);
+//     export type Type = NodeStaticType<typeof Node>;
 //     export function intake(input: unknown): Type { ... }
 //   }
 //
@@ -101,14 +103,14 @@ class UntypedParameter {
       const parameter = parameters[index];
 
       if (UntypedParameter.#isUntyped(context, parameter)) {
-        return parameter as Rule.Node;
+        return parameter;
       }
     }
 
     return undefined;
   }
 
-  static #isUntyped(context: Rule.RuleContext, parameter: unknown): boolean {
+  static #isUntyped(context: Rule.RuleContext, parameter: unknown): parameter is Rule.Node {
     if (!Predicates.isRecord(parameter)) {
       return false;
     }
@@ -144,9 +146,13 @@ namespace IntakeParseOnlyOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'exemptPackages': SchemaNode.defineArray({ 'default': DEFAULT_EXEMPT_PACKAGES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+    'structuralProperties': SchemaNode.defineArray({ 'default': DEFAULT_STRUCTURAL_PROPERTIES, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
@@ -162,8 +168,7 @@ export const intakeParseOnly: Rule.RuleModule = {
     const structuralProperties = new Set(options.structuralProperties);
 
     const inspect = (node: Rule.Node): void => {
-      const raw = node as unknown as Record<string, unknown>;
-      const parameters: unknown = raw.params;
+      const parameters = AstHelpers.getNodeProperty(node, 'params');
 
       if (!Array.isArray(parameters)) {
         return;

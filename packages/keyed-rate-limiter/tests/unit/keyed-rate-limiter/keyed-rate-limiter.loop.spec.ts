@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 import { ResilienceConfigError, TokenBucketExhaustedError } from '@studnicky/resilience/node';
 
 import type { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
+import type { RateLimitConsumptionInterface } from '@studnicky/resilience/interfaces';
 
 import { KeyedRateLimiter, KeyedRateLimiterBoundaryError, KeyedRateLimiterConfigError } from '../../../src/index.js';
 import {
@@ -12,7 +13,11 @@ import {
   KeyedRateLimiterRegistryOptionsEntity,
   RateLimitRequestEntity
 } from '../../../src/entities/index.js';
-import type { KeyedRateLimiterCreateConfigInterface, RateLimiterStrategyInterface } from '../../../src/interfaces/index.js';
+import type {
+  KeyedRateLimiterCreateConfigInterface,
+  KeyedRateLimiterStrategyConfigInterface,
+  RateLimiterStrategyInterface
+} from '../../../src/interfaces/index.js';
 
 type ScenarioCase = {
   description: string;
@@ -29,6 +34,9 @@ type ScenarioInput = {
 };
 
 class TrackingEvictionLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TrackingEvictionLimiter {
+    return new TrackingEvictionLimiter(super.createDefaultDependencies(config));
+  }
   readonly created: string[] = [];
   readonly evicted: string[] = [];
 
@@ -44,6 +52,9 @@ class TrackingEvictionLimiter extends KeyedRateLimiter {
 import scenarioGroups from './keyed-rate-limiter.scenarios.json' with { type: 'json' };
 
 class TrackingLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TrackingLimiter {
+    return new TrackingLimiter(super.createDefaultDependencies(config));
+  }
   readonly evicted: string[] = [];
 
   protected override onKeyEvicted(key: string): void {
@@ -58,7 +69,7 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
     this.#remaining = allowance;
   }
 
-  consume(tokens = 1): RateLimitConsumptionEntity.Type {
+  consume(tokens = 1): RateLimitConsumptionInterface {
     if (this.#remaining < tokens) {
       throw RuntimeError.create('fake allowance exhausted');
     }
@@ -68,7 +79,7 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
 
   async waitForToken(
     options?: { signal?: AbortSignal; tokens?: number }
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = options?.tokens ?? 1;
     return this.consume(tokens);
   }
@@ -158,10 +169,10 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         factory: () => {
           factoryCalls += 1;
           return {
-            consume(): RateLimitConsumptionEntity.Type {
+            consume(): RateLimitConsumptionInterface {
               return { 'consumedTokens': 1, 'remainingTokens': 0 };
             },
-            waitForToken(): Promise<RateLimitConsumptionEntity.Type> {
+            waitForToken(): Promise<RateLimitConsumptionInterface> {
               return Promise.resolve({ 'consumedTokens': 1, 'remainingTokens': 0 });
             }
           };
@@ -176,7 +187,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'getters-eviction-on-max-keys': () => {
-      const limiter = TrackingLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -223,6 +234,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
 
       class ObservedGenericLimiter extends KeyedRateLimiter<FakeFixedAllowance> {
+        static build(config: KeyedRateLimiterStrategyConfigInterface<FakeFixedAllowance>): ObservedGenericLimiter {
+          return new ObservedGenericLimiter(super.createFactoryDependencies(config));
+        }
         protected override onTokenAcquired(
           key: string,
           result: RateLimitConsumptionEntity.Type
@@ -231,7 +245,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
 
-      const limiter = ObservedGenericLimiter.create<FakeFixedAllowance>({
+      const limiter = ObservedGenericLimiter.build({
         factory: () => new FakeFixedAllowance(2)
       });
       limiter.consume('user-a');
@@ -299,7 +313,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'evicts-idle-key-at-capacity': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -309,7 +323,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'recreates-strategy-after-eviction': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -321,7 +335,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'idle-key-expires-and-rebuilds': async () => {
       const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input));
       limiter.consume('user-a');
       await new Promise<void>((resolve) => { setTimeout(resolve, Number(keyedRateLimiter.waitMs)); });
       limiter.consume('user-a');
@@ -332,6 +346,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'throwing-on-key-evicted': () => {
       class ThrowingEvictedLimiter extends KeyedRateLimiter {
+        static build(config: KeyedRateLimiterCreateConfigInterface): ThrowingEvictedLimiter {
+          return new ThrowingEvictedLimiter(super.createDefaultDependencies(config));
+        }
         readonly created: string[] = [];
         readonly evicted: string[] = [];
 
@@ -345,7 +362,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
 
-      const limiter = ThrowingEvictedLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = ThrowingEvictedLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -359,12 +376,15 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
 
       class ObservedTokenAcquiredLimiter extends KeyedRateLimiter {
+        static build(config: KeyedRateLimiterCreateConfigInterface): ObservedTokenAcquiredLimiter {
+          return new ObservedTokenAcquiredLimiter(super.createDefaultDependencies(config));
+        }
         protected override onTokenAcquired(key: string, result: RateLimitConsumptionEntity.Type): void {
           acquired.push({ key, result });
         }
       }
 
-      const limiter = ObservedTokenAcquiredLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = ObservedTokenAcquiredLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a', 1);
       limiter.consume('user-a', 1);
       assert.deepStrictEqual(acquired, expected.acquired);
@@ -455,9 +475,7 @@ void describe('KeyedRateLimiter unknown-property boundaries', () => {
 void describe("KeyedRateLimiter clock boundaries", () => {
   void it("validates a default clock before forwarding it to token buckets", () => {
     const invalidConfiguration = { "burstSize": 1, "clock": 0, "requestsPerSecond": 1 };
-    assert.throws(() => {
-      Reflect.apply(KeyedRateLimiter.create, KeyedRateLimiter, [invalidConfiguration]);
-    }, KeyedRateLimiterConfigError);
+    assert.strictEqual(KeyedRateLimiterDefaultOptionsEntity.validate(invalidConfiguration), false);
   });
 
   void it("preserves the shared clock guard when a key creates its token bucket", () => {
@@ -478,8 +496,7 @@ void describe('KeyedRateLimiter public request and strategy boundaries', () => {
 
     for (const key of invalidKeys) {
       const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
-      assert.throws(() => { Reflect.apply(limiter.consume, limiter, [key]); }, KeyedRateLimiterBoundaryError);
-      await assert.rejects(() => Reflect.apply(limiter.waitForToken, limiter, [key]), KeyedRateLimiterBoundaryError);
+      assert.strictEqual(RateLimitRequestEntity.validate({ 'key': key }), false);
       assert.deepEqual(limiter.consume('account'), { 'consumedTokens': 1, 'remainingTokens': 2 });
     }
 

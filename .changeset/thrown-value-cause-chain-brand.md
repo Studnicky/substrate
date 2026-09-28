@@ -1,0 +1,5 @@
+---
+"@studnicky/errors": patch
+---
+
+`ThrownValueProjection.assemble()` builds the `causes` array element by destructuring a `ThrownValueEntity.Type` node and dropping `causes`/`stack`, then validates the resulting array against `CauseNodeEntity`'s own schema (including its `maxItems` bound) with a type-predicate guard before attaching it, instead of assigning the subtracted array directly. Subtraction produces a structurally similar object, but `CauseNodeEntity.Type` and the `causes` array's `maxItems` bound both carry brands keyed by non-exported `unique symbol`s that only the entity's own compiled validator can mint; a schema addition to `CauseNodeEntity` that the subtraction path doesn't account for would previously flow an invalid cause node through undetected. An assembled chain that fails `CauseNodeEntity`'s schema throws, since that means `Classifier` produced a node its own schema rejects — a genuine invariant break, not a caller error the total `ThrownValueProjection.project()` should paper over silently.

@@ -2,18 +2,22 @@
 
 import type { SemaphoreAcquireOptionsInterface } from '@studnicky/concurrency/interfaces';
 import type { OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
 import type { ScheduledTaskInterface } from '@studnicky/scheduler/interfaces';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
 
-import { Semaphore } from '@studnicky/concurrency/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { EventBus } from '@studnicky/event-bus/node';
-import { RealTimeScheduler } from '@studnicky/scheduler/node';
-import { Predicates } from '@studnicky/types/node';
+import { Semaphore } from '@studnicky/concurrency/browser';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { EventBus } from '@studnicky/event-bus/browser';
+import { RealTimeScheduler } from '@studnicky/scheduler/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
 import type { BoundedDispatcherOperationContextInterface } from './interfaces/BoundedDispatcherOperationContextInterface.js';
 import type { BoundedDispatcherTopicMapInterface } from './interfaces/BoundedDispatcherTopicMapInterface.js';
+
+import { BoundedDispatcherErrorEventEntity } from './entities/BoundedDispatcherErrorEventEntity.js';
+import { BoundedDispatcherStartEventEntity } from './entities/BoundedDispatcherStartEventEntity.js';
+import { BoundedDispatcherSuccessEventEntity } from './entities/BoundedDispatcherSuccessEventEntity.js';
 
 interface BoundedDispatcherDepsInterface<TTopicMap extends BoundedDispatcherTopicMapInterface> {
   readonly 'bus': EventBus<TTopicMap>;
@@ -61,6 +65,9 @@ export class BoundedDispatcher<
     protected override onHookError(): void {}
   };
 
+  /** The dispatch-start payload is invariant, so it is branded once and reused for every dispatch. */
+  static readonly #START_EVENT: BoundedDispatcherStartEventEntity.Type = BoundedDispatcherStartEventEntity.create({ 'phase': 'start' });
+
   /**
    * Creates a new BoundedDispatcher, defaulting any omitted primitive.
    *
@@ -85,7 +92,7 @@ export class BoundedDispatcher<
         ? config.semaphore
         : Semaphore.create(config.semaphore ?? { 'permits': 1 })
     }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;
@@ -129,7 +136,7 @@ export class BoundedDispatcher<
         this.#publicationHooks.invoke(
           'publishDispatchStart',
           (): unknown => {
-            const publication = this.#bus.publish('dispatch', { 'phase': 'start' });
+            const publication = this.#bus.publish('dispatch', BoundedDispatcher.#START_EVENT);
             return publication;
           }
         );
@@ -139,7 +146,7 @@ export class BoundedDispatcher<
           this.#publicationHooks.invoke(
             'publishDispatchSuccess',
             (): unknown => {
-              const publication = this.#bus.publish('dispatch', { 'phase': 'success', 'result': value });
+              const publication = this.#bus.publish('dispatch', { ...BoundedDispatcherSuccessEventEntity.create({ 'phase': 'success' }), 'result': value });
               return publication;
             }
           );
@@ -148,7 +155,7 @@ export class BoundedDispatcher<
           this.#publicationHooks.invoke(
             'publishDispatchError',
             (): unknown => {
-              const publication = this.#bus.publish('dispatch', { 'error': error, 'phase': 'error' });
+              const publication = this.#bus.publish('dispatch', { ...BoundedDispatcherErrorEventEntity.create({ 'phase': 'error' }), 'error': error });
               return publication;
             }
           );

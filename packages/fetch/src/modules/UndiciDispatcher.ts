@@ -73,7 +73,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     this: UndiciDispatcherSubclassInterface<TInstance>,
     agent: Agent | TestDispatcher
   ): TInstance {
-    const result = Reflect.construct(this, [agent]) as object;
+    const result: unknown = Reflect.construct(this, [agent]);
     if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
     }
@@ -227,7 +227,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * await dispatcher.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.agent instanceof TestDispatcher) {
       await this.agent.destroy(options);
       return;
@@ -245,16 +245,16 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   /**
    * Get connection pool statistics for all origins
    *
-   * @returns Frozen record mapping origin URLs to frozen dispatcher statistics
+   * @returns Map of origin URLs to frozen dispatcher statistics conforming to the pool-stats shape
    */
-  getStats(): Readonly<Record<string, unknown>> {
+  getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>> {
     if (this.agent instanceof TestDispatcher) {
       const result = this.agent.getStats();
       return result;
     }
 
     const stats = this.agent.stats;
-    const frozenStats: Record<string, unknown> = {};
+    const frozenStats = new Map<string, Readonly<SocketDispatcherStatsEntity.Type>>();
 
     const originEntries = Object.entries(stats);
     const originEntryLength = originEntries.length;
@@ -264,11 +264,13 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
         continue;
       }
       const [origin, dispatcherStats] = entry;
-      Reflect.set(frozenStats, origin, Object.freeze({ ...dispatcherStats }));
+      if (!SocketDispatcherStatsEntity.validate(dispatcherStats)) {
+        continue;
+      }
+      frozenStats.set(origin, Object.freeze({ ...dispatcherStats }));
     }
 
-    const result = Object.freeze(frozenStats);
-    return result;
+    return frozenStats;
   }
 
 }

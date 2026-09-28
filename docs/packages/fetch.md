@@ -41,6 +41,12 @@ Configure shared `baseURL`, headers, query parameters, timeouts, metadata, reque
 
 ## Entities
 
+`ClientConfigDataEntity.intake` accepts JSON-shaped client configuration fields (`autoGenerateRequestId`, `baseURL`, pool `dispatcher` settings, headers, hook timeout, metadata, default options, and timeout), clones and normalizes them, and rejects invalid data. `FetchClient` translates a failed intake to `ConfigurationError`; query parameters use `QueryParametersEntity` at their own runtime boundary.
+
+`QueryParametersEntity.intake` accepts JSON-safe query scalars and scalar arrays. `UrlQueryString` accepts `QueryParametersInterface`; `undefined` values are omitted while JSON values, including `null`, are serialized. `FetchClient.create({ parameters })` intakes configured parameters once and retains only their canonical JSON-safe representation.
+
+`@studnicky/fetch/entities` exports the package's public schema namespaces, including client and dispatcher configuration, query parameters, request and response metadata, events, and dispatcher health data.
+
 <!-- inline-ts-ok: published import path -->
 ```typescript
 import { ClientConfigDataEntity, QueryParametersEntity } from '@studnicky/fetch/entities';

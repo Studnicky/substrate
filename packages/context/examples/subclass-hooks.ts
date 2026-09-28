@@ -6,10 +6,19 @@ import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 import { Context } from '@studnicky/context/node';
 import assert from 'node:assert/strict';
 
+import { ContextConfigEntity } from '../src/entities/ContextConfigEntity.js';
+import { NodeContextStorage } from '../src/node/NodeContextStorage.js';
+
 /**
  * A Context subclass that automatically seeds `_createdAt` on every scope.
  */
 class AuditContext extends Context {
+  static override create(
+    config: ContextConfigEntity.InputType,
+    storage: NodeContextStorage = new NodeContextStorage()
+  ): AuditContext {
+    return new AuditContext(ContextConfigEntity.create(config), storage);
+  }
   protected override onInitialize(
     _initial: Record<string, unknown> | undefined,
     scope: ContextScopeInterface
@@ -21,7 +30,7 @@ class AuditContext extends Context {
   }
 }
 
-// Context.create uses `new this(config)` so the return type is AuditContext
+// AuditContext.create returns audit contexts with normalized configuration and Node storage.
 const auditContext = AuditContext.create({ 'name': 'audit' });
 
 const scope = auditContext.initialize({ 'operation': 'delete', 'resource': 'user/99' });
@@ -38,12 +47,12 @@ scope.execute(() => {
 
 const snapshot = scope.terminate();
 
-console.log('snapshot keys:', Object.keys(snapshot).toSorted());
+console.log('snapshot keys:', [...snapshot.keys()].toSorted());
 // #endregion usage
 
-assert.equal(snapshot.operation, 'delete');
-assert.equal(snapshot.resource, 'user/99');
-const auditedCreatedAt: unknown = Reflect.get(snapshot, '_createdAt');
+assert.equal(snapshot.get('operation'), 'delete');
+assert.equal(snapshot.get('resource'), 'user/99');
+const auditedCreatedAt = snapshot.get('_createdAt');
 assert.ok(typeof auditedCreatedAt === 'number' && auditedCreatedAt > 0);
 
 console.log('subclass-hooks: all assertions passed');

@@ -1,8 +1,7 @@
 // #region usage
-import type { CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
+import type { CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/node';
 /** observedBoundaryKit — default construction, then direct composition of subclassed primitives. Run: npx tsx examples/observedBoundaryKit.ts */
 import type { RetryConfigInterface, RetryContextInterface } from '@studnicky/retry/interfaces';
-import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
 import { RuntimeError } from '@studnicky/errors/node';
 import { CircuitBreaker } from '@studnicky/resilience/node';
@@ -21,7 +20,7 @@ import { BoundaryKit } from '../src/index.js';
 class TelemetryThrottle extends Throttle {
   readonly acquisitions: number[] = [];
 
-  constructor(config?: Partial<ThrottleConfigEntity.Type>) {
+  constructor(config?: unknown) {
     super(config);
   }
 
@@ -34,8 +33,8 @@ class TelemetryThrottle extends Throttle {
 class TelemetryCircuitBreaker extends CircuitBreaker {
   readonly rejections: number[] = [];
 
-  constructor(options: CircuitBreakerOptionsInterface) {
-    super(options);
+  constructor(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {}) {
+    super(config, collaborators);
   }
 
   protected override onReject(): void {

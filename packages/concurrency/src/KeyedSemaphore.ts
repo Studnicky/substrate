@@ -11,14 +11,14 @@ import { Semaphore } from './Semaphore.js';
  * are removed automatically, so transient keys do not retain coordination state.
  */
 export class KeyedSemaphore<K extends PropertyKey> {
-  static create<K extends PropertyKey>(options: SemaphoreOptionsEntity.Type): KeyedSemaphore<K> {
+  static create<K extends PropertyKey>(options: SemaphoreOptionsEntity.InputType): KeyedSemaphore<K> {
     return new KeyedSemaphore<K>(options);
   }
 
   readonly #options: SemaphoreOptionsEntity.Type;
   readonly #semaphores = new Map<K, Semaphore>();
 
-  private constructor(options: SemaphoreOptionsEntity.Type) {
+  private constructor(options: SemaphoreOptionsEntity.InputType) {
     if (!SemaphoreOptionsEntity.validate(options)) {
       throw new SemaphoreError('Semaphore options must contain a positive integer permits value and a non-negative integer maximumQueueSize when provided.');
     }

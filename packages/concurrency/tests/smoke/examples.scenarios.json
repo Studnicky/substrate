@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "description": "the asyncIter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/asyncIter.ts"
+      },
+      "name": "asyncIter",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the boundedDispatcherComposition example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/boundedDispatcherComposition.ts"
+      },
+      "name": "boundedDispatcherComposition",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the channelSemaphore example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/channelSemaphore.ts"
+      },
+      "name": "channelSemaphore",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the coalesce example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/coalesce.ts"
+      },
+      "name": "coalesce",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the keyedSemaphore example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/keyedSemaphore.ts"
+      },
+      "name": "keyedSemaphore",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedConcurrency example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedConcurrency.ts"
+      },
+      "name": "observedConcurrency",
+      "shape": "imports-example"
+    }
+  ]
+}

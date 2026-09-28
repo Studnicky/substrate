@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/concurrency",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
   "type": "module",
   "sideEffects": false,
@@ -31,7 +31,7 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
@@ -61,15 +61,16 @@
   },
   "dependencies": {
     "@studnicky/circular-buffer": "workspace:*",
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/event-bus": "workspace:*",
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*",
     "@studnicky/scheduler": "workspace:*"
   }
 }

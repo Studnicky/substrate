@@ -1,34 +1,22 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { FileLockConfigError } from '../../src/errors/FileLockConfigError.js';
+import { FileLockConfigErrorScenarioCaseEntity } from './entities/FileLockConfigErrorScenarioCaseEntity.js';
 import scenarioGroups from './FileLockConfigError.scenarios.json' with { type: 'json' };
 
-type ScenarioShape = 'constructs-with-code';
+const fileIntake = ScenarioFileCompiler.compileIntake(FileLockConfigErrorScenarioCaseEntity.Schema, FileLockConfigErrorScenarioCaseEntity.Node);
 
-type ScenarioCase = {
-  description: string;
-  expected: { code: string; message: string };
-  input: { message: string };
-  shape: ScenarioShape;
-  name: string;
-};
+function runCase(scenarioCase: FileLockConfigErrorScenarioCaseEntity.Type): void {
+  const error = new FileLockConfigError(scenarioCase.input.message);
 
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => void> = {
-  'constructs-with-code': (scenarioCase) => {
-    const error = new FileLockConfigError(scenarioCase.input.message);
-
-    assert.strictEqual(error.code, scenarioCase.expected.code);
-    assert.strictEqual(error.message, scenarioCase.expected.message);
-  }
-};
-
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  assert.strictEqual(error.code, scenarioCase.expected.code);
+  assert.strictEqual(error.message, scenarioCase.expected.message);
 }
 
 void describe('FileLockConfigError', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

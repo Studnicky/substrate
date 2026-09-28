@@ -9,6 +9,7 @@ import { JsonValueEntity, PatchOperationsEntity } from '../../../src/entities/in
 import scenarioGroups from './json-behavior.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
+  | 'draft-array-delete'
   | 'draft-array-index'
   | 'draft-array-push'
   | 'draft-array-splice'
@@ -149,6 +150,23 @@ const scenarioRunnerMap = {
     });
     assert.deepEqual(next, scenarioCase.expected.next);
     assert.deepEqual(base, input.base);
+  },
+
+  'draft-array-delete': (scenarioCase) => {
+    const input = readJson(scenarioCase);
+    const base = cloneJsonObject(requiredValue(input, 'base'), 'draft array delete base');
+    const expected = requireJsonObject(scenarioCase.expected, 'draft array delete expected');
+    const deleteIndex = requireNumber(requiredValue(input, 'deleteIndex'), 'draft array delete index');
+    const deleteKey = String(deleteIndex);
+    const next = Draft.produce(base, (draft) => {
+      const items = requireArray(Reflect.get(draft, 'items'), 'draft array delete items');
+      delete items[deleteIndex];
+    });
+    const items = requireArray(Reflect.get(next, 'items'), 'draft array delete result items');
+    assert.deepEqual(JSON.parse(JSON.stringify(next)), expected.next);
+    assert.equal(Object.keys(items).includes(deleteKey), false);
+    assert.equal(deleteKey in items, false);
+    assert.equal(items.length, requireNumber(requiredValue(expected, 'length'), 'draft array delete expected length'));
   },
 
   'draft-array-index': (scenarioCase) => {

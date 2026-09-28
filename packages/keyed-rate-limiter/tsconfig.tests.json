@@ -19,6 +19,9 @@
     },
     {
       "path": "../resilience"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

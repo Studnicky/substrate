@@ -23,9 +23,9 @@ console.log('snapshot:', snapshot);
 console.log(`isActive after terminate: ${context.isActive()}`);
 // #endregion usage
 
-assert.equal(snapshot.requestId, 'req-001');
-assert.equal(snapshot.statusCode, 200);
-assert.equal(snapshot.userId, 'u-42');
+assert.equal(snapshot.get('requestId'), 'req-001');
+assert.equal(snapshot.get('statusCode'), 200);
+assert.equal(snapshot.get('userId'), 'u-42');
 assert.equal(context.isActive(), false);
 
 console.log('basic-context: all assertions passed');

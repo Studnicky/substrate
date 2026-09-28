@@ -1,7 +1,8 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { JsonValueSchema } from '../schema/JsonValueSchema.js';
 import { PatchOperationEntity } from './PatchOperationEntity.js';
@@ -15,10 +16,8 @@ export namespace PatchOperationsEntity {
     'type': 'array'
   } as const;
 
-  export type Type = FromSchema<
-    typeof Schema,
-    { 'deserialize': [{ 'output': readonly PatchOperationEntity.Type[]; 'pattern': { 'title': 'PatchOperations' } }] }
-  >;
+  export const Node = SchemaNode.defineArray({ 'type': 'array' } as const, PatchOperationEntity.Node, undefined);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

@@ -1,57 +1,18 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ConfigurationError } from '@studnicky/config/node';
 
 import { Throttle } from '../../../src/throttle/index.js';
-
-type JsonThrottleConfig = { concurrencyLimit?: number | 'NaN' };
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { concurrencyLimit: 10 };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'default-config';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { concurrencyLimit: 10 };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'missing-concurrency-limit-uses-default';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { concurrencyLimit: number };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'custom-concurrency-limit';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: string };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'invalid-concurrency-limit';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: string };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'invalid-concurrency-limit-nan';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true; defaultAccepted: true };
-      input: { throttle: JsonThrottleConfig };
-      shape: 'accepts-valid-configuration';
-      name: string;
-    };
-
+import { ThrottleConfigEntity } from '../../../src/entities/ThrottleConfigEntity.js';
+import { ConfigurationScenarioCaseEntity } from './entities/ConfigurationScenarioCaseEntity.js';
 import scenarioGroups from './configuration.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = ConfigurationScenarioCaseEntity.Type;
+type JsonThrottleConfig = ScenarioCase['input']['throttle'];
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ConfigurationScenarioCaseEntity.Schema, ConfigurationScenarioCaseEntity.Node);
 
 type ConcurrencyLimitShape = 'missing' | 'nan-token' | 'number';
 type ThrottleConfigResolver = (config: JsonThrottleConfig) => Parameters<typeof Throttle.create>[0];
@@ -116,11 +77,9 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 void describe('Throttle configuration', () => {
   void it('defaults only undefined configuration and rejects null through entity intake', () => {
     assert.doesNotThrow(() => { Throttle.create(undefined); });
-    assert.throws(() => {
-      Reflect.apply(Throttle.create, Throttle, [null]);
-    }, ConfigurationError);
+    assert.strictEqual(ThrottleConfigEntity.validate(null), false);
   });
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

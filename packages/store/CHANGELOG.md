@@ -1,5 +1,19 @@
 # @studnicky/store
 
+## 14.0.0
+
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
+### Patch Changes
+
+- Updated dependencies [06e7613]
+  - @studnicky/mutex@14.0.0
+  - @studnicky/context@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/json@14.0.0
+
 ## 13.0.0
 
 ### Patch Changes

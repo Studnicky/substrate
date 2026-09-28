@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/throttle",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Generic async operation throttle with sliding window concurrency control",
   "type": "module",
   "sideEffects": false,
@@ -33,7 +33,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "license": "MIT",
@@ -71,13 +71,14 @@
     "@studnicky/fsm": "workspace:*",
     "@studnicky/sample-buffer": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/batch": "workspace:*",
     "@studnicky/clock": "workspace:*",
+    "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/resilience": "workspace:*",
-    "@studnicky/retry": "workspace:*"
+    "@studnicky/retry": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
-import { Plugin } from '@studnicky/filters/node';
-import { CosineScorer } from '@studnicky/matching/node';
+import { Plugin } from '@studnicky/filters/browser';
+import { CosineScorer } from '@studnicky/matching/browser';
 
 import { StringNumberMapPredicate } from './predicates/StringNumberMapPredicate.js';
 import { VectorThresholdFilterValuePredicate } from './predicates/VectorThresholdFilterValuePredicate.js';

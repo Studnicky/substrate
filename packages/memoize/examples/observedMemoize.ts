@@ -16,11 +16,11 @@ class TelemetryMemoize extends Memoize<[string], { 'chargeId': string }> {
   }
 
   static tracked(callback: (id: string) => Promise<{ 'chargeId': string }>): TelemetryMemoize {
-    const result = TelemetryMemoize.create(callback, {
-      'capacity': 1000,
-      'keyDeriver': TelemetryMemoize.chargeIdKeyDeriver,
-      'ttlMs': 60_000
-    });
+    const result = TelemetryMemoize.create(
+      callback,
+      { 'capacity': 1000, 'ttlMs': 60_000 },
+      { 'keyDeriver': TelemetryMemoize.chargeIdKeyDeriver }
+    );
     return result;
   }
 

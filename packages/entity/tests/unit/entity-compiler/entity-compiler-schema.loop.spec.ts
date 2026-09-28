@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { EntityCompiler } from '../../../src/EntityCompiler.js';
+import { EntityCompiler } from '../../../src/node/index.js';
 import { SchemaIntakeError } from '../../../src/SchemaIntakeError.js';
 
 void describe('EntityCompiler schema boundaries', () => {
@@ -27,7 +27,7 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.ok(errors !== null && errors !== undefined);
     assert.ok(errors.length > 0);
     assert.equal(errors[0]?.keyword, 'type');
-    assert.equal(errors[0]?.params.missingProperty, undefined);
+    assert.equal(errors[0]?.parameters.missingProperty, undefined);
     assert.equal(EntityCompiler.formatErrors(null), 'invalid payload');
   });
 
@@ -43,7 +43,7 @@ void describe('EntityCompiler schema boundaries', () => {
     const errors = validate.errors;
     assert.ok(errors !== null && errors !== undefined);
     assert.equal(errors[0]?.keyword, 'required');
-    assert.equal(errors[0]?.params.missingProperty, 'port');
+    assert.equal(errors[0]?.parameters.missingProperty, 'port');
   });
 
   void it('fills defaults on an intake clone without coercing values', () => {
@@ -265,5 +265,57 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.throws(() => intake(new Date(0)), SchemaIntakeError);
     assert.throws(() => intake(new Map()), SchemaIntakeError);
     assert.throws(() => intake(new Set()), SchemaIntakeError);
+  });
+
+  void it('resolves a cross-document $ref through compileIntake when remoteSchemas is supplied', () => {
+    const remote = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-rules',
+      'properties': { 'weight': { 'type': 'integer' } },
+      'required': ['weight'],
+      'type': 'object'
+    };
+    const schema = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-intake',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules' } },
+      'required': ['rules'],
+      'type': 'object'
+    };
+    const remoteSchemas = new Map<string, object | boolean>([[remote['$id'], remote]]);
+
+    const intake = EntityCompiler.compileIntake<{ rules: { weight: number } }>(schema, remoteSchemas);
+    assert.deepEqual(intake({ 'rules': { 'weight': 1 } }), { 'rules': { 'weight': 1 } });
+    assert.throws(() => intake({ 'rules': { 'weight': 'heavy' } }), SchemaIntakeError);
+
+    const unresolved = EntityCompiler.compileIntake<{ rules: { weight: number } }>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-intake-unresolved',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules' } },
+      'required': ['rules'],
+      'type': 'object'
+    });
+    assert.throws(() => unresolved({ 'rules': { 'weight': 1 } }), /Unresolvable reference/u);
+  });
+
+  void it('resolves a cross-document $ref through compileCreate when remoteSchemas is supplied', () => {
+    const remote = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create',
+      'properties': { 'weight': { 'default': 1, 'type': 'integer' } },
+      'type': 'object'
+    };
+    const schema = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-create',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create' } },
+      'type': 'object'
+    };
+    const remoteSchemas = new Map<string, object | boolean>([[remote['$id'], remote]]);
+
+    const create = EntityCompiler.compileCreate<{ rules: { weight?: number } }>(schema, remoteSchemas);
+    assert.deepEqual(create({ 'rules': {} }), { 'rules': { 'weight': 1 } });
+
+    const unresolved = EntityCompiler.compileCreate<{ rules: { weight?: number } }>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-create-unresolved',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create' } },
+      'type': 'object'
+    });
+    assert.throws(() => unresolved({ 'rules': {} }), /Unresolvable reference/u);
   });
 });

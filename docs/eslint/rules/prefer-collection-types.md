@@ -14,6 +14,8 @@ Flags four patterns where arrays or plain objects perform worse than `Set` or `M
 
 Set.has is 29× faster than Array.includes on equal-size inputs.
 
+The rule recognizes membership-style `indexOf()` comparisons in any of their equivalent forms: `x.indexOf(y) !== -1`, `x.indexOf(y) === -1` (negated), `x.indexOf(y) > -1`, `x.indexOf(y) < 0`, and `x.indexOf(y) >= 0` (negated). Each of these is treated the same as an `.includes()` call for Patterns A and C.
+
 **Fixable:** No · **Options:** `checkArrayLiterals`, `checkFromEntries`, `checkModuleScopeArrays` · **Suggested severity:** `warn`
 
 ## ✗ Incorrect

@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -5,107 +6,16 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { RuntimeError } from '@studnicky/errors/node';
 
 import { Mutex } from '../../../src/mutex/index.js';
-
+import { CoalescingScenarioCaseEntity } from './entities/CoalescingScenarioCaseEntity.js';
 import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
-function isNumberValue<TValue>(value: TValue): value is TValue & number {
-  return typeof value === 'number';
-}
 
-function isStringValue<TValue>(value: TValue): value is TValue & string {
-  return typeof value === 'string';
-}
 
-type MutexInput = Parameters<typeof Mutex.create>[0];
-type ScenarioInputWithMutex = { mutex?: MutexInput };
+type ScenarioCase = CoalescingScenarioCaseEntity.Type;
+type ScenarioInputWithMutex = { mutex?: { enableCoalescing?: boolean } };
 type BatchInput = { callerCount?: number; perKeyCount?: number };
-type ScenarioInputWithBatch = { batch: BatchInput };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { executionCount: 1; results: readonly ['result', 'result', 'result'] };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string; result: string };
-      shape: 'shares-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { numberResult: number };
-      input: ScenarioInputWithMutex & { delayMs: number; key: string; numberResult: number; stringResult: string };
-      shape: 'validates-each-caller-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { executionCount: 3; results: readonly ['result-1', 'result-2', 'result-3'] };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'no-share-by-default';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { executionCounts: { key1: 1; key2: 1 }; results: readonly ['key1-result', 'key1-result', 'key2-result', 'key2-result'] };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; keys: readonly ['key1', 'key2'] };
-      shape: 'coalesces-per-key';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { executionCount: 2; results: readonly [1, 2] };
-      input: ScenarioInputWithMutex & { key: string };
-      shape: 'allows-new-execution-after-complete';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { executionCount: 1; rejectionMessage: string };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; errorMessage: string; key: string };
-      shape: 'propagates-errors';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { callCount: 2; result: string };
-      input: ScenarioInputWithMutex & { firstErrorMessage: string; key: string; successResult: string };
-      shape: 'allows-retry-after-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { coalescedCount: number; totalExecuted: number };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'stats-coalescedCount-enabled';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { coalescedCount: number; totalExecuted: number };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'stats-coalescedCount-disabled';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { coalescedCount: 2 };
-      input: ScenarioInputWithBatch & ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'stats-coalescedCount-joined';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { firstResult: string; secondResult: string };
-      input: ScenarioInputWithMutex & { delayMs: number; key: string };
-      shape: 'clear-allows-new-operations';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { calls: 2; results: readonly ['result-1', 'result-2'] };
-      input: ScenarioInputWithMutex & { key: string };
-      shape: 'clear-resets-coalescing-state';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(CoalescingScenarioCaseEntity.Schema, CoalescingScenarioCaseEntity.Node);
 
 function createScenarioMutex(input: ScenarioInputWithMutex): Mutex<string> {
   return Mutex.create<string>(input.mutex);
@@ -216,7 +126,7 @@ const runnerMap: {
       }
     }
     const perKeyCount = requirePerKeyCount(scenarioCase.input.batch);
-    const calls = scenarioCase.input.keys.flatMap((key) => createExclusiveCallBatch(
+    const calls = scenarioCase.input.keys.flatMap((key: 'key1' | 'key2') => createExclusiveCallBatch(
       perKeyCount,
       () => mutex.runExclusive(key, Op.for(key))
     ));
@@ -321,20 +231,14 @@ const runnerMap: {
   },
   'validates-each-caller-result': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
-    const acceptsNumber = isNumberValue;
-    const acceptsString = isStringValue;
     const numberResult = mutex.runExclusive(scenarioCase.input.key, async () => {
       await delay(scenarioCase.input.delayMs);
       return scenarioCase.input.numberResult;
-    }, acceptsNumber);
-    const stringResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult, acceptsString);
-    assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
-    await assert.rejects(stringResult, (error) => {
-      assert.ok(error instanceof RuntimeError);
-      assert.strictEqual(error.code, 'errors.runtime');
-      assert.strictEqual(error.message, `Mutex result for key ${scenarioCase.input.key} does not satisfy the requested type`);
-      return true;
     });
+    const joinedResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult);
+
+    assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
+    assert.strictEqual(await joinedResult, scenarioCase.expected.numberResult);
   }
 };
 
@@ -343,7 +247,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Scenar
 }
 
 void describe('Mutex coalescing', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

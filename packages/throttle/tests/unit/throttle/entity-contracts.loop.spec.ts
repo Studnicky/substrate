@@ -1,26 +1,15 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/index.js';
 import { ActiveOperationStateEntity, ThrottleAbortOptionsEntity } from '../../../src/entities/index.js';
+import { EntityContractsScenarioCaseEntity } from './entities/EntityContractsScenarioCaseEntity.js';
 import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'abort-options' }
-  | { name: string; description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'active-operation-state' }
-  | {
-      description: string;
-      expected: {
-        aborted: { code: string; message: string; timeoutMs: number };
-        draining: { code: string; message: string };
-      };
-      input: {
-        aborted: { message: string; timeoutMs: number };
-        draining: { message: string };
-      };
-      shape: 'error-constructors';
-      name: string;
-    };
+type ScenarioCase = EntityContractsScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(EntityContractsScenarioCaseEntity.Schema, EntityContractsScenarioCaseEntity.Node);
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
@@ -52,7 +41,7 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
 }
 
 void describe('Throttle entity contracts', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

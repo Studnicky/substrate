@@ -1,65 +1,14 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import {
   MESSAGE, RULE_NAME
 } from './constants/ObjectSpreadConstants.js';
 
-// SCOPE WAS WRONG IN BOTH DIRECTIONS — narrowed to "this-reaching", and the highest-
-// severity form was added.
-//
-// FALSE POSITIVE (over-broad): the prior revision flagged EVERY object spread anywhere
-// inside a constructor, including a purely local throwaway that never becomes part of the
-// instance under construction:
-//
-//   constructor(extra) { this.tag = 1; const local = { ...extra }; void local; }
-//
-//   node --allow-natives-syntax
-//   %HaveSameMap(new LocalThrowawaySpread({x:1}), new LocalThrowawaySpread({y:2})) -> true
-//
-// `this`'s own shape is untouched by a spread that never reaches it — flagging this
-// statement reported a real allocation cost (measured below) attached to a value that has
-// no bearing on the CONSTRUCTED OBJECT's hidden class, which is what this rule is about.
-//
-// FALSE NEGATIVE (missed the worst case): `Object.assign(this, source)` was explicitly
-// excluded ("assigning onto an existing reference is ordinary property mutation"). That is
-// the highest-severity form measured here — it is the ONLY one of the three shapes below
-// that diverges the CONSTRUCTED INSTANCE's own map:
-//
-//   class ThisAssignMerge  { constructor(extra) { this.tag = 1; Object.assign(this, extra); } }
-//   class ThisAssignSpread { constructor(extra) { this.tag = 1; this.bag = { ...extra }; } }
-//   class LocalThrowawaySpread { constructor(extra) { this.tag = 1; const local = { ...extra }; void local; } }
-//
-//   %HaveSameMap(new ThisAssignMerge({x:1}),  new ThisAssignMerge({y:2}))   -> false  <-- diverges `this` itself
-//   %HaveSameMap(new ThisAssignSpread({x:1}), new ThisAssignSpread({y:2})) -> true   (`this`'s own shape: {tag, bag} — stable; only the nested `bag` object's shape varies)
-//   %HaveSameMap(new LocalThrowawaySpread({x:1}), new LocalThrowawaySpread({y:2})) -> true (this untouched)
-//   %HasFastProperties(new ThisAssignMerge({x:1}))                          -> true  (stays fast — the hazard is divergence, not dictionary mode)
-//
-// So the rule now targets "THIS-REACHING" spreads/assigns — a spread or fresh
-// `Object.assign({}, …)` whose result becomes part of the instance under construction
-// (assigned directly to `this.<name>`, or the initializer of a class field, which the
-// engine treats as an instance-time `this.<name>` assignment) — plus `Object.assign(this,
-// …)` unconditionally, since merging directly onto `this` reaches it by definition and is
-// the highest-severity form (it, uniquely, diverges `this`'s OWN map).
-//
-// Benchmarked creation cost at 5,000,000 calls, median of 7, 3-call warm-up
-// (scratchpad/bench_objectSpread.js):
-//
-//   direct object literal { tag: 1, x: 1, y: 2 }     1.93 ms
-//   object spread { tag: 1, ...extra }             109.43 ms   56.7x
-//
-// WHAT THIS RULE DELIBERATELY DOES NOT MATCH: a spread or `Object.assign({}, …)` whose
-// result is a local value that never flows into `this` — same posture as
-// `array-concat-outside-loops`'s `HelperReachability`: what cannot be proven to reach the
-// object under construction is left to whatever rule targets that value's OWN use
-// (`computed-object-properties` if it is itself a hazard, `dynamic-property-access` if it
-// is read with a variable key later).
-//
-// PAIRED RULE: `conditional-property-assignment`'s `Object.assign(this, cond ? {} : {})`
-// check — that rule additionally requires the two branches to differ to flag; THIS rule
-// flags `Object.assign(this, …)` unconditionally, because ANY non-static source merged
-// directly onto `this` can vary per call, not only a conditionally-branching one.
+// Targets "this-reaching" spreads/assigns plus unconditional `Object.assign(this, …)`.
+// Benchmark and scope rationale: docs/eslint/rules/v8/object-spread.md.
 
 class ClassMemberScope {
   // Nearest enclosing MethodDefinition or PropertyDefinition ancestor of `node`.
@@ -80,12 +29,10 @@ class ClassMemberScope {
   }
 
   public static getMemberName(member: Rule.Node): string | undefined {
-    const raw = member as unknown as Record<string, unknown>;
-
-    if (raw.computed === true) {
+    if (AstHelpers.getNodeProperty(member, 'computed') === true) {
       return undefined;
     }
-    const key = raw.key;
+    const key = AstHelpers.getNodeProperty(member, 'key');
 
     if (!Predicates.isRecord(key) || key.type !== 'Identifier') {
       return undefined;
@@ -97,9 +44,7 @@ class ClassMemberScope {
   }
 
   public static isConstructor(member: Rule.Node): boolean {
-    const raw = member as unknown as Record<string, unknown>;
-
-    const result = member.type === 'MethodDefinition' && raw.kind === 'constructor';
+    const result = member.type === 'MethodDefinition' && AstHelpers.getNodeProperty(member, 'kind') === 'constructor';
 
     return result;
   }
@@ -109,8 +54,7 @@ class ClassMemberScope {
     if (member.type !== 'PropertyDefinition') {
       return false;
     }
-    const raw = member as unknown as Record<string, unknown>;
-    const value = raw.value;
+    const value = AstHelpers.getNodeProperty(member, 'value');
 
     const result = Predicates.isRecord(value) && value.type === 'ArrowFunctionExpression';
 
@@ -118,9 +62,7 @@ class ClassMemberScope {
   }
 
   public static isRegularMethod(member: Rule.Node): boolean {
-    const raw = member as unknown as Record<string, unknown>;
-
-    const result = member.type === 'MethodDefinition' && raw.kind === 'method';
+    const result = member.type === 'MethodDefinition' && AstHelpers.getNodeProperty(member, 'kind') === 'method';
 
     return result;
   }
@@ -132,31 +74,22 @@ class ClassMemberScope {
       return undefined;
     }
 
-    const raw = classBody as unknown as Record<string, unknown>;
-    const body = raw.body;
-
-    if (!Array.isArray(body)) {
-      return undefined;
-    }
-
-    const members = body as readonly unknown[];
+    const members = classBody.body;
     const membersLength = members.length;
 
     for (let index = 0; index < membersLength; index += 1) {
       const item = members.at(index);
 
-      if (Predicates.isRecord(item) && item.type === 'MethodDefinition' && item.kind === 'constructor') {
-        return item as unknown as Rule.Node;
+      if (AstHelpers.isNode(item) && item.type === 'MethodDefinition' && AstHelpers.getNodeProperty(item, 'kind') === 'constructor') {
+        return item;
       }
     }
 
     return undefined;
   }
 
-  // Whether `node` sits in a scope that runs at construction time: directly inside the
-  // constructor, or inside a class-field arrow / regular method that the constructor
-  // calls via `this.<name>(...)` (extract-method / hoisted-field refactors of the same
-  // constructor-time work).
+  // True inside the constructor, or a class-field arrow/regular method the constructor
+  // calls via `this.<name>(...)` — covers extract-method/hoisted-field refactors.
   public static runsAtConstructionTime(node: Rule.Node): boolean {
     const member = ClassMemberScope.findEnclosingMember(node);
 
@@ -186,38 +119,44 @@ class ClassMemberScope {
     }
 
     const result = NodeWalk.someDescendant(constructorNode, (candidate) => {
-      if (candidate.type !== 'CallExpression') {
-        return false;
-      }
-      const callee = candidate.callee;
+      const isMatch = ClassMemberScope.#isThisMethodCall(candidate, name);
 
-      if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
-        return false;
-      }
-      const object = callee.object;
-
-      if (!Predicates.isRecord(object) || object.type !== 'ThisExpression') {
-        return false;
-      }
-      const property = callee.property;
-
-      if (!Predicates.isRecord(property) || property.type !== 'Identifier') {
-        return false;
-      }
-
-      const isNamedMatch = property.name === name;
-
-      return isNamedMatch;
+      return isMatch;
     });
+
+    return result;
+  }
+
+  // True when `candidate` is `this.<name>(...)` — a bare, non-computed member call.
+  static #isThisMethodCall(candidate: Record<string, unknown>, name: string): boolean {
+    if (candidate.type !== 'CallExpression') {
+      return false;
+    }
+    const callee = candidate.callee;
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+      return false;
+    }
+    const object = callee.object;
+
+    if (!Predicates.isRecord(object) || object.type !== 'ThisExpression') {
+      return false;
+    }
+    const property = callee.property;
+
+    if (!Predicates.isRecord(property) || property.type !== 'Identifier') {
+      return false;
+    }
+
+    const result = property.name === name;
 
     return result;
   }
 }
 
 class NodeWalk {
-  // Bounded recursive descendant search over a single function/member body (never the
-  // whole program) — used only to answer "does the constructor call this.<name>(...)?"
-  // Skips the `parent` back-reference to avoid re-walking into sibling/ancestor subtrees.
+  // Bounded to one function/member body, never the whole program; skips `parent` to
+  // avoid re-walking into sibling/ancestor subtrees.
   public static someDescendant(node: unknown, predicate: (candidate: Record<string, unknown>) => boolean): boolean {
     const seen = new Set<unknown>();
 
@@ -249,23 +188,7 @@ class NodeWalk {
           continue;
         }
 
-        if (Array.isArray(value)) {
-          const items = value as readonly unknown[];
-          const itemsLength = items.length;
-          let matched = false;
-
-          for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {
-            if (visit(items.at(itemIndex))) {
-              matched = true; break;
-            }
-          }
-          if (matched) {
-            return true;
-          }
-          continue;
-        }
-
-        if (Predicates.isRecord(value) && visit(value)) {
+        if (NodeWalk.#visitValue(value, visit)) {
           return true;
         }
       }
@@ -277,15 +200,30 @@ class NodeWalk {
 
     return result;
   }
+
+  static #visitValue(value: unknown, visit: (current: unknown) => boolean): boolean {
+    if (Array.isArray(value)) {
+      const items: readonly unknown[] = value;
+      const itemsLength = items.length;
+
+      for (let itemIndex = 0; itemIndex < itemsLength; itemIndex += 1) {
+        if (visit(items.at(itemIndex))) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    const result = Predicates.isRecord(value) && visit(value);
+
+    return result;
+  }
 }
 
 class ThisReaching {
-  // True when `node` (the ObjectExpression/CallExpression producing a throwaway shape) is
-  // itself assigned directly to a `this.<name>` property, or is the initializer of a class
-  // field (which the engine assigns to the instance the same way). Passing the value
-  // through a local variable, a return statement, or any other indirection is NOT proven
-  // this-reaching — resolving toward "not flagged" there, since a false positive here
-  // would (again) report throwaway locals that never touch the constructed instance.
+  // True only when `node` is itself assigned directly to `this.<name>` or initializes
+  // a class field; any indirection (local variable, return statement) is unflagged.
   public static of(node: Rule.Node): boolean {
     const parent = node.parent;
 
@@ -294,33 +232,31 @@ class ThisReaching {
     }
 
     if (parent.type === 'AssignmentExpression' && parent.right === node) {
-      const left = parent.left;
+      const result = ThisReaching.#isThisMemberAssignment(parent.left);
 
-      if (Predicates.isRecord(left) && left.type === 'MemberExpression' && !left.computed) {
-        const object = left.object;
+      return result;
+    }
 
-        if (Predicates.isRecord(object) && object.type === 'ThisExpression') {
-          return true;
-        }
-      }
+    const result = parent.type === 'PropertyDefinition' && parent.value === node && !parent.computed;
 
+    return result;
+  }
+
+  static #isThisMemberAssignment(left: unknown): boolean {
+    if (!Predicates.isRecord(left) || left.type !== 'MemberExpression' || left.computed === true) {
       return false;
     }
+    const object = left.object;
 
-    if (parent.type === 'PropertyDefinition' && parent.value === node && !parent.computed) {
-      return true;
-    }
+    const result = Predicates.isRecord(object) && object.type === 'ThisExpression';
 
-    return false;
+    return result;
   }
 }
 
 class AssignCallShape {
-  // `Object.assign({}, x)` — same hidden-class churn as `{...x}`, no SpreadElement node
-  // to key a selector off of. Only a FRESH object-literal first argument counts here;
-  // `Object.assign(this, x)` is handled separately (see `isThisTargetAssign`) since it
-  // reaches `this` directly and unconditionally, unlike this fresh-target form which still
-  // needs the `ThisReaching` check applied to its RESULT.
+  // `Object.assign({}, x)` has the same hidden-class churn as `{...x}`; only a fresh
+  // object-literal first argument counts. `Object.assign(this, x)` uses `isThisTargetAssign`.
   public static isFreshObjectAssign(node: Record<string, unknown>): boolean {
     if (!AssignCallShape.isObjectAssignCall(node)) {
       return false;
@@ -338,9 +274,8 @@ class AssignCallShape {
     return result;
   }
 
-  // `Object.assign(this, ...)` — merges directly onto the instance under construction.
-  // Reaches `this` by definition; no further `ThisReaching` check is needed or possible
-  // (there is no "result" to trace — the mutation IS the target).
+  // Merges directly onto the instance under construction; no `ThisReaching` check needed
+  // since the mutation IS the target, not a traced result.
   public static isThisTargetAssign(node: Record<string, unknown>): boolean {
     if (!AssignCallShape.isObjectAssignCall(node)) {
       return false;
@@ -400,7 +335,10 @@ export const objectSpread: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const raw = node as unknown as Record<string, unknown>;
+      if (!Predicates.isRecord(node)) {
+        return;
+      }
+      const raw = node;
 
       if (AssignCallShape.isThisTargetAssign(raw)) {
         if (ClassMemberScope.runsAtConstructionTime(node)) {

@@ -1,30 +1,28 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { ConfigurationError } from '@studnicky/config/node';
-import { SchemaIntakeError } from '@studnicky/entity/node';
+import { Clock, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { ConfigurationError } from '@studnicky/config/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker,
   RuntimeError
-} from '@studnicky/errors/node';
-import { TransitionRejectedError } from '@studnicky/fsm/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
-import type { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
 import type { RetryConfigInterface, RetryContextInterface, RetryEventTopicMapInterface, RetryInterface } from '../interfaces/index.js';
 
 import {
-  DEFAULT_MAXIMUM_RETRIES,
   INCREMENT_BY_ONE,
   INITIAL_COUNTER,
   NO_DELAY_MS
 } from '../constants/index.js';
-import { BackoffConfigEntity } from '../entities/BackoffConfigEntity.js';
+import { RequestStatsEntity } from '../entities/RequestStatsEntity.js';
 import { RetryAttemptEventEntity } from '../entities/RetryAttemptEventEntity.js';
 import { RetryConfigEntity } from '../entities/RetryConfigEntity.js';
 import { RetryContextDataEntity } from '../entities/RetryContextDataEntity.js';
@@ -33,11 +31,46 @@ import {
   MaximumRetriesExceededError,
   NonRetryableError
 } from '../errors/index.js';
+import { RetryBackoffStrategyGuard } from './RetryBackoffStrategyGuard.js';
 import { RetryCallMachine } from './RetryCallMachine.js';
 
 interface RetryCallFsmInterface {
   readonly 'state': RetryCallStateEntity.Type;
   transition(to: RetryCallStateEntity.Type): void;
+}
+
+interface RetryConfigOverridesInterface {
+  readonly 'backoffStrategy': RetryConfigInterface['backoffStrategy'];
+  readonly 'clockProvider': RetryConfigInterface['clock'];
+  readonly 'errorClassifier': RetryConfigInterface['errorClassifier'];
+  readonly 'eventSink': RetryConfigInterface['eventSink'];
+}
+
+/** Schema-validated config fields stay branded; collaborators are typed, not schema-derived. */
+interface RetryResolvedConfigInterface extends RetryConfigEntity.Type {
+  readonly 'backoffStrategy'?: RetryConfigInterface['backoffStrategy'];
+  readonly 'clock'?: RetryConfigInterface['clock'];
+  readonly 'errorClassifier'?: RetryConfigInterface['errorClassifier'];
+  readonly 'eventSink'?: RetryConfigInterface['eventSink'];
+}
+
+interface RetryErrorHandlingOptionsInterface {
+  readonly 'attempt': number;
+  readonly 'callFsm': RetryCallFsmInterface;
+  readonly 'error': Error;
+  readonly 'errors': Error[];
+  readonly 'startTime': number;
+  readonly 'state': Record<string, unknown>;
+}
+
+interface RetryPerformOptionsInterface {
+  readonly 'attempt': number;
+  readonly 'callFsm': RetryCallFsmInterface;
+  readonly 'classification': ErrorClassificationEntity.Type;
+  readonly 'error': Error;
+  readonly 'errors': Error[];
+  readonly 'startTime': number;
+  readonly 'state': Record<string, unknown>;
 }
 
 /**
@@ -108,17 +141,10 @@ export class Retry implements RetryInterface {
    * @param config - Optional partial configuration for retry behavior
    * @returns New Retry instance
    */
-  static create<TInstance extends Retry = Retry>(
-    this: typeof Retry & { readonly 'prototype': TInstance },
-    config?: RetryConfigInterface
-  ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(constructed) || !Predicates.isInstanceOf<TInstance>(constructed, this)) {
-      throw RuntimeError.create('Retry.create() must construct a Retry instance');
-    }
-    const result = constructed;
-    return result;
+  static create(config: RetryConfigInterface = {}): Retry {
+    return new Retry(config);
   }
+
   private readonly classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly clock: Clock;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;
@@ -128,15 +154,10 @@ export class Retry implements RetryInterface {
   readonly #callMachine: RetryCallMachine = new RetryCallMachine();
 
   protected readonly hooks: RetryHookInvoker;
-  protected readonly maximumRetries: number;
-  protected readonly maximumElapsedMs: number | undefined;
+  protected readonly maximumRetries: RetryConfigEntity.Type['maximumRetries'];
+  protected readonly maximumElapsedMs: RetryConfigEntity.Type['maximumElapsedMs'];
 
-  protected stats: RequestStatsEntity.Type = {
-    'failedRequests': INITIAL_COUNTER,
-    'successfulRequests': INITIAL_COUNTER,
-    'totalRequests': INITIAL_COUNTER,
-    'totalRetries': INITIAL_COUNTER
-  };
+  protected stats: RequestStatsEntity.Type = Retry.buildInitialStats();
 
   protected constructor(config: RetryConfigInterface = {}) {
     const validated = Retry.validateConfig(config);
@@ -144,7 +165,7 @@ export class Retry implements RetryInterface {
     this.hooks = new RetryHookInvoker(
       validated.hookTimeoutMs === undefined ? undefined : { 'timeoutMs': validated.hookTimeoutMs }
     );
-    this.maximumRetries = validated.maximumRetries ?? DEFAULT_MAXIMUM_RETRIES;
+    this.maximumRetries = validated.maximumRetries;
     this.maximumElapsedMs = validated.maximumElapsedMs;
     this.clock = Clock.create(validated.clock ?? RealTimeClockProvider.create());
     this.defaultClassifier = DefaultHttpErrorClassifier.create();
@@ -165,8 +186,22 @@ export class Retry implements RetryInterface {
     this.classifierCallback = classifierCallback;
   }
 
+  /** Zeroed stats earn their brand via a positive guard — internally built, never externally supplied. */
+  private static buildInitialStats(): RequestStatsEntity.Type {
+    const candidate = {
+      'failedRequests': INITIAL_COUNTER,
+      'successfulRequests': INITIAL_COUNTER,
+      'totalRequests': INITIAL_COUNTER,
+      'totalRetries': INITIAL_COUNTER
+    };
+    if (!RequestStatsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: initial stats failed validation');
+    }
+    return candidate;
+  }
+
   /** Validates retry configuration at the construction boundary. */
-  private static validateConfig(config: RetryConfigInterface): RetryConfigInterface {
+  private static validateConfig(config: RetryConfigInterface): RetryResolvedConfigInterface {
     try {
       if (!Predicates.isObject(config)) {
         throw ConfigurationError.create('config must be an object');
@@ -180,49 +215,18 @@ export class Retry implements RetryInterface {
         ...configData
       } = config;
 
-      if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
-        throw ConfigurationError.create('clock must implement ClockProviderInterface');
-      }
-
-      if (backoffStrategy !== undefined) {
-        if (!Predicates.isObject(backoffStrategy)) {
-          throw ConfigurationError.create('backoffStrategy must be an object with strategy and baseDelayMs');
-        }
-
-        const strategy: unknown = Reflect.get(backoffStrategy, 'strategy');
-        if (!Predicates.isFunction(strategy)) {
-          throw ConfigurationError.create('backoffStrategy.strategy must be a function');
-        }
-
-        const baseDelayMs: unknown = Reflect.get(backoffStrategy, 'baseDelayMs');
-        BackoffConfigEntity.intake({ 'baseDelayMs': baseDelayMs });
-      }
-
-      if (eventSink !== undefined) {
-        if (!Predicates.isObject(eventSink) || !Predicates.isFunction(Reflect.get(eventSink, 'publish'))) {
-          throw ConfigurationError.create('eventSink must implement EventSinkInterface');
-        }
-      }
-
-      if (errorClassifier !== undefined && !Predicates.isFunction(errorClassifier)) {
-        if (!Predicates.isObject(errorClassifier)) {
-          throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
-        }
-
-        const classify: unknown = Reflect.get(errorClassifier, 'classify');
-        if (!Predicates.isFunction(classify)) {
-          throw ConfigurationError.create('errorClassifier.classify must be a function');
-        }
-      }
+      Retry.validateClockProvider(clockProvider);
+      Retry.validateBackoffStrategy(backoffStrategy);
+      Retry.validateEventSink(eventSink);
+      Retry.validateErrorClassifier(errorClassifier);
 
       const parsed = RetryConfigEntity.intake(configData);
-      const result: RetryConfigInterface = {
-        ...parsed,
-        ...(backoffStrategy === undefined ? {} : { 'backoffStrategy': backoffStrategy }),
-        ...(clockProvider === undefined ? {} : { 'clock': clockProvider }),
-        ...(errorClassifier === undefined ? {} : { 'errorClassifier': errorClassifier }),
-        ...(eventSink === undefined ? {} : { 'eventSink': eventSink })
-      };
+      const result = Retry.mergeValidatedConfig(parsed, {
+        'backoffStrategy': backoffStrategy,
+        'clockProvider': clockProvider,
+        'errorClassifier': errorClassifier,
+        'eventSink': eventSink
+      });
       return result;
     } catch (error) {
       if (error instanceof SchemaIntakeError) {
@@ -230,6 +234,46 @@ export class Retry implements RetryInterface {
       }
       throw error;
     }
+  }
+
+  private static validateClockProvider(clockProvider: RetryConfigInterface['clock']): void {
+    if (clockProvider !== undefined && (!Predicates.isFunction(clockProvider.hrtime) || !Predicates.isFunction(clockProvider.now))) {
+      throw ConfigurationError.create('clock must implement ClockProviderInterface');
+    }
+  }
+
+  private static validateBackoffStrategy(backoffStrategy: RetryConfigInterface['backoffStrategy']): void {
+    RetryBackoffStrategyGuard.validate({ 'backoffStrategy': backoffStrategy });
+  }
+
+  private static validateEventSink(eventSink: RetryConfigInterface['eventSink']): void {
+    if (eventSink !== undefined && (!Predicates.isObject(eventSink) || !Predicates.isFunction(Reflect.get(eventSink, 'publish')))) {
+      throw ConfigurationError.create('eventSink must implement EventSinkInterface');
+    }
+  }
+
+  private static validateErrorClassifier(errorClassifier: RetryConfigInterface['errorClassifier']): void {
+    if (errorClassifier === undefined || Predicates.isFunction(errorClassifier)) {
+      return;
+    }
+    if (!Predicates.isObject(errorClassifier)) {
+      throw ConfigurationError.create('errorClassifier must be a function or an object with classify');
+    }
+
+    const classify: unknown = Reflect.get(errorClassifier, 'classify');
+    if (!Predicates.isFunction(classify)) {
+      throw ConfigurationError.create('errorClassifier.classify must be a function');
+    }
+  }
+
+  private static mergeValidatedConfig(parsed: RetryConfigEntity.Type, overrides: RetryConfigOverridesInterface): RetryResolvedConfigInterface {
+    return {
+      ...parsed,
+      ...(overrides.backoffStrategy === undefined ? {} : { 'backoffStrategy': overrides.backoffStrategy }),
+      ...(overrides.clockProvider === undefined ? {} : { 'clock': overrides.clockProvider }),
+      ...(overrides.errorClassifier === undefined ? {} : { 'errorClassifier': overrides.errorClassifier }),
+      ...(overrides.eventSink === undefined ? {} : { 'eventSink': overrides.eventSink })
+    };
   }
 
   /**
@@ -375,7 +419,14 @@ export class Retry implements RetryInterface {
       }
 
       errors.push(outcome.error);
-      await this.handleError(callFsm, attempt, outcome.error, errors, startTime, state);
+      await this.handleError({
+        'attempt': attempt,
+        'callFsm': callFsm,
+        'error': outcome.error,
+        'errors': errors,
+        'startTime': startTime,
+        'state': state
+      });
     }
   }
 
@@ -419,14 +470,8 @@ export class Retry implements RetryInterface {
   /**
    * Handle error during execution.
    */
-  private async handleError(
-    callFsm: RetryCallFsmInterface,
-    attempt: number,
-    error: Error,
-    errors: Error[],
-    startTime: number,
-    state: Record<string, unknown>
-  ): Promise<void> {
+  private async handleError(options: RetryErrorHandlingOptionsInterface): Promise<void> {
+    const { attempt, callFsm, error, errors, startTime, state } = options;
     const classification = this.classifierCallback(error, attempt);
 
     if (!classification.retryable) {
@@ -440,7 +485,15 @@ export class Retry implements RetryInterface {
 
     // performRetry transitions FSM: attempting → waiting, then checks budget,
     // then (if budget remains) sleeps and transitions waiting → attempting.
-    await this.performRetry(callFsm, attempt, error, classification, errors, startTime, state);
+    await this.performRetry({
+      'attempt': attempt,
+      'callFsm': callFsm,
+      'classification': classification,
+      'error': error,
+      'errors': errors,
+      'startTime': startTime,
+      'state': state
+    });
   }
 
   /**
@@ -538,15 +591,9 @@ export class Retry implements RetryInterface {
    * (waiting → exhausted) and lifecycle hook abort (waiting → aborted) before
    * sleeping and transitioning waiting → attempting for the next loop iteration.
    */
-  private async performRetry(
-    callFsm: RetryCallFsmInterface,
-    attempt: number,
-    error: Error,
-    classification: ErrorClassificationEntity.Type,
-    errors: Error[],
-    startTime: number,
-    state: Record<string, unknown>
-  ): Promise<void> {
+  private async performRetry(options: RetryPerformOptionsInterface): Promise<void> {
+    const { attempt, callFsm, classification, error, errors, startTime, state } = options;
+
     // Enter waiting state before any budget or abort checks so that terminal
     // transitions (exhausted, aborted) always come from 'waiting'.
     callFsm.transition({ 'variant': 'waiting' });
@@ -609,12 +656,7 @@ export class Retry implements RetryInterface {
    * Reset statistics counters.
    */
   resetStats(): void {
-    this.stats = {
-      'failedRequests': INITIAL_COUNTER,
-      'successfulRequests': INITIAL_COUNTER,
-      'totalRequests': INITIAL_COUNTER,
-      'totalRetries': INITIAL_COUNTER
-    };
+    this.stats = Retry.buildInitialStats();
   }
 
 }

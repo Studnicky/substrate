@@ -1,92 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
+
+import { DispatcherHealthScenarioCaseEntity } from './entities/DispatcherHealthScenarioCaseEntity.js';
 import scenarioGroups from './dispatcher-health.scenarios.json' with { type: 'json' };
 
-type EmptyStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: false; objectKeys: number };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
+type ScenarioCase = DispatcherHealthScenarioCaseEntity.Type;
 
-type FrozenStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: true };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
-
-type TestTransportScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
-  input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCase =
-  | EmptyStatsScenarioCase<'empty-stats'>
-  | EmptyStatsScenarioCase<'stats-object-after-requests'>
-  | EmptyStatsScenarioCase<'structure-after-get-stats'>
-  | FrozenStatsScenarioCase<'frozen-stats-object'>
-  | FrozenStatsScenarioCase<'deeply-frozen-stats'>
-  | {
-      description: string;
-      expected: { healthy: true; queueRatio: '__UNDEFINED__'; recommendation: '__UNDEFINED__'; stats: '__UNDEFINED__' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-non-existent-origin';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; objectKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-new-dispatcher';
-      name: string;
-    }
-  | TestTransportScenarioCase<'test-transport-overloaded'>
-  | TestTransportScenarioCase<'test-transport-pressure'>
-  | {
-      description: string;
-      expected: { healthyType: 'boolean'; queueRatioType: 'number-or-undefined'; recommendationType: 'string-or-undefined'; statsType: 'object-or-undefined' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'health-interface-shape';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { closed: true };
-      input: { dispatcher: { connections: number } };
-      shape: 'close-after-idle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { destroyedAfterWait: true };
-      input: { destroy: { timeout: number }; dispatcher: { connections: number } };
-      shape: 'destroy-with-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: Record<string, never>;
-      shape: 'reject-invalid-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; statsKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'test-transport-delegates';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(DispatcherHealthScenarioCaseEntity.Schema, DispatcherHealthScenarioCaseEntity.Node);
 
 function createDispatcher(config: { connections: number }): UndiciDispatcher {
   const agent = DispatcherAgent.create(config);
@@ -114,9 +39,8 @@ const runnerMap: RunnerMap = {
   'empty-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
-    assert.equal(typeof stats, 'object');
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    assert.equal(Object.isFrozen(stats), true);
+    assert.ok(stats instanceof Map);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
     await dispatcher.destroy();
   },
   'stats-object-after-requests': async (scenarioCase) => {
@@ -129,10 +53,9 @@ const runnerMap: RunnerMap = {
       const origin = 'http://127.0.0.1:41234';
       await agent.fetch(`${origin}/ok`, {});
       const stats = dispatcher.getStats();
-      assert.equal(typeof stats, 'object');
-      assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-      assert.ok(origin in stats, 'stats must key the origin that actually issued a request');
-      assert.equal(Object.isFrozen(stats), true);
+      assert.ok(stats instanceof Map);
+      assert.equal(stats.size, scenarioCase.expected.objectKeys);
+      assert.ok(stats.has(origin), 'stats must key the origin that actually issued a request');
       await dispatcher.destroy();
     } finally {
       if (previous === undefined) {
@@ -145,22 +68,15 @@ const runnerMap: RunnerMap = {
   'frozen-stats-object': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
-    assert.ok(Object.isFrozen(stats));
-    assert.throws(() => {
-      Object.assign(stats, { 'new-origin': { test: 'value' } });
-    }, TypeError);
-    assert.equal(Object.isFrozen(stats), scenarioCase.expected.frozen);
+    const allValuesFrozen = [...stats.values()].every((entry) => Object.isFrozen(entry));
+    assert.equal(allValuesFrozen, scenarioCase.expected.frozen);
     await dispatcher.destroy();
   },
   'deeply-frozen-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
-    assert.ok(Object.isFrozen(stats));
-    const attemptMutation = (): void => {
-      Object.assign(stats, { test: 'value' });
-    };
-    assert.throws(attemptMutation, TypeError);
-    assert.equal(Object.isFrozen(stats), scenarioCase.expected.frozen);
+    const allValuesFrozen = [...stats.values()].every((entry) => Object.isFrozen(entry));
+    assert.equal(allValuesFrozen, scenarioCase.expected.frozen);
     await dispatcher.destroy();
   },
   'healthy-non-existent-origin': async (scenarioCase) => {
@@ -175,7 +91,7 @@ const runnerMap: RunnerMap = {
   'healthy-new-dispatcher': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
     const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
     assert.equal(health.healthy, scenarioCase.expected.healthy);
     await dispatcher.destroy();
@@ -267,7 +183,7 @@ const runnerMap: RunnerMap = {
       assert.equal(health.queueRatio, undefined);
       assert.equal(health.recommendation, undefined);
       assert.equal(health.stats, undefined);
-      assert.equal(Object.keys(dispatcher.getStats()).length, scenarioCase.expected.statsKeys);
+      assert.equal(dispatcher.getStats().size, scenarioCase.expected.statsKeys);
       await dispatcher.close();
       await dispatcher.destroy({ timeout: 1 });
     } finally {
@@ -281,10 +197,10 @@ const runnerMap: RunnerMap = {
   'structure-after-get-stats': async (scenarioCase) => {
     const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
     const stats = dispatcher.getStats();
-    assert.equal(typeof stats, 'object');
-    assert.ok(Object.isFrozen(stats));
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    assert.equal(Object.isFrozen(stats), true);
+    assert.ok(stats instanceof Map);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
+    const allValuesFrozen = [...stats.values()].every((entry) => Object.isFrozen(entry));
+    assert.equal(allValuesFrozen, scenarioCase.expected.frozen);
     await dispatcher.destroy();
   }
 };
@@ -294,7 +210,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('dispatcher health monitoring', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

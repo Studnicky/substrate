@@ -1,3 +1,5 @@
+import { JsonObject } from '../guards/JsonObject.js';
+
 /**
  * Strips `undefined`-valued own enumerable properties from a record. Keys whose
  * input types exclude `undefined` remain required; keys that may contain
@@ -14,14 +16,15 @@ export class PickDefined {
   public static from(record: Record<string, unknown>): Partial<Record<string, unknown>> {
     const keys = Object.keys(record);
     const length = keys.length;
-    const result: Partial<Record<string, unknown>> = {};
+    const entries = new Map<string, unknown>();
     for (let index = 0; index < length; index += 1) {
       const key = keys[index]!;
       const value: unknown = Reflect.get(record, key);
       if (value !== undefined) {
-        Reflect.set(result, key, value);
+        entries.set(key, value);
       }
     }
+    const result = JsonObject.fromEntries(entries);
     return result;
   }
 }

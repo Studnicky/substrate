@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/context",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Async context isolation for Node and browser code",
   "type": "module",
   "sideEffects": false,
@@ -41,7 +41,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
@@ -75,8 +75,11 @@
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1",
     "rollup": "^4.63.1",
     "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

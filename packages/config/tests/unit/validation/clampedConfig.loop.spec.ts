@@ -3,50 +3,14 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
-import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
+import { ClampedConfigScenarioCaseEntity } from '../entities/ClampedConfigScenarioCaseEntity.js';
+
 import scenarioGroups from './clampedConfig.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'absent-field-untouched'
-  | 'async-throwing-hook-is-contained'
-  | 'clamp-above-max'
-  | 'clamp-below-min'
-  | 'default-hook-noop'
-  | 'in-range-untouched'
-  | 'nan-field-untouched-no-hook'
-  | 'non-numeric-field-untouched'
-  | 'on-clamp-fires'
-  | 'on-clamp-multi-field'
-  | 'on-clamp-skipped-in-range'
-  | 'returns-new-object'
-  | 'throwing-hook-preserves-input'
-  | 'throwing-hook-preserves-result'
-  | 'unruled-field-untouched';
+type ScenarioCase = ClampedConfigScenarioCaseEntity.Type['cases'][number];
 
-type ClampInput = {
-  readonly config: Record<string, unknown>;
-  readonly rules: Readonly<Record<string, ClampRuleEntity.Type>>;
-};
-
-type ScenarioExpected = {
-  readonly event?: ClampEventEntity.Type;
-  readonly eventCount?: number;
-  readonly eventFields?: readonly string[];
-  readonly hookInvoked?: boolean;
-  readonly input?: Record<string, unknown>;
-  readonly rejectionCount?: number;
-  readonly result: Record<string, unknown>;
-  readonly sameRef?: boolean;
-};
-
-type ScenarioCase = {
-  readonly description: string;
-  readonly expected: ScenarioExpected;
-  readonly input: ClampInput;
-  readonly shape: ScenarioShape;
-  readonly name: string;
-};
+type ScenarioShape = ScenarioCase['shape'];
 
 type CapturedClampResult = {
   readonly events: readonly ClampEventEntity.Type[];
@@ -55,11 +19,11 @@ type CapturedClampResult = {
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
-const typedScenarioGroups = scenarioGroups as { readonly cases: readonly ScenarioCase[] };
+const typedScenarioGroups = ClampedConfigScenarioCaseEntity.intake(scenarioGroups);
 
 function applyClamp<T extends Record<string, unknown>>(
   config: T,
-  rules: Readonly<Record<string, ClampRuleEntity.Type>>
+  rules: ScenarioCase['input']['rules']
 ): T {
   return ClampedConfig.apply(config, rules);
 }

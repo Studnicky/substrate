@@ -43,10 +43,17 @@ export class PluginError extends FilterError {
     this.details = this.context;
 
     // Initialize all properties unconditionally for V8 optimization (maintaining hidden classes)
-    this.pluginType = ('pluginType' in details && details.pluginType !== undefined && details.pluginType !== '') ? details.pluginType : null;
-    this.itemName = ('name' in details && details.name !== undefined && details.name !== '') ? details.name : null;
-    this.namespace = ('namespace' in details && details.namespace !== undefined && details.namespace !== '') ? details.namespace : null;
+    this.pluginType = PluginError.resolveStringField(details, 'pluginType');
+    this.itemName = PluginError.resolveStringField(details, 'name');
+    this.namespace = PluginError.resolveStringField(details, 'namespace');
     this.availableItems = ('availableItems' in details && details.availableItems !== undefined) ? details.availableItems : null;
+  }
+
+  private static resolveStringField(details: PluginErrorDetailsInterface, key: 'name' | 'namespace' | 'pluginType'): string | null {
+    const value = details[key];
+    const result = (key in details && value !== undefined && value !== '') ? value : null;
+
+    return result;
   }
 
   protected override serializeExtra(): Record<string, unknown> {

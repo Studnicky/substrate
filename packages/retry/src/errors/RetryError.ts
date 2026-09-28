@@ -1,5 +1,7 @@
-import { BaseError, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
+
+import { BaseError, RuntimeError } from '@studnicky/errors/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 
@@ -8,6 +10,10 @@ import { EMPTY_LENGTH } from '../constants/index.js';
 /** Creates detached diagnostic graphs without retaining caller-owned values. */
 class RetryDiagnosticSnapshot {
   static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
+    if (!Predicates.isError(error)) {
+      throw new TypeError('RetryDiagnosticSnapshot.error requires an Error value.');
+    }
+
     const snapshot = this.object(error, seen);
 
     if (!(Predicates.isError(snapshot))) {
@@ -18,77 +24,72 @@ class RetryDiagnosticSnapshot {
   }
 
   private static object(value: object, seen: WeakMap<object, unknown>): object {
-    if (seen.has(value)) {
-      const result = seen.get(value);
-
-      if (result === undefined || !Predicates.isObjectLikeOrFunction(result)) {
-        throw RuntimeError.create('Retry diagnostic snapshot must preserve object values.');
-      }
-      return result;
+    const cached = RetryDiagnosticSnapshot.resolveCached(value, seen);
+    if (cached !== undefined) {
+      return cached;
     }
-
     if (Predicates.isError(value)) {
-      const snapshot = RuntimeError.create(value.message, { 'cause': undefined });
-
-      seen.set(value, snapshot);
-      snapshot.name = value.name;
-      const propertyKeys = Reflect.ownKeys(value);
-      const propertyKeyLength = propertyKeys.length;
-
-      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
-        const key = propertyKeys[propertyKeyIndex]!;
-        const propertyValue: unknown = Reflect.get(value, key);
-
-        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
-        } else {
-          Reflect.set(snapshot, key, propertyValue);
-        }
-      }
-
+      const snapshot = RetryDiagnosticSnapshot.snapshotError(value, seen);
       return snapshot;
     }
-
     if (Predicates.isArray(value)) {
-      const snapshot: unknown[] = [];
-
-      seen.set(value, snapshot);
-      const length = value.length;
-
-      for (let index = 0; index < length; index += 1) {
-        const entry: unknown = value[index];
-
-        if (Predicates.isObjectLikeOrFunction(entry)) {
-          snapshot.push(RetryDiagnosticSnapshot.object(entry, seen));
-        } else {
-          snapshot.push(entry);
-        }
-      }
-
+      const snapshot = RetryDiagnosticSnapshot.snapshotArray(value, seen);
       return snapshot;
     }
-
     if (Predicates.isPlainObject(value)) {
-      const snapshot: Record<string, unknown> = {};
-
-      seen.set(value, snapshot);
-      const propertyKeys = Reflect.ownKeys(value);
-      const propertyKeyLength = propertyKeys.length;
-
-      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
-        const key = propertyKeys[propertyKeyIndex]!;
-        const propertyValue: unknown = Reflect.get(value, key);
-
-        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
-        } else {
-          Reflect.set(snapshot, key, propertyValue);
-        }
-      }
-
+      const snapshot = RetryDiagnosticSnapshot.snapshotPlainObject(value, seen);
       return snapshot;
     }
+    const snapshot = RetryDiagnosticSnapshot.snapshotStructured(value, seen);
+    return snapshot;
+  }
 
+  /** Returns the prior snapshot for an already-visited value, or undefined when unseen. */
+  private static resolveCached(value: object, seen: WeakMap<object, unknown>): object | undefined {
+    if (!seen.has(value)) {
+      return undefined;
+    }
+    const result = seen.get(value);
+
+    if (result === undefined || !Predicates.isObjectLikeOrFunction(result)) {
+      throw RuntimeError.create('Retry diagnostic snapshot must preserve object values.');
+    }
+    return result;
+  }
+
+  private static snapshotError(value: Error, seen: WeakMap<object, unknown>): object {
+    const snapshot = RuntimeError.create(value.message, { 'cause': undefined });
+
+    seen.set(value, snapshot);
+    snapshot.name = value.name;
+    RetryDiagnosticSnapshot.copyProperties(value, snapshot, seen);
+
+    return snapshot;
+  }
+
+  private static snapshotArray(value: readonly unknown[], seen: WeakMap<object, unknown>): object {
+    const snapshot: unknown[] = [];
+
+    seen.set(value, snapshot);
+    const length = value.length;
+
+    for (let index = 0; index < length; index += 1) {
+      snapshot.push(RetryDiagnosticSnapshot.snapshotValue(value[index], seen));
+    }
+
+    return snapshot;
+  }
+
+  private static snapshotPlainObject(value: object, seen: WeakMap<object, unknown>): object {
+    const snapshot: Record<string, unknown> = {};
+
+    seen.set(value, snapshot);
+    RetryDiagnosticSnapshot.copyProperties(value, snapshot, seen);
+
+    return snapshot;
+  }
+
+  private static snapshotStructured(value: object, seen: WeakMap<object, unknown>): object {
     try {
       const snapshot: object = structuredClone(value);
 
@@ -99,22 +100,27 @@ class RetryDiagnosticSnapshot {
       const snapshot: Record<string, unknown> = {};
 
       seen.set(value, snapshot);
-      const propertyKeys = Reflect.ownKeys(value);
-      const propertyKeyLength = propertyKeys.length;
-
-      for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
-        const key = propertyKeys[propertyKeyIndex]!;
-        const propertyValue: unknown = Reflect.get(value, key);
-
-        if (Predicates.isObjectLikeOrFunction(propertyValue)) {
-          Reflect.set(snapshot, key, RetryDiagnosticSnapshot.object(propertyValue, seen));
-        } else {
-          Reflect.set(snapshot, key, propertyValue);
-        }
-      }
+      RetryDiagnosticSnapshot.copyProperties(value, snapshot, seen);
 
       return snapshot;
     }
+  }
+
+  private static copyProperties(source: object, target: object, seen: WeakMap<object, unknown>): void {
+    const propertyKeys = Reflect.ownKeys(source);
+    const propertyKeyLength = propertyKeys.length;
+
+    for (let propertyKeyIndex = 0; propertyKeyIndex < propertyKeyLength; propertyKeyIndex += 1) {
+      const key = propertyKeys[propertyKeyIndex]!;
+      const propertyValue: unknown = Reflect.get(source, key);
+
+      JsonObject.write(target, key, RetryDiagnosticSnapshot.snapshotValue(propertyValue, seen));
+    }
+  }
+
+  private static snapshotValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
+    const result = Predicates.isObjectLikeOrFunction(value) ? RetryDiagnosticSnapshot.object(value, seen) : value;
+    return result;
   }
 }
 
@@ -167,13 +173,26 @@ export class RetryError extends BaseError {
     options?: RetryErrorOptionsInterface
   ) {
     const cause = options?.cause;
-    const code = options?.code ?? 'retry.failed';
-    const errors = options?.errors ?? [];
     const seen = new WeakMap<object, unknown>();
     const causeSnapshot = cause === undefined ? undefined : RetryDiagnosticSnapshot.error(cause, seen);
+    const errorSnapshots = RetryError.buildErrorSnapshots(options?.errors ?? [], causeSnapshot, seen);
 
-    let errorSnapshots: readonly Error[];
+    // `cause` is deliberately absent as an own property: this class exposes the cause
+    // through `#causeSnapshot` projection, and an own `cause` would shadow it. Withholding
+    // it from `BaseError` is what achieves that — `BaseError` installs `cause` only when
+    // the value is defined — so the detached-projection contract holds with no property to
+    // remove afterwards. `instantiation.loop.spec.ts` covers the contract.
+    super(RetryError.buildBaseErrorOptions(message, options));
+    this.#causeSnapshot = causeSnapshot;
+    this.#errors = errorSnapshots;
+    this.attempts = attempts;
+  }
 
+  private static buildErrorSnapshots(
+    errors: readonly Error[],
+    causeSnapshot: Error | undefined,
+    seen: WeakMap<object, unknown>
+  ): readonly Error[] {
     if (errors.length > EMPTY_LENGTH) {
       const snapshots: Error[] = [];
       const errorLength = errors.length;
@@ -184,30 +203,38 @@ export class RetryError extends BaseError {
         snapshots.push(RetryDiagnosticSnapshot.error(error, seen));
       }
       const result = Object.freeze(snapshots);
-
-      errorSnapshots = result;
-    } else if (causeSnapshot !== undefined) {
-      errorSnapshots = Object.freeze([causeSnapshot]);
-    } else {
-      errorSnapshots = Object.freeze([]);
+      return result;
     }
+    if (causeSnapshot !== undefined) {
+      const result = Object.freeze([causeSnapshot]);
+      return result;
+    }
+    const result = Object.freeze([]);
+    return result;
+  }
 
-    // `cause` is deliberately absent as an own property: this class exposes the cause
-    // through `#causeSnapshot` projection, and an own `cause` would shadow it. Withholding
-    // it from `BaseError` is what achieves that — `BaseError` installs `cause` only when
-    // the value is defined — so the detached-projection contract holds with no property to
-    // remove afterwards. `instantiation.loop.spec.ts` covers the contract.
-    super({
-      'code': code,
-      ...(options?.correlationId === undefined ? {} : { 'correlationId': options.correlationId }),
-      ...(options?.instance === undefined ? {} : { 'instance': options.instance }),
+  private static buildBaseErrorOptions(
+    message: string,
+    options?: RetryErrorOptionsInterface
+  ): Readonly<BaseErrorArgumentsInterface> {
+    const resolvedOptions = options ?? {};
+    const base: BaseErrorArgumentsInterface = {
+      'code': resolvedOptions.code ?? 'retry.failed',
       'message': message,
-      ...(options?.metadata === undefined ? {} : { 'metadata': options.metadata }),
-      'retryable': false,
-      ...(options?.status === undefined ? {} : { 'status': options.status })
-    });
-    this.#causeSnapshot = causeSnapshot;
-    this.#errors = errorSnapshots;
-    this.attempts = attempts;
+      'retryable': false
+    };
+    if (resolvedOptions.correlationId !== undefined) {
+      base.correlationId = resolvedOptions.correlationId;
+    }
+    if (resolvedOptions.instance !== undefined) {
+      base.instance = resolvedOptions.instance;
+    }
+    if (resolvedOptions.metadata !== undefined) {
+      base.metadata = resolvedOptions.metadata;
+    }
+    if (resolvedOptions.status !== undefined) {
+      base.status = resolvedOptions.status;
+    }
+    return base;
   }
 }

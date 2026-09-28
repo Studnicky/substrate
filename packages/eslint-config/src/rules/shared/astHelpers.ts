@@ -1,12 +1,10 @@
+import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
-// `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configurations and
-// `WeakMap`-shaped under others (e.g. `@typescript-eslint/parser`'s
-// `projectService`/`allowDefaultProject` mode) — both expose the same `.get()`
-// API this rule set actually consumes, so the contract is duck-typed on that
-// method rather than pinned to the `Map` constructor.
+// `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configs and `WeakMap`-shaped
+// under others; duck-typed on `.get()` rather than pinned to the `Map` constructor.
 interface EsTreeToTsNodeMapLikeInterface {
   get(key: unknown): ts.Node | undefined;
 }
@@ -37,11 +35,24 @@ export class AstHelpers {
     return result;
   }
 
-  /**
-   * Visits every descendant of `node` (not `node` itself), recursing through own-enumerable
-   * object and array properties. Skips `parent` so a node whose `.parent` back-reference has
-   * already been set by ESLint's own traversal never sends this walk back up the tree.
-   */
+  /** True for anything ESLint's traverser hands out — a real ESTree node always has a string `type`. */
+  public static isNode(value: unknown): value is Rule.Node {
+    const result = Predicates.isRecord(value) && typeof value.type === 'string';
+    return result;
+  }
+
+  // ESLint's traverser attaches `.parent` to every node it hands out, regardless of access
+  // path; `@types/eslint` only types this on the `RuleListener` callback parameter, not on
+  // e.g. `Scope.Reference.identifier`.
+  public static getParent(node: unknown): Rule.Node | null {
+    if (!Predicates.isRecord(node)) { return null; }
+    const parent = node.parent;
+    const result = AstHelpers.isNode(parent) ? parent : null;
+    return result;
+  }
+
+  // Visits every descendant of `node` (not `node` itself). Skips `parent` so a node whose
+  // back-reference ESLint's traversal already set never sends this walk back up the tree.
   public static forEachDescendant(node: unknown, visit: (descendant: Record<string, unknown>) => void): void {
     if (!Predicates.isRecord(node)) { return; }
 
@@ -70,6 +81,13 @@ export class AstHelpers {
 
     visit(value);
     AstHelpers.forEachDescendant(value, visit);
+  }
+
+  /** Duck-typed on `target`, the field every `ts.TypeReference` carries and no other `ts.Type` does, since the public API exposes no `isTypeReference` guard the way it exposes `isTupleType`/`isArrayType`. */
+  public static isTypeReference(type: ts.Type): type is ts.TypeReference {
+    const result = 'target' in type;
+
+    return result;
   }
 
   public static hasTypeServices(value: unknown): value is Required<ParserServicesInterface> {

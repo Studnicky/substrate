@@ -1,8 +1,7 @@
 /**
  * Fixed-capacity circular buffer for numeric samples with percentile calculation
  */
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
 
@@ -18,11 +17,6 @@ import {
 import { SampleBufferOptionsEntity } from '../entities/SampleBufferOptionsEntity.js';
 import { SampleBufferError } from '../errors/index.js';
 
-interface SampleBufferConstructorInterface<
-  TInstance extends SampleBuffer
-> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Fixed-capacity circular buffer for numeric samples
@@ -60,25 +54,11 @@ interface SampleBufferConstructorInterface<
  * ```
  */
 export class SampleBuffer implements SampleBufferInterface {
-  static create<TInstance extends SampleBuffer = SampleBuffer>(
-    this: SampleBufferConstructorInterface<TInstance>,
-    options: SampleBufferOptionsEntity.Type
-  ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(constructed)) {
-      throw RuntimeError.create(
-        'SampleBuffer.create() must construct a SampleBuffer instance'
-      );
-    }
-    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
-      throw RuntimeError.create(
-        'SampleBuffer.create() must construct a SampleBuffer instance'
-      );
-    }
-    return constructed;
+  static create(options: SampleBufferOptionsEntity.InputType): SampleBuffer {
+    return new this(options);
   }
 
-  static #validate(options: SampleBufferOptionsEntity.Type): void {
+  static #validate(options: SampleBufferOptionsEntity.InputType): void {
     if (!SampleBufferOptionsEntity.validate(options)) {
       const errors = SampleBufferOptionsEntity.validate.errors ?? [];
       const parts = errors.map((e) => {
@@ -106,7 +86,7 @@ export class SampleBuffer implements SampleBufferInterface {
    *
    * @param options - Construction options including capacity
    */
-  protected constructor(options: SampleBufferOptionsEntity.Type) {
+  protected constructor(options: SampleBufferOptionsEntity.InputType) {
     SampleBuffer.#validate(options);
     this.capacity = options.capacity;
     this.#samples = Array.from<number>({ 'length': options.capacity });

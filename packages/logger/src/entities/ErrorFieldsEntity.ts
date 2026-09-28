@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Error fields for failed operations.
@@ -30,9 +31,19 @@ export namespace ErrorFieldsEntity {
     'required': ['error'],
     'title': 'ErrorFields',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ErrorFields', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Error fields for failed operations.', 'title': 'ErrorFields', 'type': 'object' } as const, { 'cause': SchemaNode.defineString({
+    'description': 'Underlying cause message (for chained errors).',
+    'type': 'string'
+  } as const), 'error': SchemaNode.defineString({
+    'description': 'Human-readable error message.',
+    'type': 'string'
+  } as const), 'errorCode': SchemaNode.defineString({
+    'description': 'Machine-readable error code.',
+    'type': 'string'
+  } as const) }, ['error'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

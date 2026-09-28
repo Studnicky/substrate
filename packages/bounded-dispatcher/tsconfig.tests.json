@@ -28,6 +28,12 @@
     },
     {
       "path": "../scheduler"
+    },
+    {
+      "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

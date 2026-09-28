@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/node';
+import { RuntimeError } from '@studnicky/errors/browser';
 
 import { LAST_ARRAY_INDEX } from '../constants/index.js';
 import { RetryError } from './RetryError.js';

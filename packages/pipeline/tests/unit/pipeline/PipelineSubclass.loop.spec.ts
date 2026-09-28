@@ -1,66 +1,23 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-
-
 import type { PipelineFunctionInterface } from '../../../src/interfaces/PipelineFunctionInterface.js';
 
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
+import { PipelineSubclassScenarioCaseEntity } from './entities/PipelineSubclassScenarioCaseEntity.js';
 import scenarioGroups from './PipelineSubclass.scenarios.json' with { type: 'json' };
 
-type StageSpec =
-  | { shape: 'add'; value: number }
-  | { shape: 'identity' }
-  | { shape: 'mul'; value: number }
-  | { shape: 'sub'; value: number }
-  | { shape: 'throw'; message: string };
-
-type ScenarioShape =
-  | 'after-stage-gets-stage-output'
-  | 'after-stage-throw-does-not-trigger-run-error'
-  | 'before-after-order'
-  | 'before-stage-gets-prior-output'
-  | 'before-stage-throw-does-not-trigger-run-error'
-  | 'hooks-called-with-no-stages'
-  | 'no-hooks-no-stages'
-  | 'no-stage-hooks-with-empty-pipeline'
-  | 'on-run-complete-throw-does-not-trigger-run-error'
-  | 'on-run-start-throw-does-not-trigger-run-error'
-  | 'protected-fns-length'
-  | 'run-complete-after-stages'
-  | 'run-complete-observer-leaves-result-intact'
-  | 'run-error-receives-original-stage-error'
-  | 'run-error-on-throw'
-  | 'run-start-before-stages'
-  | 'run-start-original-value'
-  | 'run-start-observer-leaves-first-stage-input'
-  | 'single-stage-before-after'
-  | 'stage-error-before-run-error'
-  | 'stage-error-not-on-success'
-  | 'stage-error-on-throw'
-  | 'stage-start-after-before-stage'
-  | 'stage-start-order'
-  | 'stage-success-before-after-stage'
-  | 'stage-success-output'
-  | 'throwing-on-run-error'
-  | 'throwing-on-stage-error'
-  | 'throwing-on-stage-start'
-  | 'throwing-on-stage-success'
-  | 'tracing-pipeline-result';
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: Record<string, unknown>;
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = PipelineSubclassScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+type StageSpec = ScenarioCase['input']['stages'][number];
 
 type StageBuilder = (spec: StageSpec) => (ctx: number) => number;
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
+type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
+type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
 
 const stageBuilderMap: Record<StageSpec['shape'], StageBuilder> = {
   add: (spec) => {
@@ -94,7 +51,7 @@ function buildStage(spec: StageSpec): (ctx: number) => number {
   return stageBuilderMap[spec.shape](spec);
 }
 
-function buildStages(specs: StageSpec[]): Array<(ctx: number) => number> {
+function buildStages(specs: readonly StageSpec[]): Array<(ctx: number) => number> {
   return specs.map((spec) => buildStage(spec));
 }
 
@@ -170,17 +127,15 @@ class ObservingPipeline<T> extends Pipeline<T> {
   }
 }
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: RunnerMap = {
   'before-after-order': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { trace: Array<{ hook: string; index: number }> };
+      const { input, expected } = scenarioCase;
       const pipeline = new TracingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.deepStrictEqual(pipeline.trace, expected.trace);
     },
   'no-hooks-no-stages': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: string; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { traceLength: number };
+      const { input, expected } = scenarioCase;
       const stages: Array<(ctx: string) => string> = input.stages.map((spec) => {
         throw RuntimeError.create(`no-hooks-no-stages scenario must have zero stages, got: ${spec.shape}`);
       });
@@ -189,22 +144,19 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.trace.length, expected.traceLength);
     },
   'single-stage-before-after': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { trace: Array<{ hook: string; index: number }> };
+      const { input, expected } = scenarioCase;
       const pipeline = new TracingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.deepStrictEqual(pipeline.trace, expected.trace);
     },
   'tracing-pipeline-result': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { result: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new TracingPipeline<number>(buildStages(input.stages));
       const result = await pipeline.run(input.ctx);
       assert.strictEqual(result, expected.result);
     },
   'before-stage-gets-prior-output': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { receivedCtxAtBefore: number[] };
+      const { input, expected } = scenarioCase;
       const receivedCtxAtBefore: number[] = [];
       class CaptureBefore extends Pipeline<number> {
         override beforeStage(ctx: number, index: number): number {
@@ -217,8 +169,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.deepStrictEqual(receivedCtxAtBefore, expected.receivedCtxAtBefore);
     },
   'after-stage-gets-stage-output': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { receivedCtxAtAfter: number[] };
+      const { input, expected } = scenarioCase;
       const receivedCtxAtAfter: number[] = [];
       class CaptureAfter extends Pipeline<number> {
         override afterStage(ctx: number, index: number): number {
@@ -231,29 +182,25 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.deepStrictEqual(receivedCtxAtAfter, expected.receivedCtxAtAfter);
     },
   'run-start-before-stages': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runStartCalled: boolean };
+      const { input, expected } = scenarioCase;
       const pipeline = new BracketPipeline(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.runStartCalled, expected.runStartCalled);
     },
   'run-complete-after-stages': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runCompleteCalled: boolean };
+      const { input, expected } = scenarioCase;
       const pipeline = new BracketPipeline(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.runCompleteCalled, expected.runCompleteCalled);
     },
   'run-start-original-value': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runStartCtx: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new BracketPipeline(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.runStartCtx, expected.runStartCtx);
     },
   'run-start-observer-leaves-first-stage-input': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageInput: number };
+      const { input, expected } = scenarioCase;
       let stageInput = -1;
       const pipeline = new BracketPipeline([
         (ctx: number) => {
@@ -265,23 +212,20 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(stageInput, expected.stageInput);
     },
   'run-complete-observer-leaves-result-intact': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { result: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new BracketPipeline(buildStages(input.stages));
       const result = await pipeline.run(input.ctx);
       assert.strictEqual(result, expected.result);
     },
   'hooks-called-with-no-stages': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runCompleteCalled: boolean; runStartCalled: boolean };
+      const { input, expected } = scenarioCase;
       const pipeline = new BracketPipeline(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.runStartCalled, expected.runStartCalled);
       assert.strictEqual(pipeline.runCompleteCalled, expected.runCompleteCalled);
     },
   'protected-fns-length': async (scenarioCase) => {
-      const input = scenarioCase.input as { stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageCount: number };
+      const { input, expected } = scenarioCase;
       class InspectPipeline<T> extends Pipeline<T> {
         public constructor(stages: readonly PipelineFunctionInterface<T>[]) {
           super(stages);
@@ -295,22 +239,19 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.fnCount(), expected.stageCount);
     },
   'stage-start-order': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageStartIndexes: number[] };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.deepStrictEqual(pipeline.stageStartEvents.map((entry) => entry.index), expected.stageStartIndexes);
     },
   'stage-success-output': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageSuccessValues: number[] };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.deepStrictEqual(pipeline.stageSuccessEvents.map((entry) => entry.ctx), expected.stageSuccessValues);
     },
   'stage-start-after-before-stage': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageStartCtx: number };
+      const { input, expected } = scenarioCase;
       class ShiftingPipeline extends ObservingPipeline<number> {
         override beforeStage(ctx: number): number {
           return ctx + 100;
@@ -321,8 +262,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.stageStartEvents[0]?.ctx, expected.stageStartCtx);
     },
   'stage-success-before-after-stage': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { order: string[] };
+      const { input, expected } = scenarioCase;
       const order: string[] = [];
       class OrderPipeline extends Pipeline<number> {
         protected override onStageSuccess(_index: number, _ctx: number): void {
@@ -339,8 +279,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.deepStrictEqual(order, expected.order);
     },
   'stage-error-on-throw': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageErrorIndex: number; stageErrorMessage: string };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await assert.rejects(() => pipeline.run(input.ctx));
       assert.strictEqual(pipeline.stageErrorEvents.length, 1);
@@ -350,30 +289,26 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(stageError.message, expected.stageErrorMessage);
     },
   'stage-error-not-on-success': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageErrorCount: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.stageErrorEvents.length, expected.stageErrorCount);
     },
   'run-error-on-throw': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runErrorCount: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await assert.rejects(() => pipeline.run(input.ctx));
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'run-error-receives-original-stage-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { errorInstanceOf: string };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await assert.rejects(() => pipeline.run(input.ctx));
       assert.ok(pipeline.runErrorEvents[0]?.error instanceof RuntimeError);
       assert.strictEqual(expected.errorInstanceOf, 'RuntimeError');
     },
   'stage-error-before-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { order: string[] };
+      const { input, expected } = scenarioCase;
       const order: string[] = [];
       class OrderedErrorPipeline extends Pipeline<number> {
         protected override onStageError(_index: number, _error: Error): void {
@@ -389,16 +324,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.deepStrictEqual(order, expected.order);
     },
   'no-stage-hooks-with-empty-pipeline': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { stageStartCount: number; stageSuccessCount: number };
+      const { input, expected } = scenarioCase;
       const pipeline = new ObservingPipeline<number>(buildStages(input.stages));
       await pipeline.run(input.ctx);
       assert.strictEqual(pipeline.stageStartEvents.length, expected.stageStartCount);
       assert.strictEqual(pipeline.stageSuccessEvents.length, expected.stageSuccessCount);
     },
   'throwing-on-stage-start': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { result: number };
+      const { input, expected } = scenarioCase;
       class ThrowingStartPipeline extends Pipeline<number> {
         protected override onStageStart(): void { throw RuntimeError.create('onStageStart boom'); }
       }
@@ -406,8 +339,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(await pipeline.run(input.ctx), expected.result);
     },
   'throwing-on-stage-success': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { result: number };
+      const { input, expected } = scenarioCase;
       class ThrowingSuccessPipeline extends Pipeline<number> {
         protected override onStageSuccess(): void { throw RuntimeError.create('onStageSuccess boom'); }
       }
@@ -415,7 +347,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(await pipeline.run(input.ctx), expected.result);
     },
   'throwing-on-stage-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
+      const { input } = scenarioCase;
       class ThrowingStageErrorPipeline extends Pipeline<number> {
         protected override onStageError(): void { throw RuntimeError.create('onStageError boom'); }
       }
@@ -423,7 +355,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       await assert.rejects(() => pipeline.run(input.ctx));
     },
   'throwing-on-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
+      const { input } = scenarioCase;
       class ThrowingRunErrorPipeline extends Pipeline<number> {
         protected override onRunError(): void { throw RuntimeError.create('onRunError boom'); }
       }
@@ -431,8 +363,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       await assert.rejects(() => pipeline.run(input.ctx));
     },
   'before-stage-throw-does-not-trigger-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
+      const { input, expected } = scenarioCase;
       const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingBeforeStagePipeline extends ObservingPipeline<number> {
         protected override beforeStage(): number { throw rawError; }
@@ -442,8 +373,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'after-stage-throw-does-not-trigger-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
+      const { input, expected } = scenarioCase;
       const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingAfterStagePipeline extends ObservingPipeline<number> {
         protected override afterStage(): number { throw rawError; }
@@ -453,8 +383,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'on-run-start-throw-does-not-trigger-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
+      const { input, expected } = scenarioCase;
       const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingRunStartPipeline extends ObservingPipeline<number> {
         protected override onRunStart(): void { throw rawError; }
@@ -464,8 +393,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.strictEqual(pipeline.runErrorEvents.length, expected.runErrorCount);
     },
   'on-run-complete-throw-does-not-trigger-run-error': async (scenarioCase) => {
-      const input = scenarioCase.input as { ctx: number; stages: StageSpec[] };
-      const expected = scenarioCase.expected as { runErrorCount: number; rawMessage: string };
+      const { input, expected } = scenarioCase;
       const rawError = RuntimeError.create(expected.rawMessage);
       class ThrowingRunCompletePipeline extends ObservingPipeline<number> {
         protected override onRunComplete(): void { throw rawError; }
@@ -476,12 +404,14 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     }
 };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(PipelineSubclassScenarioCaseEntity.Schema, PipelineSubclassScenarioCaseEntity.Node);
+
 void describe('Pipeline subclass extension', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

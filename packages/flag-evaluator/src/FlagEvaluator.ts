@@ -1,8 +1,7 @@
 /** Local deterministic feature-flag evaluation with percentage rollout and observability hooks */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Hash } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Hash, Predicates } from '@studnicky/types/browser';
 
 import type { FlagContextEntity } from './entities/FlagContextEntity.js';
 
@@ -11,7 +10,7 @@ import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidation
 
 const BUCKET_SPACE = 100;
 
-interface FlagEvaluatorConstructorInterface<TInstance> {
+interface FlagEvaluatorConstructorInterface<TInstance extends FlagEvaluator> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -30,7 +29,7 @@ class FlagEvaluationHookInvoker extends HookInvoker {
  * OpenFeature's spec separates from its remote `Provider`; a consuming application wires its
  * own remote-fetch/polling layer on top if it needs one.
  *
- * Percentage rollout is bucketed via `@studnicky/json`'s `Hash.value()`, hashing
+ * Percentage rollout is bucketed via `@studnicky/types`'s `Hash.value()`, hashing
  * `flag + ':' + targetingKey` into a deterministic `[0, 100)` integer bucket — the same flag
  * and targeting key always land in the same bucket, so the same caller always gets the same
  * answer for a given flag, and different flags bucket independently for the same targeting key.
@@ -60,8 +59,6 @@ export class FlagEvaluator {
     return result;
   }
 
-  // `TInstance` is supplied explicitly at the call site and flows into BOTH the constructor
-  // parameter and the type predicate, so it is load-bearing rather than a phantom generic.
 
   private static isConstructor(value: object): value is Function {
     const result = Predicates.isFunction(value);
@@ -75,7 +72,7 @@ export class FlagEvaluator {
       throw RuntimeError.create('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;
@@ -91,7 +88,7 @@ export class FlagEvaluator {
    * Registers (or replaces) a named flag definition. Validates the definition against
    * FlagDefinitionEntity.Schema and throws FlagDefinitionValidationError when it fails.
    */
-  register(name: string, definition: FlagDefinitionEntity.Type): void {
+  register(name: string, definition: FlagDefinitionEntity.InputType): void {
     if (!FlagDefinitionEntity.validate(definition)) {
       const messages = (FlagDefinitionEntity.validate.errors ?? [])
         .map(FlagEvaluator.getValidationMessage)

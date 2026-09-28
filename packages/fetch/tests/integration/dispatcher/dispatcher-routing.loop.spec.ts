@@ -1,26 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { FetchClient, UndiciDispatcher } from '../../../src/node/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { DispatcherRoutingScenarioCaseEntity } from './entities/DispatcherRoutingScenarioCaseEntity.js';
 import scenarioGroups from './dispatcher-routing.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { originRecorded: true };
-      input: { dispatcher: { connections: number }; fetchClient: { baseURL: string }; path: string };
-      name: string;
-      operation: 'routes-through-configured-dispatcher';
-    }
-  | {
-      description: string;
-      expected: { idleOriginRecorded: false };
-      input: { dispatcher: { connections: number }; fetchClient: { baseURL: string }; path: string };
-      name: string;
-      operation: 'isolates-unrelated-dispatcher';
-    };
+type ScenarioCase = DispatcherRoutingScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(DispatcherRoutingScenarioCaseEntity.Schema, DispatcherRoutingScenarioCaseEntity.Node);
 
 const ctx = {
   testUrl: ''
@@ -51,8 +42,8 @@ const runnerMap: RunnerMap = {
     const response = await client.get(scenarioCase.input.path);
 
     assert.strictEqual(response.status, 200);
-    assert.ok(origin in dispatcher.getStats(), `expected dispatcher stats to include origin ${origin}`);
-    assert.equal(origin in dispatcher.getStats(), scenarioCase.expected.originRecorded);
+    assert.ok(dispatcher.getStats().has(origin), `expected dispatcher stats to include origin ${origin}`);
+    assert.equal(dispatcher.getStats().has(origin), scenarioCase.expected.originRecorded);
 
     await dispatcher.destroy();
   },
@@ -72,10 +63,10 @@ const runnerMap: RunnerMap = {
     const response = await client.get(scenarioCase.input.path);
 
     assert.strictEqual(response.status, 200);
-    assert.ok(origin in usedDispatcher.getStats(), 'request should route through the configured dispatcher');
-    assert.equal(origin in usedDispatcher.getStats(), !scenarioCase.expected.idleOriginRecorded);
-    assert.ok(!(origin in idleDispatcher.getStats()), 'a dispatcher never passed to the client should see no activity');
-    assert.equal(origin in idleDispatcher.getStats(), scenarioCase.expected.idleOriginRecorded);
+    assert.ok(usedDispatcher.getStats().has(origin), 'request should route through the configured dispatcher');
+    assert.equal(usedDispatcher.getStats().has(origin), !scenarioCase.expected.idleOriginRecorded);
+    assert.ok(!idleDispatcher.getStats().has(origin), 'a dispatcher never passed to the client should see no activity');
+    assert.equal(idleDispatcher.getStats().has(origin), scenarioCase.expected.idleOriginRecorded);
 
     await usedDispatcher.destroy();
     await idleDispatcher.destroy();
@@ -87,7 +78,7 @@ async function runCase<Operation extends ScenarioCase['operation']>(scenarioCase
 }
 
 void describe('Dispatcher routing', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

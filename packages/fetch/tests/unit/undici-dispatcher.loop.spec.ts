@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { Agent } from 'undici';
 import { describe, it } from 'node:test';
@@ -6,107 +7,12 @@ import { ConfigurationError } from '../../src/errors/index.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
 
+import { UndiciDispatcherScenarioCaseEntity } from './entities/UndiciDispatcherScenarioCaseEntity.js';
 import scenarioGroups from './undici-dispatcher.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { shape: 'throws'; message: string };
-      input: { agent: unknown };
-      shape: 'constructor-invalid-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'healthy' };
-      input: { stats: Record<string, unknown>; origin: string };
-      shape: 'health-no-stats';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'healthy' };
-      input: { stats: Record<string, unknown>; origin: string };
-      shape: 'health-invalid-stats';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
-      input: { stats: { connected: number; pending: number }; origin: string };
-      shape: 'health-pressure';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
-      input: { stats: { connected: number; pending: number }; origin: string };
-      shape: 'health-overload';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'health'; healthy: boolean; recommendationIncludes?: string };
-      input: { stats: { connected: number; pending: number }; origin: string };
-      shape: 'health-ok';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'frozen' };
-      input: { stats: Record<string, { connected: number; pending: number }>; origin: string };
-      shape: 'get-stats-freeze';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      shape: 'close-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      shape: 'destroy-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      shape: 'destroy-agent-delay';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { agent?: ConstructorParameters<typeof Agent>[0]; timeout?: number };
-      shape: 'destroy-agent-zero';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'healthy' };
-      input: { origin: string; testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      shape: 'test-dispatcher-health';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      shape: 'test-dispatcher-close';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shape: 'called' };
-      input: { testDispatcher: Parameters<typeof TestDispatcher.create>[0] };
-      shape: 'test-dispatcher-destroy';
-      name: string;
-    };
+type ScenarioCase = UndiciDispatcherScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(UndiciDispatcherScenarioCaseEntity.Schema, UndiciDispatcherScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
@@ -185,7 +91,7 @@ const runnerMap: RunnerMap = {
   },
   'constructor-invalid-agent': async (scenarioCase) => {
     assert.throws(() => {
-      UndiciDispatcher.create(scenarioCase.input.agent as never);
+      Reflect.apply(UndiciDispatcher.create, UndiciDispatcher, [scenarioCase.input.agent]);
     }, (error: Error) => {
       assert.ok(error instanceof ConfigurationError);
       assert.equal(error.message, scenarioCase.expected.message);
@@ -240,11 +146,11 @@ const runnerMap: RunnerMap = {
   'get-stats-freeze': async (scenarioCase) => {
     const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);
     const stats = dispatcher.getStats();
-    assert.equal(Object.isFrozen(stats), true);
-    assert.equal(Object.isFrozen(stats[scenarioCase.input.origin] as object), true);
+    assert.ok(stats instanceof Map);
+    assert.equal(Object.isFrozen(stats.get(scenarioCase.input.origin)), true);
   },
   'health-invalid-stats': async (scenarioCase) => {
-    const dispatcher = createDispatcherWithStats(scenarioCase.input.stats);
+    const dispatcher = createDispatcherWithStats(scenarioCase.input.stats ?? {});
     const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
     assert.deepStrictEqual(health, { 'healthy': true });
   },
@@ -278,7 +184,7 @@ async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extrac
 }
 
 void describe('undici dispatcher', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

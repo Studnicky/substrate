@@ -8,7 +8,7 @@
         "workerPool": {
           "concurrency": 1,
           "timeoutMs": 200,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "ms": 5000, "value": "too-slow" }]
       },
@@ -24,7 +24,7 @@
         "workerPool": {
           "concurrency": 1,
           "timeoutMs": 20000,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "ms": 10, "value": "fast" }]
       },
@@ -40,7 +40,7 @@
         "workerPool": {
           "concurrency": 1,
           "timeoutMs": 200,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "ready" }]
       },
@@ -55,7 +55,7 @@
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "after-compose" }],
         "signal": { "shape": "deferred-compose" }
@@ -73,7 +73,7 @@
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "never-dispatched" }],
         "signal": { "shape": "rejecting-compose" }
@@ -89,7 +89,7 @@
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/echoWorker.mjs"
+          "workerPath": "../fixtures/echoWorker.ts"
         },
         "items": [{ "value": "never-dispatched" }],
         "signal": { "shape": "rejecting-compose-string" }
@@ -105,7 +105,7 @@
       "input": {
         "workerPool": {
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/immediateExitWorker.mjs"
+          "workerPath": "../fixtures/immediateExitWorker.ts"
         },
         "items": [{ "value": "recover" }],
         "signal": { "shape": "deferred-compose" }
@@ -123,7 +123,7 @@
           "batch": { "concurrency": 3 },
           "concurrency": 1,
           "timeoutMs": 1000,
-          "workerPath": "../fixtures/resultThenWaitExitWorker.mjs"
+          "workerPath": "../fixtures/resultThenWaitExitWorker.ts"
         },
         "items": [
           { "exitAfterResult": true, "value": "first" },
@@ -138,6 +138,41 @@
           "second",
           "third"
         ]
+      }
+    },
+    {
+      "name": "short-task-timeout-excludes-worker-startup",
+      "description": "an instant task resolves within a task timeout too short to also cover worker startup, because startup is bounded separately",
+      "shape": "within-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "startupTimeoutMs": 5000,
+          "timeoutMs": 500,
+          "workerPath": "../fixtures/echoWorker.ts"
+        },
+        "items": [{ "value": "instant" }]
+      },
+      "expected": {
+        "results": ["instant"]
+      }
+    },
+    {
+      "name": "worker-startup-timeout-is-distinct-from-task-timeout",
+      "description": "a startupTimeoutMs that expires before the worker reports online rejects with a startup-specific message distinct from the task-timeout message",
+      "shape": "startup-timeout",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "startupTimeoutMs": 0,
+          "timeoutMs": 5000,
+          "workerPath": "../fixtures/echoWorker.ts"
+        },
+        "items": [{ "value": "never-starts" }]
+      },
+      "expected": {
+        "errorMessageIncludes": "did not finish starting",
+        "excludesMessage": "exceeded its timeout"
       }
     }
   ]

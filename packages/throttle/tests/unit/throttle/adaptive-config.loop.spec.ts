@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -14,86 +15,17 @@ import {
   ValidatedAdaptiveConfigEntity,
   ValidatedThrottleConfigEntity
 } from '../../../src/entities/index.js';
-import type { ThrottleClockInputInterface } from '../../helpers/VirtualClockThrottle.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
+import { AdaptiveConfigScenarioCaseEntity } from './entities/AdaptiveConfigScenarioCaseEntity.js';
 import scenarioGroups from './adaptive-config.scenarios.json' with { type: 'json' };
 
-type AdjustmentDirection = 'down' | 'none' | 'up';
+type ScenarioCase = AdaptiveConfigScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+type AdaptiveBatchInputInterface = NonNullable<ScenarioCase['input']['batch']>;
 
-type ScenarioShape =
-  | 'adaptive-adjust-hook-throws'
-  | 'adaptive-no-change'
-  | 'adaptive-scales-down'
-  | 'adaptive-scales-up'
-  | 'default-max-concurrency'
-  | 'default-min-concurrency'
-  | 'reject-adaptive-empty'
-  | 'reject-adaptive-step-size-string'
-  | 'reject-adjustment-interval-less-than-100'
-  | 'reject-concurrency-above-max'
-  | 'reject-concurrency-below-min'
-  | 'reject-min-concurrency-less-than-one'
-  | 'reject-min-greater-than-max'
-  | 'reject-missing-enabled'
-  | 'reject-missing-target-latency'
-  | 'reject-non-boolean-enabled'
-  | 'reject-non-integer-adjustment-interval'
-  | 'reject-non-integer-min-concurrency'
-  | 'reject-non-integer-sample-window'
-  | 'reject-non-integer-step-size'
-  | 'reject-non-object-adaptive'
-  | 'reject-non-positive-scale-up'
-  | 'reject-non-positive-target-latency'
-  | 'reject-sample-window-less-than-10'
-  | 'reject-scale-up-not-less-than-scale-down'
-  | 'reject-step-size-less-than-one'
-  | 'reject-unknown-key'
-  | 'valid-all-fields'
-  | 'valid-disabled-defaulted-config'
-  | 'valid-disabled-no-extra-fields'
-  | 'valid-required-fields';
+const fileIntake = ScenarioFileCompiler.compileIntake(AdaptiveConfigScenarioCaseEntity.Schema, AdaptiveConfigScenarioCaseEntity.Node);
 
-interface AdaptiveBatchInputInterface {
-  itemCount: number;
-  maxConcurrent: number;
-}
-
-interface ScenarioExpectedInterface {
-  adaptive?: {
-    enabled?: boolean;
-    maximumConcurrency?: number;
-    minimumConcurrency?: number;
-    targetLatencyMs?: number;
-  };
-  adjustmentDirection?: AdjustmentDirection;
-  concurrencyLimit?: number;
-  enabled?: boolean;
-  error?: string;
-  hookErrorMessage?: string;
-  maximumConcurrency?: number;
-  minimumConcurrency?: number;
-  rejectEnabledTrue?: boolean;
-  throttleValidated?: boolean;
-  validated?: boolean;
-}
-
-interface ScenarioInputInterface {
-  batch?: AdaptiveBatchInputInterface;
-  clock?: ThrottleClockInputInterface;
-  disabledConfig?: Record<string, unknown>;
-  hookErrorMessage?: string;
-  throttle?: Record<string, unknown>;
-}
-
-interface ScenarioCase {
-  description: string;
-  expected: ScenarioExpectedInterface;
-  input: ScenarioInputInterface;
-  shape: ScenarioShape;
-  name: string;
-}
-
-function decodeThrottleConfig(config: ScenarioInputInterface['throttle']): Parameters<typeof Throttle.create>[0] {
+function decodeThrottleConfig(config: ScenarioCase['input']['throttle']): Parameters<typeof Throttle.create>[0] {
   if (config === undefined) {
     return undefined;
   }
@@ -115,7 +47,7 @@ function createScenarioBatch<TResult>(input: AdaptiveBatchInputInterface): Batch
 
 async function executeAdaptiveSamples(
   throttle: VirtualClockThrottle,
-  input: ScenarioInputInterface
+  input: ScenarioCase['input']
 ): Promise<void> {
   const { batch } = input;
   assert.ok(batch !== undefined);
@@ -323,9 +255,39 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Throttle adaptive config', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });
   }
+});
+
+const VALID_ENABLED_ADAPTIVE_CONFIG = {
+  'adjustmentInterval': 1000,
+  'enabled': true,
+  'maximumConcurrency': 100,
+  'minimumConcurrency': 1,
+  'sampleWindow': 100,
+  'scaleDownThreshold': 1.5,
+  'scaleUpThreshold': 0.5,
+  'stepSize': 1,
+  'targetLatencyMs': 500
+} as const;
+
+void describe('ValidatedAdaptiveConfigEntity anyOf of closed branches', () => {
+  void it('rejects a payload no single branch fully accepts: enabled true with a disabled-only targetLatencyMs', () => {
+    const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'targetLatencyMs': 0 };
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
+    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+  });
+
+  void it('rejects a payload no single branch fully accepts: an additional property neither closed branch admits', () => {
+    const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'unknownField': 'unexpected' };
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
+    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+  });
+
+  void it('accepts a payload the enabled branch fully accepts', () => {
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(VALID_ENABLED_ADAPTIVE_CONFIG), true);
+  });
 });

@@ -63,6 +63,7 @@ for check in "$@"; do
     test-integration) prepare_dist && pnpm run test:integration ;;
     test-smoke) prepare_dist && pnpm run test:smoke ;;
     test-all) prepare_dist && pnpm run test:all ;;
+    test-conformance) prepare_dist && pnpm run test:conformance ;;
     build) pnpm run build && verify_dist ;;
     docs-build) prepare_dist && pnpm run docs:build ;;
     docs-includes) pnpm run lint:docs ;;

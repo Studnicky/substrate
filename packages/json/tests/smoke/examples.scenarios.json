@@ -1,59 +1,59 @@
 {
   "cases": [
     {
-      "description": "imports the immutable snapshot example without throwing",
+      "description": "the immutable-snapshot example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/immutable-snapshot.ts"
+        "file": "../../examples/immutable-snapshot.ts"
       },
-      "shape": "immutable-snapshot",
-      "name": "json-smoke-immutable-snapshot"
+      "name": "immutable-snapshot",
+      "shape": "imports-example"
     },
     {
-      "description": "imports the draft example without throwing",
+      "description": "the draft example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/draft.ts"
+        "file": "../../examples/draft.ts"
       },
-      "shape": "draft",
-      "name": "json-smoke-draft"
+      "name": "draft",
+      "shape": "imports-example"
     },
     {
-      "description": "imports the merge-clone example without throwing",
+      "description": "the merge-clone example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/merge-clone.ts"
+        "file": "../../examples/merge-clone.ts"
       },
-      "shape": "merge-clone",
-      "name": "json-smoke-merge-clone"
+      "name": "merge-clone",
+      "shape": "imports-example"
     },
     {
-      "description": "imports the patch-predicates example without throwing",
+      "description": "the patch-predicates example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/patch-predicates.ts"
+        "file": "../../examples/patch-predicates.ts"
       },
-      "shape": "patch-predicates",
-      "name": "json-smoke-patch-predicates"
+      "name": "patch-predicates",
+      "shape": "imports-example"
     },
     {
-      "description": "imports the path-sort-hash example without throwing",
+      "description": "the path-sort example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/path-sort-hash.ts"
+        "file": "../../examples/path-sort.ts"
       },
-      "shape": "path-sort-hash",
-      "name": "json-smoke-path-sort-hash"
+      "name": "path-sort",
+      "shape": "imports-example"
     }
   ]
 }

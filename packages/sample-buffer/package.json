@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/sample-buffer",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Fixed-capacity circular buffer for numeric samples with percentile calculation",
   "type": "module",
   "sideEffects": false,
@@ -33,7 +33,7 @@
     "clean": "rm -rf dist coverage test-reports",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "license": "MIT",
   "engines": {
@@ -67,7 +67,9 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "@types/json-schema": "^7.0.15",
-    "json-schema-to-ts": "^3.1.1"
+    "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

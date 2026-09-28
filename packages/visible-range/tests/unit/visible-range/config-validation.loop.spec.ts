@@ -1,46 +1,34 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-import type { VisibleRangeConfigInterface } from '../../../src/interfaces/index.js';
+import type { VisibleRangeCollaboratorsInterface } from '../../../src/interfaces/index.js';
 
 import { VisibleRange, VisibleRangeError } from '../../../src/index.js';
+import { ConfigValidationScenarioCaseEntity } from './entities/ConfigValidationScenarioCaseEntity.js';
 import scenarioGroups from './config-validation.scenarios.json' with { type: 'json' };
 
-type ScenarioShape = 'ambiguous-size' | 'error-args' | 'missing-size' | 'negative-size' | 'zero-size';
+type ScenarioCase = ConfigValidationScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+type SerializableVisibleRangeConfig = ScenarioCase['input']['visibleRange'];
 
-type SerializableVisibleRangeConfig = {
-  readonly count: number;
-  readonly estimateSizeValue?: number;
-  readonly itemSize?: number;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(ConfigValidationScenarioCaseEntity.Schema, ConfigValidationScenarioCaseEntity.Node);
 
-type ScenarioCase = {
-  readonly description: string;
-  readonly expected: { readonly errorName: 'VisibleRangeError' };
-  readonly input: { readonly visibleRange: SerializableVisibleRangeConfig };
-  readonly shape: ScenarioShape;
-  readonly name: string;
-};
-
-const scenarioCases = scenarioGroups.cases as readonly ScenarioCase[];
-
-function buildConfig(config: SerializableVisibleRangeConfig): VisibleRangeConfigInterface {
-  const estimateSizeValue = config.estimateSizeValue;
-  if (estimateSizeValue !== undefined) {
-    return {
-      'count': config.count,
-      'estimateSize': () => estimateSizeValue,
-      ...(config.itemSize === undefined ? {} : { 'itemSize': config.itemSize })
-    };
-  }
-
-  return {
+function buildConfig(config: SerializableVisibleRangeConfig): readonly [unknown, VisibleRangeCollaboratorsInterface] {
+  const data = {
     'count': config.count,
     ...(config.itemSize === undefined ? {} : { 'itemSize': config.itemSize })
   };
+
+  const estimateSizeValue = config.estimateSizeValue;
+  if (estimateSizeValue !== undefined) {
+    return [data, { 'estimateSize': () => estimateSizeValue }];
+  }
+
+  return [data, {}];
 }
 
 function runErrorArgsCase(): void {
@@ -66,7 +54,7 @@ function runErrorArgsCase(): void {
 
 function runInvalidConfigCase(scenarioCase: ScenarioCase): void {
   assert.throws(() => {
-    VisibleRange.create(buildConfig(scenarioCase.input.visibleRange));
+    VisibleRange.create(...buildConfig(scenarioCase.input.visibleRange));
   }, (error: Error) => {
     assert.ok(error instanceof VisibleRangeError);
     assert.equal(error.constructor.name, scenarioCase.expected.errorName);
@@ -87,9 +75,9 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('VisibleRange config validation', () => {
-  for (const scenario of scenarioCases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, () => {
+      runCase(scenarioCase);
     });
   }
 });

@@ -9,7 +9,7 @@ export { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 export { ResilienceError } from './errors/ResilienceError.js';
 export { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
 export { SlidingWindowLimiterError } from './errors/SlidingWindowLimiterError.js';
-export type { CircuitBreakerOptionsInterface } from './interfaces/CircuitBreakerOptionsInterface.js';
+export type { CircuitBreakerCollaboratorsInterface } from './interfaces/CircuitBreakerCollaboratorsInterface.js';
 export type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
 export type { DeadLetterQueueRetryGeneratorOptionsInterface } from './interfaces/DeadLetterQueueRetryGeneratorOptionsInterface.js';
 export type { RateLimiterClockInterface } from './interfaces/RateLimiterClockInterface.js';

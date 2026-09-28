@@ -1,37 +1,53 @@
 {
   "cases": [
     {
+      "description": "the circuit-breaker example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/circuit-breaker.ts" },
+      "name": "circuit-breaker",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the dead-letter-queue example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/dead-letter-queue.ts" },
+      "name": "dead-letter-queue",
+      "shape": "imports-example"
+    },
+    {
       "description": "the observed limiter example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/observedSlidingWindowLimiter.ts"
-      },
-      "shape": "imports-example",
-      "name": "observedSlidingWindowLimiter"
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/observedSlidingWindowLimiter.ts" },
+      "name": "observedSlidingWindowLimiter",
+      "shape": "imports-example"
     },
     {
       "description": "the default-clock limiter example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/defaultClockSlidingWindowLimiter.ts"
-      },
-      "shape": "imports-example",
-      "name": "defaultClockSlidingWindowLimiter"
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/defaultClockSlidingWindowLimiter.ts" },
+      "name": "defaultClockSlidingWindowLimiter",
+      "shape": "imports-example"
     },
     {
       "description": "the invalid-config limiter example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/invalidConfigSlidingWindowLimiter.ts"
-      },
-      "shape": "imports-example",
-      "name": "invalidConfigSlidingWindowLimiter"
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/invalidConfigSlidingWindowLimiter.ts" },
+      "name": "invalidConfigSlidingWindowLimiter",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observed resilience example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/observedResilience.ts" },
+      "name": "observedResilience",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the token-bucket example runs without throwing",
+      "expected": { "importsWithoutThrow": true },
+      "input": { "file": "../../examples/token-bucket.ts" },
+      "name": "token-bucket",
+      "shape": "imports-example"
     }
   ]
 }

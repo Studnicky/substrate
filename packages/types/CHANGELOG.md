@@ -1,5 +1,11 @@
 # Changelog
 
+## 14.0.0
+
+### Patch Changes
+
+- 4d4555f: Runs trusted pull-request head resolution before policy workflows detach to the event base revision.
+
 ## 13.0.0
 
 ## 12.2.0

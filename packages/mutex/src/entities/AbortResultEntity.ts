@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace AbortResultEntity {
   export const Schema = {
@@ -13,7 +14,7 @@ export namespace AbortResultEntity {
     },
     'required': ['cancelled', 'completed', 'timedOut'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
   /**
    * Result of an abort operation on a throttle or similar async primitive.
@@ -23,9 +24,11 @@ export namespace AbortResultEntity {
    * - How many completed before the abort
    * - Whether the grace period timed out
    */
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'cancelled': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'completed': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'timedOut': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['cancelled', 'completed', 'timedOut'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

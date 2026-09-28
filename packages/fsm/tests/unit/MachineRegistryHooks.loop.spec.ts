@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -8,147 +9,15 @@ import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import { MachineRegistryHooksScenarioCaseEntity } from './entities/MachineRegistryHooksScenarioCaseEntity.js';
 import scenarioGroups from './MachineRegistryHooks.scenarios.json' with { type: 'json' };
 
 type SimpleState = { readonly variant: 'idle' };
 type SimpleEvent = { readonly type: 'noop' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        registerCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-register';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        registerCalls: string[];
-      };
-      input: {
-        duplicateId: string;
-        id: string;
-      };
-      shape: 'duplicate-no-register-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        unregisterCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-unregister';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        unregisterCalls: string[];
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'on-unregister-missing';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        missCalls: string[];
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'on-resolve-miss';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        missCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-resolve-hit-no-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        order: string[];
-      };
-      input: {
-        id: string;
-        missingId: string;
-      };
-      shape: 'hook-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        valuePreserved: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'throwing-on-register';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        valueUndefined: true;
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'throwing-on-resolve-miss';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        removed: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'throwing-on-unregister';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        rejectionEvents: 0;
-        valuePreserved: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'async-rejecting-register';
-      name: string;
-    };
+type ScenarioCase = MachineRegistryHooksScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(MachineRegistryHooksScenarioCaseEntity.Schema, MachineRegistryHooksScenarioCaseEntity.Node);
 
 class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
   static create(): SimpleMachine {
@@ -185,16 +54,10 @@ class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
 }
 
 function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-  return EffectInterpreter.create({ machine: SimpleMachine.create() });
+  return EffectInterpreter.create(SimpleMachine.create());
 }
 
-type ScenarioShape = ScenarioCase['shape'];
-
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
-
-type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void> | void> = {
   'async-rejecting-register': async (scenarioCase) => {
     class AsyncRejectingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
       static make(): AsyncRejectingRegisterRegistry {
@@ -214,8 +77,8 @@ const runnerMap: RunnerMap = {
     try {
       const registry = AsyncRejectingRegisterRegistry.make();
       const interpreter = makeInterpreter();
-      registry.register(scenarioCase.input.id, interpreter);
-      assert.equal(registry.get(scenarioCase.input.id), interpreter);
+      registry.register(String(scenarioCase.input.id), interpreter);
+      assert.equal(registry.get(String(scenarioCase.input.id)), interpreter);
       await new Promise((resolve) => { setImmediate(resolve); });
       await new Promise((resolve) => { setImmediate(resolve); });
       assert.equal(rejectionEventCount, scenarioCase.expected.rejectionEvents);
@@ -227,9 +90,9 @@ const runnerMap: RunnerMap = {
   },
   'duplicate-no-register-hook': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
     registry.registerCalls.length = 0;
-    assert.throws(() => registry.register(scenarioCase.input.duplicateId, makeInterpreter()));
+    assert.throws(() => registry.register(String(scenarioCase.input.duplicateId), makeInterpreter()));
     assert.deepEqual(registry.registerCalls, scenarioCase.expected.registerCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
@@ -247,45 +110,45 @@ const runnerMap: RunnerMap = {
     }
 
     const registry = OrderedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
-    registry.get(scenarioCase.input.missingId);
-    registry.unregister(scenarioCase.input.id);
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
+    registry.get(String(scenarioCase.input.missingId));
+    registry.unregister(String(scenarioCase.input.id));
     assert.deepEqual(order, scenarioCase.expected.order);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
   'on-register': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
     assert.deepEqual(registry.registerCalls, scenarioCase.expected.registerCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
   'on-resolve-hit-no-hook': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
     registry.missCalls.length = 0;
-    const result = registry.get(scenarioCase.input.id);
+    const result = registry.get(String(scenarioCase.input.id));
     assert.ok(result !== undefined);
     assert.deepEqual(registry.missCalls, scenarioCase.expected.missCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
   'on-resolve-miss': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    const result = registry.get(scenarioCase.input.missingId);
+    const result = registry.get(String(scenarioCase.input.missingId));
     assert.equal(result, undefined);
     assert.deepEqual(registry.missCalls, scenarioCase.expected.missCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
   'on-unregister': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
     registry.registerCalls.length = 0;
-    registry.unregister(scenarioCase.input.id);
+    registry.unregister(String(scenarioCase.input.id));
     assert.deepEqual(registry.unregisterCalls, scenarioCase.expected.unregisterCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
   'on-unregister-missing': (scenarioCase) => {
     const registry = ObservedRegistry.make();
-    registry.unregister(scenarioCase.input.missingId);
+    registry.unregister(String(scenarioCase.input.missingId));
     assert.deepEqual(registry.unregisterCalls, scenarioCase.expected.unregisterCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   },
@@ -303,9 +166,9 @@ const runnerMap: RunnerMap = {
     const registry = ThrowingRegisterRegistry.make();
     const interpreter = makeInterpreter();
     assert.doesNotThrow(() => {
-      registry.register(scenarioCase.input.id, interpreter);
+      registry.register(String(scenarioCase.input.id), interpreter);
     });
-    assert.equal(registry.get(scenarioCase.input.id), interpreter);
+    assert.equal(registry.get(String(scenarioCase.input.id)), interpreter);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.valuePreserved, true);
   },
@@ -322,7 +185,7 @@ const runnerMap: RunnerMap = {
 
     const registry = ThrowingMissRegistry.make();
     assert.doesNotThrow(() => {
-      assert.equal(registry.get(scenarioCase.input.missingId), undefined);
+      assert.equal(registry.get(String(scenarioCase.input.missingId)), undefined);
     });
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.valueUndefined, true);
@@ -339,22 +202,22 @@ const runnerMap: RunnerMap = {
     }
 
     const registry = ThrowingUnregisterRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(String(scenarioCase.input.id), makeInterpreter());
     assert.doesNotThrow(() => {
-      registry.unregister(scenarioCase.input.id);
+      registry.unregister(String(scenarioCase.input.id));
     });
-    assert.equal(registry.has(scenarioCase.input.id), false);
+    assert.equal(registry.has(String(scenarioCase.input.id)), false);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.removed, true);
   }
 };
 
-async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('MachineRegistry lifecycle hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

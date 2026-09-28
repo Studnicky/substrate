@@ -9,9 +9,27 @@ Reports `Object.defineProperty`, `Object.defineProperties`, and `Reflect.defineP
 
 A property is tracked when it is assigned directly on `this` or a simple identifier, or when an earlier supported property-definition call establishes the same target and static string key. The tracking is intentionally limited to one enclosing function; dynamic keys and targets requiring alias analysis are not inferred. `defineProperties` reports once when any static entry is an accessor or redefinition.
 
-Fresh definitions retain fast properties, including non-enumerable or non-configurable data properties. Redefining data as an accessor measured 31.45 ms for 5,000,000 reads versus 1.99 ms for an unredefined fast property (15.8×). An accessor descriptor is also reported because its per-instance closures diverge instance maps even when the object remains in fast-properties mode.
+Fresh definitions retain fast properties, including non-enumerable or non-configurable data properties. Redefining data as an accessor measured 31.45 ms for 5,000,000 reads versus 1.99 ms for an unredefined fast property (15.8×). An accessor descriptor is also reported because its per-instance closures diverge instance maps even when the object remains in fast-properties mode. [`conditional-property-assignment`](./conditional-property-assignment) reaches the same non-uniform-establishment hazard through plain `this.x = ...` assignment instead of a definition call.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
+
+## Verifying the hazard
+
+Under `--allow-natives-syntax`, `%HasFastProperties` reports `true` for a plain assignment, for a property built with `Object.defineProperty` from the start, and for one built non-enumerable or non-configurable. It reports `false` only when an established data property is redefined as an accessor, which is the case that drops the object into dictionary mode.
+
+## Shape divergence is a separate hazard from demotion
+
+A conditional or post-construction `Object.defineProperty` diverges instance maps even when every
+instance stays in fast properties. Under `--allow-natives-syntax`, two instances of a constructor
+that calls `defineProperty` on only one branch report `%HaveSameMap` `false`, and so do two
+otherwise-identical objects when one is given a non-writable property afterwards. This rule and
+[`conditional-property-assignment`](./conditional-property-assignment) reduce to the same question:
+whether every instance reaches the same shape. A `defineProperty` reached through some branches
+only, or issued after construction on some instances only, answers no regardless of descriptor kind.
+
+A fresh accessor descriptor that was never a data property diverges maps as well —
+`%HasFastProperties` reports `true` while `%HaveSameMap` reports `false` across two instances —
+which is the closure-per-instance cost rather than anything specific to `defineProperty`.
 
 ## ✗ Incorrect
 

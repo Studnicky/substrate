@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -10,56 +11,19 @@ import type { WorkerProgressEnvelopeEntity } from '../../src/entities/WorkerProg
 import type { WorkerResultEnvelopeInterface } from '../../src/interfaces/WorkerResultEnvelopeInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
+import { HooksScenarioCaseEntity } from './entities/HooksScenarioCaseEntity.js';
 import scenarioGroups from './hooks.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = HooksScenarioCaseEntity.Type;
+type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
+type ScenarioItems = NonNullable<ScenarioCase['input']['items']>;
 
 interface ItemInterface {
   error?: string;
   value: string;
 }
 
-interface WorkerPoolInputInterface {
-  concurrency?: WorkerPoolConfigInterface['concurrency'];
-  workerPath: WorkerPoolConfigInterface['workerPath'];
-}
-
-interface ScenarioBaseInterface {
-  description: string;
-  name: string;
-}
-
-type ScenarioCase =
-  | (ScenarioBaseInterface & {
-      expected: { seenTypes: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'on-message-envelopes';
-    })
-  | (ScenarioBaseInterface & {
-      expected: { seenErrors: string[]; seenTypes: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'error-envelope-and-hook';
-    })
-  | (ScenarioBaseInterface & {
-      expected: { hookErrorMessages: string[]; results: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'throwing-on-message';
-    })
-  | (ScenarioBaseInterface & {
-      expected: { hookErrorMessages: string[]; rejectionEvents: unknown[]; results: string[] };
-      input: { items: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'async-rejecting-on-message';
-    })
-  | (ScenarioBaseInterface & {
-      expected: {
-        firstHookErrorMessage: string;
-        firstHookErrorName: string;
-        firstResults: string[];
-        secondHookErrorMessage: string;
-        secondHookErrorName: string;
-        secondResults: string[];
-      };
-      input: { firstItems: ItemInterface[]; secondItems: ItemInterface[]; workerPool: WorkerPoolInputInterface };
-      shape: 'hook-errors-instance-local';
-    });
+const fileIntake = ScenarioFileCompiler.compileIntake(HooksScenarioCaseEntity.Schema, HooksScenarioCaseEntity.Node);
 
 function resolveWorkerPath(relativePath: string): string {
   return fileURLToPath(new URL(relativePath, import.meta.url));
@@ -71,6 +35,34 @@ function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigIn
   };
   if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
   return resolved;
+}
+
+function requireItems(items: ScenarioCase['input']['items']): ScenarioItems {
+  if (items === undefined) {
+    throw RuntimeError.create('scenario input.items is required');
+  }
+  return items;
+}
+
+function requireHookErrorMessages(hookErrorMessages: ScenarioCase['expected']['hookErrorMessages']): string[] {
+  if (hookErrorMessages === undefined) {
+    throw RuntimeError.create('scenario expected.hookErrorMessages is required');
+  }
+  return hookErrorMessages;
+}
+
+function requireFirstItems(items: ScenarioCase['input']['firstItems']): ScenarioItems {
+  if (items === undefined) {
+    throw RuntimeError.create('scenario input.firstItems is required');
+  }
+  return items;
+}
+
+function requireSecondItems(items: ScenarioCase['input']['secondItems']): ScenarioItems {
+  if (items === undefined) {
+    throw RuntimeError.create('scenario input.secondItems is required');
+  }
+  return items;
 }
 
 async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void>): Promise<unknown[]> {
@@ -91,11 +83,7 @@ async function captureUnhandledRejections(scenarioName: string, action: () => Pr
   }
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'on-message-envelopes': async (scenarioCase) => {
     const seenTypes: string[] = [];
 
@@ -110,7 +98,7 @@ const runnerMap: RunnerMap = {
     }
 
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    await pool.run(scenarioCase.input.items);
+    await pool.run(requireItems(scenarioCase.input.items));
     assert.deepStrictEqual(seenTypes, scenarioCase.expected.seenTypes);
   },
 
@@ -133,7 +121,7 @@ const runnerMap: RunnerMap = {
     }
 
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    await assert.rejects(pool.run(scenarioCase.input.items), /kaboom/);
+    await assert.rejects(pool.run(requireItems(scenarioCase.input.items)), /kaboom/);
     assert.deepStrictEqual(seenTypes, scenarioCase.expected.seenTypes);
     assert.deepStrictEqual(seenErrors, scenarioCase.expected.seenErrors);
   },
@@ -146,11 +134,11 @@ const runnerMap: RunnerMap = {
     }
 
     const pool = ThrowingMessagePool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-    assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
+    assert.deepStrictEqual(await pool.run(requireItems(scenarioCase.input.items)), scenarioCase.expected.results);
     assert.deepStrictEqual(pool.getHookErrors().map(({ hookName, cause }) => ({
       hookName,
       causeMessage: cause instanceof Error ? cause.message : String(cause)
-    })), scenarioCase.expected.hookErrorMessages.map((hookErrorMessage) => ({
+    })), requireHookErrorMessages(scenarioCase.expected.hookErrorMessages).map((hookErrorMessage) => ({
       hookName: 'onMessage',
       causeMessage: hookErrorMessage
     })));
@@ -166,11 +154,11 @@ const runnerMap: RunnerMap = {
 
     const pool = AsyncRejectingMessagePool.create(resolvePoolConfig(scenarioCase.input.workerPool));
     const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-      assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
+      assert.deepStrictEqual(await pool.run(requireItems(scenarioCase.input.items)), scenarioCase.expected.results);
       assert.deepStrictEqual(pool.getHookErrors().map(({ hookName, cause }) => ({
         hookName,
         causeMessage: cause instanceof Error ? cause.message : String(cause)
-      })), scenarioCase.expected.hookErrorMessages.map((hookErrorMessage) => ({
+      })), requireHookErrorMessages(scenarioCase.expected.hookErrorMessages).map((hookErrorMessage) => ({
         hookName: 'onMessage',
         causeMessage: hookErrorMessage
       })));
@@ -200,8 +188,8 @@ const runnerMap: RunnerMap = {
     const second = SecondThrowingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
     const [firstResults, secondResults] = await Promise.all([
-      first.run(scenarioCase.input.firstItems),
-      second.run(scenarioCase.input.secondItems)
+      first.run(requireFirstItems(scenarioCase.input.firstItems)),
+      second.run(requireSecondItems(scenarioCase.input.secondItems))
     ]);
 
     const firstErrors = first.getHookErrors();
@@ -234,12 +222,12 @@ const runnerMap: RunnerMap = {
   }
 };
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

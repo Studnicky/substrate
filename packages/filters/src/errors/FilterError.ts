@@ -5,7 +5,7 @@
 
 import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
 
-import { BaseError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/errors/browser';
 
 /**
  * Options for constructing a FilterError

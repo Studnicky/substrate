@@ -23,6 +23,10 @@
     {
       "name": "assigning a static property is not prototype modification",
       "code": "function Widget() {} Widget.version = 1;"
+    },
+    {
+      "name": "Reflect.set on a locally-declared class named Reflect is not the global API - the false positive resolved-identity matching removes",
+      "code": "export {}; function Widget() {} class Reflect { public static set(target: object, key: string, value: unknown): boolean { (target as Record<string, unknown>)[key] = value; return true; } } function install() { Reflect.set(Widget.prototype, 'run', 1); }"
     }
   ],
   "invalid": [
@@ -59,6 +63,21 @@
     {
       "name": "prototype mutation inside a forEach callback - a loop body via LoopContext",
       "code": "function Widget() {} const names = ['a', 'b']; names.forEach((name) => { Widget.prototype[name] = function () { return 1; }; });",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "Reflect.set onto a prototype inside a function - resolved via CallIdentity",
+      "code": "function Widget() {} function install() { Reflect.set(Widget.prototype, 'run', 1); }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "Reflect.setPrototypeOf onto a prototype inside a function",
+      "code": "function Widget() {} const base = {}; function install() { Reflect.setPrototypeOf(Widget.prototype, base); }",
+      "errors": [{ "messageId": "prototypeModification" }]
+    },
+    {
+      "name": "genuine global Reflect.set still reports even though a same-named class shadows Reflect in an unrelated scope",
+      "code": "function helper() { class Reflect { public static set(): boolean { return true; } } return Reflect.set(); } function Widget() {} function install() { Reflect.set(Widget.prototype, 'run', 1); }",
       "errors": [{ "messageId": "prototypeModification" }]
     }
   ]

@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/idempotency-guard'
-description: Idempotency key guard composing cache, concurrency, and json — replay, coalesce, and conflict detection.
+description: Idempotency key guard composing cache and concurrency — replay, coalesce, and conflict detection.
 ---
 
 # @studnicky/idempotency-guard
 
-> Idempotency key guard composing `@studnicky/cache`, `@studnicky/concurrency`, and `@studnicky/json`.
+> Idempotency key guard composing `@studnicky/cache` and `@studnicky/concurrency`.
 
 ## Install
 
@@ -15,7 +15,7 @@ pnpm add @studnicky/idempotency-guard
 
 ## Usage
 
-`IdempotencyGuard<TResult>#run(key, payload, factory)` fingerprints `payload` via `Hash.value()` and checks the composed `LruCache` for an entry under `key`. `TResult` belongs to the guard instance and is shared by every key it owns. A matching fingerprint replays the cached result; a mismatched fingerprint throws `IdempotencyConflictError` before `factory` runs; no entry runs the call through the composed `Coalesce` so concurrent callers sharing the key share one execution:
+`IdempotencyGuard<TResult>#run(key, payload, factory)` fingerprints `payload` by its sorted entries and checks the composed `LruCache` for an entry under `key`. `TResult` belongs to the guard instance and is shared by every key it owns. A matching fingerprint replays the cached result; a mismatched fingerprint throws `IdempotencyConflictError` before `factory` runs; no entry runs the call through the composed `Coalesce` so concurrent callers sharing the key share one execution:
 
 <<< ../../packages/idempotency-guard/examples/observedIdempotencyGuard.ts#usage
 

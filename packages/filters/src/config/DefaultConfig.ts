@@ -3,7 +3,7 @@
  * @description Default configuration values for FilterEngine
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 import { ErrorCollectionMode } from '../enums/ErrorCollectionMode.js';
 import { FilterMode } from '../enums/FilterMode.js';

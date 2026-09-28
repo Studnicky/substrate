@@ -1,3 +1,5 @@
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { mkdtempSync } from 'node:fs';
@@ -8,7 +10,13 @@ import { join } from 'node:path';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { RunScenarioCaseEntity } from './entities/RunScenarioCaseEntity.js';
 import scenarioGroups from './run.scenarios.json' with { type: 'json' };
+
+type ScenarioCase = RunScenarioCaseEntity.Type;
+type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
+type BoundedConcurrencyBatchInputInterface = NonNullable<ScenarioCase['input']['batch']>;
+type ScenarioItems = NonNullable<ScenarioCase['input']['items']>;
 
 type ItemType = {
   awaitResultCount?: number;
@@ -19,21 +27,34 @@ type ItemType = {
   value: string;
 };
 
-interface WorkerPoolBatchConfigInputInterface {
-  concurrency?: WorkerPoolConfigInterface['batchConcurrency'];
+const fileIntake = ScenarioFileCompiler.compileIntake(RunScenarioCaseEntity.Schema, RunScenarioCaseEntity.Node);
+
+function requireItems(items: ScenarioCase['input']['items']): ScenarioItems {
+  if (items === undefined) {
+    throw RuntimeError.create('scenario input.items is required');
+  }
+  return items;
 }
 
-interface WorkerPoolInputInterface {
-  batch?: WorkerPoolBatchConfigInputInterface;
-  concurrency: WorkerPoolConfigInterface['concurrency'];
-  timeoutMs?: WorkerPoolConfigInterface['timeoutMs'];
-  workerPath: WorkerPoolConfigInterface['workerPath'];
+function requireBatch(batch: ScenarioCase['input']['batch']): BoundedConcurrencyBatchInputInterface {
+  if (batch === undefined) {
+    throw RuntimeError.create('scenario input.batch is required');
+  }
+  return batch;
 }
 
-interface BoundedConcurrencyBatchInputInterface {
-  itemCount: number;
-  itemMs: number;
-  valuePrefix: string;
+function requireStringArray(values: string[] | undefined): string[] {
+  if (values === undefined) {
+    throw RuntimeError.create('scenario expected field is required');
+  }
+  return values;
+}
+
+function requireString(value: string | undefined): string {
+  if (value === undefined) {
+    throw RuntimeError.create('scenario expected field is required');
+  }
+  return value;
 }
 
 function resolveWorkerPath(relativePath: string): string {
@@ -58,58 +79,10 @@ function createBoundedConcurrencyItems(batch: BoundedConcurrencyBatchInputInterf
   }));
 }
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { results: string[] };
-      input: { items: ItemType[]; workerPool: WorkerPoolInputInterface };
-      shape: 'result-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { itemCount: number; observedMaxGreaterThanOne: true; observedMaxLessThanOrEqualConcurrency: true };
-      input: { batch: BoundedConcurrencyBatchInputInterface; workerPool: WorkerPoolInputInterface };
-      shape: 'bounded-concurrency';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { observedResults: string[] };
-      input: { items: ItemType[]; workerPool: WorkerPoolInputInterface };
-      shape: 'error-fail-fast';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { createdWorkerCount: number; results: string[] };
-      input: { items: Array<{ exit?: boolean; value: string }>; workerPool: WorkerPoolInputInterface };
-      shape: 'exit-retry';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { runRejectedMessageIncludes: string };
-      input: { items: Array<{ value: string }>; workerPool: WorkerPoolInputInterface };
-      shape: 'exit-retry-fails';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { runRejectedMessageIncludes: string };
-      input: { items: Array<{ ms?: number; value: string }>; workerPool: WorkerPoolInputInterface };
-      shape: 'timeout-rejects';
-      name: string;
-    };
-
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
+const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
   'result-order': async (scenarioCase) => {
     const pool = WorkerPool.create<ItemType, string>(resolvePoolConfig(scenarioCase.input.workerPool));
-    assert.deepStrictEqual(await pool.run(scenarioCase.input.items), scenarioCase.expected.results);
+    assert.deepStrictEqual(await pool.run(requireItems(scenarioCase.input.items)), scenarioCase.expected.results);
   },
   'bounded-concurrency': async (scenarioCase) => {
     const pool = WorkerPool.create<{ counts: SharedArrayBuffer; ms: number; value: string }, string>(resolvePoolConfig(scenarioCase.input.workerPool));
@@ -119,7 +92,7 @@ const runnerMap: RunnerMap = {
     counts[0] = 0;
     counts[1] = 0;
 
-    const items = createBoundedConcurrencyItems(scenarioCase.input.batch, sab);
+    const items = createBoundedConcurrencyItems(requireBatch(scenarioCase.input.batch), sab);
 
     const results = await pool.run(items);
     assert.equal(results.length, scenarioCase.expected.itemCount);
@@ -134,7 +107,7 @@ const runnerMap: RunnerMap = {
 
     // Shared observed-result counter: workers awaiting a barrier block until the parent has
     // *observed* this many 'result' envelopes, closing the race between message delivery from two
-    // independent worker threads (see fixtures/echoWorker.mjs for the worker-side wait).
+    // independent worker threads (see fixtures/echoWorker.ts for the worker-side wait).
     const barrier = new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT);
     const barrierCounts = new Int32Array(barrier);
 
@@ -150,13 +123,13 @@ const runnerMap: RunnerMap = {
 
     const pool = ObservingPool.create<ItemType, string, ObservingPool>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    const items = scenarioCase.input.items.map((item) => {
+    const items = requireItems(scenarioCase.input.items).map((item) => {
       if (item.awaitResultCount === undefined) { return item; }
       return { ...item, barrier, barrierTarget: item.awaitResultCount };
     });
 
     await assert.rejects(pool.run(items), /boom/);
-    assert.deepStrictEqual([...observedResults].toSorted(), [...scenarioCase.expected.observedResults].toSorted());
+    assert.deepStrictEqual([...observedResults].toSorted(), [...requireStringArray(scenarioCase.expected.observedResults)].toSorted());
   },
   'exit-retry': async (scenarioCase) => {
     const createdThreads: number[] = [];
@@ -172,7 +145,7 @@ const runnerMap: RunnerMap = {
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
     try {
-      const results = await pool.run(scenarioCase.input.items.map((item) => {
+      const results = await pool.run(requireItems(scenarioCase.input.items).map((item) => {
         if (item.exit === true) {
           return { ...item, stateFile };
         }
@@ -195,9 +168,9 @@ const runnerMap: RunnerMap = {
 
     const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
+    await assert.rejects(pool.run(requireItems(scenarioCase.input.items)), (error: Error) => {
       assert.ok(error instanceof Error);
-      assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
+      assert.ok(error.message.includes(requireString(scenarioCase.expected.runRejectedMessageIncludes)));
       return true;
     });
     assert.ok(createdThreads.length >= 2);
@@ -205,20 +178,20 @@ const runnerMap: RunnerMap = {
   'timeout-rejects': async (scenarioCase) => {
     const pool = WorkerPool.create<{ ms?: number; value: string }, string>(resolvePoolConfig(scenarioCase.input.workerPool));
 
-    await assert.rejects(pool.run(scenarioCase.input.items), (error: Error) => {
+    await assert.rejects(pool.run(requireItems(scenarioCase.input.items)), (error: Error) => {
       assert.ok(error instanceof Error);
-      assert.ok(error.message.includes(scenarioCase.expected.runRejectedMessageIncludes));
+      assert.ok(error.message.includes(requireString(scenarioCase.expected.runRejectedMessageIncludes)));
       return true;
     });
   }
 };
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
+async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('WorkerPool#run', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

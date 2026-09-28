@@ -1,11 +1,11 @@
-import { Coalesce } from '@studnicky/concurrency/node';
+import { Coalesce } from '@studnicky/concurrency/browser';
 /**
  * Keyed single-flight and serialized work gate composing `@studnicky/mutex` and
  * `@studnicky/concurrency`'s `Coalesce`.
  */
-import { RuntimeError } from '@studnicky/errors/node';
-import { Mutex } from '@studnicky/mutex/node';
-import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Mutex } from '@studnicky/mutex/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { KeyedWorkGateConfigInterface } from './interfaces/KeyedWorkGateConfigInterface.js';
 
@@ -15,7 +15,7 @@ interface KeyedWorkGateDepsInterface<K extends PropertyKey> {
   'mutex': Mutex<K>;
 }
 
-interface KeyedWorkGateConstructorInterface<TInstance> extends Function {
+interface KeyedWorkGateConstructorInterface<K extends PropertyKey, TInstance extends KeyedWorkGate<K>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -60,7 +60,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     K extends PropertyKey = string,
     TInstance extends KeyedWorkGate<K> = KeyedWorkGate<K>
   >(
-    this: KeyedWorkGateConstructorInterface<TInstance>,
+    this: KeyedWorkGateConstructorInterface<K, TInstance>,
     config: KeyedWorkGateConfigInterface<K> = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [{
@@ -70,7 +70,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     return result;

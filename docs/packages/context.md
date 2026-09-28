@@ -25,19 +25,19 @@ The `/node` entrypoint configures AsyncLocalStorage automatically, so ordinary `
 
 ## One-shot scopes
 
-`Context.run(initial, operation)` creates a scope, runs the operation, terminates the scope, and returns the operation value with its final snapshot.
+`Context.run(initial, operation)` creates a scope, runs a synchronous operation, terminates the scope, and returns the operation value with its final snapshot. `Context.runAsync(initial, operation)` does the same for an asynchronous operation.
 
-<!-- inline-ts-ok: Consumer one-shot usage illustrates Context.run automatic cleanup. -->
+<!-- inline-ts-ok: Consumer one-shot usage illustrates Context.runAsync automatic cleanup. -->
 ```typescript
 import { Context } from "@studnicky/context/node";
 
 const context = Context.create({ name: "request" });
-const result = await context.run({ requestId: "req-001" }, async () => {
+const result = await context.runAsync({ requestId: "req-001" }, async () => {
   const response = await fetch("/api/profile");
   return response.status;
 });
 
-console.log(result.value, result.snapshot.requestId);
+console.log(result.value, result.snapshot.get("requestId"));
 ```
 
 ## Browser usage
@@ -73,21 +73,21 @@ scope.terminate();
 
 ### Browser code without the transform
 
-Use `scope.await(value)` when browser code crosses an await boundary without the transform. `Context.run` closes the scope automatically.
+Use `scope.await(value)` when browser code crosses an await boundary without the transform. `Context.runAsync` closes the scope automatically.
 
 <!-- inline-ts-ok: Browser no-transform usage illustrates the public scope.await API. -->
 ```typescript
-const result = await context.run({ requestId: "req-001" }, async (scope) => {
+const result = await context.runAsync({ requestId: "req-001" }, async (scope) => {
   const response = await scope.await(fetch("/api/profile"));
   return response.status;
 });
 
-console.log(result.value, result.snapshot.requestId);
+console.log(result.value, result.snapshot.get("requestId"));
 ```
 
 ### Opaque callback boundaries
 
-Callbacks invoked later need an explicitly managed scope. Remove the callback and terminate the scope when the subscription ends; `Context.run` is for operations that end when their promise settles.
+Callbacks invoked later need an explicitly managed scope. Remove the callback and terminate the scope when the subscription ends; `Context.run`/`Context.runAsync` are for operations that end when they return or their promise settles.
 
 <!-- inline-ts-ok: Browser callback usage illustrates the public scope.bind lifecycle. -->
 ```typescript
@@ -111,7 +111,7 @@ The playground demo does not run the Vite transform, so it uses `scope.await(val
 
 ## Scope and lookup behavior
 
-`Context.initialize(initial?)` creates a reusable scope, while `Context.run(initial, operation)` creates, executes, terminates, and returns `{ value, snapshot }`. `ContextScopeInterface` provides `execute(fn)`, `await(value)`, `bind(callback)`, and `terminate()`. On Node, ordinary `await` retains Context; browser code uses the transform or the explicit scope methods. `tryGet` returns `undefined` when no scope is active or a key is absent; `get` throws `ContextError` in either case.
+`Context.initialize(initial?)` creates a reusable scope, while `Context.run(initial, operation)`/`Context.runAsync(initial, operation)` create, execute, terminate, and return `{ value, snapshot }`. `ContextScopeInterface` provides `execute(fn)`, `await(value)`, `bind(callback)`, and `terminate()`. On Node, ordinary `await` retains Context; browser code uses the transform or the explicit scope methods. `tryGet` returns `undefined` when no scope is active or a key is absent; `get` throws `ContextError` in either case.
 
 ## Public API
 
@@ -177,4 +177,4 @@ import type {
 | `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/browser` |
 | `transform` | Registers the Vite or Rollup async Context transform. | `@studnicky/context/browser/transform` |
 | `ContextStorageInterface` | Defines the shared async storage contract. | `@studnicky/context/interfaces` |
-| `ContextRunResultInterface` | Describes the value and final snapshot returned by `Context.run`. | `@studnicky/context/interfaces` |
+| `ContextRunResultInterface` | Describes the value and final snapshot returned by `Context.run`/`Context.runAsync`. | `@studnicky/context/interfaces` |

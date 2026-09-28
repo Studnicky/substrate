@@ -19,6 +19,9 @@
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

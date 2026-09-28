@@ -1,6 +1,6 @@
 /** Static utilities for async iterables: merge, filter, enrich. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
+import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 
 import type { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
 import type { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';
@@ -15,6 +15,7 @@ interface QueueValueEntryInterface<T> extends AsyncIterValueDiscriminantEntity.T
 }
 
 interface MergeQueueSinkInterface<T> {
+  'active': number;
   'notify': (() => void) | null;
   readonly 'queue': CircularBuffer<AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T>>;
 }
@@ -44,6 +45,21 @@ class MergeQueue {
   static async awaitNotify<T>(sink: MergeQueueSinkInterface<T>): Promise<void> {
     await new Promise<void>((resolve) => { sink.notify = resolve; });
   }
+
+  static hasPendingWork<T>(sink: MergeQueueSinkInterface<T>): boolean {
+    const result = sink.active > 0 || sink.queue.length > 0;
+    return result;
+  }
+
+  static async nextEntry<T>(
+    sink: MergeQueueSinkInterface<T>
+  ): Promise<AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T> | undefined> {
+    if (sink.queue.length === 0) {
+      await MergeQueue.awaitNotify(sink);
+    }
+    const result = sink.queue.shift();
+    return result;
+  }
 }
 
 export class AsyncIter {
@@ -52,26 +68,23 @@ export class AsyncIter {
     if (sources.length === 0) { return; }
 
     const sink: MergeQueueSinkInterface<T> = {
+      'active': sources.length,
       'notify': null,
       'queue': CircularBuffer.create<AsyncIterDoneDiscriminantEntity.Type | QueueErrorEntryInterface | QueueValueEntryInterface<T>>({ 'overflow': 'grow' })
     };
 
-    let active = sources.length;
     const sourceLength = sources.length;
     for (let i = 0; i < sourceLength; i += 1) {
       const source = sources.at(i);
       if (source !== undefined) { void MergeQueue.drainSource(sink, source); }
     }
 
-    while (active > 0 || sink.queue.length > 0) {
-      if (sink.queue.length === 0) {
-        await MergeQueue.awaitNotify(sink);
-      }
-      const entry = sink.queue.shift();
+    while (MergeQueue.hasPendingWork(sink)) {
+      const entry = await MergeQueue.nextEntry(sink);
       if (entry === undefined) { continue; }
       if (entry.variant === 'error') { throw entry.error; }
-      if (entry.variant === 'done') { active -= 1; }
-      if (entry.variant === 'value') { yield entry.value; }
+      if (entry.variant === 'done') { sink.active -= 1; continue; }
+      yield entry.value;
     }
   }
 

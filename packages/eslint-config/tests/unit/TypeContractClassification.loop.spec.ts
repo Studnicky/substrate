@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { Predicates } from '@studnicky/types/node';
+
 import {
   createCompilerHost,
   createProgram,
@@ -179,14 +181,12 @@ function assertInterfaceOutcome(
 
 type ScenarioCase =
   | {
-      description: string;
       expected: { classification: string; reason: string };
       input: { aliasName: string; files: Record<string, string>; namespaceName: string };
       shape: 'entity-direct';
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
@@ -195,7 +195,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification: string; name: string; reason?: string }>;
       };
@@ -204,7 +203,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
       };
@@ -213,7 +211,6 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: {
           intrinsic: Array<{ classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string }>;
@@ -230,25 +227,22 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
-        assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
+        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
       shape: 'explicit-readonly';
       name: string;
     }
   | {
-      description: string;
       expected: {
-        assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
+        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
       shape: 'exposed-defaults';
       name: string;
     }
   | {
-      description: string;
       expected: {
         assertions: Array<{ name: string; readonlyReasons?: readonly string[] }>;
         excluded: readonly string[];
@@ -258,16 +252,14 @@ type ScenarioCase =
       name: string;
     }
   | {
-      description: string;
       expected: {
-        assertions: Array<{ fixable: boolean; name: string; readonlyReasons: readonly string[] }>;
+        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
       };
       input: { files: Record<string, string> };
       shape: 'readonly-indirection';
       name: string;
     }
   | {
-      description: string;
       expected: {
         aliasAssertions: Array<{ classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
         interfaceAssertions: Array<{ classification?: string; name: string; reason?: string }>;
@@ -276,6 +268,285 @@ type ScenarioCase =
       shape: 'interface-matrix';
       name: string;
     };
+
+const SCENARIO_SHAPES = new Set(['entity-direct', 'composition-provenance', 'owner-direct', 'alias-cycles', 'readonly-intrinsics', 'explicit-readonly', 'exposed-defaults', 'readonly-exclusions', 'readonly-indirection', 'interface-matrix']);
+
+function isScenarioShape(value: unknown): value is ScenarioCase['shape'] {
+  return typeof value === 'string' && SCENARIO_SHAPES.has(value);
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
+
+function isOptionalBoolean(value: unknown): value is boolean | undefined {
+  return value === undefined || typeof value === 'boolean';
+}
+
+function isReadonlyStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isOptionalReadonlyStringArray(value: unknown): value is readonly string[] | undefined {
+  return value === undefined || isReadonlyStringArray(value);
+}
+
+function isRecordOfStrings(value: unknown): value is Record<string, string> {
+  return Predicates.isObject(value) && Object.values(value).every((entry) => typeof entry === 'string');
+}
+
+function intakeFiles(raw: unknown): Record<string, string> {
+  if (!isRecordOfStrings(raw)) {
+    throw new TypeError(`malformed TypeContractClassification files map: ${JSON.stringify(raw)}`);
+  }
+  return raw;
+}
+
+function intakeFilesInput(raw: unknown): { files: Record<string, string> } {
+  if (!Predicates.isObject(raw)) {
+    throw new TypeError(`malformed TypeContractClassification input: ${JSON.stringify(raw)}`);
+  }
+  return { 'files': intakeFiles(raw.files) };
+}
+
+function intakeAssertionArray<T>(raw: unknown, intakeOne: (entry: unknown) => T): T[] {
+  if (!Array.isArray(raw)) {
+    throw new TypeError(`malformed TypeContractClassification assertions array: ${JSON.stringify(raw)}`);
+  }
+  return raw.map(intakeOne);
+}
+
+function intakeRequiredAssertion(raw: unknown): { classification: string; name: string; reason?: string } {
+  if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || typeof raw.name !== 'string' || !isOptionalString(raw.reason)) {
+    throw new TypeError(`malformed TypeContractClassification assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    'classification': raw.classification,
+    'name': raw.name,
+    ...(raw.reason === undefined ? {} : { 'reason': raw.reason })
+  };
+}
+
+function intakeCycleAssertion(raw: unknown): { classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] } {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason) || !isOptionalBoolean(raw.fixable) || !isOptionalBoolean(raw.evidence) || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+    throw new TypeError(`malformed TypeContractClassification cycle assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
+    ...(raw.evidence === undefined ? {} : { 'evidence': raw.evidence }),
+    ...(raw.fixable === undefined ? {} : { 'fixable': raw.fixable }),
+    'name': raw.name,
+    ...(raw.reason === undefined ? {} : { 'reason': raw.reason }),
+    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
+  };
+}
+
+function intakeReadonlyAssertion(raw: unknown): { fixable?: boolean; name: string; readonlyReasons: readonly string[] } {
+  if (!Predicates.isObject(raw) || !isOptionalBoolean(raw.fixable) || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons)) {
+    throw new TypeError(`malformed TypeContractClassification readonly assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    ...(raw.fixable === undefined ? {} : { 'fixable': raw.fixable }),
+    'name': raw.name,
+    'readonlyReasons': raw.readonlyReasons
+  };
+}
+
+function intakeExclusionAssertion(raw: unknown): { name: string; readonlyReasons?: readonly string[] } {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+    throw new TypeError(`malformed TypeContractClassification exclusion assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    'name': raw.name,
+    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
+  };
+}
+
+function intakeIntrinsicAssertion(raw: unknown): { classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string } {
+  if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || raw.fixable !== false || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons) || typeof raw.reason !== 'string') {
+    throw new TypeError(`malformed TypeContractClassification intrinsic assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    'classification': raw.classification,
+    'fixable': raw.fixable,
+    'name': raw.name,
+    'readonlyReasons': raw.readonlyReasons,
+    'reason': raw.reason
+  };
+}
+
+function intakeShadowedAssertion(raw: unknown): { name: string; readonlyReasons: readonly string[] } {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons)) {
+    throw new TypeError(`malformed TypeContractClassification shadowed assertion: ${JSON.stringify(raw)}`);
+  }
+  return { 'name': raw.name, 'readonlyReasons': raw.readonlyReasons };
+}
+
+function intakeInterfaceAssertion(raw: unknown): { classification?: string; name: string; reason?: string } {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason)) {
+    throw new TypeError(`malformed TypeContractClassification interface assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
+    'name': raw.name,
+    ...(raw.reason === undefined ? {} : { 'reason': raw.reason })
+  };
+}
+
+function intakeAliasAssertion(raw: unknown): { classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] } {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason) || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+    throw new TypeError(`malformed TypeContractClassification alias assertion: ${JSON.stringify(raw)}`);
+  }
+  return {
+    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
+    'name': raw.name,
+    ...(raw.reason === undefined ? {} : { 'reason': raw.reason }),
+    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
+  };
+}
+
+type ScenarioPayloadIntake = (name: string, rawInput: unknown, rawExpected: unknown) => ScenarioCase;
+
+// One payload validator per discriminant; the shape selects which fixture contract runs, never a cast.
+const SCENARIO_PAYLOAD_INTAKE: Record<ScenarioCase['shape'], ScenarioPayloadIntake> = {
+  'alias-cycles': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed alias-cycles expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeCycleAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'alias-cycles'
+    };
+  },
+  'composition-provenance': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed composition-provenance expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeRequiredAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'composition-provenance'
+    };
+  },
+  'entity-direct': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawInput) || typeof rawInput.aliasName !== 'string' || typeof rawInput.namespaceName !== 'string') {
+      throw new TypeError(`malformed entity-direct input: ${JSON.stringify(rawInput)}`);
+    }
+    if (!Predicates.isObject(rawExpected) || typeof rawExpected.classification !== 'string' || typeof rawExpected.reason !== 'string') {
+      throw new TypeError(`malformed entity-direct expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'classification': rawExpected.classification, 'reason': rawExpected.reason },
+      'input': { 'aliasName': rawInput.aliasName, 'files': intakeFiles(rawInput.files), 'namespaceName': rawInput.namespaceName },
+      'name': name,
+      'shape': 'entity-direct'
+    };
+  },
+  'explicit-readonly': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed explicit-readonly expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'explicit-readonly'
+    };
+  },
+  'exposed-defaults': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed exposed-defaults expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'exposed-defaults'
+    };
+  },
+  'interface-matrix': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed interface-matrix expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': {
+        'aliasAssertions': intakeAssertionArray(rawExpected.aliasAssertions, intakeAliasAssertion),
+        'interfaceAssertions': intakeAssertionArray(rawExpected.interfaceAssertions, intakeInterfaceAssertion)
+      },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'interface-matrix'
+    };
+  },
+  'owner-direct': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed owner-direct expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeRequiredAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'owner-direct'
+    };
+  },
+  'readonly-exclusions': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected) || !isReadonlyStringArray(rawExpected.excluded)) {
+      throw new TypeError(`malformed readonly-exclusions expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeExclusionAssertion), 'excluded': rawExpected.excluded },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'readonly-exclusions'
+    };
+  },
+  'readonly-indirection': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawExpected)) {
+      throw new TypeError(`malformed readonly-indirection expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
+      'input': intakeFilesInput(rawInput),
+      'name': name,
+      'shape': 'readonly-indirection'
+    };
+  },
+  'readonly-intrinsics': (name, rawInput, rawExpected) => {
+    if (!Predicates.isObject(rawInput) || !Predicates.isObject(rawInput.programs)) {
+      throw new TypeError(`malformed readonly-intrinsics input: ${JSON.stringify(rawInput)}`);
+    }
+    if (!Predicates.isObject(rawExpected) || !Predicates.isObject(rawExpected.assertions)) {
+      throw new TypeError(`malformed readonly-intrinsics expected: ${JSON.stringify(rawExpected)}`);
+    }
+    return {
+      'expected': {
+        'assertions': {
+          'intrinsic': intakeAssertionArray(rawExpected.assertions.intrinsic, intakeIntrinsicAssertion),
+          'shadowed': intakeAssertionArray(rawExpected.assertions.shadowed, intakeShadowedAssertion)
+        }
+      },
+      'input': {
+        'programs': {
+          'intrinsic': intakeFiles(rawInput.programs.intrinsic),
+          'shadowed': intakeFiles(rawInput.programs.shadowed)
+        }
+      },
+      'name': name,
+      'shape': 'readonly-intrinsics'
+    };
+  }
+};
+
+/** Validates one raw scenario fixture entry, including its shape-specific payload, at the JSON-load edge. */
+function intakeScenarioCase(raw: unknown): ScenarioCase {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isScenarioShape(raw.shape)) {
+    throw new TypeError(`malformed TypeContractClassification scenario entry: ${JSON.stringify(raw)}`);
+  }
+  return SCENARIO_PAYLOAD_INTAKE[raw.shape](raw.name, raw.input, raw.expected);
+}
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
 type RunnerMap = {
@@ -374,7 +645,7 @@ function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase
 }
 
 void describe('TypeContractClassification', () => {
-  for (const scenario of scenarioGroups.cases as unknown as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

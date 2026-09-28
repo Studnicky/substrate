@@ -1,5 +1,13 @@
 # Changelog
 
+## 14.0.0
+
+### Patch Changes
+
+- @studnicky/entity@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/scheduler@14.0.0
+
 ## 13.0.0
 
 ### Patch Changes

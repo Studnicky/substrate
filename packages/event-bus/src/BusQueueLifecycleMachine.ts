@@ -25,10 +25,10 @@
  * re-running cancellation logic against already-cleared bookkeeping.
  */
 
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { RuntimeError } from '@studnicky/errors/node';
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
 import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';
@@ -66,52 +66,149 @@ export class BusQueueLifecycleMachine extends StateMachine<
     BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
     BusQueueReleaseForAbortEffectEntity.Type
   > {
-    switch (state.variant) {
-      case 'aborted':
-        // Unreachable: `isTerminated()` short-circuits `transition()` before
-        // `reduce()` runs for any event once the state is `aborted`.
-        break;
-      case 'aborting':
-        switch (event.type) {
-          case 'abort':
-            // Idempotent: abort already requested for this loop; the
-            // `releaseForAbort` effect must not fire a second time.
-            return { 'effects': [], 'state': state };
-          case 'loopFinished':
-            return { 'effects': [], 'state': { 'variant': 'aborted' } };
-          case 'startLoop':
-            return { 'effects': [], 'state': state };
-        }
-        break;
-      case 'draining':
-        switch (event.type) {
-          case 'abort':
-            return { 'effects': [{ 'variant': 'releaseForAbort' }], 'state': { 'variant': 'aborting' } };
-          case 'loopFinished':
-            return { 'effects': [], 'state': { 'variant': 'open' } };
-          case 'startLoop':
-            // Idempotent: a loop is already running. `BusQueue#scheduleLoop`
-            // never actually dispatches this from `draining` (it guards on
-            // `open` first), but the reducer stays total rather than relying
-            // on that caller-side guard as the only safety net.
-            return { 'effects': [], 'state': state };
-        }
-        break;
-      case 'open':
-        switch (event.type) {
-          case 'abort':
-            return { 'effects': [{ 'variant': 'releaseForAbort' }], 'state': { 'variant': 'aborted' } };
-          case 'startLoop':
-            return { 'effects': [], 'state': { 'variant': 'draining' } };
-          case 'loopFinished':
-            throw new TransitionRejectedError({
-              'eventType': event.type,
-              'reason': 'no drain loop is running in state \'open\'',
-              'stateVariant': state.variant
-            });
-        }
-        break;
+    const transitionsForState = BusQueueLifecycleMachine.#transitions.get(state.variant);
+    const transition = transitionsForState?.get(event.type);
+    if (transition !== undefined) {
+      const result = transition(state, event);
+      return result;
     }
     throw RuntimeError.create(`BusQueueLifecycleMachine: unhandled event '${event.type}' in state '${state.variant}'`);
   }
+
+  // Idempotent: abort already requested for this loop; the `releaseForAbort` effect must not fire a second time.
+  static #abortingAbort(
+    state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': state };
+  }
+
+  static #abortingLoopFinished(
+    _state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': { 'variant': 'aborted' } };
+  }
+
+  static #abortingStartLoop(
+    state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': state };
+  }
+
+  static #drainingAbort(
+    _state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [{ 'variant': 'releaseForAbort' }], 'state': { 'variant': 'aborting' } };
+  }
+
+  static #drainingLoopFinished(
+    _state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': { 'variant': 'open' } };
+  }
+
+  // Idempotent: a loop is already running. `BusQueue#scheduleLoop` guards on `open` before dispatching, but the reducer stays total.
+  static #drainingStartLoop(
+    state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': state };
+  }
+
+  static #openAbort(
+    _state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [{ 'variant': 'releaseForAbort' }], 'state': { 'variant': 'aborted' } };
+  }
+
+  static #openStartLoop(
+    _state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    _event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  > {
+    return { 'effects': [], 'state': { 'variant': 'draining' } };
+  }
+
+  static #openLoopFinished(
+    state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ): never {
+    throw new TransitionRejectedError({
+      'eventType': event.type,
+      'reason': 'no drain loop is running in state \'open\'',
+      'stateVariant': state.variant
+    });
+  }
+
+  // Transition table keyed by (currentState, event). `aborted` has no entries:
+  // `isTerminated()` rejects every event from that state before `reduce()` runs.
+  static readonly #transitions = new Map<string, Map<string, (
+    state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+  ) => FsmStepInterface<
+    BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+    BusQueueReleaseForAbortEffectEntity.Type
+  >>>([
+    ['aborting', new Map<string, (
+      state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+    ) => FsmStepInterface<
+      BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      BusQueueReleaseForAbortEffectEntity.Type
+    >>([
+      ['abort', BusQueueLifecycleMachine.#abortingAbort],
+      ['loopFinished', BusQueueLifecycleMachine.#abortingLoopFinished],
+      ['startLoop', BusQueueLifecycleMachine.#abortingStartLoop]
+    ])],
+    ['draining', new Map<string, (
+      state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+    ) => FsmStepInterface<
+      BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      BusQueueReleaseForAbortEffectEntity.Type
+    >>([
+      ['abort', BusQueueLifecycleMachine.#drainingAbort],
+      ['loopFinished', BusQueueLifecycleMachine.#drainingLoopFinished],
+      ['startLoop', BusQueueLifecycleMachine.#drainingStartLoop]
+    ])],
+    ['open', new Map<string, (
+      state: BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      event: BusQueueStartLoopEventEntity.Type | BusQueueLoopFinishedEventEntity.Type | BusQueueAbortEventEntity.Type
+    ) => FsmStepInterface<
+      BusQueueOpenStateEntity.Type | BusQueueDrainingStateEntity.Type | BusQueueAbortingStateEntity.Type | BusQueueAbortedStateEntity.Type,
+      BusQueueReleaseForAbortEffectEntity.Type
+    >>([
+      ['abort', BusQueueLifecycleMachine.#openAbort],
+      ['loopFinished', BusQueueLifecycleMachine.#openLoopFinished],
+      ['startLoop', BusQueueLifecycleMachine.#openStartLoop]
+    ])]
+  ]);
 }

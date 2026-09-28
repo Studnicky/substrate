@@ -1,14 +1,16 @@
-import { BaseError, HookInvoker } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
-
-import type { BatchStatsEntity } from '../entities/BatchStatsEntity.js';
+import { BaseError, HookInvoker } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { DEFAULT_BATCH_MAXIMUM_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX } from '../constants/index.js';
 import { BatchError } from '../errors/index.js';
 
-interface BatchSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
+/** Aggregate completion statistics emitted by the onBatchComplete hook. Computed internally from live counters; never externally validated. */
+interface BatchStatsInterface {
+  readonly 'failed': number;
+  readonly 'succeeded': number;
+  readonly 'total': number;
 }
+
 
 interface ItemProcessingOptionsInterface {
   readonly 'counters'?: Map<'failed' | 'succeeded', number>;
@@ -28,15 +30,8 @@ export class Batch<TResult = unknown> {
     protected override onHookError(): void {}
   };
 
-  static create<TResult = unknown, TInstance extends Batch<TResult> = Batch<TResult>>(
-    this: BatchSubclassInterface<TInstance>,
-    maximumConcurrent?: number
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [maximumConcurrent]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw new BatchError('Batch.create() must construct a Batch instance');
-    }
-    return result;
+  static create<TResult = unknown>(maximumConcurrent?: number): Batch<TResult> {
+    return new this(maximumConcurrent);
   }
 
   protected readonly maximumConcurrent: number;
@@ -58,7 +53,7 @@ export class Batch<TResult = unknown> {
   protected onItemSuccess(_index: number, _result: TResult): void {}
   protected onItemError(_index: number, _error: BaseError): void {}
   protected onItemSettled(_index: number): void {}
-  protected onBatchComplete(_stats: BatchStatsEntity.Type): void {}
+  protected onBatchComplete(_stats: BatchStatsInterface): void {}
 
   async *process<T>(
     items: readonly T[],
@@ -135,7 +130,7 @@ export class Batch<TResult = unknown> {
       yield this.#createBatchItemPromises(batch, batchOffset, operation, counters);
     }
 
-    const stats: BatchStatsEntity.Type = {
+    const stats: BatchStatsInterface = {
       'failed': counters.get('failed') ?? 0,
       'succeeded': counters.get('succeeded') ?? 0,
       'total': itemsLength
@@ -227,7 +222,7 @@ export class Batch<TResult = unknown> {
         failed += 1;
       }
     }
-    const stats: BatchStatsEntity.Type = { 'failed': failed, 'succeeded': succeeded, 'total': total };
+    const stats: BatchStatsInterface = { 'failed': failed, 'succeeded': succeeded, 'total': total };
     await this.hooks.invokeAsync('onBatchComplete', () => { const result = this.onBatchComplete(stats); return result; });
   }
 

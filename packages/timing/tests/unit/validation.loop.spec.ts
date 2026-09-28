@@ -1,4 +1,5 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -12,6 +13,7 @@ import {
   TimingStatusEntity
 } from '../../src/entities/index.js';
 import { TimingEvent } from '../../src/modules/TimingEvent.js';
+import { ValidationScenarioCaseEntity } from './entities/ValidationScenarioCaseEntity.js';
 import scenarioGroups from './validation.scenarios.json' with { type: 'json' };
 
 type EntityValidator = (value: unknown) => boolean;
@@ -33,110 +35,14 @@ function createTimingEvent(input: Parameters<typeof TimingEvent.create>[0]): Ret
   return TimingEvent.create(input);
 }
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: { values: number[] };
-      shape: 'accepts-valid-max-events';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorNames: string[] };
-      input: { values: unknown[] };
-      shape: 'rejects-invalid-max-events';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: { values: Array<Record<string, number>> };
-      shape: 'accepts-valid-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'ConfigurationError' };
-      input: { value: unknown };
-      shape: 'rejects-non-object-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'ConfigurationError' };
-      input: { value: unknown };
-      shape: 'rejects-array-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: Record<string, never>;
-      shape: 'accepts-empty-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: Record<string, never>;
-      shape: 'accepts-null-max-events';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: Record<string, never>;
-      shape: 'accepts-undefined-max-events';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorNames: string[] };
-      input: { values: Array<Record<string, unknown>> };
-      shape: 'rejects-invalid-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorName: 'ConfigurationError' };
-      input: { value: Record<string, number> };
-      shape: 'rejects-invalid-time-units';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { results: boolean[] };
-      input: { cases: Array<{ entity: string; value: unknown }> };
-      shape: 'validates-entities';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { maxDecimalPlaces: number; hasInitialize: true };
-      input: { event: Parameters<typeof TimingEvent.create>[0]; timing: { precision: { ms: number } } };
-      shape: 'applies-precision';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { accepted: true };
-      input: { timing: { maximumEvents: number; precision: { ms: number } } };
-      shape: 'accepts-all-options';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hasInitialize: true };
-      input: Record<string, never>;
-      shape: 'applies-defaults';
-      name: string;
-    };
+type ScenarioCase = ValidationScenarioCaseEntity.Type;
 
 type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
 type RunnerMap = {
   [K in ScenarioCase['shape']]: ScenarioRunner<K>;
 };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ValidationScenarioCaseEntity.Schema, ValidationScenarioCaseEntity.Node);
 
 const runnerMap: RunnerMap = {
   'accepts-valid-max-events': (scenarioCase) => {
@@ -263,7 +169,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('Timing validation', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

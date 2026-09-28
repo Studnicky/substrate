@@ -4,63 +4,37 @@ import {
   describe, it
 } from 'node:test';
 
-
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { SlidingWindowLimiterConfigError } from '../../../src/errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from '../../../src/SlidingWindowExhaustedError.js';
 import { SlidingWindowLimiterOptionsEntity } from '../../../src/entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiter } from '../../../src/SlidingWindowLimiter.js';
 import type { SlidingWindowLimiterOptionsInterface } from '../../../src/interfaces/SlidingWindowLimiterOptionsInterface.js';
+import { SlidingWindowLimiterScenarioCaseEntity } from '../entities/SlidingWindowLimiterScenarioCaseEntity.js';
 import scenarioGroups from './SlidingWindowLimiter.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'async-allow-rejection'
-  | 'async-notification-order'
-  | 'counter-blends-previous-window'
-  | 'default-clock-consume'
-  | 'default-clock-consume-counter'
-  | 'hook-error-isolation'
-  | 'hook-error-snapshot'
-  | 'hook-event'
-  | 'invalid-config'
-  | 'limit-plus-one-throws'
-  | 'log-prunes-stale-entries'
-  | 'recovers-after-window'
-  | 'structural-compatibility'
-  | 'wait-for-token-aborts'
-  | 'window-roll'
-  | 'within-limit';
-
-type ScenarioCase =
-  {
-    description: string;
-    expected: Record<string, unknown>;
-    input: ScenarioInput;
-    shape: ScenarioShape;
-    name: string;
-  };
-
-type LimiterAlgorithm = 'counter' | 'log';
+type ScenarioCase = SlidingWindowLimiterScenarioCaseEntity.Type;
+type LimiterInput = ScenarioCase['input']['slidingWindowLimiter'];
+type LimiterAlgorithm = LimiterInput['algorithm'];
+type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-type LimiterConfigInput = {
-  algorithm: LimiterAlgorithm;
-  limit: number;
-  windowMs: number;
-};
-type SlidingWindowLimiterInput = LimiterConfigInput & Record<string, unknown>;
-type ScenarioInput = {
-  slidingWindowLimiter: SlidingWindowLimiterInput;
-} & Record<string, unknown>;
 
-function slidingWindowLimiterInput<T extends SlidingWindowLimiterInput = SlidingWindowLimiterInput>(input: ScenarioInput): T {
-  return input.slidingWindowLimiter as T;
+const fileIntake = ScenarioFileCompiler.compileIntake(SlidingWindowLimiterScenarioCaseEntity.Schema, SlidingWindowLimiterScenarioCaseEntity.Node);
+
+/** Narrows an optional fixture field, throwing when a shape's fixture omits a field the runner requires. */
+function requireField<T>(value: T | undefined, label: string): T {
+  if (value === undefined) {
+    throw RuntimeError.create(`Expected sliding-window-limiter fixture field: ${label}`);
+  }
+  return value;
 }
 
-function resolveLimiterConfig(input: SlidingWindowLimiterInput, clock?: () => number): SlidingWindowLimiterOptionsInterface {
+function resolveLimiterConfig(input: LimiterInput, clock?: () => number): SlidingWindowLimiterOptionsInterface {
   const config: SlidingWindowLimiterOptionsInterface = {
     algorithm: input.algorithm,
-    limit: Number(input.limit),
-    windowMs: Number(input.windowMs)
+    limit: input.limit,
+    windowMs: input.windowMs
   };
 
   return clock === undefined ? config : { ...config, clock };
@@ -68,9 +42,12 @@ function resolveLimiterConfig(input: SlidingWindowLimiterInput, clock?: () => nu
 
 const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'async-allow-rejection': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { errorCount: number; hookNames: Array<'onAllow'> };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       class AsyncRejectingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): AsyncRejectingAllowLimiter {
+          return new AsyncRejectingAllowLimiter(options);
+        }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
@@ -90,17 +67,21 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
           await new Promise((resolve) => { setImmediate(resolve); });
 
           assert.strictEqual(rejectionEvents.length, 0);
-          assert.strictEqual(limiter.recordedHookErrors.length, expected.errorCount);
-          assert.strictEqual(limiter.recordedHookErrors[0]?.hookName, expected.hookNames[0]);
+          assert.strictEqual(limiter.recordedHookErrors.length, Number(expected.errorCount));
+          assert.strictEqual(limiter.recordedHookErrors[0]?.hookName, Array.isArray(expected.hookNames) ? expected.hookNames[0] : undefined);
         } finally {
           process.off('unhandledRejection', onUnhandledRejection);
         }
       })();
   },
   'async-notification-order': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { errorCount: number; hookNames: Array<'onAllow' | 'onReject' | 'onWindowRoll'> };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const hookNames = Array.isArray(expected.hookNames) ? expected.hookNames : [];
       class AsyncRejectingNotificationLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): AsyncRejectingNotificationLimiter {
+          return new AsyncRejectingNotificationLimiter(options);
+        }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
@@ -136,19 +117,21 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
           await new Promise((resolve) => { setImmediate(resolve); });
 
           assert.strictEqual(rejectionEvents.length, 0);
-          assert.strictEqual(limiter.recordedHookErrors.length, expected.errorCount);
-          assert.strictEqual(limiter.recordedHookErrors[0]?.hookName, expected.hookNames[0]);
-          assert.strictEqual(limiter.recordedHookErrors[1]?.hookName, expected.hookNames[1]);
-          assert.strictEqual(limiter.recordedHookErrors[2]?.hookName, expected.hookNames[2]);
-          assert.strictEqual(limiter.recordedHookErrors[3]?.hookName, expected.hookNames[3]);
+          assert.strictEqual(limiter.recordedHookErrors.length, Number(expected.errorCount));
+          assert.strictEqual(limiter.recordedHookErrors[0]?.hookName, hookNames[0]);
+          assert.strictEqual(limiter.recordedHookErrors[1]?.hookName, hookNames[1]);
+          assert.strictEqual(limiter.recordedHookErrors[2]?.hookName, hookNames[2]);
+          assert.strictEqual(limiter.recordedHookErrors[3]?.hookName, hookNames[3]);
         } finally {
           process.off('unhandledRejection', onUnhandledRejection);
         }
       })();
   },
   'counter-blends-previous-window': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { firstAdvanceMs: number; secondWaveAttempts: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { afterPruneRejects: number; beforePruneRejects: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const firstAdvanceMs = requireField(input.firstAdvanceMs, 'firstAdvanceMs');
+      const secondWaveAttempts = requireField(input.secondWaveAttempts, 'secondWaveAttempts');
       let time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
@@ -158,34 +141,37 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      time = input.firstAdvanceMs;
-      for (let index = 0; index < input.secondWaveAttempts; index += 1) {
+      time = firstAdvanceMs;
+      for (let index = 0; index < secondWaveAttempts; index += 1) {
         limiter.consume();
       }
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      assert.strictEqual(expected.beforePruneRejects, 1);
-      assert.strictEqual(expected.afterPruneRejects, 1);
+      assert.strictEqual(Number(expected.beforePruneRejects), 1);
+      assert.strictEqual(Number(expected.afterPruneRejects), 1);
   },
   'default-clock-consume': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { admitted: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input));
       limiter.consume();
-      assert.strictEqual(expected.admitted, 1);
+      assert.strictEqual(Number(expected.admitted), 1);
   },
   'default-clock-consume-counter': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { admitted: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input));
       limiter.consume();
-      assert.strictEqual(expected.admitted, 1);
+      assert.strictEqual(Number(expected.admitted), 1);
   },
   'hook-error-isolation': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { firstCount: number; secondCount: number; snapshotLength: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): ThrowingAllowLimiter {
+          return new ThrowingAllowLimiter(options);
+        }
         readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
@@ -198,23 +184,26 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       first.consume();
       const firstSnapshot = first.recordedHookErrors;
 
-      assert.strictEqual(first.recordedHookErrorCount, expected.firstCount);
+      assert.strictEqual(first.recordedHookErrorCount, Number(expected.firstCount));
       assert.strictEqual(second.recordedHookErrorCount, 0);
       assert.ok(firstSnapshot[0]?.cause instanceof Error);
       assert.strictEqual(firstSnapshot[0].cause.message, first.failure.message);
 
       second.consume();
 
-      assert.strictEqual(first.recordedHookErrorCount, expected.firstCount);
-      assert.strictEqual(second.recordedHookErrorCount, expected.secondCount);
-      assert.strictEqual(firstSnapshot.length, expected.snapshotLength);
+      assert.strictEqual(first.recordedHookErrorCount, Number(expected.firstCount));
+      assert.strictEqual(second.recordedHookErrorCount, Number(expected.secondCount));
+      assert.strictEqual(firstSnapshot.length, Number(expected.snapshotLength));
       assert.ok(second.recordedHookErrors[0]?.cause instanceof Error);
       assert.strictEqual(second.recordedHookErrors[0].cause.message, second.failure.message);
   },
   'hook-error-snapshot': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { firstCount: number; secondCount: number; snapshotLength: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): ThrowingAllowLimiter {
+          return new ThrowingAllowLimiter(options);
+        }
         readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
@@ -224,7 +213,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const limiter = ThrowingAllowLimiter.create(resolveLimiterConfig(input));
       limiter.consume();
 
-      assert.strictEqual(limiter.recordedHookErrorCount, expected.firstCount);
+      assert.strictEqual(limiter.recordedHookErrorCount, Number(expected.firstCount));
       const firstCause = limiter.recordedHookErrors[0]?.cause;
       assert.ok(firstCause instanceof Error);
       firstCause.message = 'mutated';
@@ -237,17 +226,18 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const secondCause = limiter.recordedHookErrors[0]?.cause;
       assert.ok(secondCause instanceof Error);
       assert.strictEqual(secondCause.message, 'onAllow boom');
-      assert.strictEqual(limiter.recordedHookErrorCount, expected.firstCount);
+      assert.strictEqual(limiter.recordedHookErrorCount, Number(expected.firstCount));
       const secondDetails = secondCause.cause;
       assert.ok(secondDetails !== null && typeof secondDetails === 'object');
       const secondWindows = Reflect.get(secondDetails, 'windows');
       assert.ok(Array.isArray(secondWindows));
-      assert.strictEqual(secondWindows.length, expected.snapshotLength);
+      assert.strictEqual(secondWindows.length, Number(expected.snapshotLength));
       assert.strictEqual(secondWindows[0], 1);
   },
   'hook-event': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { hook: 'allow' | 'reject' }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { events: Array<{ type: 'allow' | 'reject'; value?: number }> };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const hook = requireField(input.hook, 'hook');
       const time = 0;
       const clock = (): number => time;
       const limiter = new class extends SlidingWindowLimiter {
@@ -268,107 +258,117 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
             limiter.consume();
           }, SlidingWindowExhaustedError);
         }
-      } satisfies Record<typeof input.hook, () => void>;
+      } satisfies Record<typeof hook, () => void>;
 
-      hookRunner[input.hook]();
+      hookRunner[hook]();
 
       assert.deepStrictEqual(limiter.events, expected.events);
   },
   'invalid-config': (scenarioCase) => {
-      const input = slidingWindowLimiterInput(scenarioCase.input);
-      const expected = scenarioCase.expected as { errorName: string };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
       assert.throws(() => {
         SlidingWindowLimiter.create(resolveLimiterConfig(input));
       }, SlidingWindowLimiterConfigError);
       assert.strictEqual(expected.errorName, SlidingWindowLimiterConfigError.name);
   },
   'limit-plus-one-throws': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { admitCount: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { admitted: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const admitCount = requireField(input.admitCount, 'admitCount');
       const time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
-      for (let index = 0; index < input.admitCount; index += 1) {
+      for (let index = 0; index < admitCount; index += 1) {
         limiter.consume();
       }
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      assert.strictEqual(expected.admitted, input.admitCount);
+      assert.strictEqual(Number(expected.admitted), admitCount);
   },
   'log-prunes-stale-entries': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { firstAdvanceMs: number; secondAdvanceMs: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { afterPruneRejects: number; beforePruneRejects: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const firstAdvanceMs = requireField(input.firstAdvanceMs, 'firstAdvanceMs');
+      const secondAdvanceMs = requireField(input.secondAdvanceMs, 'secondAdvanceMs');
       let time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
       limiter.consume();
-      time = input.firstAdvanceMs;
+      time = firstAdvanceMs;
       limiter.consume();
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      time = input.secondAdvanceMs;
+      time = secondAdvanceMs;
       limiter.consume();
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      assert.strictEqual(expected.beforePruneRejects, 1);
-      assert.strictEqual(expected.afterPruneRejects, 1);
+      assert.strictEqual(Number(expected.beforePruneRejects), 1);
+      assert.strictEqual(Number(expected.afterPruneRejects), 1);
   },
   'recovers-after-window': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { admitCount: number; advanceAfterRejectMs: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { admittedBeforeRetry: number; retryAfterMs: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const admitCount = requireField(input.admitCount, 'admitCount');
+      const advanceAfterRejectMs = requireField(input.advanceAfterRejectMs, 'advanceAfterRejectMs');
       let time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
-      for (let index = 0; index < input.admitCount; index += 1) {
+      for (let index = 0; index < admitCount; index += 1) {
         limiter.consume();
       }
       assert.throws(() => {
         limiter.consume();
       }, SlidingWindowExhaustedError);
-      time = input.advanceAfterRejectMs;
+      time = advanceAfterRejectMs;
       limiter.consume();
-      assert.strictEqual(expected.admittedBeforeRetry, input.admitCount);
-      assert.strictEqual(expected.retryAfterMs, input.advanceAfterRejectMs);
+      assert.strictEqual(Number(expected.admittedBeforeRetry), admitCount);
+      assert.strictEqual(Number(expected.retryAfterMs), advanceAfterRejectMs);
   },
   'structural-compatibility': async (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { consumeTokens: number; waitTokens: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { output: string };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const consumeTokens = requireField(input.consumeTokens, 'consumeTokens');
+      const waitTokens = requireField(input.waitTokens, 'waitTokens');
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input));
-      limiter.consume(input.consumeTokens);
-      await limiter.waitForToken({ tokens: input.waitTokens });
+      limiter.consume(consumeTokens);
+      await limiter.waitForToken({ tokens: waitTokens });
       assert.strictEqual(expected.output, 'resolved');
   },
   'wait-for-token-aborts': async (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { abortMessage: string }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { rejectionMessage: string };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const abortMessage = requireField(input.abortMessage, 'abortMessage');
       const time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
       limiter.consume();
       const controller = new AbortController();
       setImmediate(() => {
-        controller.abort(RuntimeError.create(input.abortMessage));
+        controller.abort(RuntimeError.create(abortMessage));
       });
-      await assert.rejects(() => limiter.waitForToken({ signal: controller.signal }), { 'message': input.abortMessage });
-      assert.strictEqual(expected.rejectionMessage, input.abortMessage);
+      await assert.rejects(() => limiter.waitForToken({ signal: controller.signal }), { 'message': abortMessage });
+      assert.strictEqual(expected.rejectionMessage, abortMessage);
   },
   'within-limit': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { admitCount: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { admitted: number };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const admitCount = requireField(input.admitCount, 'admitCount');
       const time = 0;
       const clock = (): number => time;
       const limiter = SlidingWindowLimiter.create(resolveLimiterConfig(input, clock));
-      for (let index = 0; index < input.admitCount; index += 1) {
+      for (let index = 0; index < admitCount; index += 1) {
         limiter.consume();
       }
-      assert.strictEqual(expected.admitted, input.admitCount);
+      assert.strictEqual(Number(expected.admitted), admitCount);
   },
   'window-roll': (scenarioCase) => {
-      const input = slidingWindowLimiterInput<SlidingWindowLimiterInput & { rollAfterMs: number }>(scenarioCase.input);
-      const expected = scenarioCase.expected as { events: Array<'windowRoll'> };
+      const input = scenarioCase.input.slidingWindowLimiter;
+      const expected = scenarioCase.expected;
+      const rollAfterMs = requireField(input.rollAfterMs, 'rollAfterMs');
       let time = 0;
       const clock = (): number => time;
       const limiter = new class extends SlidingWindowLimiter {
@@ -381,12 +381,12 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         counter: (): void => {
           limiter.consume();
           limiter.consume();
-          time = input.rollAfterMs;
+          time = rollAfterMs;
           limiter.consume();
         },
         log: (): void => {
           limiter.consume();
-          time = input.rollAfterMs;
+          time = rollAfterMs;
           limiter.consume();
         }
       } satisfies Record<LimiterAlgorithm, () => void>;
@@ -401,9 +401,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('SlidingWindowLimiter', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
+    void it(scenarioCase.name, async () => {
+      await runCase(scenarioCase);
     });
   }
 });

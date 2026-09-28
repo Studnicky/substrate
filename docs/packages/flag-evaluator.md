@@ -15,7 +15,7 @@ pnpm add @studnicky/flag-evaluator
 
 ## Usage
 
-Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/json/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
+Register named boolean flag definitions (`enabled`, optional `rolloutPercent`, `defaultValue`) and resolve each `evaluate()` call deterministically via `@studnicky/types/node`'s `Hash` — the same flag and targeting key always land in the same rollout bucket:
 
 <<< ../../packages/flag-evaluator/examples/observedFlagEvaluator.ts#usage
 

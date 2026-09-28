@@ -1,50 +1,27 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
 
 import { FileLock, FileLockTimeoutError } from '../../src/node/index.js';
+import { FileLockVirtualFsScenarioCaseEntity } from './entities/FileLockVirtualFsScenarioCaseEntity.js';
 import scenarioGroups from './FileLockVirtualFs.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { firstAcquire: true; secondAcquireRejected: true; thirdAcquire: true };
-      input: {
-        fileLock: {
-          first: { timeoutMs: number };
-          second: { timeoutMs: number };
-          third: { timeoutMs: number };
-        };
-        fileSystemSeed: [string, string][];
-        lockPath: string;
-      };
-      shape: 'virtual-fs-mutual-exclusion';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { initialContents: string; updatedContents: string };
-      input: {
-        fileLock: {
-          first: { timeoutMs: number };
-          second: { timeoutMs: number };
-        };
-        fileSystemSeed: [string, string][];
-        lockPath: string;
-        updatedContents: string;
-      };
-      shape: 'virtual-fs-read-write';
-      name: string;
-    };
-
+type ScenarioCase = FileLockVirtualFsScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
 type ScenarioRunnerMap = { readonly [Shape in ScenarioShape]: ScenarioRunner<Shape> };
 
+const fileIntake = ScenarioFileCompiler.compileIntake(FileLockVirtualFsScenarioCaseEntity.Schema, FileLockVirtualFsScenarioCaseEntity.Node);
+
+function toSeedMap(entries: ScenarioCase['input']['fileSystemSeed']): Map<string, string> {
+  return new Map(entries.map((entry): [string, string] => [entry.path, entry.content]));
+}
+
 const runnerMap: ScenarioRunnerMap = {
   'virtual-fs-mutual-exclusion': async (scenarioCase) => {
-    const vfs = VirtualFileSystem.create({ seed: new Map(scenarioCase.input.fileSystemSeed) });
+    const vfs = VirtualFileSystem.create({ seed: toSeedMap(scenarioCase.input.fileSystemSeed) });
 
     const lock1 = await FileLock.create({ fileSystem: vfs, path: scenarioCase.input.lockPath, ...scenarioCase.input.fileLock.first });
     assert.ok(lock1 !== undefined);
@@ -61,7 +38,7 @@ const runnerMap: ScenarioRunnerMap = {
     assert.equal(scenarioCase.expected.thirdAcquire, true);
   },
   'virtual-fs-read-write': async (scenarioCase) => {
-    const vfs = VirtualFileSystem.create({ seed: new Map(scenarioCase.input.fileSystemSeed) });
+    const vfs = VirtualFileSystem.create({ seed: toSeedMap(scenarioCase.input.fileSystemSeed) });
     const lock = await FileLock.create({ fileSystem: vfs, path: scenarioCase.input.lockPath, ...scenarioCase.input.fileLock.first });
     assert.strictEqual(lock.read(), scenarioCase.expected.initialContents);
     lock.write(scenarioCase.input.updatedContents);
@@ -77,7 +54,7 @@ function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase
 }
 
 void describe('FileLock VirtualFileSystem', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

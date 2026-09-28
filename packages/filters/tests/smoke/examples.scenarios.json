@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "the filterProducts example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/filterProducts.ts"
+      },
+      "name": "filterProducts",
+      "shape": "imports-example"
+    }
+  ]
+}

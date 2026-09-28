@@ -32,9 +32,9 @@ const pool = WorkerPool.create({
 const results = await pool.run([1, 2, 3, 4, 5]);
 ```
 
-`concurrency` limits active workers. `batchConcurrency` controls queued-work admission, and `timeoutMs` limits each task.
+`concurrency` limits active workers. `batchConcurrency` controls queued-work admission. `timeoutMs` and `startupTimeoutMs` bound two distinct phases and never share a clock: `startupTimeoutMs` bounds how long a worker may take to boot (`node:worker_threads`'s `'online'` event for `WorkerPool`; the worker factory's `create()`/`initialize()` for `WebWorkerPool`), and `timeoutMs` bounds task execution only, its clock starting once the worker has already booted, immediately before the item is posted. Both are optional and independent — a pool given neither runs with no deadline in either phase. A worker that fails to start within `startupTimeoutMs` rejects with a message naming the startup condition, reported through `onWorkerError`, never `onWorkerTimeout`.
 
-Pass `abortSignal` to cancel a task. Pass `signal` when your application supplies a `Signal` implementation.
+Pass `abortSignal` to cancel a task. It is composed exactly once per task and held by exactly one `abort` listener for that task's entire lifetime — startup phase and task phase alike. Pass `signal` when your application supplies a `Signal` implementation.
 
 Workers post `log`, `progress`, `result`, and `error` envelopes. Import message entities from `@studnicky/worker-pool/entities` and generic message contracts from `@studnicky/worker-pool/interfaces`.
 
@@ -57,7 +57,7 @@ Each `run()` call uses up to `concurrency` workers and closes them after the cal
 
 | Method | Description |
 |--------|-------------|
-| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, `timeoutMs`, and `signal` default |
+| `WorkerPool.create(config)` | Creates a pool. `config.workerPath` is required; `concurrency`, `batchConcurrency`, and `signal` default; `timeoutMs` and `startupTimeoutMs` are optional with no default |
 | `run(items)` | Fans `items` across at most `concurrency` workers and resolves an ordered `TResult[]` |
 | `getHookErrorCount()` | Count of hook failures recorded since construction |
 | `getHookErrors()` | Detached errors and nested causes for every hook failure recorded since construction |
@@ -70,7 +70,7 @@ Override these protected hooks to collect logging, tracing, or metrics.
 |------|-------|
 | `onMessage(envelope, index)` | For every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike |
 | `onWorkerTimeout(index)` | When a task exceeds its configured `timeoutMs`, immediately before the worker is terminated |
-| `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, or termination fails |
+| `onWorkerError(error, index)` | When a worker reports an error envelope, emits an uncaught error, termination fails, or a worker fails to start within `startupTimeoutMs` |
 
 Use `getHookErrorCount()` and `getHookErrors()` to inspect hook failures.
 
@@ -111,7 +111,7 @@ const pool = TelemetryWorkerPool.create({
 const results = await pool.run([{ n: 5 }, { n: 10 }, { n: 15 }]);
 ```
 
-See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWorkerPoolWorker.mjs` for the full runnable version.
+See `examples/observedWorkerPool.ts` and its worker fixture `examples/observedWorkerPoolWorker.ts` for the full runnable version.
 
 
 ## Documentation

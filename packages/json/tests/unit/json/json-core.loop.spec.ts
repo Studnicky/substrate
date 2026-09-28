@@ -7,10 +7,8 @@ import {
   Clone,
   Frozen,
   FrozenMutationError,
-  Hash,
   Merge,
-  Sort,
-  StructuralHash
+  Sort
 } from '../../../src/index.js';
 import {
   DraftNodeStateEntity,
@@ -51,20 +49,10 @@ type ScenarioShape =
   | 'frozen-reference'
   | 'frozen-set-values'
   | 'frozen-subclass-skip'
-  | 'hash-different'
-  | 'hash-distinct-shapes'
-  | 'hash-edge-values'
-  | 'hash-hex'
-  | 'hash-identical'
-  | 'hash-nested'
-  | 'hash-order'
-  | 'hash-primitive'
   | 'merge-hidden-class'
   | 'merge-isolation'
   | 'merge-primitives'
-  | 'sort-functions'
-  | 'structural-hash-different'
-  | 'structural-hash-metadata';
+  | 'sort-functions';
 
 type JsonObject = Record<string, unknown>;
 type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
@@ -89,21 +77,6 @@ class SelectiveFrozen extends Frozen {
     return !('mutable' in value);
   }
 }
-
-const runtimeValueByShape = {
-  array: (): unknown[] => [1, 2],
-  date: (): Date => new Date(0),
-  false: (): boolean => false,
-  function: (): (() => string) => () => 'hashable',
-  map: (): Map<string, number> => new Map([['a', 1]]),
-  null: (): null => null,
-  number: (): number => 1,
-  object: (): Record<string, never> => ({}),
-  set: (): Set<string> => new Set(['a']),
-  string: (): string => 'value',
-  true: (): boolean => true,
-  undefined: (): undefined => undefined
-} satisfies Record<string, () => unknown>;
 
 const scenarioRunnerMap = {
   'clone-deep-number': (scenarioCase) => {
@@ -325,64 +298,6 @@ const scenarioRunnerMap = {
     assert.equal(Object.isFrozen(frozen.child), scenarioCase.expected.childFrozen);
   },
 
-  'hash-hex': (scenarioCase) => {
-    assert.match(Hash.value(readJson(scenarioCase).value), /^[0-9a-f]{8}$/u);
-  },
-
-  'hash-identical': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash identical values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-order': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash order values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-different': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash different values');
-    assert.equal(Hash.value(values[0]) === Hash.value(values[1]), scenarioCase.expected.sameHash);
-    assert.notEqual(Hash.value([1, 2]), Hash.value([1, 3]));
-  },
-
-  'hash-primitive': (scenarioCase) => {
-    assert.equal(typeof Hash.value(readJson(scenarioCase).value), 'string');
-  },
-
-  'hash-nested': (scenarioCase) => {
-    const value = readJson(scenarioCase).value;
-    const changed = { a: { b: { c: 2 } } };
-    assert.notEqual(Hash.value(value), Hash.value(changed));
-  },
-
-  'hash-distinct-shapes': (scenarioCase) => {
-    const hashes = requireArray(readJson(scenarioCase).values, 'hash distinct value shapes').map((shape) => {
-      return Hash.value(materializeRuntimeValue(requireString(shape, 'hash distinct value shape')));
-    });
-    assert.equal(new Set(hashes).size === hashes.length, scenarioCase.expected.distinct);
-  },
-
-  'structural-hash-metadata': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash metadata base');
-    const metadataVariant = requireJsonObject(requiredValue(input, 'metadataVariant'), 'structural hash metadata variant');
-    assert.equal(StructuralHash.of(base), StructuralHash.of(metadataVariant));
-  },
-
-  'structural-hash-different': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash different base');
-    const variant = requireJsonObject(requiredValue(input, 'variant'), 'structural hash different variant');
-    assert.notEqual(StructuralHash.of(base), StructuralHash.of(variant));
-  },
-
-  'hash-edge-values': (scenarioCase) => {
-    const [trueShape, falseShape, nullShape, stringShape] = requireArray(readJson(scenarioCase).values, 'hash edge values')
-      .map((shape) => requireString(shape, 'hash edge value shape'));
-    assert.equal(Hash.value(materializeRuntimeValue(trueShape!)) !== Hash.value(materializeRuntimeValue(falseShape!)), scenarioCase.expected.booleanDistinct);
-    assert.equal(Hash.value(materializeRuntimeValue(nullShape!)) !== Hash.value(materializeRuntimeValue(stringShape!)), scenarioCase.expected.nullDistinctFromString);
-  },
-
   'merge-primitives': (scenarioCase) => {
     assert.deepEqual(Merge.deep({ a: 1, b: 2 }, { b: 99 }), { a: 1, b: 99 });
     assert.deepEqual(Merge.deep({ a: 1, b: 2 }, { c: 3 }), { a: 1, b: 2, c: 3 });
@@ -578,19 +493,6 @@ function materializeCycle<T>(value: T): JsonObject {
   return result;
 }
 
-function isRuntimeValueShape(shape: string): shape is keyof typeof runtimeValueByShape {
-  return Object.hasOwn(runtimeValueByShape, shape);
-}
-
-function materializeRuntimeValue(shape: string): unknown {
-  if (isRuntimeValueShape(shape)) {
-    return runtimeValueByShape[shape]();
-  }
-
-  throw RuntimeError.create(`Unknown runtime value shape: ${shape}`);
-}
-
-
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   await scenarioRunnerMap[scenarioCase.shape](scenarioCase);
 }
@@ -781,13 +683,6 @@ void describe('restored value-utility runtime contracts', () => {
     assert.equal(Predicates.areDeeplyEqual(new Set(['a']), new Set(['b'])), false);
     assert.equal(Predicates.areDeeplyEqual(new Map([['item', { 'count': 1 }]]), new Map([['item', { 'count': 1 }]])), true);
     assert.equal(Predicates.areDeeplyEqual(new Map([['item', 1]]), new Map([['item', 2]])), false);
-  });
-
-  void it('hashes Date, Map, and Set values deterministically', () => {
-    assert.equal(Hash.value(new Date(1)), Hash.value(new Date(1)));
-    assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['b', 2], ['a', 1]])));
-    assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['b', 'a'])));
-    assert.notEqual(Hash.value(new Date(1)), Hash.value({}));
   });
 
   void it('keeps non-plain merge overlays atomic', () => {

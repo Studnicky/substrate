@@ -1,6 +1,6 @@
 /** Thrown when a scheduler operation fails. */
 
-import { BaseError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/errors/browser';
 
 export class SchedulerError extends BaseError {
   public constructor(message: string, cause?: Error) {

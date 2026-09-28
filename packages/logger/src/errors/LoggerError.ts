@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/errors/browser';
 
 /**
  * Base error class for all logger-related errors

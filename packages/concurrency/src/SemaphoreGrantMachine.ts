@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
 import type { SemaphoreGrantTransitionEventEntity } from './entities/SemaphoreGrantTransitionEventEntity.js';

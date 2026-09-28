@@ -1,9 +1,8 @@
-import type { DeadLetterQueueEntryMetadataEntity } from '../entities/DeadLetterQueueEntryMetadataEntity.js';
-
+/** `enqueuedAtMs`/`id` are computed internally (clock, `crypto.randomUUID()`); never externally validated. */
 export interface DeadLetterQueueEntryInterface<T> {
-  'enqueuedAtMs': DeadLetterQueueEntryMetadataEntity.Type['enqueuedAtMs'];
+  'enqueuedAtMs': number;
   'error': Error | undefined;
-  'id': DeadLetterQueueEntryMetadataEntity.Type['id'];
+  'id': string;
   'item': T;
-  'reason': DeadLetterQueueEntryMetadataEntity.Type['reason'];
+  'reason': string;
 }

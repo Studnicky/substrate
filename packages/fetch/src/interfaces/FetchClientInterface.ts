@@ -11,7 +11,7 @@ import type { FetchOptionsInterface } from './FetchOptionsInterface.js';
  */
 export interface FetchClientInterface {
   delete(path: string, options?: FetchOptionsInterface): Promise<Response>;
-  destroy(options?: DestroyOptionsEntity.Type): Promise<void>;
+  destroy(options?: DestroyOptionsEntity.InputType): Promise<void>;
   get(path: string, options?: FetchOptionsInterface): Promise<Response>;
   head(path: string, options?: FetchOptionsInterface): Promise<Response>;
   options(path: string, options?: FetchOptionsInterface): Promise<Response>;

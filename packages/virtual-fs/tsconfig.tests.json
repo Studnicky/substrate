@@ -22,6 +22,12 @@
     },
     {
       "path": "../json"
+    },
+    {
+      "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

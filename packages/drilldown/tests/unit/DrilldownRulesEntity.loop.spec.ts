@@ -3,9 +3,7 @@ import { describe, it } from 'node:test';
 
 import { Predicates } from '@studnicky/types/node';
 
-import type { DrillDownConfigEntity } from '../../src/index.js';
-
-import { DrilldownRulesEntity, DrillDown } from '../../src/index.js';
+import { DrilldownRulesEntity, DrillDown, DrillDownConfigEntity } from '../../src/index.js';
 import { TypeGuards } from '../../src/typeguards/index.js';
 import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { type: 'json' };
 
@@ -190,8 +188,15 @@ function runScenarioCase(scenarioCase: ScenarioCase): void {
   }
 
   const records = buildRecords(scenarioCase.input.properties, scenarioCase.input.values);
+  // `minimumGroupSize` alone proves the branded bound; `rules` is already `DrilldownRulesEntity.Type`,
+  // validated separately above.
+  const provenMinimumGroupSize = DrillDownConfigEntity.intake({ 'minimumGroupSize': 1 });
+  const minimumGroupSize = provenMinimumGroupSize.minimumGroupSize;
+
+  assert.ok(minimumGroupSize !== undefined, 'minimumGroupSize was just supplied to intake');
+
   const config: DrillDownConfigEntity.Type = {
-    'minimumGroupSize': 0,
+    'minimumGroupSize': minimumGroupSize,
     'rules': buildPathRules(scenarioCase.input.properties, scenarioCase.input.values, scenarioCase.input.path, 0)
   };
 
@@ -269,5 +274,25 @@ void describe('schema-owned group values', () => {
       assert.equal(candidate.guard(candidate.invalid), false);
       assert.equal(candidate.guard(candidate.valid), true);
     }
+  });
+});
+
+void describe('DrillDownConfigEntity.rules cross-document reference', () => {
+  void it('intake resolves nested rules against the real DrilldownRulesEntity shape', () => {
+    const config = DrillDownConfigEntity.intake({
+      'rules': {
+        'group': [{ 'property': 'category', 'values': [{ 'end': 'm', 'start': 'a', 'type': 'alphabetic' }] }]
+      }
+    });
+
+    assert.deepEqual(config.rules, {
+      'group': [{ 'property': 'category', 'values': [{ 'end': 'm', 'start': 'a', 'type': 'alphabetic' }] }]
+    });
+  });
+
+  void it('intake rejects rules whose nested group violates the referenced parent shape', () => {
+    assert.throws(() => {
+      DrillDownConfigEntity.intake({ 'rules': { 'group': 'not-an-array' } });
+    });
   });
 });

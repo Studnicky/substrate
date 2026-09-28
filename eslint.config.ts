@@ -1,0 +1,665 @@
+import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
+import stylistic from '@stylistic/eslint-plugin';
+import importX from 'eslint-plugin-import-x';
+import perfectionistPlugin from 'eslint-plugin-perfectionist';
+import regexp from 'eslint-plugin-regexp';
+import sonarjs from 'eslint-plugin-sonarjs';
+import unusedImports from 'eslint-plugin-unused-imports';
+import tseslint from 'typescript-eslint';
+
+// Architectural bands, derived from the measured `@studnicky/*` dependency DAG rather than a
+// borrowed hexagonal vocabulary: a package's band is the depth of its longest internal
+// dependency chain. Each band may import its own band and any band below it, never above. That
+// invariant already holds — the graph carries zero upward dependencies — so these rules codify
+// what the code does rather than imposing a new constraint.
+//
+// `package` bindings resolve the band of the FILE being linted: in a flat monorepo the
+// layer-bearing unit is the package, whose directory name sits after `sourceRoot` and before
+// `src`. `module` bindings resolve the band of an IMPORT, so a cross-package specifier lands on
+// the same band as the file it points at. `allowedImports` is stated explicitly rather than left
+// to the positional default, which encodes hexagonal asymmetries that do not describe a strict
+// linear-cumulative policy.
+const SUBSTRATE_LAYERS = {
+    'allowedImports': {
+        'foundation': ['foundation'],
+        'primitive': ['foundation', 'primitive'],
+        'capability': ['foundation', 'primitive', 'capability'],
+        'coordinator': ['foundation', 'primitive', 'capability', 'coordinator']
+    },
+    'bindings': [
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'batch' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'boundary-kit' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'bounded-dispatcher' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'cache' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'circular-buffer' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'clock' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'concurrency' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'config' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'context' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'drilldown' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'entity-store' },
+        { 'unit': 'package', 'layer': 'foundation', 'pattern': 'errors' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'eslint-config' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'event-bus' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'fetch' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'file-lock' },
+        { 'unit': 'package', 'layer': 'primitive', 'pattern': 'filters' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'flag-evaluator' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'fsm' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'health-registry' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'idempotency-guard' },
+        { 'unit': 'package', 'layer': 'foundation', 'pattern': 'entity' },
+        { 'unit': 'package', 'layer': 'primitive', 'pattern': 'json' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-rate-limiter' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-work-gate' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'logger' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'matching' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'matching-filters' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'memoize' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'mutex' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'paginator' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'pipeline' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'process-kit' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'request-executor' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'resilience' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'retry' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'sample-buffer' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'scheduler' },
+        { 'unit': 'package', 'layer': 'primitive', 'pattern': 'semantic-matching' },
+        { 'unit': 'package', 'layer': 'primitive', 'pattern': 'signal' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'system' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'throttle' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'timing' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'topic-router' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'topic-router-models' },
+        { 'unit': 'package', 'layer': 'foundation', 'pattern': 'types' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'virtual-fs' },
+        { 'unit': 'package', 'layer': 'capability', 'pattern': 'visible-range' },
+        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'worker-pool' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/batch' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/boundary-kit' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/bounded-dispatcher' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/cache' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/circular-buffer' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/clock' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/concurrency' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/config' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/context' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/drilldown' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/entity-store' },
+        { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/errors' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/eslint-config' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/event-bus' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/fetch' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/file-lock' },
+        { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/filters' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/flag-evaluator' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/fsm' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/health-registry' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/idempotency-guard' },
+        { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/entity' },
+        { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/json' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-rate-limiter' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-work-gate' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/logger' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/matching' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/matching-filters' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/memoize' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/mutex' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/paginator' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/pipeline' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/process-kit' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/request-executor' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/resilience' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/retry' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/sample-buffer' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/scheduler' },
+        { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/semantic-matching' },
+        { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/signal' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/system' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/throttle' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/timing' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/topic-router' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/topic-router-models' },
+        { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/types' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/virtual-fs' },
+        { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/visible-range' },
+        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/worker-pool' }
+    ],
+    'layers': ['foundation', 'primitive', 'capability', 'coordinator'],
+    'sourceRoot': 'packages'
+};
+
+export default [
+  {
+    // Architectural bands govern what a PUBLISHED package depends on, so this applies to `src`
+    // only. Examples and tests are consumers — like any downstream application they compose
+    // across the whole toolkit, and `packages/fsm/examples` legitimately imports
+    // `@studnicky/scheduler`, a package that depends on `fsm` in turn. Constraining them would
+    // report a boundary that does not exist in anything shipped.
+    'files': ['packages/*/src/**/*.ts'],
+    'plugins': { '@studnicky': plugin },
+    'rules': {
+      // The other four `arch/*` rules stay OFF, measured rather than assumed. All four encode
+      // "a business-logic core with a conversion boundary around it"; substrate has neither —
+      // four bands of utility and infrastructure code, no domain layer, and no intake boundary
+      // separate from where a dependency is already wrapped.
+      //
+      //   known-types-outside-adapters  587 violations at best band choice, 1144 at worst.
+      //     `unknown` is this repo's own narrowing idiom, ~1177 uses across every band, the
+      //     deliberate alternative to `any`. The heaviest packages (`json`, `errors`) sit in
+      //     bands no choice of adapter layer exempts. Defensive typing INSIDE every layer is
+      //     the toolkit's value, not a failure to convert at one edge.
+      //   adapter-only-import           0 or 3, depending which band plays "adapters".
+      //     The 3 are `fetch` importing `undici` — but `fetch` IS the adapter wrapping `undici`
+      //     for the toolkit; there is no further layer to hide it behind. One adapter-shaped
+      //     dependency exists across all 43 packages, so the rule has almost no surface here.
+      //   domain-purity                 1 violation: `BaseError`'s `Date.now()` timestamp,
+      //     which is legitimate. No band is a domain layer; `foundation` is the closest only
+      //     by being lowest, and it holds error handling and types, not business rules.
+      //   no-threaded-vocabulary        250 violations across 109 files (sourceRoot: 'packages').
+      //     The rule expects a resolution site that exchanges a closed-vocabulary token for a
+      //     port implementation; substrate has no port/adapter architecture for a token to
+      //     resolve INTO, so a mode/kind/type enum threaded through an ordinary parameterized
+      //     utility function is ubiquitous and legitimate here, not an unresolved token.
+      //
+      // `layer-import-boundary` is enabled because substrate genuinely HAS what it describes —
+      // a dependency-depth hierarchy with an enforceable upward-import ban — which is why it
+      // reports zero against real code instead of hundreds against real idioms.
+      '@studnicky/adapter-only-import': ['error', { ...SUBSTRATE_LAYERS, 'adapterLayerName': 'capability' }],
+      '@studnicky/domain-purity': ['error', { ...SUBSTRATE_LAYERS, 'domainLayerName': 'foundation' }],
+      '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS]
+    }
+  },
+  { ignores: ['.claude/**'] },
+  ...tseslint.config(
+    {
+      'ignores': [
+        'docs/.vitepress/cache/**',
+        '**/dist/**',
+        '**/node_modules/**',
+        '**/*.d.ts'
+      ]
+    },
+    {
+      'files': ['packages/*/src/**/*.ts', 'packages/*/examples/**/*.ts'],
+      'languageOptions': {
+        'parser': tseslint.parser,
+        'parserOptions': {
+          'projectService': true,
+          'tsconfigRootDir': import.meta.dirname
+        }
+      },
+      'linterOptions': {
+        'reportUnusedDisableDirectives': 'error'
+      },
+      'plugins': {
+        '@studnicky': plugin,
+        '@studnicky/v8': v8Plugin,
+        '@stylistic': stylistic,
+        'import-x': importX,
+        'perfectionist': perfectionistPlugin,
+        'regexp': regexp,
+        'sonarjs': sonarjs,
+        'unused-imports': unusedImports,
+        ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
+      },
+      'rules': {
+        // @studnicky custom rules
+        '@studnicky/all-types-are-entities': 'error',
+        '@studnicky/clean-diagnostics': 'error',
+        '@studnicky/descriptive-identifiers': 'error',
+        '@studnicky/direct-invocation-only': 'error',
+        '@studnicky/explicit-return-binding': 'error',
+        '@studnicky/entity-file-shape': 'error',
+        '@studnicky/hash-private-fields': 'error',
+        '@studnicky/inline-trivial-logic': 'error',
+        '@studnicky/intake-parse-only': ['error', {
+          'exemptPackages': ['@studnicky/types', '@studnicky/eslint-config', '@studnicky/entity', '@studnicky/drilldown']
+        }],
+        '@typescript-eslint/no-unnecessary-type-parameters': 'error',
+        '@studnicky/interface-must-be-contract': 'error',
+        '@studnicky/export-shape': 'error',
+        '@studnicky/interfaces-compose-named-types': 'error',
+        '@studnicky/lexical-this-only': 'error',
+        '@studnicky/no-caller-chosen-guard-type': 'error',
+        '@studnicky/no-circular-imports': 'error',
+        '@studnicky/no-double-assertion': 'error',
+        '@studnicky/no-function-registries': 'error',
+        '@studnicky/no-mixed-callable-shapes': 'error',
+        '@studnicky/no-redefined-external-types': 'error',
+        '@studnicky/no-reflect-argument-laundering': 'error',
+        '@studnicky/no-unchecked-overload-implementation': 'error',
+        '@studnicky/no-unparsed-assertion': 'error',
+        '@studnicky/prefer-collection-types': 'error',
+        '@studnicky/require-options-object': 'error',
+        '@studnicky/static-method-verbs': 'error',
+        '@studnicky/type-alias-invariants': 'error',
+        // @studnicky/v8 optimisation rules
+        '@studnicky/v8/arguments-object': 'error',
+        '@studnicky/v8/array-concat-outside-loops': 'error',
+        '@studnicky/v8/array-from-iterators': 'error',
+        '@studnicky/v8/array-from-map-callback': 'error',
+        '@studnicky/v8/array-scan-outside-loops': 'error',
+        '@studnicky/v8/array-splice-outside-loops': 'error',
+        '@studnicky/v8/array-spread-outside-loops': 'error',
+        '@studnicky/v8/chained-array-iteration': 'error',
+        '@studnicky/v8/computed-class-properties': 'error',
+        '@studnicky/v8/computed-object-properties': 'error',
+        '@studnicky/v8/conditional-property-assignment': 'error',
+        '@studnicky/v8/define-property': 'error',
+        '@studnicky/v8/delete-property': 'error',
+        '@studnicky/v8/dynamic-property-access': 'error',
+        '@studnicky/v8/eval-function': 'error',
+        '@studnicky/v8/for-in-loops': 'error',
+        '@studnicky/v8/for-of-arrays': 'error',
+        '@studnicky/v8/inline-arrow-functions': 'error',
+        '@studnicky/v8/inline-functions': 'error',
+        '@studnicky/v8/max-switch-cases': 'error',
+        '@studnicky/v8/memoize-array-length': 'error',
+        '@studnicky/v8/object-spread': 'error',
+        '@studnicky/v8/prototype-modification': 'error',
+        '@studnicky/v8/regexp-in-loops': 'error',
+        '@studnicky/v8/switch-statements': 'error',
+        '@studnicky/v8/try-catch-in-loops': 'error',
+        '@studnicky/v8/with-statement': 'error',
+        // @stylistic
+        '@stylistic/comma-dangle': ['error', 'never'],
+        '@stylistic/eol-last': ['error', 'always'],
+
+        '@stylistic/indent': ['error', 2],
+        '@stylistic/no-trailing-spaces': 'error',
+        '@stylistic/quote-props': ['error', 'always'],
+        '@stylistic/quotes': ['error', 'single', { 'avoidEscape': true }],
+        '@stylistic/semi': ['error', 'always'],
+        // @typescript-eslint — auto-fixable set
+        '@typescript-eslint/array-type': ['error', { 'default': 'array' }],
+        '@typescript-eslint/await-thenable': 'error',
+        '@typescript-eslint/consistent-type-exports': 'error',
+        '@typescript-eslint/consistent-type-imports': ['error', { 'fixStyle': 'separate-type-imports' }],
+        '@typescript-eslint/dot-notation': 'error',
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            'custom': { 'match': true, 'regex': 'Interface$|^Type$' },
+            'format': ['PascalCase'],
+            'selector': 'interface'
+          },
+          {
+            'format': ['PascalCase'],
+            'selector': 'typeAlias'
+          }
+        ],
+        '@typescript-eslint/no-duplicate-type-constituents': 'error',
+        '@typescript-eslint/no-explicit-any': ['error', { 'fixToUnknown': true }],
+        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-inferrable-types': 'error',
+        '@typescript-eslint/no-meaningless-void-operator': 'error',
+        '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-redundant-type-constituents': 'error',
+        '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+        '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+        '@typescript-eslint/no-unsafe-assignment': 'error',
+        '@typescript-eslint/no-unused-vars': ['error', {
+          // `_`-prefixed args are intentionally-unused parameters on no-op
+          // template-method/lifecycle hooks that subclasses override.
+          'argsIgnorePattern': '^_',
+          'varsIgnorePattern': '^(_|[A-Z][A-Za-z]*Schema$|[A-Za-z]*Interface$|[A-Za-z]*Type$)'
+        }],
+        '@typescript-eslint/no-useless-empty-export': 'error',
+        '@typescript-eslint/non-nullable-type-assertion-style': 'error',
+        '@typescript-eslint/prefer-as-const': 'error',
+        '@typescript-eslint/prefer-function-type': 'off',
+        '@typescript-eslint/prefer-nullish-coalescing': 'error',
+        '@typescript-eslint/prefer-optional-chain': 'error',
+        '@typescript-eslint/require-await': 'error',
+        '@typescript-eslint/return-await': ['error', 'always'],
+        '@typescript-eslint/strict-boolean-expressions': ['error', {
+          'allowNullableObject': false,
+          'allowNumber': false,
+          'allowString': false
+        }],
+        // Core
+        'arrow-body-style': ['error', 'always'],
+        'consistent-return': 'error',
+        'curly': ['error', 'all'],
+        'eqeqeq': ['error', 'always'],
+        // import-x
+        'import-x/newline-after-import': 'error',
+        'import-x/no-default-export': 'error',
+        'no-array-constructor': 'error',
+        'no-case-declarations': 'error',
+        'no-class-assign': 'error',
+        'no-cond-assign': ['error', 'always'],
+        'no-console': 'error',
+        'no-const-assign': 'error',
+        'no-constant-condition': 'error',
+        'no-debugger': 'error',
+        'no-duplicate-case': 'error',
+        'no-duplicate-imports': ['error', { 'allowSeparateTypeImports': true }],
+        'no-else-return': ['error', { 'allowElseIf': false }],
+        'no-eq-null': 'error',
+        'no-eval': 'error',
+        'no-extra-bind': 'error',
+        'no-func-assign': 'error',
+        'no-global-assign': 'error',
+        'no-implicit-coercion': 'error',
+        'no-implicit-globals': 'error',
+        'no-invalid-regexp': 'error',
+        'no-lonely-if': 'error',
+        'no-multi-assign': 'error',
+        'complexity': ['error', 10],
+        'max-depth': ['error', 4],
+        'max-lines': ['error', { 'max': 1000, 'skipBlankLines': true, 'skipComments': true }],
+        'max-lines-per-function': ['error', { 'max': 120, 'skipBlankLines': true, 'skipComments': true }],
+        'max-params': ['error', 5],
+        'no-nested-ternary': 'error',
+        'sonarjs/cognitive-complexity': ['error', 15],
+        'no-new-func': 'error',
+        'no-new-wrappers': 'error',
+        'no-object-constructor': 'error',
+        'no-prototype-builtins': 'error',
+        'no-template-curly-in-string': 'error',
+        'no-throw-literal': 'error',
+        'no-unexpected-multiline': 'error',
+        'no-unreachable': 'error',
+        'no-unsafe-negation': 'error',
+        'no-unused-expressions': 'error',
+        'no-var': 'error',
+        'object-shorthand': ['error', 'never'],
+        'one-var': ['error', 'never'],
+        'perfectionist/sort-array-includes': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-classes': 'off',
+        'perfectionist/sort-decorators': ['error', { 'order': 'asc', 'type': 'natural' }],
+        // Perfectionist sorting
+        'perfectionist/sort-enums': 'error',
+        'perfectionist/sort-exports': 'error',
+        'perfectionist/sort-heritage-clauses': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-imports': 'error',
+        'perfectionist/sort-interfaces': 'error',
+        'perfectionist/sort-intersection-types': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-maps': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-modules': 'off',
+        'perfectionist/sort-named-exports': 'error',
+        'perfectionist/sort-named-imports': 'error',
+        'perfectionist/sort-object-types': 'error',
+        'perfectionist/sort-objects': 'error',
+        'perfectionist/sort-sets': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-switch-case': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-union-types': 'off',
+        'perfectionist/sort-variable-declarations': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'prefer-const': 'error',
+        'prefer-rest-params': 'error',
+        'prefer-spread': 'error',
+        'prefer-template': 'error',
+        // regexp
+        'regexp/no-unused-capturing-group': 'error',
+
+        'regexp/no-useless-flag': 'error',
+
+        'regexp/prefer-regexp-exec': 'error',
+        'require-yield': 'error',
+        // unused-imports
+        'unused-imports/no-unused-imports': 'error'
+      }
+    },
+    // Tooling — scripts, CI helpers and the docs site are procedural CLI/build code, not
+    // published package surfaces, so the package-authoring rules (entity shape, static-method
+    // dispatch, descriptive-identifier banlist) do not apply. Correctness, type-safety and
+    // style rules stay fully enforced.
+    {
+      'files': ['scripts/**/*.ts', '.github/**/*.ts', 'docs/**/*.ts'],
+      'languageOptions': {
+        'parser': tseslint.parser,
+        'parserOptions': {
+          'projectService': {
+            'allowDefaultProject': [
+              'docs/.vitepress/*.ts',
+              'docs/.vitepress/theme/*.ts',
+              'docs/.vitepress/theme/utils/*.ts'
+            ],
+            'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 40
+          },
+          'tsconfigRootDir': import.meta.dirname
+        }
+      },
+      'linterOptions': {
+        'reportUnusedDisableDirectives': 'error'
+      },
+      'plugins': {
+        '@stylistic': stylistic,
+        'import-x': importX,
+        'perfectionist': perfectionistPlugin,
+        'regexp': regexp,
+        'sonarjs': sonarjs,
+        'unused-imports': unusedImports,
+        ...tseslint.plugin !== null && tseslint.plugin !== undefined ? { '@typescript-eslint': tseslint.plugin } : {}
+      },
+      'rules': {
+        // @stylistic
+        '@stylistic/comma-dangle': ['error', 'never'],
+        '@stylistic/eol-last': ['error', 'always'],
+        '@stylistic/indent': ['error', 2],
+        '@stylistic/no-trailing-spaces': 'error',
+        '@stylistic/quote-props': ['error', 'always'],
+        '@stylistic/quotes': ['error', 'single', { 'avoidEscape': true }],
+        '@stylistic/semi': ['error', 'always'],
+        // @typescript-eslint — auto-fixable set
+        '@typescript-eslint/array-type': ['error', { 'default': 'array' }],
+        '@typescript-eslint/await-thenable': 'error',
+        '@typescript-eslint/consistent-type-exports': 'error',
+        '@typescript-eslint/consistent-type-imports': ['error', { 'fixStyle': 'separate-type-imports' }],
+        '@typescript-eslint/dot-notation': 'error',
+        '@typescript-eslint/naming-convention': [
+          'error',
+          {
+            'custom': { 'match': true, 'regex': 'Interface$|^Type$' },
+            'format': ['PascalCase'],
+            'selector': 'interface'
+          },
+          {
+            'format': ['PascalCase'],
+            'selector': 'typeAlias'
+          }
+        ],
+        '@typescript-eslint/no-duplicate-type-constituents': 'error',
+        '@typescript-eslint/no-explicit-any': ['error', { 'fixToUnknown': true }],
+        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-inferrable-types': 'error',
+        '@typescript-eslint/no-meaningless-void-operator': 'error',
+        '@typescript-eslint/no-misused-promises': 'error',
+        '@typescript-eslint/no-redundant-type-constituents': 'error',
+        '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+        '@typescript-eslint/no-unnecessary-type-constraint': 'error',
+        '@typescript-eslint/no-unsafe-assignment': 'error',
+        '@typescript-eslint/no-unused-vars': ['error', {
+          'argsIgnorePattern': '^_',
+          'varsIgnorePattern': '^(_|[A-Z][A-Za-z]*Schema$|[A-Za-z]*Interface$|[A-Za-z]*Type$)'
+        }],
+        '@typescript-eslint/no-useless-empty-export': 'error',
+        '@typescript-eslint/non-nullable-type-assertion-style': 'error',
+        '@typescript-eslint/prefer-as-const': 'error',
+        '@typescript-eslint/prefer-function-type': 'off',
+        '@typescript-eslint/prefer-nullish-coalescing': 'error',
+        '@typescript-eslint/prefer-optional-chain': 'error',
+        '@typescript-eslint/require-await': 'error',
+        '@typescript-eslint/return-await': ['error', 'always'],
+        '@typescript-eslint/strict-boolean-expressions': ['error', {
+          'allowNullableObject': false,
+          'allowNumber': false,
+          'allowString': false
+        }],
+        // Core
+        'arrow-body-style': ['error', 'always'],
+        'consistent-return': 'error',
+        'curly': ['error', 'all'],
+        'eqeqeq': ['error', 'always'],
+        // import-x
+        'import-x/newline-after-import': 'error',
+        'import-x/no-default-export': 'error',
+        'no-array-constructor': 'error',
+        'no-case-declarations': 'error',
+        'no-class-assign': 'error',
+        'no-cond-assign': ['error', 'always'],
+        'no-const-assign': 'error',
+        'no-constant-condition': 'error',
+        'no-debugger': 'error',
+        'no-duplicate-case': 'error',
+        'no-duplicate-imports': ['error', { 'allowSeparateTypeImports': true }],
+        'no-else-return': ['error', { 'allowElseIf': false }],
+        'no-eq-null': 'error',
+        'no-eval': 'error',
+        'no-extra-bind': 'error',
+        'no-func-assign': 'error',
+        'no-global-assign': 'error',
+        'no-implicit-coercion': 'error',
+        'no-implicit-globals': 'error',
+        'no-invalid-regexp': 'error',
+        'no-lonely-if': 'error',
+        'no-multi-assign': 'error',
+        'complexity': ['error', 10],
+        'max-depth': ['error', 4],
+        'max-lines': ['error', { 'max': 1000, 'skipBlankLines': true, 'skipComments': true }],
+        'max-lines-per-function': ['error', { 'max': 120, 'skipBlankLines': true, 'skipComments': true }],
+        'max-params': ['error', 5],
+        'no-nested-ternary': 'error',
+        'sonarjs/cognitive-complexity': ['error', 15],
+        'no-new-func': 'error',
+        'no-new-wrappers': 'error',
+        'no-object-constructor': 'error',
+        'no-prototype-builtins': 'error',
+        'no-template-curly-in-string': 'error',
+        'no-throw-literal': 'error',
+        'no-unexpected-multiline': 'error',
+        'no-unreachable': 'error',
+        'no-unsafe-negation': 'error',
+        'no-unused-expressions': 'error',
+        'no-var': 'error',
+        'object-shorthand': ['error', 'never'],
+        'one-var': ['error', 'never'],
+        'perfectionist/sort-array-includes': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-classes': 'off',
+        'perfectionist/sort-decorators': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-enums': 'error',
+        'perfectionist/sort-exports': 'error',
+        'perfectionist/sort-heritage-clauses': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-imports': 'error',
+        'perfectionist/sort-interfaces': 'error',
+        'perfectionist/sort-intersection-types': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-maps': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-modules': 'off',
+        'perfectionist/sort-named-exports': 'error',
+        'perfectionist/sort-named-imports': 'error',
+        'perfectionist/sort-object-types': 'error',
+        'perfectionist/sort-objects': 'error',
+        'perfectionist/sort-sets': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-switch-case': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'perfectionist/sort-union-types': 'off',
+        'perfectionist/sort-variable-declarations': ['error', { 'order': 'asc', 'type': 'natural' }],
+        'prefer-const': 'error',
+        'prefer-rest-params': 'error',
+        'prefer-spread': 'error',
+        'prefer-template': 'error',
+        // regexp
+        'regexp/no-unused-capturing-group': 'error',
+        'regexp/no-useless-flag': 'error',
+        'regexp/prefer-regexp-exec': 'error',
+        'require-yield': 'error',
+        // unused-imports
+        'unused-imports/no-unused-imports': 'error'
+      }
+    },
+    // Test files — parse with TS parser (no type-checking) and relax rules
+    {
+      'files': ['packages/*/tests/**/*.ts'],
+      'languageOptions': {
+        'parser': tseslint.parser,
+        'parserOptions': {
+          'project': false
+        }
+      },
+      'rules': {
+        '@studnicky/inline-trivial-logic': 'off',
+        '@studnicky/export-shape': 'off',
+        '@studnicky/v8/for-of-arrays': 'off',
+        '@typescript-eslint/consistent-type-exports': 'off',
+        '@typescript-eslint/consistent-type-imports': 'off',
+        '@typescript-eslint/dot-notation': 'off',
+        '@typescript-eslint/no-magic-numbers': 'off',
+        '@typescript-eslint/no-meaningless-void-operator': 'off',
+        '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+        '@typescript-eslint/non-nullable-type-assertion-style': 'off',
+        '@typescript-eslint/prefer-nullish-coalescing': 'off',
+        '@typescript-eslint/prefer-optional-chain': 'off',
+        '@typescript-eslint/return-await': 'off'
+      }
+    },
+    // Config and framework entrypoints their loader requires to default-export.
+    {
+      'files': ['eslint.config.*', '*.config.*', 'docs/.vitepress/config.ts', 'docs/.vitepress/theme/index.ts'],
+      'rules': {
+        '@studnicky/export-shape': 'off',
+        'import-x/no-default-export': 'off'
+      }
+    },
+    // Example files — runnable demos. Full type-aware rigor via the dedicated
+    // tsconfig.eslint.json, relaxing only rules that govern library authoring
+    // (single-export modules) or that conflict with a demo's purpose (console
+    // output). Correctness, type-safety, and style rules stay fully enforced.
+    {
+      'files': ['packages/*/examples/**/*.ts'],
+      'languageOptions': {
+        'parserOptions': {
+          'project': ['./tsconfig.eslint.json'],
+          'projectService': false,
+          'tsconfigRootDir': import.meta.dirname
+        }
+      },
+      'rules': {
+        '@studnicky/export-shape': 'off',
+        'import-x/no-default-export': 'off',
+        'no-console': 'off'
+      }
+    },
+    // CLI tools write to stdout/stderr as their interface, not as debug residue.
+    {
+      'files': ['scripts/**/*.ts', '.github/**/*.ts'],
+      'rules': {
+        'no-console': 'off'
+      }
+    }
+  ),
+  // Only these files are permitted to use `console` directly. ConsoleTransport
+  // is the logger's own console sink; all other logger-producing modules must
+  // route output through it. EventRecorder is deliberately raw, dependency-free
+  // console output — example/demo glue any package can use without pulling in
+  // @studnicky/logger as a dependency.
+  {
+    'files': [
+      'packages/logger/src/transports/ConsoleTransport.ts',
+      'packages/errors/src/observers/EventRecorder.ts'
+    ],
+    'rules': {
+      'no-console': 'off'
+    }
+  },
+  // The playground evaluator's entire purpose is running sucrase-transpiled example source
+  // with an injected require shim — `new Function` is the mechanism, not a workaround.
+  {
+    'files': ['docs/.vitepress/theme/utils/playgroundRuntime.ts'],
+    'rules': {
+      'no-new-func': 'off'
+    }
+  },
+  // drilldown's matcher registry implements one shared interface (MatcherHandlerInterface) via
+  // plain object literals, not classes — the rule's own class-implementation exemption doesn't
+  // reach a handful of per-type methods (getSortKey, createNodeValue) that are genuinely pure
+  // field forwards by design (the interface contract IS "expose this field"). allowMemberExpressions
+  // is the rule's own documented escape valve for exactly this member-forward shape.
+  {
+    'files': ['packages/drilldown/src/**/*.ts'],
+    'rules': {
+      '@studnicky/inline-trivial-logic': ['error', { 'allowMemberExpressions': true }]
+    }
+  }
+];

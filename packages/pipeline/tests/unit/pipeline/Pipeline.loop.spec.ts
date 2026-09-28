@@ -1,105 +1,20 @@
 import { RuntimeError } from '@studnicky/errors/node';
 import { FrozenMutationError } from '@studnicky/json/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
 } from 'node:test';
 
-
-
 import type { PipelineFunctionInterface } from '../../../src/interfaces/PipelineFunctionInterface.js';
 
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
+import { PipelineScenarioCaseEntity } from './entities/PipelineScenarioCaseEntity.js';
 import scenarioGroups from './Pipeline.scenarios.json' with { type: 'json' };
 
-type NumberStageSpec = { shape: 'add'; value: number };
-
-
-type NumberPipelineInput = {
-  stages: NumberStageSpec[];
-  value: number;
-};
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { value: string };
-      input: { value: string };
-      shape: 'empty-pipeline-returns-input';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: string };
-      input: { value: string };
-      shape: 'single-async-stage-applies';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: { value: number };
-      shape: 'single-stage-applies';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: { value: number };
-      shape: 'multiple-stages-apply-all';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: { value: number };
-      shape: 'stages-is-defensive-snapshot';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: NumberPipelineInput;
-      shape: 'async-observer-has-no-effect';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: string };
-      input: { value: string };
-      shape: 'mixed-sync-async-stages';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: { count: number; label: string } };
-      input: { value: { count: number; label: string } };
-      shape: 'object-context-pass-through';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { original: number[]; value: number[] };
-      input: { value: number[] };
-      shape: 'does-not-mutate-original-input';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: { value: number };
-      shape: 'throwing-lifecycle-observer-has-no-effect';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { value: number };
-      input: NumberPipelineInput;
-      shape: 'hanging-observer-has-no-effect';
-      name: string;
-    };
-
+type ScenarioCase = PipelineScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
+type NumberStageSpec = Extract<ScenarioCase, { 'shape': 'async-observer-has-no-effect' }>['input']['stages'][number];
 
 type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
 
@@ -109,7 +24,7 @@ const numberStageBuilderMap: Record<NumberStageSpec['shape'], (spec: NumberStage
   add: (spec) => (ctx) => ctx + spec.value
 };
 
-function buildNumberStages(specs: NumberStageSpec[]): Array<(ctx: number) => number> {
+function buildNumberStages(specs: readonly NumberStageSpec[]): Array<(ctx: number) => number> {
   return specs.map((spec) => numberStageBuilderMap[spec.shape](spec));
 }
 
@@ -221,8 +136,10 @@ async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCa
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(PipelineScenarioCaseEntity.Schema, PipelineScenarioCaseEntity.Node);
+
 void describe('Pipeline', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

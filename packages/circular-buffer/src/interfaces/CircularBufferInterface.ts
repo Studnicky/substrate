@@ -1,13 +1,11 @@
 /**
  * Interface for circular buffer queue operations
  */
-import type { CircularBufferStateEntity } from '../entities/CircularBufferStateEntity.js';
-
 export interface CircularBufferInterface<T> {
   /**
-   * Get the number of items in the buffer
+   * Get the number of items in the buffer. Computed internally, never externally validated.
    */
-  readonly 'length': CircularBufferStateEntity.Type['length'];
+  readonly 'length': number;
 
   /**
    * Add an item to the end of the buffer

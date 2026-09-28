@@ -1,4 +1,4 @@
-export const BROWSER_SWAPS: ReadonlyArray<readonly [string, string]> = [
+export const BROWSER_SWAPS: readonly (readonly [string, string])[] = [
   ['packages/system/src/providers/SystemProvider', 'packages/system/src/providers/browser/SystemProvider'],
   ['packages/system/src/modules/GpuDetector', 'packages/system/src/modules/browser/GpuDetector'],
   ['packages/file-lock/src/NodeFileSystem', 'packages/file-lock/src/browser/NodeFileSystem'],

@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "the observedEntityStore example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedEntityStore.ts"
+      },
+      "name": "observedEntityStore",
+      "shape": "imports-example"
+    }
+  ]
+}

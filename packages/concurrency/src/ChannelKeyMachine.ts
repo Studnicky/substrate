@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
 import type { ChannelKeyTransitionEventEntity } from './entities/ChannelKeyTransitionEventEntity.js';

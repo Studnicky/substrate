@@ -1,21 +1,25 @@
 {
   "name": "@studnicky/entity",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./node": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
     "./browser": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
     }
   },
   "files": [
@@ -29,7 +33,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "keywords": [
     "intake",
@@ -59,8 +63,10 @@
   },
   "dependencies": {
     "@studnicky/types": "workspace:*",
-    "@types/json-schema": "^7.0.15",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1"
+    "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "json-schema-to-ts": "^3.1.1"
   }
 }

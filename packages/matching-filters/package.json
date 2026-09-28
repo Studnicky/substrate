@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/matching-filters",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "FilterEngine adapters for deterministic matching primitives",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,7 @@
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs unit --package ."
+    "test": "tsx ../../scripts/test-suite.ts unit --package ."
   },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
@@ -45,5 +45,8 @@
     "@studnicky/filters": "workspace:*",
     "@studnicky/matching": "workspace:*",
     "@studnicky/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

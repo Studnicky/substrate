@@ -1,22 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
 import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
+
+import { ClientScenarioCaseEntity } from './entities/ClientScenarioCaseEntity.js';
 import scenarioGroups from './client.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { json?: { [key: string]: unknown }; status: number };
-      input: {
-        body?: Record<string, unknown> | string;
-        method: 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
-        path: string;
-      };
-      name: string;
-    };
+type ScenarioCase = ClientScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ClientScenarioCaseEntity.Schema, ClientScenarioCaseEntity.Node);
 
 type RequestMethod = ScenarioCase['input']['method'];
 type MethodRunner = (request: ScenarioCase['input']) => Promise<Response>;
@@ -44,7 +39,7 @@ void after(async () => {
   await stopTestServer();
 });
 
-function requestBodyOptions(request: ScenarioCase['input']): { body: Record<string, unknown> | string } | undefined {
+function requestBodyOptions(request: ScenarioCase['input']): { body: ScenarioCase['input']['body'] } | undefined {
   return request.body === undefined ? undefined : { body: request.body };
 }
 
@@ -72,7 +67,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('FetchClient HTTP Methods', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

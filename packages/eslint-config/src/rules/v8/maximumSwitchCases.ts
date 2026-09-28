@@ -1,35 +1,16 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import {
   BLOCK_TYPES, MAXIMUM_INT_SWITCH_CASES, MAXIMUM_STRING_SWITCH_CASES, MAXIMUM_SWITCH_CASES_DEFAULT
 } from './constants/MaximumSwitchCasesConstants.js';
 
-// Re-measure command (Node v24): scratchpad bench comparing a generated N-case
-// switch against an equivalent `Record<key, handler>` dispatch map, 5,000,000
-// dispatches, 3 warm-up calls + median of 7. See MaximumSwitchCasesConstants.ts
-// for the per-count numbers this threshold split is built from.
-//
-// The rule's original single MAX_SWITCH_CASES=20 threshold was wrong in BOTH
-// directions at once, because it never looked at what the switch discriminates
-// ON:
-//   - integer-keyed switches never need a cap (switch wins or ties at every
-//     measured count, 3 through 100 cases) — the old threshold forced a
-//     needless, slower rewrite at 20 cases.
-//   - string-keyed switches cross over to a slower switch by 6 cases, not
-//     20 — the old threshold let 14 genuinely-slower cases (6-19) through
-//     uncaught.
-//
-// `DiscriminantKind` below resolves which regime a switch is in from its own
-// case labels (syntactic, no type-checker dependency — literal `case 1:` /
-// `case 'x':` values are unambiguous without one).
+// Per-count threshold numbers and benchmark method: MaximumSwitchCasesConstants.ts.
+// Classifies syntactically from case labels, no type-checker dependency needed.
 
-// Not a named `type` alias: `@studnicky/type-alias-invariants` requires any
-// top-level `type X = ...` to be schema-derived canonical data, which a
-// private three-value dispatch tag is not. The union is written out inline
-// at each of its three use sites instead (`classify`'s return type,
-// `maximumCasesFor`'s parameter, and `SwitchGroup.kind`'s field type).
+// Not a named `type` alias: `@studnicky/type-alias-invariants` requires a top-level
+// `type X = ...` to be schema-derived canonical data; written out inline instead.
 
 class DiscriminantKind {
   /** Classifies a switch by its own non-default case test literal types — not the discriminant expression's static type. */
@@ -94,18 +75,7 @@ class SwitchGroup {
   public kindSet = false;
 }
 
-/**
- * Resolves a discriminant expression to a structural equality key, so two
- * `switch` statements testing the *same* value — not merely textually
- * identical source — are recognized as splitting one dispatch decision.
- * Deliberately narrow: only `Identifier`, `ThisExpression`, and
- * non-computed/literal-computed `MemberExpression` chains built from those
- * are resolved. Anything more complex (call expressions, computed access
- * with a non-literal key, binary expressions, etc.) returns `null` and is
- * therefore never merged with another switch — avoiding false positives
- * from two switches that merely *look* similar but discriminate on
- * different runtime values.
- */
+/** Structural equality key for a discriminant; scope and rationale: docs/eslint/rules/v8/max-switch-cases.md. */
 class DiscriminantKey {
   public static compute(node: unknown): string | null {
     if (!Predicates.isRecord(node)) {
@@ -129,33 +99,66 @@ class DiscriminantKey {
         return null;
       }
 
-      const property = node.property;
+      const result = DiscriminantKey.#computeProperty(node.property, node.computed === true, objectKey);
 
-      if (!Predicates.isRecord(property)) {
-        return null;
-      }
-
-      if (node.computed === true) {
-        if (property.type !== 'Literal') {
-          return null;
-        }
-        const value = property.value;
-
-        if (typeof value !== 'string' && typeof value !== 'number') {
-          return null;
-        }
-
-        return `${objectKey}[${String(value)}]`;
-      }
-
-      if (property.type !== 'Identifier' || typeof property.name !== 'string') {
-        return null;
-      }
-
-      return `${objectKey}.${property.name}`;
+      return result;
     }
 
     return null;
+  }
+
+  static #computeProperty(property: unknown, computed: boolean, objectKey: string): string | null {
+    if (!Predicates.isRecord(property)) {
+      return null;
+    }
+
+    if (computed) {
+      if (property.type !== 'Literal') {
+        return null;
+      }
+      const value = property.value;
+
+      if (typeof value !== 'string' && typeof value !== 'number') {
+        return null;
+      }
+
+      return `${objectKey}[${String(value)}]`;
+    }
+
+    if (property.type !== 'Identifier' || typeof property.name !== 'string') {
+      return null;
+    }
+
+    return `${objectKey}.${property.name}`;
+  }
+}
+
+class SwitchGroupRegistry {
+  readonly #groups = new Map<Rule.Node, Map<string | Rule.Node, SwitchGroup>>();
+
+  /** A switch with an unresolvable discriminant uses the switch node itself as a singleton key. */
+  public groupFor(block: Rule.Node, key: string | Rule.Node): SwitchGroup {
+    let byKey = this.#groups.get(block);
+
+    if (byKey === undefined) {
+      byKey = new Map<string | Rule.Node, SwitchGroup>();
+      this.#groups.set(block, byKey);
+    }
+
+    let group = byKey.get(key);
+
+    if (group === undefined) {
+      group = new SwitchGroup();
+      byKey.set(key, group);
+    }
+
+    return group;
+  }
+
+  public values(): IterableIterator<Map<string | Rule.Node, SwitchGroup>> {
+    const result = this.#groups.values();
+
+    return result;
   }
 }
 
@@ -179,14 +182,10 @@ class SwitchScope {
 
 export const maximumSwitchCases: Rule.RuleModule = {
   'create': (context) => {
-    // Keyed by enclosing block, then by discriminant key — switches with an
-    // unresolvable (complex) discriminant use the switch node itself as a
-    // singleton key, so they behave exactly as a standalone switch always did.
-    const groups = new Map<Rule.Node, Map<string | Rule.Node, SwitchGroup>>();
+    const groups = new SwitchGroupRegistry();
 
     const onSwitchStatement: NonNullable<Rule.RuleListener['SwitchStatement']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const cases: unknown = rawNode.cases;
+      const cases = node.cases;
 
       if (!Array.isArray(cases)) {
         return;
@@ -199,27 +198,11 @@ export const maximumSwitchCases: Rule.RuleModule = {
       }).length;
 
       const block = SwitchScope.nearestEnclosingBlock(node);
-      const key: string | Rule.Node = DiscriminantKey.compute(rawNode.discriminant) ?? node;
+      const key: string | Rule.Node = DiscriminantKey.compute(node.discriminant) ?? node;
+      const group = groups.groupFor(block, key);
 
-      let byKey = groups.get(block);
-
-      if (byKey === undefined) {
-        byKey = new Map<string | Rule.Node, SwitchGroup>();
-        groups.set(block, byKey);
-      }
-
-      let group = byKey.get(key);
-
-      if (group === undefined) {
-        group = new SwitchGroup();
-        byKey.set(key, group);
-      }
-
-      // Kind is fixed from the FIRST switch seen for this discriminant. Sibling
-      // switches on the same discriminant should share a value type by
-      // construction (they discriminate on the same variable); if a later
-      // switch disagrees this simplification just keeps the group's original
-      // kind rather than re-classifying mid-aggregation.
+      // Kind is fixed from the first switch seen for this discriminant; a
+      // disagreeing later switch keeps the group's original kind.
       if (!group.kindSet) {
         group.kind = DiscriminantKind.classify(cases);
         group.kindSet = true;
@@ -229,37 +212,41 @@ export const maximumSwitchCases: Rule.RuleModule = {
       group.total += nonDefaultCount;
     };
 
+    const reportIfOverThreshold = (group: SwitchGroup): void => {
+      const maximum = DiscriminantKind.maximumCasesFor(group.kind);
+
+      if (maximum === null) {
+        return;
+      } // int-keyed: no cap, see MaximumSwitchCasesConstants.ts
+
+      if (group.total < maximum) {
+        return;
+      }
+
+      const grouped = group.members.length > 1;
+      const { members } = group;
+      const membersLength = members.length;
+
+      for (let index = 0; index < membersLength; index += 1) {
+        const member = members.at(index);
+
+        if (member === undefined) {
+          continue;
+        }
+        context.report({
+          'data': {
+            'count': String(group.total), 'kind': group.kind, 'maximum': String(maximum)
+          },
+          'messageId': grouped ? 'tooManyCasesGrouped' : 'tooManyCases',
+          'node': member
+        });
+      }
+    };
+
     const onProgramExit = (): void => {
       for (const byKey of groups.values()) {
         for (const group of byKey.values()) {
-          const maximum = DiscriminantKind.maximumCasesFor(group.kind);
-
-          if (maximum === null) {
-            continue;
-          } // int-keyed: no cap, see MaximumSwitchCasesConstants.ts
-
-          if (group.total < maximum) {
-            continue;
-          }
-
-          const grouped = group.members.length > 1;
-          const { members } = group;
-          const membersLength = members.length;
-
-          for (let index = 0; index < membersLength; index += 1) {
-            const member = members.at(index);
-
-            if (member === undefined) {
-              continue;
-            }
-            context.report({
-              'data': {
-                'count': String(group.total), 'kind': group.kind, 'maximum': String(maximum)
-              },
-              'messageId': grouped ? 'tooManyCasesGrouped' : 'tooManyCases',
-              'node': member
-            });
-          }
+          reportIfOverThreshold(group);
         }
       }
     };

@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -7,117 +8,19 @@ import { RuntimeError } from '@studnicky/errors/node';
 import type { MutexConfigEntity } from '../../../src/entities/MutexConfigEntity.js';
 import { LockTimeoutError } from '../../../src/errors/index.js';
 import { configInternal, Mutex } from '../../../src/mutex/index.js';
+import { MutexCoreScenarioCaseEntity } from './entities/MutexCoreScenarioCaseEntity.js';
 import scenarioGroups from './mutex-core.scenarios.json' with { type: 'json' };
 
-type BatchInput = {
-  acquireCount?: number;
-  observerCount?: number;
-  operationCount?: number;
-  overflowCount?: number;
-  queuedCount?: number;
-  queuedPerKey?: Record<string, number>;
-};
-
-type MutexScenarioInput = Record<string, unknown> & {
-  batch?: BatchInput;
-  delayMs?: number;
-  delaysMs?: number[];
-  errorMessage?: string;
-  key?: unknown;
-  keys?: string[];
-  mutex?: Record<string, unknown>;
-  operations?: string[];
-  result?: unknown;
-  value?: unknown;
-};
-
-type ScenarioData = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: MutexScenarioInput;
-  name: string;
-};
-
-type ScenarioShape =
-  | 'acquire-disposable'
-  | 'acquire-release'
-  | 'async-exclusive'
-  | 'async-return-value'
-  | 'burst-timeout-drains-queue'
-  | 'clear-clears-all'
-  | 'clear-empty'
-  | 'clear-rejects-queued-acquisitions'
-  | 'completeQueue-immediate'
-  | 'completeQueue-multiple-observers'
-  | 'completeQueue-waits-active'
-  | 'completeQueue-waits-multi-key'
-  | 'completeQueue-waits-queued'
-  | 'config-defaults'
-  | 'config-empty'
-  | 'config-enable-coalescing'
-  | 'config-external-modification'
-  | 'config-full'
-  | 'config-invalid-enableCoalescing'
-  | 'config-invalid-maxQueue-float'
-  | 'config-invalid-maxQueue-negative'
-  | 'config-invalid-timeout-float'
-  | 'config-invalid-timeout-negative'
-  | 'config-no-limits'
-  | 'config-partial-maxQueue-5'
-  | 'config-partial-maxQueue-50'
-  | 'config-partial-timeout'
-  | 'config-return-copy'
-  | 'config-unknown-key'
-  | 'create-composite-key'
-  | 'create-functional'
-  | 'create-no-config'
-  | 'create-number-key'
-  | 'create-partial-config'
-  | 'create-string-key'
-  | 'different-keys'
-  | 'getConfig-current'
-  | 'getConfig-default'
-  | 'isComplete-after-release-true'
-  | 'isComplete-held-false'
-  | 'isComplete-initial-true'
-  | 'isComplete-multi-active-false'
-  | 'isComplete-queued-false'
-  | 'isLocked-after-release'
-  | 'isLocked-initial-false'
-  | 'isLocked-multiple-keys'
-  | 'isLocked-true'
-  | 'multiple-operations'
-  | 'queue-size-exceeded'
-  | 'queueSize-decrements'
-  | 'queueSize-held-empty'
-  | 'queueSize-initial-zero'
-  | 'queueSize-tracks-queued'
-  | 'queued-timeout-unlinks-middle-node'
-  | 'releases-on-throw'
-  | 'result-validator-rejects'
-  | 'sequential-acquisitions'
-  | 'size-active-locks'
-  | 'size-initial-zero'
-  | 'size-no-queued'
-  | 'stats-active-locks'
-  | 'stats-api-shape'
-  | 'stats-initial'
-  | 'stats-multiple-active'
-  | 'stats-queued'
-  | 'stats-queued-multi-key'
-  | 'stats-total-executed'
-  | 'sync-return-number'
-  | 'sync-return-string'
-  | 'validateConfig-invalid'
-  | 'validateConfig-valid';
-
-type ScenarioCase = ScenarioData & { shape: ScenarioShape };
-type NumericBatchField = keyof Omit<BatchInput, 'queuedPerKey'>;
+type ScenarioCase = MutexCoreScenarioCaseEntity.Type;
+type MutexScenarioInput = ScenarioCase['input'];
+type NumericBatchField = keyof Omit<NonNullable<MutexScenarioInput['batch']>, 'queuedPerKey'>;
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 type ReleaseFunction = () => void;
 
-function mutexConfig(scenarioCase: ScenarioCase): Partial<MutexConfigEntity.Type> {
-  return (scenarioCase.input.mutex ?? {}) as Partial<MutexConfigEntity.Type>;
+const fileIntake = ScenarioFileCompiler.compileIntake(MutexCoreScenarioCaseEntity.Schema, MutexCoreScenarioCaseEntity.Node);
+
+function mutexConfig(scenarioCase: ScenarioCase): NonNullable<MutexScenarioInput['mutex']> {
+  return scenarioCase.input.mutex ?? {};
 }
 
 function readBatchCount(input: MutexScenarioInput, field: NumericBatchField): number {
@@ -254,7 +157,7 @@ const assertInvalidMutexConfig: ScenarioRunner = (scenarioCase) => {
   assert.throws(() => { Mutex.create(mutexConfig(scenarioCase)); });
 };
 
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
+const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'acquire-disposable': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = Mutex.create();
@@ -801,15 +704,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'result-validator-rejects': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = Mutex.create();
-    await assert.rejects(
-      () => mutex.runExclusive(key, () => 'value', (result): result is number => typeof result === 'number'),
-      (error) => {
-        assert.ok(error instanceof RuntimeError);
-        assert.strictEqual(error.code, 'errors.runtime');
-        assert.strictEqual(error.message, `Mutex result for key ${key} does not satisfy the requested type`);
-        return true;
-      }
-    );
+    const result = await mutex.runExclusive(key, () => 'value');
+
+    assert.strictEqual(result, 'value');
     assert.ok(!mutex.isLocked(key));
   }
 };
@@ -819,7 +716,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Mutex core', () => {
-  void it('rejects a non-callable Symbol.asyncDispose member without retaining the lock', async () => {
+  void it('uses the concrete async disposer when Object.prototype is malformed', async () => {
     const mutex = Mutex.create();
     const descriptor = Object.getOwnPropertyDescriptor(Object.prototype, Symbol.asyncDispose);
 
@@ -830,7 +727,9 @@ void describe('Mutex core', () => {
     }), true);
 
     try {
-      await assert.rejects(mutex.acquireDisposable('non-callable-dispose'), RuntimeError);
+      const lock = await mutex.acquireDisposable('non-callable-dispose');
+      assert.equal(mutex.isLocked('non-callable-dispose'), true);
+      await lock[Symbol.asyncDispose]();
       assert.equal(mutex.isLocked('non-callable-dispose'), false);
     } finally {
       if (descriptor === undefined) {
@@ -867,6 +766,9 @@ void describe('Mutex core', () => {
 
   void it("does not invoke a stale release while its earlier release hook is active", async () => {
     class HookReentrantMutex extends Mutex<string> {
+      static build(): HookReentrantMutex {
+        return new HookReentrantMutex();
+      }
       staleRelease: (() => void) | undefined;
 
       get lifecycleHookErrorCount(): number {
@@ -879,7 +781,7 @@ void describe('Mutex core', () => {
       }
     }
 
-    const mutex = HookReentrantMutex.create();
+    const mutex = HookReentrantMutex.build();
     const releaseFirst = await mutex.acquire("account:42");
     mutex.staleRelease = releaseFirst;
     const second = mutex.acquire("account:42");
@@ -893,7 +795,7 @@ void describe('Mutex core', () => {
     await mutex.completeQueue();
   });
 
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, async () => {
       await runCase(scenarioCase);
     });

@@ -11,7 +11,7 @@ import scenarioGroups from './dispatcher-agent.scenarios.json' with { type: 'jso
 type ScenarioCase = {
   description: string;
   expected: { options: Record<string, unknown> };
-  input: { dispatcherAgent: DispatcherConfigEntity.Type };
+  input: { dispatcherAgent: DispatcherConfigEntity.InputType };
   name: string;
 };
 

@@ -19,6 +19,7 @@ p__studnicky_entity_store["@studnicky/entity-store"]
 p__studnicky_errors["@studnicky/errors"]
 p__studnicky_eslint_config["@studnicky/eslint-config"]
 p__studnicky_event_bus["@studnicky/event-bus"]
+p__studnicky_example_smoke_kit["@studnicky/example-smoke-kit"]
 p__studnicky_fetch["@studnicky/fetch"]
 p__studnicky_file_lock["@studnicky/file-lock"]
 p__studnicky_filters["@studnicky/filters"]
@@ -41,6 +42,7 @@ p__studnicky_request_executor["@studnicky/request-executor"]
 p__studnicky_resilience["@studnicky/resilience"]
 p__studnicky_retry["@studnicky/retry"]
 p__studnicky_sample_buffer["@studnicky/sample-buffer"]
+p__studnicky_scenario_kit["@studnicky/scenario-kit"]
 p__studnicky_scheduler["@studnicky/scheduler"]
 p__studnicky_semantic_matching["@studnicky/semantic-matching"]
 p__studnicky_signal["@studnicky/signal"]
@@ -55,7 +57,6 @@ p__studnicky_types["@studnicky/types"]
 p__studnicky_virtual_fs["@studnicky/virtual-fs"]
 p__studnicky_visible_range["@studnicky/visible-range"]
 p__studnicky_worker_pool["@studnicky/worker-pool"]
-p__studnicky_batch --> p__studnicky_entity
 p__studnicky_batch --> p__studnicky_errors
 p__studnicky_batch --> p__studnicky_types
 p__studnicky_boundary_kit --> p__studnicky_errors
@@ -96,7 +97,6 @@ p__studnicky_context --> p__studnicky_types
 p__studnicky_drilldown --> p__studnicky_cache
 p__studnicky_drilldown --> p__studnicky_entity
 p__studnicky_drilldown --> p__studnicky_types
-p__studnicky_entity --> p__studnicky_types
 p__studnicky_entity_store --> p__studnicky_errors
 p__studnicky_entity_store --> p__studnicky_types
 p__studnicky_errors --> p__studnicky_entity
@@ -108,6 +108,8 @@ p__studnicky_event_bus --> p__studnicky_entity
 p__studnicky_event_bus --> p__studnicky_errors
 p__studnicky_event_bus --> p__studnicky_fsm
 p__studnicky_event_bus --> p__studnicky_types
+p__studnicky_example_smoke_kit --> p__studnicky_entity
+p__studnicky_example_smoke_kit --> p__studnicky_errors
 p__studnicky_fetch --> p__studnicky_clock
 p__studnicky_fetch --> p__studnicky_entity
 p__studnicky_fetch --> p__studnicky_errors
@@ -124,7 +126,6 @@ p__studnicky_filters --> p__studnicky_json
 p__studnicky_filters --> p__studnicky_types
 p__studnicky_flag_evaluator --> p__studnicky_entity
 p__studnicky_flag_evaluator --> p__studnicky_errors
-p__studnicky_flag_evaluator --> p__studnicky_json
 p__studnicky_flag_evaluator --> p__studnicky_types
 p__studnicky_fsm --> p__studnicky_circular_buffer
 p__studnicky_fsm --> p__studnicky_clock
@@ -208,6 +209,9 @@ p__studnicky_retry --> p__studnicky_types
 p__studnicky_sample_buffer --> p__studnicky_entity
 p__studnicky_sample_buffer --> p__studnicky_errors
 p__studnicky_sample_buffer --> p__studnicky_types
+p__studnicky_scenario_kit --> p__studnicky_entity
+p__studnicky_scenario_kit --> p__studnicky_errors
+p__studnicky_scenario_kit --> p__studnicky_types
 p__studnicky_scheduler --> p__studnicky_clock
 p__studnicky_scheduler --> p__studnicky_entity
 p__studnicky_scheduler --> p__studnicky_errors

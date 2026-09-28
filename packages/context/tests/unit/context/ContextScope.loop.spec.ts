@@ -75,7 +75,11 @@ function requireRecord<TValue>(value: TValue, label: string): Record<string, unk
   return value;
 }
 
-function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
+function snapshotToRecord(snapshot: ReadonlyMap<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(snapshot);
+}
+
+function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.InputType {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {
@@ -249,7 +253,7 @@ const runnerMap = {
       assert.strictEqual(context.get('fromFirst'), fromFirst);
       context.set('fromSecond', fromSecond);
     });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -259,7 +263,7 @@ const runnerMap = {
     scope.execute(() => { context.set('counter', 1); });
     scope.execute(() => { context.set('counter', 2); });
     scope.execute(() => { context.set('counter', scenarioCase.expected.counter); });
-    assert.strictEqual(scope.terminate().counter, scenarioCase.expected.counter);
+    assert.strictEqual(scope.terminate().get('counter'), scenarioCase.expected.counter);
     return;
   },
 
@@ -271,7 +275,7 @@ const runnerMap = {
       assert.strictEqual(context.has('keep'), true);
       assert.strictEqual(context.has('remove'), false);
     });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -288,7 +292,7 @@ const runnerMap = {
       context.set('step', 2);
       context.set('async2', 'done');
     })).then(() => {
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+      assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     });
   },
 
@@ -362,7 +366,7 @@ const runnerMap = {
       assert.strictEqual(context.get('before'), before);
       context.set('after', after);
     }).then(() => {
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+      assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     });
   },
 
@@ -400,8 +404,8 @@ const runnerMap = {
         context.set('value', scenarioCase.expected.scope2);
       })
     ]).then(() => {
-      assert.strictEqual(scope1.terminate().value, scenarioCase.expected.scope1);
-      assert.strictEqual(scope2.terminate().value, scenarioCase.expected.scope2);
+      assert.strictEqual(scope1.terminate().get('value'), scenarioCase.expected.scope1);
+      assert.strictEqual(scope2.terminate().get('value'), scenarioCase.expected.scope2);
     });
   },
 
@@ -421,10 +425,10 @@ const runnerMap = {
     ]).then(() => {
       const final1 = scope1.terminate();
       const final2 = scope2.terminate();
-      assert.ok('only1' in final1);
-      assert.ok(!('only2' in final1));
-      assert.ok('only2' in final2);
-      assert.ok(!('only1' in final2));
+      assert.ok(final1.has('only1'));
+      assert.ok(!final1.has('only2'));
+      assert.ok(final2.has('only2'));
+      assert.ok(!final2.has('only1'));
     });
   },
 
@@ -436,14 +440,14 @@ const runnerMap = {
       context.set('added1', expectedSnapshot.added1);
       context.set('added2', expectedSnapshot.added2);
     });
-    assert.deepStrictEqual(scope.terminate(), expectedSnapshot);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), expectedSnapshot);
     return;
   },
 
   'snapshot-clears-store': (scenarioCase) => {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.strictEqual(scope.terminate().key, scenarioCase.expected.first);
+    assert.strictEqual(scope.terminate().get('key'), scenarioCase.expected.first);
     assert.throws(() => scope.terminate(), { message: `${context.name} scope has already been terminated` });
     return;
   },
@@ -458,7 +462,7 @@ const runnerMap = {
     const scope = context.initialize({ obj });
     const final = scope.terminate();
     obj.nested = String(scenarioCase.expected.nested);
-    assert.strictEqual(requireRecord(final.obj, 'final.obj').nested, scenarioCase.expected.nested);
+    assert.strictEqual(requireRecord(final.get('obj'), 'final.obj').nested, scenarioCase.expected.nested);
     return;
   },
 
@@ -474,7 +478,7 @@ const runnerMap = {
   'immediate-terminate-with-values': (scenarioCase) => {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -482,7 +486,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
     assert.deepStrictEqual(scopeInput(scenarioCase).terminate, scenarioCase.expected.terminate);
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -526,7 +530,7 @@ const runnerMap = {
       assert.strictEqual(context.get('beforeError'), true);
       context.set('afterError', scenarioCase.expected.afterError);
     });
-    assert.strictEqual(scope.terminate().afterError, scenarioCase.expected.afterError);
+    assert.strictEqual(scope.terminate().get('afterError'), scenarioCase.expected.afterError);
     return;
   },
 
@@ -538,7 +542,7 @@ const runnerMap = {
     } catch {
       // ignore
     }
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -550,8 +554,8 @@ const runnerMap = {
       assert.strictEqual(context.has('undef'), scenarioCase.expected.has);
     });
     const final = scope.terminate();
-    assert.strictEqual(final.undef, undefined);
-    assert.strictEqual('undef' in final, scenarioCase.expected.finalHas);
+    assert.strictEqual(final.get('undef'), undefined);
+    assert.strictEqual(final.has('undef'), scenarioCase.expected.finalHas);
     return;
   },
 
@@ -561,7 +565,7 @@ const runnerMap = {
     scope.execute(() => {
       assert.strictEqual(context.get('nul'), null);
     });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.terminate);
     return;
   },
 
@@ -609,7 +613,7 @@ const runnerMap = {
       assert.strictEqual(retrieved, complex);
     });
     const final = scope.terminate();
-    assert.strictEqual(final.complex, complex);
+    assert.strictEqual(final.get('complex'), complex);
     return;
   },
 
@@ -638,7 +642,7 @@ const runnerMap = {
       assert.strictEqual(context.keys().length, scenarioCase.expected.size);
       assert.strictEqual(context.get('key500'), scenarioCase.expected.key500);
     });
-    assert.strictEqual(Object.keys(scope.terminate()).length, scenarioCase.expected.size);
+    assert.strictEqual(scope.terminate().size, scenarioCase.expected.size);
     return;
   },
 
@@ -646,7 +650,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const expectedResponse = requireRecord(scenarioCase.expected.response, 'expected.response');
     const expectedFinalState = requireRecord(scenarioCase.expected.finalState, 'expected.finalState');
-    const handleRequest = async (requestId: string): Promise<{ finalState: Record<string, unknown>; response: { body: string; status: number } }> => {
+    const handleRequest = async (requestId: string): Promise<{ finalState: ReadonlyMap<string, unknown>; response: { body: string; status: number } }> => {
       const scope = context.initialize({ requestId, startTime: Date.now() });
       const response = await scope.execute(async () => {
         await setTimeout(5);
@@ -659,9 +663,9 @@ const runnerMap = {
     };
     return handleRequest(scopeString(scenarioCase, 'requestId')).then((result) => {
       assert.strictEqual(result.response.status, expectedResponse.status);
-      assert.strictEqual(result.finalState.requestId, expectedFinalState.requestId);
-      assert.strictEqual(result.finalState.userId, expectedFinalState.userId);
-      assert.ok(typeof result.finalState.startTime === 'number');
+      assert.strictEqual(result.finalState.get('requestId'), expectedFinalState.requestId);
+      assert.strictEqual(result.finalState.get('userId'), expectedFinalState.userId);
+      assert.ok(typeof result.finalState.get('startTime') === 'number');
     });
   },
 
@@ -674,7 +678,7 @@ const runnerMap = {
       for (const middleware of middlewares) {
         scope.execute(middleware);
       }
-      return scope.terminate();
+      return snapshotToRecord(scope.terminate());
     };
     const authMiddleware: Middleware = () => { context.set('authenticated', true); context.set('user', expectedUser); };
     const loggingMiddleware: Middleware = () => { context.set('logged', true); };
@@ -705,8 +709,8 @@ const runnerMap = {
       context.set('completedAt', Date.now());
     }).then(() => {
       const final = scope.terminate();
-      assert.deepStrictEqual(final.results, expectedResults);
-      assert.ok(typeof final.completedAt === 'number');
+      assert.deepStrictEqual(final.get('results'), expectedResults);
+      assert.ok(typeof final.get('completedAt') === 'number');
     });
   },
 } satisfies Record<ScenarioShape, ScenarioRunner>;

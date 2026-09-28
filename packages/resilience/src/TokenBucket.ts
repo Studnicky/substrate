@@ -1,13 +1,14 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
-import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
+import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
 
 import { TokenBucketOptionsEntity } from './entities/TokenBucketOptionsEntity.js';
+import { TokenCountEntity } from './entities/TokenCountEntity.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
 import { RateLimiterClock } from './RateLimiterClock.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
@@ -70,7 +71,7 @@ export class TokenBucket {
   }
 
   /** Throws TokenBucketExhaustedError if no token available. */
-  consume(tokens = 1): RateLimitConsumptionEntity.Type {
+  consume(tokens?: unknown): RateLimitConsumptionInterface {
     const requestedTokens = this.#resolveTokens(tokens);
     this.#refill();
     if (this.#tokens < requestedTokens) {
@@ -89,8 +90,8 @@ export class TokenBucket {
    * Throws TokenBucketExhaustedError immediately if `tokens` exceeds burstSize (can never be satisfied).
    */
   async waitForToken(
-    options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}
-  ): Promise<RateLimitConsumptionEntity.Type> {
+    options: { 'signal'?: AbortSignal; 'tokens'?: unknown } = {}
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = this.#resolveTokens(options.tokens);
     const signal = options.signal;
     if (tokens > this.#burstSize) {
@@ -132,15 +133,15 @@ export class TokenBucket {
    */
   protected onRefill(_added: number): void {}
 
-  #resolveTokens(tokens?: number): number {
-    const result = tokens ?? 1;
-    if (!Number.isFinite(result) || result <= 0) {
+  #resolveTokens(tokens: unknown): TokenCountEntity.Type {
+    const candidate = tokens ?? TokenCountEntity.Schema.default;
+    if (!TokenCountEntity.validate(candidate)) {
       throw new ResilienceConfigError('tokens must be a positive finite number');
     }
-    return result;
+    return candidate;
   }
 
-  #acquire(tokens: number): RateLimitConsumptionEntity.Type {
+  #acquire(tokens: number): RateLimitConsumptionInterface {
     this.#tokens -= tokens;
     this.#invokeOnTokenAcquired(tokens);
     return { 'consumedTokens': tokens, 'remainingTokens': this.#tokens };

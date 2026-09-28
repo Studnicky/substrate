@@ -2,7 +2,7 @@
 
 import type { BusQueueOptionsEntity } from '../entities/BusQueueOptionsEntity.js';
 
-export interface BusQueueCreateOptionsInterface<T> extends BusQueueOptionsEntity.Type {
+export interface BusQueueCreateOptionsInterface<T> extends BusQueueOptionsEntity.InputType {
   'handler': (item: T) => Promise<void>;
   /** Drain-loop-level catch-all for uncaught handler errors — distinct from the per-event lifecycle hooks below, which are overridden on a subclass instead of passed as callbacks. */
   'onError'?: (error: unknown) => void;

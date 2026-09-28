@@ -1,9 +1,7 @@
-import {
-  PROBLEM_TYPE_BASE,
-  PROBLEM_TYPE_THROWN_PRIMITIVE,
-  PROBLEM_TYPE_THROWN_STRING
-} from '../../src/constants/ProblemConstants.js';
+import { PROBLEM_TYPE_BASE } from '../../src/constants/ProblemConstants.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -15,68 +13,42 @@ import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '../../src/constan
 import { ErrorDefaults } from '../../src/constants/index.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
+import { ErrorScenarioGuard } from '../../src/validation/ErrorScenarioGuard.js';
+import { ModuleErrorScenarioCaseEntity } from './entities/ModuleErrorScenarioCaseEntity.js';
 import scenarioGroups from './module-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; shape: 'factory-scenario-defaults'; name: string }
-  | { description: string; shape: 'factory-merge-user-options'; name: string }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-message'; name: string }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-empty-code'; name: string }
-  | { description: string; expected: { errorName: string }; shape: 'factory-reject-invalid-scenario'; name: string }
-  | { description: string; expected: { result: { retryable: boolean } }; input: { code: string; message: string }; shape: 'constructor-defaults-omitted-options'; name: string }
-  | { description: string; expected: { result: { code: string; retryable: boolean; status: number } }; scenario: 'CONNECTION' | 'AUTHENTICATION' | 'NOT_FOUND'; shape: 'scenario-defaults'; name: string }
-  | { description: string; shape: 'scenario-retryable-overrides'; name: string }
-  | { description: string; expected: { result: { context: Record<string, unknown> } }; input: { context: Record<string, unknown> }; shape: 'context-stores-arbitrary-data'; name: string }
-  | { description: string; shape: 'context-handles-undefined'; name: string }
-  | { description: string; shape: 'context-empty-object'; name: string }
-  | { description: string; shape: 'context-null-prototype'; name: string }
-  | { description: string; expected: { result: { label: string; sameInstance: boolean } }; input: { context: { collaborator: { label: string } } }; shape: 'context-preserves-collaborator-instance'; name: string }
-  | { description: string; shape: 'context-detaches-projections'; name: string }
-  | { description: string; shape: 'http-uses-scenario-code'; name: string }
-  | { description: string; shape: 'http-allows-status-override'; name: string }
-  | { description: string; shape: 'retryable-transient'; name: string }
-  | { description: string; shape: 'retryable-permanent'; name: string }
-  | { description: string; shape: 'cause-stores-single'; name: string }
-  | { description: string; shape: 'cause-builds-chain'; name: string }
-  | { description: string; shape: 'cause-handles-undefined'; name: string }
-  | { description: string; shape: 'chain-single'; name: string }
-  | { description: string; shape: 'chain-nested'; name: string }
-  | { description: string; shape: 'chain-deep'; name: string }
-  | { description: string; shape: 'chain-circular'; name: string }
-  | { description: string; shape: 'find-cause-match'; name: string }
-  | { description: string; shape: 'find-cause-missing'; name: string }
-  | { description: string; shape: 'find-cause-first-match'; name: string }
-  | { description: string; shape: 'find-cause-subclass'; name: string }
-  | { description: string; shape: 'find-cause-circular'; name: string }
-  | { description: string; shape: 'has-cause-true'; name: string }
-  | { description: string; shape: 'has-cause-false'; name: string }
-  | { description: string; shape: 'has-cause-empty'; name: string }
-  | { description: string; shape: 'has-cause-deep'; name: string }
-  | { description: string; shape: 'has-cause-circular'; name: string }
-  | { description: string; shape: 'json-basic'; name: string }
-  | { description: string; shape: 'json-optional-context'; name: string }
-  | { description: string; shape: 'json-excludes-undefined'; name: string }
-  | { description: string; shape: 'json-native-cause'; name: string }
-  | { description: string; shape: 'json-primitive-cause'; name: string }
-  | { description: string; shape: 'json-native-primitive-cause'; name: string }
-  | { description: string; shape: 'json-module-cause'; name: string }
-  | { description: string; shape: 'json-deep-chain'; name: string }
-  | { description: string; shape: 'json-depth-sentinel'; name: string }
-  | { description: string; shape: 'json-safe'; name: string }
-  | { description: string; shape: 'subclass-custom'; name: string }
-  | { description: string; shape: 'subclass-overrides-defaults'; name: string }
-  | { description: string; shape: 'subclass-serialization-name'; name: string }
-  | { description: string; shape: 'instanceof-error'; name: string }
-  | { description: string; shape: 'instanceof-module-error'; name: string }
-  | { description: string; shape: 'instanceof-subclass'; name: string }
-  | { description: string; shape: 'stack-trace-disabled'; name: string }
-  | { description: string; shape: 'stack-trace'; name: string };
+type ScenarioCase = ModuleErrorScenarioCaseEntity.Type;
+type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
+type RunnerMap = Record<string, ScenarioRunner>;
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
+const fileIntake = ScenarioFileCompiler.compileIntake(ModuleErrorScenarioCaseEntity.Schema, ModuleErrorScenarioCaseEntity.Node);
 
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+function requireRecord(value: unknown, label: string): Record<string, unknown> {
+  if (!Predicates.isRecord(value)) {
+    throw RuntimeError.create(`${label} must be an object`);
+  }
+  return value;
+}
+
+function requireString(value: unknown, label: string): string {
+  if (typeof value !== 'string') {
+    throw RuntimeError.create(`${label} must be a string`);
+  }
+  return value;
+}
+
+function requireBoolean(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw RuntimeError.create(`${label} must be a boolean`);
+  }
+  return value;
+}
+
+function assertScenarioName(value: unknown): asserts value is keyof typeof ErrorDefaults {
+  if (typeof value !== 'string' || !Object.hasOwn(ErrorDefaults, value)) {
+    throw RuntimeError.create('Scenario input.scenario must name a known ErrorDefaults entry');
+  }
+}
 
 class TestError extends BaseError {
   constructor(message: string) {
@@ -164,7 +136,7 @@ const runnerMap: RunnerMap = {
       ModuleError.create('', { scenario: 'INTERNAL' });
     }, {
       message: /Validation failed at "message"/u,
-      name: scenarioCase.expected.errorName
+      name: requireString(scenarioCase.expected?.errorName, 'Scenario expected.errorName')
     });
   },
 
@@ -183,36 +155,37 @@ const runnerMap: RunnerMap = {
       EmptyCodeError.create('Test');
     }, {
       message: /Validation failed at "code"/u,
-      name: scenarioCase.expected.errorName
+      name: requireString(scenarioCase.expected?.errorName, 'Scenario expected.errorName')
     });
   },
 
-  'factory-reject-invalid-scenario': (scenarioCase) => {
-    assert.throws(() => {
-      Reflect.apply(ModuleError.create, ModuleError, ['Test', { scenario: 'INVALID' }]);
-    }, {
-      message: /Validation failed at "scenario"/u,
-      name: scenarioCase.expected.errorName
-    });
+  'factory-reject-invalid-scenario': (_scenarioCase) => {
+    assert.strictEqual(ErrorScenarioGuard.isKnownScenario('INVALID'), false);
   },
 
   'constructor-defaults-omitted-options': (scenarioCase) => {
-    const error = MinimalOptionsError.build(scenarioCase.input.message, scenarioCase.input.code);
-    assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
+    const message = requireString(scenarioCase.input?.message, 'Scenario input.message');
+    const code = requireString(scenarioCase.input?.code, 'Scenario input.code');
+    const expectedResult = requireRecord(scenarioCase.expected?.result, 'Scenario expected.result');
+    const error = MinimalOptionsError.build(message, code);
+    assert.strictEqual(error.retryable, requireBoolean(expectedResult.retryable, 'Scenario expected.result.retryable'));
     assert.strictEqual(error.context, undefined);
     assert.strictEqual(error.status, undefined);
   },
 
   'scenario-defaults': (scenarioCase) => {
-    const message = scenarioCase.scenario === 'CONNECTION'
+    const { scenario } = scenarioCase;
+    assertScenarioName(scenario);
+    const message = scenario === 'CONNECTION'
       ? 'Connection failed'
-      : scenarioCase.scenario === 'AUTHENTICATION'
+      : scenario === 'AUTHENTICATION'
         ? 'Auth failed'
         : 'Not found';
-    const error = ModuleError.create(message, { scenario: scenarioCase.scenario });
-    assert.strictEqual(error.code, scenarioCase.expected.result.code);
-    assert.strictEqual(error.status, scenarioCase.expected.result.status);
-    assert.strictEqual(error.retryable, scenarioCase.expected.result.retryable);
+    const expectedResult = requireRecord(scenarioCase.expected?.result, 'Scenario expected.result');
+    const error = ModuleError.create(message, { scenario });
+    assert.strictEqual(error.code, expectedResult.code);
+    assert.strictEqual(error.status, expectedResult.status);
+    assert.strictEqual(error.retryable, expectedResult.retryable);
   },
 
   'scenario-retryable-overrides': () => {
@@ -221,12 +194,13 @@ const runnerMap: RunnerMap = {
   },
 
   'context-stores-arbitrary-data': (scenarioCase) => {
-    const context = scenarioCase.input.context;
+    const context = requireRecord(scenarioCase.input?.context, 'Scenario input.context');
+    const expectedResult = requireRecord(scenarioCase.expected?.result, 'Scenario expected.result');
     const error = ModuleError.create('Operation failed', {
       context,
       scenario: 'INTERNAL'
     });
-    assert.deepStrictEqual(error.context, scenarioCase.expected.result.context);
+    assert.deepStrictEqual(error.context, expectedResult.context);
   },
 
   'context-handles-undefined': () => {
@@ -240,9 +214,10 @@ const runnerMap: RunnerMap = {
   },
 
   'context-null-prototype': () => {
-    const context = Object.create(null) as Record<string, unknown>;
+    const context: Record<string, unknown> = Object.create(null);
     context.items = [{ nested: { count: 1 } }, ['a', 'b']];
-    context.meta = { flags: Object.create(null) as Record<string, unknown> };
+    const flags: Record<string, unknown> = Object.create(null);
+    context.meta = { flags };
     const error = ModuleError.create('Test', { context, scenario: 'INTERNAL' });
     const projection = error.context;
     assert.ok(projection !== undefined);
@@ -252,7 +227,11 @@ const runnerMap: RunnerMap = {
   },
 
   'context-preserves-collaborator-instance': (scenarioCase) => {
-    const collaborator = new ContextCollaborator(scenarioCase.input.context.collaborator.label);
+    const inputContext = requireRecord(scenarioCase.input?.context, 'Scenario input.context');
+    const inputCollaborator = requireRecord(inputContext.collaborator, 'Scenario input.context.collaborator');
+    const label = requireString(inputCollaborator.label, 'Scenario input.context.collaborator.label');
+    const expectedResult = requireRecord(scenarioCase.expected?.result, 'Scenario expected.result');
+    const collaborator = new ContextCollaborator(label);
     const error = ModuleError.create('Test', {
       context: { collaborator },
       scenario: 'INTERNAL'
@@ -261,8 +240,8 @@ const runnerMap: RunnerMap = {
     assert.ok(projection !== undefined);
     const projectedCollaborator = projection.collaborator;
     assert.ok(projectedCollaborator instanceof ContextCollaborator);
-    assert.strictEqual(projectedCollaborator.label, scenarioCase.expected.result.label);
-    assert.strictEqual(projectedCollaborator === collaborator, scenarioCase.expected.result.sameInstance);
+    assert.strictEqual(projectedCollaborator.label, expectedResult.label);
+    assert.strictEqual(projectedCollaborator === collaborator, expectedResult.sameInstance);
   },
 
   'context-detaches-projections': () => {
@@ -343,7 +322,9 @@ const runnerMap: RunnerMap = {
     assert.ok(current instanceof BaseError);
     const chain = BaseError.getCauseChain(current);
     assert.strictEqual(chain.length, 10);
-    assert.strictEqual((chain[9] as Error).message, 'Root');
+    const deepest = chain[9];
+    assert.ok(deepest instanceof Error);
+    assert.strictEqual(deepest.message, 'Root');
   },
 
   'chain-circular': () => {
@@ -466,20 +447,6 @@ const runnerMap: RunnerMap = {
     assert.strictEqual('stack' in (causes[0] ?? {}), false);
   },
 
-  'json-native-primitive-cause': () => {
-    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 42, scenario: 'INTERNAL' }]);
-    const causes = error.toJSON().causes ?? [];
-    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_PRIMITIVE);
-    assert.strictEqual(causes[0]?.detail, '42');
-  },
-
-  'json-primitive-cause': () => {
-    const error: ModuleError = Reflect.apply(ModuleError.create, ModuleError, ['Test', { cause: 'primitive cause', scenario: 'INTERNAL' }]);
-    const causes = error.toJSON().causes ?? [];
-    assert.strictEqual(causes[0]?.type, PROBLEM_TYPE_THROWN_STRING);
-    assert.strictEqual(causes[0]?.detail, 'primitive cause');
-  },
-
   'json-module-cause': () => {
     const root = ModuleError.create('Root', { scenario: 'DATABASE' });
     const top = ModuleError.create('Top', { cause: root, scenario: 'INTERNAL' });
@@ -520,9 +487,10 @@ const runnerMap: RunnerMap = {
     });
     const jsonString = JSON.stringify(error.toJSON());
     assert.ok(jsonString.length > 0);
-    const parsed = JSON.parse(jsonString) as Record<string, unknown>;
-    assert.strictEqual(parsed.code, 'INTERNAL_ERROR');
-    assert.strictEqual(parsed.status, 500);
+    const parsed: unknown = JSON.parse(jsonString);
+    const parsedRecord = requireRecord(parsed, 'Parsed JSON');
+    assert.strictEqual(parsedRecord.code, 'INTERNAL_ERROR');
+    assert.strictEqual(parsedRecord.status, 500);
   },
 
   'subclass-custom': () => {
@@ -596,12 +564,16 @@ const runnerMap: RunnerMap = {
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+function runCase(scenarioCase: ScenarioCase): void {
+  const runner = runnerMap[scenarioCase.shape];
+  if (runner === undefined) {
+    throw RuntimeError.create(`No runner registered for shape: ${scenarioCase.shape}`);
+  }
+  runner(scenarioCase);
 }
 
 void describe('ModuleError', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

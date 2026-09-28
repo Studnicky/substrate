@@ -39,6 +39,10 @@ on:
         required: false
         type: boolean
         default: false
+      run-test-conformance:
+        required: false
+        type: boolean
+        default: false
       run-build:
         required: false
         type: boolean
@@ -89,6 +93,7 @@ jobs:
           RUN_STAMP_VERSION_CHECK: ${{ inputs.run-stamp-version-check }}
           RUN_TEST: ${{ inputs.run-test }}
           RUN_TEST_ALL: ${{ inputs.run-test-all }}
+          RUN_TEST_CONFORMANCE: ${{ inputs.run-test-conformance }}
           RUN_TEST_INTEGRATION: ${{ inputs.run-test-integration }}
           RUN_TEST_SMOKE: ${{ inputs.run-test-smoke }}
           RUN_TEST_UNIT: ${{ inputs.run-test-unit }}
@@ -116,6 +121,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               ;;
             audit)
@@ -128,6 +134,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               append_entry "{\"name\":\"audit\",\"command\":\"CI_SUITE_BASE_REF=${AUDIT_BASE_REF} bash scripts/ci-suite.sh audit\"}"
               append_entry '{"name":"predocs-build","command":"bash scripts/ci-suite.sh predocs-build"}'
@@ -166,6 +173,9 @@ jobs:
               fi
               if [ "$RUN_TEST_ALL" = 'true' ]; then
                 append_entry '{"name":"test-all","command":"bash scripts/ci-suite.sh test-all"}'
+              fi
+              if [ "$RUN_TEST_CONFORMANCE" = 'true' ]; then
+                append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               fi
               if [ "$RUN_BUILD" = 'true' ]; then
                 append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'

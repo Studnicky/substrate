@@ -28,21 +28,18 @@
  * ```
  */
 
-import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
 import {
   HookInvoker,
   ReentrantHookInvocationError,
   RuntimeError
-} from '@studnicky/errors/node';
-import { TransitionRejectedError } from '@studnicky/fsm/node';
-import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+} from '@studnicky/errors/browser';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { Signal } from '@studnicky/signal/browser';
+import { Predicates } from '@studnicky/types/browser';
 
-import type { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
-import type { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
-import type { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import type {
   MutexCreateOptionsInterface,
   MutexInterface,
@@ -56,6 +53,9 @@ import {
   INITIAL_COUNTER,
   UNLIMITED_QUEUE_SIZE
 } from '../constants/index.js';
+import { LockMetricsEntity } from '../entities/LockMetricsEntity.js';
+import { MutexQueueEntryEntity } from '../entities/MutexQueueEntryEntity.js';
+import { MutexStatsEntity } from '../entities/MutexStatsEntity.js';
 import {
   LockTimeoutError,
   QueueSizeExceededError
@@ -72,10 +72,6 @@ interface QueueEntryInterface {
 
 interface InFlightOperationInterface {
   'promise': Promise<unknown>;
-}
-
-interface MutexConstructorInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
 }
 
 interface QueueNodeInterface extends QueueEntryInterface {
@@ -201,9 +197,8 @@ class LinkedAcquisitionQueue {
  *
  * A dedicated class (rather than an object literal built up property by
  * property) gives every instance the same hidden class from construction.
- * `acquireDisposable` attaches `Symbol.asyncDispose` after construction and
- * delegates to `release`, so manual release and disposal share one idempotent
- * path.
+ * `MutexLock` implements `Symbol.asyncDispose` directly, so manual release and
+ * disposal share one idempotent path.
  */
 class MutexLock<K extends PropertyKey> {
   readonly 'key': K;
@@ -214,6 +209,12 @@ class MutexLock<K extends PropertyKey> {
   constructor(key: K, releaseFunction: () => void) {
     this.key = key;
     this.#releaseFunction = releaseFunction;
+  }
+
+  [Symbol.asyncDispose](): Promise<void> {
+    this.release();
+    const result = Promise.resolve();
+    return result;
   }
 
   release(): void {
@@ -275,28 +276,30 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
 
-  /**
-   * Narrows `value` to `MutexLockInterface` after `acquireDisposable` has
-   * attached `Symbol.asyncDispose` onto a `MutexLock` instance at runtime
-   * (the symbol-keyed member cannot be a computed class member — see
-   * `MutexLock` above — so it is not statically present on the class type).
-   */
-  private static hasAsyncDispose(value: object): value is MutexLockInterface {
-    const result = Predicates.isFunction(Reflect.get(value, Symbol.asyncDispose));
-    return result;
+
+  /** A clock reading earns its brand via a positive guard before entering lock metrics. */
+  private static buildLockMetrics(acquiredAt: number): LockMetricsEntity.Type {
+    const candidate = { 'acquiredAt': acquiredAt };
+    if (!LockMetricsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: clock produced an invalid acquiredAt timestamp');
+    }
+    return candidate;
   }
 
-  static create<
-    K extends PropertyKey = string,
-    TInstance extends Mutex<K> = Mutex<K>
-  >(
-    this: MutexConstructorInterface<TInstance>,
-    config?: MutexCreateOptionsInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Mutex.create() must construct a Mutex instance');
+  /** A clock reading earns its brand via a positive guard before entering a queue entry. */
+  private static buildQueuedAt(queuedAt: number): MutexQueueEntryEntity.Type['queuedAt'] {
+    const candidate = { 'queuedAt': queuedAt };
+    if (!MutexQueueEntryEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: clock produced an invalid queuedAt timestamp');
     }
+    return candidate.queuedAt;
+  }
+
+  static create<K extends PropertyKey = string>(
+    this: typeof Mutex,
+    config?: MutexCreateOptionsInterface
+  ): Mutex<K> {
+    const result = new this<K>(config);
     return result;
   }
 
@@ -454,19 +457,6 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   async acquireDisposable(key: K): Promise<MutexLockInterface> {
     const release = await this.acquire(key);
     const lock = new MutexLock<K>(key, release);
-    const asyncDispose = async (): Promise<void> => {
-      // Async disposal pattern - ensure proper Promise resolution
-      await Promise.resolve();
-      lock.release();
-    };
-
-    Reflect.set(lock, Symbol.asyncDispose, asyncDispose);
-
-    if (!Mutex.hasAsyncDispose(lock)) {
-      lock.release();
-      throw RuntimeError.create('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
-    }
-
     return lock;
   }
 
@@ -591,7 +581,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     this.transitionKey(key, 'locked');
     const acquiredAt = this.#clock.now();
 
-    this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
+    this.lockMetrics.set(key, Mutex.buildLockMetrics(acquiredAt));
     this.totalExecuted++;
 
     const waitTimeMs = acquiredAt - requestedAt;
@@ -710,7 +700,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   ): void {
     const acquiredAt = this.#clock.now();
 
-    this.lockMetrics.set(key, { 'acquiredAt': acquiredAt });
+    this.lockMetrics.set(key, Mutex.buildLockMetrics(acquiredAt));
     this.totalExecuted++;
 
     const waitTimeMs = acquiredAt - requestedAt;
@@ -744,7 +734,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       };
       const entry: QueueEntryInterface = {
         'cancellationController': cancellationController,
-        'queuedAt': requestedAt,
+        'queuedAt': Mutex.buildQueuedAt(requestedAt),
         'reject': reject,
         'resolve': handleResolve
       };
@@ -840,7 +830,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   getStats(): MutexStatsEntity.Type {
-    const stats: MutexStatsEntity.Type = {
+    const candidate = {
       'activeLocksCount': this.locks.size,
       'coalescedCount': this.coalescedCount,
       'maximumQueueSize': this.config.maximumQueueSize,
@@ -848,7 +838,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       'timeout': this.config.timeout,
       'totalExecuted': this.totalExecuted
     };
-    return stats;
+    if (!MutexStatsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: mutex stats failed validation');
+    }
+    return candidate;
   }
 
   /**
@@ -1106,45 +1099,25 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param key - The key to lock on
    * @param fn - The function to execute exclusively
-   * @param acceptsResult - Optional runtime predicate that validates and narrows the shared result
-   * @returns The shared result as `unknown`, or as the predicate's proven type
+   * @returns The shared result as `unknown`.
    * @throws {QueueSizeExceededError} If maximumQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
    * ```typescript
-   * const acceptsEntity = (value: unknown): value is Entity => value instanceof Entity;
    * const result = await mutex.runExclusive('user1', async () => {
    *   // This code has exclusive access for key 'user1'
    *   return await resolveEntity('user1');
-   * }, acceptsEntity);
+   * });
    * ```
    */
-  runExclusive(key: K, callback: () => unknown): Promise<unknown>;
-  runExclusive<T>(
-    key: K,
-    callback: () => unknown,
-    acceptsResult: (value: unknown) => value is T
-  ): Promise<T>;
-  async runExclusive<T>(
-    key: K,
-    callback: () => unknown,
-    acceptsResult?: (value: unknown) => value is T
-  ): Promise<unknown> {
+  async runExclusive(key: K, callback: () => unknown): Promise<unknown> {
     const result = this.config.enableCoalescing
       ? await this.runExclusiveCoalesced(key, callback)
       : await this.runExclusiveStandard(key, callback);
-
-    if (acceptsResult !== undefined && !acceptsResult(result)) {
-      throw RuntimeError.create(`Mutex result for key ${String(key)} does not satisfy the requested type`);
-    }
-
     return result;
   }
 
-  /**
-   * Execute with coalescing - concurrent calls share the result
-   */
   private runExclusiveCoalesced(
     key: K,
     callback: () => unknown
@@ -1205,14 +1178,16 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     reject: (error: Error) => void,
     cancellationController: AbortController
   ): Promise<void> {
-    const deadlineSignal = await this.#signal.compose({
+    const composed = await this.#signal.compose({
       'deadlineMs': this.config.timeout,
       'signal': cancellationController.signal
     });
+    const deadlineSignal = composed.signal;
     const onAbort = (): void => {
       if (!cancellationController.signal.aborted) {
         this.handleAcquisitionTimeout(key, cancellationController, reject);
       }
+      composed.dispose();
     };
 
     if (deadlineSignal.aborted) {

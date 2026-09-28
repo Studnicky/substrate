@@ -1,6 +1,6 @@
-import type { ClockProviderInterface } from '@studnicky/clock/node';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
-import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
+import type { ClockProviderInterface } from '@studnicky/clock/browser';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
 
 import type { FileLockOptionsEntity } from '../entities/FileLockOptionsEntity.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
@@ -11,9 +11,9 @@ export interface FileLockCreateOptionsInterface {
   readonly 'clock'?: ClockProviderInterface;
   readonly 'fileSystem'?: FileSystemInterface;
   readonly 'ownerToken'?: OwnerTokenInterface;
-  readonly 'path': FileLockOptionsEntity.Type['path'];
-  readonly 'pollMs'?: FileLockOptionsEntity.Type['pollMs'];
+  readonly 'path': FileLockOptionsEntity.InputType['path'];
+  readonly 'pollMs'?: FileLockOptionsEntity.InputType['pollMs'];
   /** Scheduler used to defer contended acquisition attempts. Default: real-time scheduler. */
   readonly 'scheduler'?: SchedulerProviderInterface;
-  readonly 'timeoutMs'?: FileLockOptionsEntity.Type['timeoutMs'];
+  readonly 'timeoutMs'?: FileLockOptionsEntity.InputType['timeoutMs'];
 }

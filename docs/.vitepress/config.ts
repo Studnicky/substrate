@@ -2,19 +2,19 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 
-import { BROWSER_SWAPS } from './browser-swaps.js';
 import pkg from '../../package.json';
+import { BROWSER_SWAPS } from './browser-swaps.js';
 
 const packageJson = pkg as {
-  substrate?: { seo?: { googleSiteVerification?: string; bingSiteVerification?: string; twitterHandle?: string } };
+  'substrate'?: { 'seo'?: { 'bingSiteVerification'?: string; 'googleSiteVerification'?: string; 'twitterHandle'?: string } };
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
-type ResolveOptionsType = Record<string, unknown> & { readonly ssr?: boolean };
+type ResolveOptionsType = Record<string, unknown> & { readonly 'ssr'?: boolean };
 
 interface ResolvedIdInterface {
-  readonly id: string;
+  readonly 'id': string;
 }
 
 interface PluginContextInterface {
@@ -26,14 +26,14 @@ interface PluginContextInterface {
 }
 
 const substrateBrowserSwap = (): {
-  name: string;
-  enforce: 'pre';
-  resolveId: (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType) => Promise<string | null>;
+  'enforce': 'pre';
+  'name': string;
+  'resolveId': (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType) => Promise<string | null>;
 } => {
   return {
-    name: 'substrate-browser-swap',
-    enforce: 'pre',
-    resolveId: async function (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType): Promise<string | null> {
+    'enforce': 'pre',
+    'name': 'substrate-browser-swap',
+    'resolveId': async function (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType): Promise<string | null> {
       // SSR runs in Node, where the Node providers work; only swap for the client.
       if (options?.ssr === true || importer === undefined) {
         return null;
@@ -72,12 +72,12 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const ESLINT_CONFIG_RULES = [
-  'adapter-only-import', 'all-types-are-entities', 'canonical-export-names', 'clean-diagnostics',
-  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'folder-content-shape',
-  'explicit-return-binding', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract', 'interface-suffix',
+  'adapter-only-import', 'all-types-are-entities', 'clean-diagnostics',
+  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'entity-file-shape',
+  'explicit-return-binding', 'export-shape', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object', 'single-export',
-  'static-method-verbs', 'type-alias-invariants', 'whole-canonical-types'
+  'lexical-this-only', 'no-double-assertion', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-threaded-vocabulary', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
+  'static-method-verbs', 'type-alias-invariants'
 ] as const;
 
 const ESLINT_V8_RULES = [
@@ -99,8 +99,8 @@ const STATEFUL = [
 ] as const;
 
 const STATELESS = [
-  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'fetch', 'json',
-  'signal', 'system', 'types'
+  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'example-smoke-kit', 'fetch', 'json',
+  'scenario-kit', 'signal', 'system', 'types'
 ] as const;
 
 const MATCHING_AND_ROUTING = [
@@ -111,51 +111,197 @@ const MATCHING_AND_ROUTING = [
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
 
 const conditionalHead: HeadConfig[] = [
-  ...(googleVerify ? [['meta', { name: 'google-site-verification', content: googleVerify }] as HeadConfig] : []),
-  ...(bingVerify ? [['meta', { name: 'msvalidate.01', content: bingVerify }] as HeadConfig] : []),
-  ...(twitterHandle ? [['meta', { name: 'twitter:site', content: `@${twitterHandle}` }] as HeadConfig] : []),
-  ...(twitterHandle ? [['meta', { name: 'twitter:creator', content: `@${twitterHandle}` }] as HeadConfig] : []),
+  ...(googleVerify !== '' ? [['meta', { 'content': googleVerify, 'name': 'google-site-verification' }] as HeadConfig] : []),
+  ...(bingVerify !== '' ? [['meta', { 'content': bingVerify, 'name': 'msvalidate.01' }] as HeadConfig] : []),
+  ...(twitterHandle !== '' ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:site' }] as HeadConfig] : []),
+  ...(twitterHandle !== '' ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:creator' }] as HeadConfig] : [])
 ];
 
 const jsonLd = JSON.stringify({
   '@context': 'https://schema.org',
   '@type': 'SoftwareSourceCode',
-  name: SITE_TITLE,
-  description: SITE_DESCRIPTION,
-  url: SITE_URL,
-  license: 'MIT',
-  programmingLanguage: 'TypeScript',
-  runtimePlatform: 'Node.js',
-  codeRepository: SITE_REPO,
-  author: { '@type': 'Person', name: SITE_AUTHOR_NAME, url: SITE_AUTHOR_URL },
-  image: SITE_LOGO
+  'author': { '@type': 'Person', 'name': SITE_AUTHOR_NAME, 'url': SITE_AUTHOR_URL },
+  'codeRepository': SITE_REPO,
+  'description': SITE_DESCRIPTION,
+  'image': SITE_LOGO,
+  'license': 'MIT',
+  'name': SITE_TITLE,
+  'programmingLanguage': 'TypeScript',
+  'runtimePlatform': 'Node.js',
+  'url': SITE_URL
 });
 
 export default withMermaid(defineConfig({
-  vite: {
-    plugins: [substrateBrowserSwap()],
-    esbuild: {
+  'appearance': true,
+  'base': SITE_BASE,
+  'cleanUrls': true,
+  'description': SITE_DESCRIPTION,
+  'head': [
+    ['link', { 'href': `${SITE_BASE}favicon.ico`, 'rel': 'icon', 'type': 'image/x-icon' }],
+    ['link', { 'href': `${SITE_BASE}icon-32.png`, 'rel': 'icon', 'sizes': '32x32', 'type': 'image/png' }],
+    ['link', { 'href': `${SITE_BASE}icon-16.png`, 'rel': 'icon', 'sizes': '16x16', 'type': 'image/png' }],
+    ['link', { 'href': `${SITE_BASE}apple-touch-icon.png`, 'rel': 'apple-touch-icon', 'sizes': '180x180' }],
+    ['link', { 'href': `${SITE_BASE}manifest.webmanifest`, 'rel': 'manifest' }],
+    ['meta', { 'content': SITE_THEME_COLOR, 'name': 'theme-color' }],
+    ['meta', { 'content': 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1', 'name': 'robots' }],
+    ['meta', { 'content': SITE_AUTHOR_NAME, 'name': 'author' }],
+    ['meta', { 'content': SITE_KEYWORDS, 'name': 'keywords' }],
+    ['meta', { 'content': 'Substrate', 'name': 'application-name' }],
+    ['meta', { 'content': 'website', 'property': 'og:type' }],
+    ['meta', { 'content': SITE_TITLE, 'property': 'og:site_name' }],
+    ['meta', { 'content': SITE_TITLE, 'property': 'og:title' }],
+    ['meta', { 'content': SITE_DESCRIPTION, 'property': 'og:description' }],
+    ['meta', { 'content': SITE_URL, 'property': 'og:url' }],
+    ['meta', { 'content': SITE_OG_IMAGE, 'property': 'og:image' }],
+    ['meta', { 'content': 'image/png', 'property': 'og:image:type' }],
+    ['meta', { 'content': '1200', 'property': 'og:image:width' }],
+    ['meta', { 'content': '630', 'property': 'og:image:height' }],
+    ['meta', { 'content': SITE_OG_IMAGE, 'property': 'og:image:secure_url' }],
+    ['meta', { 'content': SITE_TITLE, 'property': 'og:image:alt' }],
+    ['meta', { 'content': 'en_US', 'property': 'og:locale' }],
+    ['meta', { 'content': 'summary_large_image', 'name': 'twitter:card' }],
+    ['meta', { 'content': SITE_TITLE, 'name': 'twitter:title' }],
+    ['meta', { 'content': SITE_DESCRIPTION, 'name': 'twitter:description' }],
+    ['meta', { 'content': SITE_OG_IMAGE, 'name': 'twitter:image' }],
+    ...conditionalHead,
+    ['script', { 'type': 'application/ld+json' }, jsonLd]
+  ],
+  'lang': 'en-US',
+  'lastUpdated': true,
+  'mermaid': {
+    'flowchart': {
+      'htmlLabels': true,
+      'nodeSpacing': 28,
+      'rankSpacing': 44,
+      'useMaxWidth': true
+    },
+    'theme': 'base',
+    'themeVariables': {
+      'background': '#ffffff',
+      'fontFamily': 'var(--vp-font-family-mono)',
+      'lineColor': '#94a3b8',
+      'primaryBorderColor': '#7c5aed',
+      'primaryColor': '#f5f3ff',
+      'primaryTextColor': '#2e1065',
+      'secondaryColor': '#faf5ff',
+      'tertiaryColor': '#f8fafc',
+      'textColor': '#334155'
+    }
+  },
+  'mermaidPlugin': { 'class': 'mermaid substrate-mermaid' },
+  'sitemap': { 'hostname': SITE_URL },
+
+  'themeConfig': {
+    'lastUpdated': { 'text': 'Updated' },
+    'logo': '/logo.svg',
+    'nav': [
+      { 'link': '/getting-started', 'text': 'Guide' },
+      { 'link': '/packages/', 'text': 'Packages' },
+      { 'link': SITE_REPO, 'text': 'GitHub' }
+    ],
+    'search': { 'provider': 'local' },
+    'sidebar': {
+      '/': [
+        {
+          'items': [
+            { 'link': '/', 'text': 'Overview' },
+            { 'link': '/getting-started', 'text': 'Getting Started' },
+            { 'link': '/architecture', 'text': 'Architecture' },
+            { 'link': '/concepts/composition-contract', 'text': 'Composition Contract' },
+            { 'link': '/concepts/package-registry', 'text': 'Package Registry' }
+          ],
+          'text': 'Introduction'
+        },
+        {
+          'items': [
+            { 'link': '/packages/', 'text': 'Packages Index' }
+          ],
+          'text': 'Packages'
+        },
+        {
+          'collapsed': false,
+          'items': STATEFUL.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Stateful primitives'
+        },
+        {
+          'collapsed': false,
+          'items': STATELESS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Stateless utilities'
+        },
+        {
+          'collapsed': false,
+          'items': MATCHING_AND_ROUTING.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Matching & routing'
+        },
+        {
+          'collapsed': false,
+          'items': [
+            { 'link': '/eslint/', 'text': 'Overview' },
+            {
+              'collapsed': true,
+              'items': ESLINT_CONFIG_RULES.map(r => {return { 'link': `/eslint/rules/${r}`, 'text': `@studnicky/${r}` };}),
+              'text': 'Configuration rules'
+            },
+            {
+              'collapsed': true,
+              'items': ESLINT_V8_RULES.map(r => {return { 'link': `/eslint/rules/v8/${r}`, 'text': `@studnicky/v8/${r}` };}),
+              'text': 'V8 performance rules'
+            }
+          ],
+          'text': 'ESLint Plugins'
+        }
+      ]
+    },
+    'siteTitle': 'Substrate',
+    'socialLinks': [
+      { 'icon': 'github', 'link': SITE_REPO }
+    ]
+  },
+
+  'title': SITE_TITLE,
+
+  'titleTemplate': ':title | Substrate',
+  'transformPageData': function(pageData) {
+    const canonical = `${SITE_URL}${pageData.relativePath.replace(/\.md$/, '')}`;
+    const title = pageData.title === '' || pageData.title === undefined ? SITE_TITLE : pageData.title;
+    const description = pageData.frontmatter.description as string | undefined ?? SITE_DESCRIPTION;
+
+    (pageData.frontmatter.head as HeadConfig[] | undefined) ??= [];
+    const head = pageData.frontmatter.head as HeadConfig[];
+    head.push(
+      ['link', { 'href': canonical, 'rel': 'canonical' }],
+      ['meta', { 'content': canonical, 'property': 'og:url' }],
+      ['meta', { 'content': title, 'property': 'og:title' }],
+      ['meta', { 'content': description, 'property': 'og:description' }],
+      ['meta', { 'content': title, 'name': 'twitter:title' }],
+      ['meta', { 'content': description, 'name': 'twitter:description' }]
+    );
+  },
+
+  'vite': {
+    'esbuild': {
       // VitePress 1.6.4 uses Vite 5/esbuild 0.21 which does not recognise
       // the ES2024 target from tsconfig.base.json. Override via tsconfigRaw
       // to ES2022 for the docs build — the built output still targets modern
       // browsers via Vite's own build target, so no functionality is lost.
-      tsconfigRaw: {
-        compilerOptions: {
-          target: 'ES2022',
-          useDefineForClassFields: true
+      'tsconfigRaw': {
+        'compilerOptions': {
+          'target': 'ES2022',
+          'useDefineForClassFields': true
         }
       }
     },
-    resolve: {
-      alias: {
+    'plugins': [substrateBrowserSwap()],
+    'resolve': {
+      'alias': {
         // Browser shim for packages/retry and packages/throttle which import
         // named exports from node:timers/promises. Without this alias Rollup
         // fails to resolve the named export `setTimeout` from the externalized stub.
         'node:timers/promises': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url))
       }
     },
-    ssr: {
-      noExternal: [
+    'ssr': {
+      'noExternal': [
         '@codemirror/commands',
         '@codemirror/lang-javascript',
         '@codemirror/language',
@@ -167,151 +313,5 @@ export default withMermaid(defineConfig({
         /^@studnicky\//
       ]
     }
-  },
-  base: SITE_BASE,
-  lang: 'en-US',
-  title: SITE_TITLE,
-  titleTemplate: ':title | Substrate',
-  description: SITE_DESCRIPTION,
-  cleanUrls: true,
-  lastUpdated: true,
-  sitemap: { hostname: SITE_URL },
-  appearance: true,
-
-  head: [
-    ['link', { rel: 'icon', type: 'image/x-icon', href: `${SITE_BASE}favicon.ico` }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${SITE_BASE}icon-32.png` }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${SITE_BASE}icon-16.png` }],
-    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: `${SITE_BASE}apple-touch-icon.png` }],
-    ['link', { rel: 'manifest', href: `${SITE_BASE}manifest.webmanifest` }],
-    ['meta', { name: 'theme-color', content: SITE_THEME_COLOR }],
-    ['meta', { name: 'robots', content: 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' }],
-    ['meta', { name: 'author', content: SITE_AUTHOR_NAME }],
-    ['meta', { name: 'keywords', content: SITE_KEYWORDS }],
-    ['meta', { name: 'application-name', content: 'Substrate' }],
-    ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:site_name', content: SITE_TITLE }],
-    ['meta', { property: 'og:title', content: SITE_TITLE }],
-    ['meta', { property: 'og:description', content: SITE_DESCRIPTION }],
-    ['meta', { property: 'og:url', content: SITE_URL }],
-    ['meta', { property: 'og:image', content: SITE_OG_IMAGE }],
-    ['meta', { property: 'og:image:type', content: 'image/png' }],
-    ['meta', { property: 'og:image:width', content: '1200' }],
-    ['meta', { property: 'og:image:height', content: '630' }],
-    ['meta', { property: 'og:image:secure_url', content: SITE_OG_IMAGE }],
-    ['meta', { property: 'og:image:alt', content: SITE_TITLE }],
-    ['meta', { property: 'og:locale', content: 'en_US' }],
-    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: SITE_TITLE }],
-    ['meta', { name: 'twitter:description', content: SITE_DESCRIPTION }],
-    ['meta', { name: 'twitter:image', content: SITE_OG_IMAGE }],
-    ...conditionalHead,
-    ['script', { type: 'application/ld+json' }, jsonLd],
-  ],
-
-  themeConfig: {
-    logo: '/logo.svg',
-    siteTitle: 'Substrate',
-    nav: [
-      { text: 'Guide', link: '/getting-started' },
-      { text: 'Packages', link: '/packages/' },
-      { text: 'GitHub', link: SITE_REPO }
-    ],
-    socialLinks: [
-      { icon: 'github', link: SITE_REPO }
-    ],
-    search: { provider: 'local' },
-    lastUpdated: { text: 'Updated' },
-    sidebar: {
-      '/': [
-        {
-          text: 'Introduction',
-          items: [
-            { text: 'Overview', link: '/' },
-            { text: 'Getting Started', link: '/getting-started' },
-            { text: 'Architecture', link: '/architecture' },
-            { text: 'Composition Contract', link: '/concepts/composition-contract' },
-            { text: 'Package Registry', link: '/concepts/package-registry' }
-          ]
-        },
-        {
-          text: 'Packages',
-          items: [
-            { text: 'Packages Index', link: '/packages/' }
-          ]
-        },
-        {
-          text: 'Stateful primitives',
-          collapsed: false,
-          items: STATEFUL.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
-        },
-        {
-          text: 'Stateless utilities',
-          collapsed: false,
-          items: STATELESS.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
-        },
-        {
-          text: 'Matching & routing',
-          collapsed: false,
-          items: MATCHING_AND_ROUTING.map(p => ({ text: `@studnicky/${p}`, link: `/packages/${p}` }))
-        },
-        {
-          text: 'ESLint Plugins',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/eslint/' },
-            {
-              text: 'Configuration rules',
-              collapsed: true,
-              items: ESLINT_CONFIG_RULES.map(r => ({ text: `@studnicky/${r}`, link: `/eslint/rules/${r}` }))
-            },
-            {
-              text: 'V8 performance rules',
-              collapsed: true,
-              items: ESLINT_V8_RULES.map(r => ({ text: `@studnicky/v8/${r}`, link: `/eslint/rules/v8/${r}` }))
-            }
-          ]
-        }
-      ]
-    }
-  },
-
-  mermaid: {
-    theme: 'base',
-    themeVariables: {
-      fontFamily: 'var(--vp-font-family-mono)',
-      background: '#ffffff',
-      primaryColor: '#f5f3ff',
-      primaryTextColor: '#2e1065',
-      primaryBorderColor: '#7c5aed',
-      lineColor: '#94a3b8',
-      textColor: '#334155',
-      secondaryColor: '#faf5ff',
-      tertiaryColor: '#f8fafc'
-    },
-    flowchart: {
-      useMaxWidth: true,
-      htmlLabels: true,
-      nodeSpacing: 28,
-      rankSpacing: 44
-    }
-  },
-  mermaidPlugin: { class: 'mermaid substrate-mermaid' },
-
-  transformPageData(pageData) {
-    const canonical = `${SITE_URL}${pageData.relativePath.replace(/\.md$/, '')}`;
-    const title = pageData.title === '' || pageData.title === undefined ? SITE_TITLE : pageData.title;
-    const description = pageData.frontmatter['description'] as string | undefined ?? SITE_DESCRIPTION;
-
-    (pageData.frontmatter['head'] as HeadConfig[] | undefined) ??= [];
-    const head = pageData.frontmatter['head'] as HeadConfig[];
-    head.push(
-      ['link', { rel: 'canonical', href: canonical }],
-      ['meta', { property: 'og:url', content: canonical }],
-      ['meta', { property: 'og:title', content: title }],
-      ['meta', { property: 'og:description', content: description }],
-      ['meta', { name: 'twitter:title', content: title }],
-      ['meta', { name: 'twitter:description', content: description }]
-    );
   }
 }));

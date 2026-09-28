@@ -134,6 +134,8 @@ The output shows direct configuration with required defaults and an optional `cl
 | `RuntimeValueSetInterface` | Native Set operand contract. | `@studnicky/types/interfaces` |
 | `RuntimeValueArrayInterface` | Native array operand contract. | `@studnicky/types/interfaces` |
 | `RuntimeValueRecordInterface` | Native plain-record operand contract. | `@studnicky/types/interfaces` |
+| `Hash` | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values. | `@studnicky/types/node` |
+| `StructuralHash` | Schema hash with metadata-key stripping. | `@studnicky/types/node` |
 | `PickDefined` | Omits undefined-valued properties from an object. | `@studnicky/types/node` |
 | `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types/node` |
 
@@ -155,6 +157,12 @@ The output shows direct configuration with required defaults and an optional `cl
 | `satisfiesUniqueItems(arr)` | Deep-equal uniqueness check. |
 | `satisfiesContentEncoding(value, encoding)` | Validates `base64`/`base64url` encoding. |
 | `satisfiesContentMediaType(value, mediaType, encoding?)` | Validates `application/json` content. |
+
+## Hashing (`Hash` and `StructuralHash`)
+
+`Hash.value` produces a deterministic FNV-1a 32-bit hex digest for arbitrary in-memory values, encoding `Date`, `Map`, and `Set` values deterministically. `StructuralHash.of` strips annotation-only keys (`$id`, `title`, `description`) from a JSON schema document before hashing it, so two schemas that differ only in their annotations hash identically.
+
+<<< ../../packages/types/examples/hash.ts#usage
 
 ## Extending
 

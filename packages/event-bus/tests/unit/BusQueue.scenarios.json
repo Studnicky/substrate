@@ -130,10 +130,6 @@
           1,
           2,
           3
-        ],
-        "abortBeforeEnqueue": [
-          2,
-          3
         ]
       },
       "expected": {
@@ -162,8 +158,7 @@
       "input": {
         "items": [
           1
-        ],
-        "abortWhilePending": true
+        ]
       },
       "expected": {
         "received": [],

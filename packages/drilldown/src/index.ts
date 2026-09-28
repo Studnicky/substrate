@@ -7,10 +7,13 @@
  */
 
 export {
+  AlphabeticGroupValueEntity,
   AlphabeticRangeEntity,
   AutoGroupingConfigEntity,
+  CidrGroupValueEntity,
   CidrRangeEntity,
   DateGranularityValueEntity,
+  DateGroupValueEntity,
   DateRangeEntity,
   DateRangeFilterRuleEntity,
   DiscoverValuesOptionsEntity,
@@ -20,8 +23,10 @@ export {
   GranularityOptionsEntity,
   GroupingOptionsEntity,
   GroupNodeValueEntity,
+  GroupRuleEntity,
   GroupSortPropertyEntity,
   GroupValueDiscriminantEntity,
+  GroupValueEntity,
   JsonPropertyTypeEntity,
   NumericRangeFilterRuleEntity,
   OutlierMarkerEntity,
@@ -31,11 +36,15 @@ export {
   PropertyOrderEntity,
   PropertyPathEntity,
   RangeEntity,
+  RangeGroupValueEntity,
   RangeIndicesEntity,
+  SemverGroupValueEntity,
   SemverRangeEntity,
+  SequentialGroupValueEntity,
   SequentialRangeEntity,
   SortDirectionEntity,
   SortRuleEntity,
+  StringGroupValueEntity,
   ValueFilterRuleEntity
 } from './entities/index.js';
 export {

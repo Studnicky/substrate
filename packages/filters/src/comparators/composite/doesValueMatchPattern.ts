@@ -9,7 +9,9 @@
  * @throws {RegexError} When a pattern is detected as too dangerous to execute
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
+
+import type { ComparatorFunctionInterface } from '../../interfaces.js';
 
 import { ErrorCodes } from '../../enums/ErrorCodes.js';
 import { RegexError } from '../../errors/RegexError.js';
@@ -17,6 +19,17 @@ import { HIGH_RISK_REGEX_PATTERNS } from './constants/HighRiskRegexPatterns.js';
 import { QUANTIFIER_CHARACTER_PATTERN } from './constants/QuantifierCharacterPattern.js';
 
 export class DoesValueMatchPattern {
+  /** A pattern is a string in the filter value domain; RegExp is never a valid filter value. */
+  static matchesFilterValue: ComparatorFunctionInterface = (value, filterValue) => {
+    if (typeof filterValue !== 'string') {
+      return false;
+    }
+
+    const result = DoesValueMatchPattern.doesValueMatchPattern(value, filterValue);
+
+    return result;
+  };
+
   /**
    * Checks if a value matches a regular expression pattern with ReDoS protection
    *
@@ -144,19 +157,35 @@ export class DoesValueMatchPattern {
    */
   private static hasNestedQuantifierGroups(patternString: string): boolean {
     let openParenthesesCount = 0;
-    const patternLength = patternString.length;
 
-    for (let index = 0; index < patternLength; index++) {
-      if (patternString[index] === '(' && (index === 0 || patternString[index - 1] !== '\\')) {
+    for (let index = 0; index < patternString.length; index++) {
+      const character = patternString[index];
+      const isEscaped = index > 0 && patternString[index - 1] === '\\';
+
+      if (character === '(' && !isEscaped) {
         openParenthesesCount++;
-      } else if (patternString[index] === ')' && (index === 0 || patternString[index - 1] !== '\\')) {
+        continue;
+      }
+
+      if (character === ')' && !isEscaped) {
         openParenthesesCount--;
-        if (openParenthesesCount > 0 && index + 1 < patternString.length && QUANTIFIER_CHARACTER_PATTERN.test(patternString[index + 1] ?? '')) {
+
+        if (DoesValueMatchPattern.isNestedQuantifiedClose(patternString, index, openParenthesesCount)) {
           return true;
         }
       }
     }
 
     return false;
+  }
+
+  private static isNestedQuantifiedClose(patternString: string, index: number, openParenthesesCount: number): boolean {
+    if (openParenthesesCount <= 0 || index + 1 >= patternString.length) {
+      return false;
+    }
+
+    const result = QUANTIFIER_CHARACTER_PATTERN.test(patternString[index + 1] ?? '');
+
+    return result;
   }
 }

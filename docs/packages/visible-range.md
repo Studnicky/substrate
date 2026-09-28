@@ -29,7 +29,7 @@ The output shows fixed-mode `onRangeChange` firing only when the computed range 
 
 ## Construction
 
-`VisibleRange.create({ count, itemSize, overscan? })` selects fixed-size arithmetic. `VisibleRange.create({ count, estimateSize, overscan? })` selects variable-size arithmetic. Exactly one sizing strategy is required.
+`VisibleRange.create({ count, itemSize, overscan? })` selects fixed-size arithmetic — `itemSize` is schema-validated config, the first argument. `VisibleRange.create({ count, overscan? }, { estimateSize })` selects variable-size arithmetic — `estimateSize` is a typed collaborator, the second argument. Exactly one sizing strategy is required.
 
 ## Errors
 
@@ -63,7 +63,7 @@ Subclass `VisibleRange` and override the protected hook to inject trace logging,
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
 
-Import `VisibleRange` and `VisibleRangeError` from `@studnicky/visible-range/node`, `VisibleRangeEntity` from `@studnicky/visible-range/entities`, and `VisibleRangeConfigInterface` from `@studnicky/visible-range/interfaces`.
+Import `VisibleRange` and `VisibleRangeError` from `@studnicky/visible-range/node`, `VisibleRangeEntity` from `@studnicky/visible-range/entities`, and `VisibleRangeCollaboratorsInterface` from `@studnicky/visible-range/interfaces`.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/visible-range)
 
@@ -78,11 +78,11 @@ import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 
 ## Interfaces
 
-`@studnicky/visible-range/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
+`@studnicky/visible-range/interfaces` exports the typed `estimateSize` collaborator `VisibleRange.create` accepts alongside schema-validated config.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
-import type { VisibleRangeConfigInterface } from '@studnicky/visible-range/interfaces';
+import type { VisibleRangeCollaboratorsInterface } from '@studnicky/visible-range/interfaces';
 ```
 
 ## Exports

@@ -1,10 +1,17 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
+import type { AlphabeticGroupValueEntity } from '../../entities/AlphabeticGroupValueEntity.js';
+import type { CidrGroupValueEntity } from '../../entities/CidrGroupValueEntity.js';
 import type { DateGranularityValueEntity } from '../../entities/DateGranularityValueEntity.js';
+import type { DateGroupValueEntity } from '../../entities/DateGroupValueEntity.js';
 import type { DiscoverValuesOptionsEntity } from '../../entities/DiscoverValuesOptionsEntity.js';
+import type { DiscoveryStrategyEntity } from '../../entities/DiscoveryStrategyEntity.js';
+import type { GroupValueEntity } from '../../entities/GroupValueEntity.js';
+import type { RangeGroupValueEntity } from '../../entities/RangeGroupValueEntity.js';
+import type { SemverGroupValueEntity } from '../../entities/SemverGroupValueEntity.js';
+import type { SequentialGroupValueEntity } from '../../entities/SequentialGroupValueEntity.js';
 import type { SequentialPatternResultEntity } from '../../entities/SequentialPatternResultEntity.js';
-import type { MatcherHandlerInterface } from '../../interfaces/index.js';
-import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
+import type { StringGroupValueEntity } from '../../entities/StringGroupValueEntity.js';
 
 import { DRILLDOWN_DEFAULTS } from '../../constants/index.js';
 import {
@@ -13,14 +20,15 @@ import {
 } from '../../enums.js';
 import { DrilldownUtilities } from '../DrilldownUtilities.js';
 import {
+  alphabeticHandler,
   MatcherHandlerLookup,
-  matcherRegistry
+  sequentialHandler
 } from '../matchers/index.js';
 import { datePeriodResolver } from './datePeriodResolver.js';
 
 
 interface ValueDiscoveryFunctionInterface {
-  (values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[]
+  (values: unknown[], options: DiscoverValuesOptionsEntity.Type): GroupValueEntity.Type[]
 }
 
 class AlphabeticValues {
@@ -29,7 +37,7 @@ class AlphabeticValues {
     count: number,
     prefix: number | undefined,
     strategy: GroupingStrategy
-  ): DrilldownRulesEntity.AlphabeticGroupValueEntity.Type[] {
+  ): AlphabeticGroupValueEntity.Type[] {
     const strings: string[] = [];
 
     for (let index = 0; index < values.length; index++) {
@@ -58,11 +66,11 @@ class AlphabeticValues {
     }
 
     const depth = prefix ?? 1;
-    const handler = matcherRegistry.byType.alphabetic as MatcherHandlerInterface<DrilldownRulesEntity.AlphabeticGroupValueEntity.Type>;
+    const handler = alphabeticHandler;
 
     if (strategy === GroupingStrategy.QUANTILE) {
       const indices = DrilldownUtilities.calculateRangeIndices(itemCount, count);
-      const ranges: DrilldownRulesEntity.AlphabeticGroupValueEntity.Type[] = indices.map((range) => {
+      const ranges: AlphabeticGroupValueEntity.Type[] = indices.map((range) => {
         return {
           'end': (sortedStrings[range.end]!).slice(0, depth),
           'start': (sortedStrings[range.start]!).slice(0, depth),
@@ -78,7 +86,7 @@ class AlphabeticValues {
     const sortedPrefixes = Array.from(prefixes).toSorted((first, second) => { const result = first.localeCompare(second); return result; });
     const indices = DrilldownUtilities.calculateRangeIndices(sortedPrefixes.length, count);
 
-    const computedResult = indices.map((range): DrilldownRulesEntity.AlphabeticGroupValueEntity.Type => {
+    const computedResult = indices.map((range): AlphabeticGroupValueEntity.Type => {
       return {
         'end': sortedPrefixes[range.end]!,
         'start': sortedPrefixes[range.start]!,
@@ -90,7 +98,7 @@ class AlphabeticValues {
 }
 
 class CidrValues {
-  static generate(values: unknown[], cidr = 24): DrilldownRulesEntity.CidrGroupValueEntity.Type[] {
+  static generate(values: unknown[], cidr = 24): CidrGroupValueEntity.Type[] {
     const ips: string[] = [];
 
     for (let index = 0; index < values.length; index++) {
@@ -129,7 +137,7 @@ class CidrValues {
         const result = (rangeA?.start ?? 0) - (rangeB?.start ?? 0);
         return result;
       })
-      .map((subnet): DrilldownRulesEntity.CidrGroupValueEntity.Type => {
+      .map((subnet): CidrGroupValueEntity.Type => {
         return {
           'cidr': subnet,
           'type': 'cidr'
@@ -143,7 +151,7 @@ class DateValues {
   static generate(
     values: unknown[],
     granularity: DateGranularityValueEntity.Type = 'month'
-  ): DrilldownRulesEntity.DateGroupValueEntity.Type[] {
+  ): DateGroupValueEntity.Type[] {
     const periods = new Set<string>();
 
     for (let index = 0; index < values.length; index++) {
@@ -171,9 +179,40 @@ class DateValues {
 }
 
 class NumericValues {
-  static generate(values: unknown[], options?: { 'count'?: number, 'strategy'?: GroupingStrategy }): DrilldownRulesEntity.RangeGroupValueEntity.Type[] {
+  static generate(values: unknown[], options?: { 'count'?: number, 'strategy'?: GroupingStrategy }): RangeGroupValueEntity.Type[] {
     const count = options?.count ?? 5;
     const strategy = options?.strategy ?? GroupingStrategy.DISTRIBUTIVE;
+    const numericValues = NumericValues.collectFinite(values);
+
+    if (numericValues.length === 0) {
+      return [];
+    }
+
+    const sorted = numericValues.toSorted((first, second) => { const result = first - second;
+      return result; });
+    const minimum = sorted[0]!;
+    const maximum = sorted[sorted.length - 1]!;
+
+    if (minimum === maximum) {
+      return [{
+        'maximum': maximum + 1,
+        'minimum': minimum,
+        'type': 'range'
+      }];
+    }
+
+    if (strategy === GroupingStrategy.QUANTILE) {
+      const result = NumericValues.buildQuantileRanges(sorted, count);
+
+      return result;
+    }
+
+    const result = NumericValues.buildEqualWidthRanges(minimum, maximum, count);
+
+    return result;
+  }
+
+  private static collectFinite(values: unknown[]): number[] {
     const numericValues: number[] = [];
 
     for (let index = 0; index < values.length; index++) {
@@ -185,45 +224,31 @@ class NumericValues {
       }
     }
 
-    if (numericValues.length === 0) {
-      return [];
-    }
+    return numericValues;
+  }
 
-    const sorted = numericValues.toSorted((first, second) => { const result = first - second;
-      return result; });
-    const itemCount = sorted.length;
-    const minimum = sorted[0]!;
-    const maximum = sorted[itemCount - 1]!;
+  private static buildQuantileRanges(sorted: number[], count: number): RangeGroupValueEntity.Type[] {
+    const indices = DrilldownUtilities.calculateRangeIndices(sorted.length, count);
 
-    if (minimum === maximum) {
-      return [{
-        'maximum': maximum + 1,
-        'minimum': minimum,
+    const result = indices.map((range, index): RangeGroupValueEntity.Type => {
+      const rangeMinimum = sorted[range.start]!;
+      const rangeMaximum = index === indices.length - 1
+        ? (sorted[range.end]!) + 0.001
+        : sorted[range.end + 1]!;
+
+      return {
+        'maximum': rangeMaximum,
+        'minimum': rangeMinimum,
         'type': 'range'
-      }];
-    }
+      };
+    });
 
-    if (strategy === GroupingStrategy.QUANTILE) {
-      const indices = DrilldownUtilities.calculateRangeIndices(itemCount, count);
+    return result;
+  }
 
-      const result = indices.map((range, index): DrilldownRulesEntity.RangeGroupValueEntity.Type => {
-        const rangeMinimum = sorted[range.start]!;
-        const rangeMaximum = index === indices.length - 1
-          ? (sorted[range.end]!) + 0.001
-          : sorted[range.end + 1]!;
-
-        return {
-          'maximum': rangeMaximum,
-          'minimum': rangeMinimum,
-          'type': 'range'
-        };
-      });
-      return result;
-    }
-
+  private static buildEqualWidthRanges(minimum: number, maximum: number, count: number): RangeGroupValueEntity.Type[] {
     const rangeSize = (maximum - minimum) / count;
-
-    const result: DrilldownRulesEntity.RangeGroupValueEntity.Type[] = [];
+    const result: RangeGroupValueEntity.Type[] = [];
 
     for (let index = 0; index < count; index++) {
       result.push({
@@ -232,6 +257,7 @@ class NumericValues {
         'type': 'range'
       });
     }
+
     return result;
   }
 }
@@ -259,6 +285,14 @@ class PropertyTypeDetector {
     }
 
     const sample = values.slice(0, Math.min(DRILLDOWN_DEFAULTS.typeDetectionSampleSize, values.length));
+    const counts = PropertyTypeDetector.classifySample(sample);
+    const threshold = sample.length * DRILLDOWN_DEFAULTS.typeDetectionThreshold;
+    const result = PropertyTypeDetector.pickType(counts, threshold);
+
+    return result;
+  }
+
+  private static classifySample(sample: unknown[]): { 'ipCount': number, 'numberCount': number, 'semverCount': number } {
     let numberCount = 0;
     let semverCount = 0;
     let ipCount = 0;
@@ -286,15 +320,17 @@ class PropertyTypeDetector {
       }
     }
 
-    const threshold = sample.length * DRILLDOWN_DEFAULTS.typeDetectionThreshold;
+    return { 'ipCount': ipCount, 'numberCount': numberCount, 'semverCount': semverCount };
+  }
 
-    if (ipCount >= threshold) {
+  private static pickType(counts: { 'ipCount': number, 'numberCount': number, 'semverCount': number }, threshold: number): PropertyType {
+    if (counts.ipCount >= threshold) {
       return PropertyType.IP;
     }
-    if (semverCount >= threshold) {
+    if (counts.semverCount >= threshold) {
       return PropertyType.SEMVER;
     }
-    if (numberCount >= threshold) {
+    if (counts.numberCount >= threshold) {
       return PropertyType.NUMBER;
     }
 
@@ -303,7 +339,7 @@ class PropertyTypeDetector {
 }
 
 class SemverValues {
-  static generate(values: unknown[]): DrilldownRulesEntity.SemverGroupValueEntity.Type[] {
+  static generate(values: unknown[]): SemverGroupValueEntity.Type[] {
     const parsed: { 'original': string, 'parsed': NonNullable<ReturnType<typeof DrilldownUtilities.parseSemver>> }[] = [];
 
     for (let index = 0; index < values.length; index++) {
@@ -332,7 +368,7 @@ class SemverValues {
     const result = Array.from(majorVersions)
       .toSorted((first, second) => { const comparison = first - second;
         return comparison; })
-      .map((major): DrilldownRulesEntity.SemverGroupValueEntity.Type => {
+      .map((major): SemverGroupValueEntity.Type => {
         return {
           'semver': `^${major}.0.0`,
           'type': 'semver'
@@ -455,108 +491,160 @@ class SequentialValues {
     values: unknown[],
     count: number,
     strategy: GroupingStrategy
-  ): DrilldownRulesEntity.SequentialGroupValueEntity.Type[] {
-    const {
-      maximum, minimum, padding, prefix, suffix
-    } = pattern;
+  ): SequentialGroupValueEntity.Type[] {
+    const { maximum, minimum, padding, prefix, suffix } = pattern;
 
     if (minimum === maximum || count <= 1) {
-      return [{
-        'sequential': {
-          'maximum': maximum,
-          'minimum': minimum,
-          'padding': padding,
-          'prefix': prefix,
-          ...(suffix !== '' && { 'suffix': suffix })
-        },
-        'type': 'sequential'
-      }];
+      return [SequentialValues.toSequentialValue(minimum, maximum, padding, prefix, suffix)];
     }
 
-    const handler = matcherRegistry.byType.sequential as MatcherHandlerInterface<DrilldownRulesEntity.SequentialGroupValueEntity.Type>;
-
     if (strategy === GroupingStrategy.QUANTILE) {
-      const numbers: number[] = [];
+      const result = SequentialValues.buildQuantileSequential(values, pattern, count);
 
-      for (let index = 0; index < values.length; index++) {
-        const string = String(values[index]);
-
-        if (string.length < prefix.length + suffix.length || !string.startsWith(prefix) || !string.endsWith(suffix)) {
-          continue;
-        }
-
-        const digits = string.slice(prefix.length, string.length - suffix.length);
-
-        if (DRILLDOWN_DEFAULTS.allDigitsPattern.test(digits)) {
-          numbers.push(parseInt(digits, 10));
-        }
-      }
-
-      if (numbers.length === 0) {
-        return [];
-      }
-
-      const sortedNumbers = numbers.toSorted((first, second) => { const result = first - second;
-        return result; });
-
-      const indices = DrilldownUtilities.calculateRangeIndices(sortedNumbers.length, count);
-      const ranges: DrilldownRulesEntity.SequentialGroupValueEntity.Type[] = indices.map((range) => {
-        return {
-          'sequential': {
-            'maximum': sortedNumbers[range.end]!,
-            'minimum': sortedNumbers[range.start]!,
-            'padding': padding,
-            'prefix': prefix,
-            ...(suffix !== '' && { 'suffix': suffix })
-          },
-          'type': 'sequential'
-        };
-      });
-
-      const result = MatcherHandlerLookup.mergeOverlappingValues(ranges, handler);
       return result;
     }
 
+    const result = SequentialValues.buildEqualWidthSequential(pattern, count);
+
+    return result;
+  }
+
+  private static toSequentialValue(
+    minimum: number,
+    maximum: number,
+    padding: number,
+    prefix: string,
+    suffix: string
+  ): SequentialGroupValueEntity.Type {
+    return {
+      'sequential': {
+        'maximum': maximum,
+        'minimum': minimum,
+        'padding': padding,
+        'prefix': prefix,
+        ...(suffix !== '' && { 'suffix': suffix })
+      },
+      'type': 'sequential'
+    };
+  }
+
+  private static collectMatchingNumbers(values: unknown[], prefix: string, suffix: string): number[] {
+    const numbers: number[] = [];
+
+    for (let index = 0; index < values.length; index++) {
+      const string = String(values[index]);
+
+      if (string.length < prefix.length + suffix.length || !string.startsWith(prefix) || !string.endsWith(suffix)) {
+        continue;
+      }
+
+      const digits = string.slice(prefix.length, string.length - suffix.length);
+
+      if (DRILLDOWN_DEFAULTS.allDigitsPattern.test(digits)) {
+        numbers.push(parseInt(digits, 10));
+      }
+    }
+
+    return numbers;
+  }
+
+  private static buildQuantileSequential(
+    values: unknown[],
+    pattern: SequentialPatternResultEntity.Type,
+    count: number
+  ): SequentialGroupValueEntity.Type[] {
+    const { padding, prefix, suffix } = pattern;
+    const numbers = SequentialValues.collectMatchingNumbers(values, prefix, suffix);
+
+    if (numbers.length === 0) {
+      return [];
+    }
+
+    const sortedNumbers = numbers.toSorted((first, second) => { const result = first - second;
+      return result; });
+    const indices = DrilldownUtilities.calculateRangeIndices(sortedNumbers.length, count);
+    const ranges: SequentialGroupValueEntity.Type[] = indices.map((range) => {
+      const result = SequentialValues.toSequentialValue(sortedNumbers[range.start]!, sortedNumbers[range.end]!, padding, prefix, suffix);
+
+      return result;
+    });
+    const handler = sequentialHandler;
+    const result = MatcherHandlerLookup.mergeOverlappingValues(ranges, handler);
+
+    return result;
+  }
+
+  private static buildEqualWidthSequential(
+    pattern: SequentialPatternResultEntity.Type,
+    count: number
+  ): SequentialGroupValueEntity.Type[] {
+    const { maximum, minimum, padding, prefix, suffix } = pattern;
     const totalRange = maximum - minimum + 1;
     const indices = DrilldownUtilities.calculateRangeIndices(totalRange, count);
 
-    const result = indices.map((range): DrilldownRulesEntity.SequentialGroupValueEntity.Type => {
-      return {
-        'sequential': {
-          'maximum': minimum + range.end,
-          'minimum': minimum + range.start,
-          'padding': padding,
-          'prefix': prefix,
-          ...(suffix !== '' && { 'suffix': suffix })
-        },
-        'type': 'sequential'
-      };
+    const result = indices.map((range): SequentialGroupValueEntity.Type => {
+      const rangeResult = SequentialValues.toSequentialValue(minimum + range.start, minimum + range.end, padding, prefix, suffix);
+
+      return rangeResult;
     });
+
     return result;
   }
 }
 
 class StringValues {
-  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): DrilldownRulesEntity.GroupValueEntity.Type[] {
-    const strategy = options.strategy ?? 'sequential';
-    const maximumValues = options.maximumValues ?? DRILLDOWN_DEFAULTS.defaultMaximumStringValues;
-    const count = options.granularity?.count ?? DRILLDOWN_DEFAULTS.defaultGroupCount;
-    const density = options.granularity?.density ?? DRILLDOWN_DEFAULTS.defaultDensityThreshold;
-    const prefix = options.granularity?.prefix;
-    const groupingStrategy = strategy === 'quantile'
-      ? GroupingStrategy.QUANTILE
-      : GroupingStrategy.DISTRIBUTIVE;
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): GroupValueEntity.Type[] {
+    const resolved = StringValues.resolveOptions(options);
+    const sequentialResult = StringValues.trySequential(values, resolved);
 
-    if (strategy !== 'alphabetic') {
-      const detectedPattern = SequentialPattern.detect(values);
-
-      if (detectedPattern !== null && detectedPattern.density >= density) {
-        const sequentialResult = SequentialValues.generate(detectedPattern, values, count, groupingStrategy);
-
-        return sequentialResult;
-      }
+    if (sequentialResult !== null) {
+      return sequentialResult;
     }
 
+    const valueCounts = StringValues.countValues(values);
+
+    if (resolved.strategy === 'alphabetic' && valueCounts.size > resolved.maximumValues) {
+      const alphabeticResult = AlphabeticValues.generate(values, resolved.count, resolved.prefix, resolved.groupingStrategy);
+
+      return alphabeticResult;
+    }
+
+    const result = StringValues.topByFrequency(valueCounts, resolved.maximumValues);
+
+    return result;
+  }
+
+  private static resolveOptions(options: DiscoverValuesOptionsEntity.Type): { 'count': number, 'density': number, 'groupingStrategy': GroupingStrategy, 'maximumValues': number, 'prefix': number | undefined, 'strategy': DiscoveryStrategyEntity.Type } {
+    const strategy = options.strategy ?? 'sequential';
+    const groupingStrategy = strategy === 'quantile' ? GroupingStrategy.QUANTILE : GroupingStrategy.DISTRIBUTIVE;
+
+    return {
+      'count': options.granularity?.count ?? DRILLDOWN_DEFAULTS.defaultGroupCount,
+      'density': options.granularity?.density ?? DRILLDOWN_DEFAULTS.defaultDensityThreshold,
+      'groupingStrategy': groupingStrategy,
+      'maximumValues': options.maximumValues ?? DRILLDOWN_DEFAULTS.defaultMaximumStringValues,
+      'prefix': options.granularity?.prefix,
+      'strategy': strategy
+    };
+  }
+
+  private static trySequential(values: unknown[], resolved: { 'count': number, 'density': number, 'groupingStrategy': GroupingStrategy, 'maximumValues': number, 'prefix': number | undefined, 'strategy': DiscoveryStrategyEntity.Type }): GroupValueEntity.Type[] | null {
+    if (resolved.strategy === 'alphabetic') {
+      return null;
+    }
+
+    const detectedPattern = SequentialPattern.detect(values);
+
+    if (detectedPattern === null || detectedPattern.density < resolved.density) {
+      return null;
+    }
+
+    const result = SequentialValues.generate(detectedPattern, values, resolved.count, resolved.groupingStrategy);
+
+    return result;
+  }
+
+  private static countValues(values: unknown[]): Map<string, number> {
     const valueCounts = new Map<string, number>();
 
     for (let index = 0; index < values.length; index++) {
@@ -565,39 +653,28 @@ class StringValues {
       valueCounts.set(string, (valueCounts.get(string) ?? 0) + 1);
     }
 
-    const uniqueCount = valueCounts.size;
+    return valueCounts;
+  }
 
-    if (strategy === 'alphabetic' && uniqueCount > maximumValues) {
-      const alphabeticResult = AlphabeticValues.generate(values, count, prefix, groupingStrategy);
-
-      return alphabeticResult;
-    }
-
+  private static topByFrequency(valueCounts: Map<string, number>, maximumValues: number): StringGroupValueEntity.Type[] {
     const sorted = Array.from(valueCounts.entries())
       .toSorted((first, second) => { const result = second[1] - first[1];
         return result; })
       .slice(0, maximumValues);
 
-    const result = sorted.map(([match]): DrilldownRulesEntity.StringGroupValueEntity.Type => {
+    const result = sorted.map(([match]): StringGroupValueEntity.Type => {
       return {
         'match': match,
         'type': 'string'
       };
     });
+
     return result;
   }
 }
 
-const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterface> = {
-  'date': (values, options) => {
-    const result = DateValues.generate(values, options.granularity?.date);
-    return result;
-  },
-  'ip': (values, options) => {
-    const result = CidrValues.generate(values, options.granularity?.cidr);
-    return result;
-  },
-  'number': (values, options) => {
+class NumericDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): GroupValueEntity.Type[] {
     const count = options.granularity?.count ?? 5;
     const strategy = options.strategy === 'quantile'
       ? GroupingStrategy.QUANTILE
@@ -605,7 +682,27 @@ const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterfa
     const result = NumericValues.generate(values, { 'count': count, 'strategy': strategy });
 
     return result;
-  },
+  }
+}
+
+class DateDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): GroupValueEntity.Type[] {
+    const result = DateValues.generate(values, options.granularity?.date);
+    return result;
+  }
+}
+
+class IpDispatchHandler {
+  static generate(values: unknown[], options: DiscoverValuesOptionsEntity.Type): GroupValueEntity.Type[] {
+    const result = CidrValues.generate(values, options.granularity?.cidr);
+    return result;
+  }
+}
+
+const valueDiscoveryDispatch: Record<PropertyType, ValueDiscoveryFunctionInterface> = {
+  'date': DateDispatchHandler.generate,
+  'ip': IpDispatchHandler.generate,
+  'number': NumericDispatchHandler.generate,
   'semver': SemverValues.generate,
   'string': StringValues.generate
 };
@@ -621,7 +718,7 @@ export const valueDiscoveryEngine = {
    * @param options - Discovery options including type and granularity
    * @returns Array of group values suitable for grouping
    */
-  'discoverValues': function (data: Record<string, unknown>[], property: string, options: DiscoverValuesOptionsEntity.Type = {}): DrilldownRulesEntity.GroupValueEntity.Type[] {
+  'discoverValues': function (data: Record<string, unknown>[], property: string, options: DiscoverValuesOptionsEntity.Type = {}): GroupValueEntity.Type[] {
     const values: unknown[] = [];
 
     for (let index = 0; index < data.length; index++) {

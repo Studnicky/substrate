@@ -21,6 +21,9 @@ async function settleMicrotasks(): Promise<void> {
 }
 
 class DeferredAbortThrottle extends Throttle {
+  static override create(config?: unknown): DeferredAbortThrottle {
+    return new DeferredAbortThrottle(config);
+  }
   readonly abortStarted = Promise.withResolvers<void>();
   readonly continueAbort = Promise.withResolvers<void>();
 
@@ -31,6 +34,9 @@ class DeferredAbortThrottle extends Throttle {
 }
 
 class DeferredAcquireThrottle extends Throttle {
+  static override create(config?: unknown): DeferredAcquireThrottle {
+    return new DeferredAcquireThrottle(config);
+  }
   readonly acquireStarted = Promise.withResolvers<void>();
   readonly continueAcquire = Promise.withResolvers<void>();
 
@@ -41,6 +47,9 @@ class DeferredAcquireThrottle extends Throttle {
 }
 
 class DeferredAcquireWaitThrottle extends Throttle {
+  static override create(config?: unknown): DeferredAcquireWaitThrottle {
+    return new DeferredAcquireWaitThrottle(config);
+  }
   readonly acquireWaitStarted = Promise.withResolvers<void>();
   readonly continueAcquireWait = Promise.withResolvers<void>();
 

@@ -8,6 +8,10 @@ import { SampleBuffer } from '../src/index.js';
 class EvictionLog extends SampleBuffer {
   readonly evicted: number[] = [];
 
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): EvictionLog {
+    return new EvictionLog(options);
+  }
+
   protected override onEvict(oldValue: number): void {
     this.evicted.push(oldValue);
   }

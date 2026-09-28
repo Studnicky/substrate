@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { Predicates } from '@studnicky/types/node';
+
 import type { ProjectHostInterface } from '../../../src/interfaces/ProjectHostInterface.js';
 import { NodeProjectHost } from '../../../src/node/NodeProjectHost.js';
 import { LayerResolver } from '../../../src/rules/layers/LayerResolver.js';
-import type { LayerOptionsEntity } from '../../../src/rules/layers/LayerOptionsEntity.js';
+import { LayerOptionsEntity } from '../../../src/rules/layers/LayerOptionsEntity.js';
 import scenarioGroups from './LayerResolver.scenarios.json' with { type: 'json' };
 
 const nodeHost = new NodeProjectHost();
@@ -48,53 +50,86 @@ const baseOptions: LayerOptionsEntity.Type = {
 };
 
 type ScenarioCase = {
-  importingFile?: string;
+  expected: {
+    output: string | boolean | null | undefined;
+  };
   input: {
     from?: string;
     importingFile?: string;
-    operation: 'canImport' | 'layerForImport' | 'layerForPath';
     options?: LayerOptionsEntity.Type;
     path?: string;
     to?: string;
     specifier?: string;
   };
-  expected: {
-    output: string | boolean | null | undefined;
-  };
   name: string;
   operation: 'canImport' | 'layerForImport' | 'layerForPath';
 };
 
+const LAYER_OPERATIONS = new Set(['canImport', 'layerForImport', 'layerForPath']);
+
+function isLayerOperation(value: unknown): value is ScenarioCase['operation'] {
+  return typeof value === 'string' && LAYER_OPERATIONS.has(value);
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+  return value === undefined || typeof value === 'string';
+}
+
+/** Validates one raw scenario fixture entry at the JSON-load edge; no caller re-derives this shape. */
+function intakeScenarioCase(raw: unknown): ScenarioCase {
+  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isLayerOperation(raw.operation) || !Predicates.isObject(raw.expected) || !Predicates.isObject(raw.input)) {
+    throw new TypeError(`malformed LayerResolver scenario entry: ${JSON.stringify(raw)}`);
+  }
+  const { expected, input } = raw;
+  const output = expected.output;
+  if (output !== null && output !== undefined && typeof output !== 'string' && typeof output !== 'boolean') {
+    throw new TypeError(`malformed LayerResolver scenario expected.output: ${JSON.stringify(expected)}`);
+  }
+  if (!isOptionalString(input.from) || !isOptionalString(input.importingFile) || !isOptionalString(input.path) || !isOptionalString(input.specifier) || !isOptionalString(input.to)) {
+    throw new TypeError(`malformed LayerResolver scenario input: ${JSON.stringify(input)}`);
+  }
+  return {
+    'expected': { output },
+    'input': {
+      ...(input.from === undefined ? {} : { 'from': input.from }),
+      ...(input.importingFile === undefined ? {} : { 'importingFile': input.importingFile }),
+      // `canImport` fixtures omit `bindings` because canImport never reads it; default it so intake's required-field check still runs.
+      ...(input.options === undefined ? {} : { 'options': LayerOptionsEntity.intake(Predicates.isObject(input.options) ? { 'bindings': [], ...input.options } : input.options) }),
+      ...(input.path === undefined ? {} : { 'path': input.path }),
+      ...(input.specifier === undefined ? {} : { 'specifier': input.specifier }),
+      ...(input.to === undefined ? {} : { 'to': input.to })
+    },
+    'name': raw.name,
+    'operation': raw.operation
+  };
+}
+
 const operations: Record<ScenarioCase['operation'], (scenario: ScenarioCase) => void> = {
   'canImport': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
-    assert.strictEqual(
-      LayerResolver.canImport(
-        scenario.input.from as string,
-        scenario.input.to as string,
-        options
-      ),
-      scenario.expected.output
-    );
+    const { from, to } = scenario.input;
+
+    assert(from !== undefined, `canImport scenario '${scenario.name}' is missing input.from`);
+    assert(to !== undefined, `canImport scenario '${scenario.name}' is missing input.to`);
+    assert.strictEqual(LayerResolver.canImport(from, to, options), scenario.expected.output);
   },
   'layerForImport': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
+    const { importingFile, specifier } = scenario.input;
+
+    assert(specifier !== undefined, `layerForImport scenario '${scenario.name}' is missing input.specifier`);
+    assert(importingFile !== undefined, `layerForImport scenario '${scenario.name}' is missing input.importingFile`);
     assert.strictEqual(
-      LayerResolver.layerForImport(
-        scenario.input.specifier as string,
-        scenario.input.importingFile as string,
-        options,
-        nodeHost
-      ),
+      LayerResolver.layerForImport(specifier, importingFile, options, nodeHost),
       scenario.expected.output ?? undefined
     );
   },
   'layerForPath': (scenario) => {
     const options = scenario.input.options ?? baseOptions;
-    assert.strictEqual(
-      LayerResolver.layerForPath(scenario.input.path as string, options),
-      scenario.expected.output ?? undefined
-    );
+    const { path } = scenario.input;
+
+    assert(path !== undefined, `layerForPath scenario '${scenario.name}' is missing input.path`);
+    assert.strictEqual(LayerResolver.layerForPath(path, options), scenario.expected.output ?? undefined);
   }
 };
 
@@ -139,7 +174,7 @@ void describe('LayerResolver', () => {
     );
   });
 
-  for (const scenario of scenarioGroups.cases as unknown as ScenarioCase[]) {
+  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
     void it(scenario.name, () => {
       operations[scenario.operation](scenario);
     });

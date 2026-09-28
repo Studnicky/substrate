@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "description": "the validateClassification example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/validateClassification.ts"
+      },
+      "name": "validateClassification",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the vectorSearchContract example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/vectorSearchContract.ts"
+      },
+      "name": "vectorSearchContract",
+      "shape": "imports-example"
+    }
+  ]
+}

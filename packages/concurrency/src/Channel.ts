@@ -1,14 +1,15 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
-import type { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
 
 import { ChannelKeyMachine } from './ChannelKeyMachine.js';
+import { ChannelOptionsEntity } from './entities/ChannelOptionsEntity.js';
+import { ChannelConfigError } from './errors/ChannelConfigError.js';
 import { ChannelError } from './errors/ChannelError.js';
 
 interface ChannelEntryInterface<T> {
@@ -36,37 +37,22 @@ class ChannelVariantGuards {
   }
 }
 
-interface ChannelSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// T only appears in Channel's covariant/contravariant members (publish/subscribe),
-// so a bound of `Channel<T>` would force `Channel<T>` (the method's own general T)
-// to satisfy `Channel<never>`/`Channel<any>`, which either fails to typecheck or
-// requires a banned `any`. `close()` is the one public member that doesn't
-// mention T at all, so it constrains TInstance to "is actually Channel-shaped"
-// without hitting that wall.
-interface ChannelShapeInterface {
-  close(): Promise<void>;
-}
-
 export class Channel<T> {
-  static create<
-    T,
-    TInstance extends ChannelShapeInterface = Channel<T>
-  >(
-    this: ChannelSubclassInterface<TInstance>,
-    options?: ChannelOptionsEntity.Type
-  ): TInstance {
-    const getCurrentConstructor = (): ChannelSubclassInterface<TInstance> => { return this; };
-    const currentConstructor = getCurrentConstructor();
-
-    const result: unknown = Reflect.construct(currentConstructor, [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, currentConstructor)) {
-      throw RuntimeError.create('Channel.create() did not construct the requested subclass.');
+  static create<T>(
+    this: typeof Channel,
+    options?: ChannelOptionsEntity.InputType
+  ): Channel<T> {
+    let validated: ChannelOptionsEntity.Type;
+    try {
+      validated = ChannelOptionsEntity.intake(options ?? {});
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new ChannelConfigError(error.message);
+      }
+      throw error;
     }
-    const instance: TInstance = result;
-    return instance;
+
+    return new this(validated);
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

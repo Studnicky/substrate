@@ -253,13 +253,15 @@ void describe('errors entity intake boundaries', () => {
       },
       () => {
         const value = { 'detail': 'invalid', 'errors': [{ 'keyword': 'type', 'message': 'wrong type', 'path': '/field' }], 'status': 422, 'title': 'Invalid', 'type': 'https://example.test/problem' };
-        assert.deepEqual(ProblemDetailsEntity.intake(value), value);
-        assert.deepEqual(ProblemDetailsEntity.create(value), value);
+        const intaken = ProblemDetailsEntity.intake(value);
+        assert.deepEqual(intaken, value);
+        assert.deepEqual(ProblemDetailsEntity.create(intaken), value);
       },
       () => {
         const value = { 'status': 422, 'title': 'Invalid', 'type': 'https://example.test/problem' };
-        assert.deepEqual(ValidationReportOptionsEntity.intake(value), value);
-        assert.deepEqual(ValidationReportOptionsEntity.create(value), value);
+        const intaken = ValidationReportOptionsEntity.intake(value);
+        assert.deepEqual(intaken, value);
+        assert.deepEqual(ValidationReportOptionsEntity.create(intaken), value);
       },
       () => {
         const value = { 'details': { 'limit': 3 }, 'message': 'too long', 'path': '/field' };

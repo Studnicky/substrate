@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/store",
-  "version": "13.0.0",
+  "version": "14.0.0",
   "description": "Observable state stores with interchangeable persistence adapters",
   "type": "module",
   "sideEffects": false,
@@ -33,7 +33,7 @@
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "keywords": [
     "store",
@@ -67,7 +67,7 @@
     "@studnicky/mutex": "workspace:*"
   },
   "devDependencies": {
-    "fake-indexeddb": "^6.2.5",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "fake-indexeddb": "^6.2.5"
   }
 }

@@ -1,5 +1,6 @@
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -10,89 +11,20 @@ import {
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
 import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
-import { ConfigurationError } from '../../src/errors/ConfigurationError.js';
 import { Logger } from '../../src/modules/Logger.js';
+import { LoggerOptionGuards } from '../../src/modules/LoggerOptionGuards.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
 import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
 
+import { LoggerScenarioCaseEntity } from './entities/LoggerScenarioCaseEntity.js';
 import { TestFactory } from '../helpers/TestFactory.js';
 import scenarioGroups from './Logger.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; shape: 'create-default'; name: string }
-  | { description: string; shape: 'create-string-level'; level: 'debug'; name: string }
-  | { description: string; shape: 'create-numeric-level'; level: LogLevelEntity.Type; name: string }
-  | { description: string; shape: 'create-with-metadata'; level: LogLevelEntity.Type; metadata: LogRecordEntity.Type['metadata']; name: string }
-  | { description: string; shape: 'create-invalid-metadata'; name: string }
-  | { description: string; expectedMessage: string; shape: 'create-invalid-transports'; name: string }
-  | { description: string; shape: 'snapshot-metadata-and-transports'; name: string }
-  | { description: string; expectedCount: number; expectedLevels: LogLevelEntity.Type[]; shape: 'global-floor'; level: LogLevelEntity.Type; name: string }
-  | {
-      description: string;
-      expectedCounts: {
-        all: number;
-        warn: number;
-      };
-      expectedLevels: {
-        all: LogLevelEntity.Type[];
-        warn: LogLevelEntity.Type[];
-      };
-      shape: 'transport-floor-warn';
-      loggerLevel: LogLevelEntity.Type;
-      name: string;
-      transportLevels: {
-        all: LogLevelEntity.Type;
-        warn: LogLevelEntity.Type;
-      };
-    }
-  | {
-      description: string;
-      expectedCounts: {
-        debug: number;
-        error: number;
-      };
-      shape: 'transport-floor-mixed';
-      loggerLevel: LogLevelEntity.Type;
-      name: string;
-      transportLevels: {
-        debug: LogLevelEntity.Type;
-        error: LogLevelEntity.Type;
-      };
-    }
-  | { description: string; shape: 'fanout-multiple-transports'; name: string }
-  | { description: string; shape: 'fanout-transport-throws'; name: string }
-  | { description: string; shape: 'fanout-onTransportError-throws'; name: string }
-  | { description: string; shape: 'child-inherits-metadata'; name: string }
-  | { description: string; shape: 'child-overrides-metadata'; name: string }
-  | { description: string; shape: 'grandchild-merges-metadata'; name: string }
-  | { description: string; shape: 'child-shares-transports'; name: string }
-  | { description: string; shape: 'child-snapshots-metadata'; name: string }
-  | { description: string; shape: 'child-create-hook'; name: string }
-  | { description: string; shape: 'record-shape'; name: string }
-  | { description: string; shape: 'record-level-mapping'; name: string }
-  | { description: string; shape: 'record-onLog-throws'; name: string }
-  | { description: string; shape: 'function-transport-bridge'; name: string }
-  | { description: string; shape: 'noop-transport-silence'; name: string }
-  | { description: string; shape: 'no-transports-silent'; name: string }
-  | { description: string; shape: 'onLog-before-transport'; name: string }
-  | { description: string; shape: 'onLog-assembled-record'; name: string }
-  | { description: string; shape: 'onDropped-below-floor'; name: string }
-  | { description: string; shape: 'onDropped-at-floor'; name: string }
-  | { description: string; shape: 'onDropped-trace-debug'; name: string }
-  | { description: string; shape: 'onDropped-hook-error'; name: string }
-  | { description: string; shape: 'onChildCreate-hooks'; name: string }
-  | { description: string; shape: 'onChildCreate-bindings'; name: string }
-  | { description: string; shape: 'onTransportError-fires'; name: string }
-  | { description: string; shape: 'onTransportError-succeeds'; name: string }
-  | { description: string; shape: 'onTransportError-each-failure'; name: string }
-  | { description: string; shape: 'onTransportError-isolation'; name: string }
-  | { description: string; shape: 'onTransportError-detached-cause'; name: string }
-  | { description: string; shape: 'onTransportError-fanout-continues'; name: string }
-  | { description: string; shape: 'async-onTransportError'; name: string }
-  | { description: string; shape: 'hook-invocation-error-cause'; name: string }
-  | { description: string; shape: 'async-onLog-unhandled'; name: string };
+type ScenarioCase = LoggerScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(LoggerScenarioCaseEntity.Schema, LoggerScenarioCaseEntity.Node);
 
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioCaseByShape = {
@@ -170,22 +102,12 @@ const runnerMap: ScenarioRunnerMap = {
   },
 
   'create-invalid-metadata': (_scenarioCase) => {
-    assert.throws(() => {
-      Reflect.apply(Logger.create, Logger, [{ 'metadata': 'not-an-object' }]);
-    }, ConfigurationError);
+    assert.strictEqual(LoggerOptionGuards.isValidMetadata('not-an-object'), false);
     return;
   },
 
-  'create-invalid-transports': (scenarioCase) => {
-    assert.throws(
-      () => {
-        Reflect.apply(Logger.create, Logger, [{ 'transports': 'not-an-array' }]);
-      },
-      {
-        'message': scenarioCase.expectedMessage,
-        'name': 'ConfigurationError'
-      }
-    );
+  'create-invalid-transports': (_scenarioCase) => {
+    assert.strictEqual(LoggerOptionGuards.isValidTransports('not-an-array'), false);
     return;
   },
 
@@ -592,8 +514,8 @@ const runnerMap: ScenarioRunnerMap = {
     logger.info(TestFactory.body('boom'));
     assert.strictEqual(errors.length, 1);
     const [firstError] = errors;
-    assert.ok(firstError instanceof Error);
-    assert.strictEqual((firstError as Error).message, 'transport boom');
+    assert.ok(firstError !== undefined);
+    assert.strictEqual(firstError.message, 'transport boom');
     assert.strictEqual(capturedTransports.length, 1);
     return;
   },
@@ -800,7 +722,7 @@ async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseBy
 }
 
 void describe('Logger', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

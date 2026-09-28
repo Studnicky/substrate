@@ -1,33 +1,24 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ErrorCodeRegistry } from '../../src/errors/ErrorCodeRegistry.js';
+import { ErrorCodeRegistryScenarioCaseEntity } from './entities/ErrorCodeRegistryScenarioCaseEntity.js';
 import scenarioGroups from './error-code-registry.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: Record<string, unknown>;
-      input: {
-        descriptor?: {
-          code: string;
-          description: string;
-          retryable: boolean;
-        };
-      };
-      shape: 'constructor-throws' | 'register-duplicate' | 'register-unique';
-      name: string;
-    };
-
+type ScenarioCase = ErrorCodeRegistryScenarioCaseEntity.Type;
 type ScenarioRunner = (scenario: ScenarioCase) => void;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ErrorCodeRegistryScenarioCaseEntity.Schema, ErrorCodeRegistryScenarioCaseEntity.Node);
 
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'constructor-throws': (scenario) => {
     assert.throws(() => {
-      Reflect.construct(ErrorCodeRegistry, []);
+      const instance: unknown = Reflect.construct(ErrorCodeRegistry, []);
+      return instance;
     }, (error) => {
       assert.ok(error instanceof Error);
-      assert.strictEqual((error as Error).message, String(scenario.expected.message));
+      assert.strictEqual(error.message, String(scenario.expected.message));
       return true;
     });
   },
@@ -65,7 +56,7 @@ function runCase(scenario: ScenarioCase): void {
 }
 
 void describe('ErrorCodeRegistry', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

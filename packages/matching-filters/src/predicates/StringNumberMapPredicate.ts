@@ -1,3 +1,3 @@
-import { Predicate, Predicates } from '@studnicky/types/node';
+import { Predicate, Predicates } from '@studnicky/types/browser';
 
 export const StringNumberMapPredicate = Predicate.mapEntries(Predicates.isString, Predicates.isFiniteNumber);

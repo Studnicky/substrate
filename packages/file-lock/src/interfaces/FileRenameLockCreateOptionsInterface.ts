@@ -1,4 +1,4 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
+import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
 
 import type { FileLockOptionsEntity } from '../entities/FileLockOptionsEntity.js';
 import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
@@ -6,5 +6,5 @@ import type { OwnerTokenInterface } from './OwnerTokenInterface.js';
 export interface FileRenameLockCreateOptionsInterface {
   readonly 'fileSystem'?: FileSystemInterface;
   readonly 'ownerToken'?: OwnerTokenInterface;
-  readonly 'path': FileLockOptionsEntity.Type['path'];
+  readonly 'path': FileLockOptionsEntity.InputType['path'];
 }

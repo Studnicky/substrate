@@ -1,25 +1,25 @@
 /** Iterable collection of validation violations with RFC 9457 Problem Details reporting. */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
-import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { ValidationAggregateViewEntity } from '../entities/ValidationAggregateViewEntity.js';
-import type { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
 import type { ValidationViolationEntity } from '../entities/ValidationViolationEntity.js';
 
 import {
   PROBLEM_TITLE_VALIDATION,
   PROBLEM_TYPE_VALIDATION
 } from '../constants/ProblemConstants.js';
+import { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
+import { ValidationReportOptionsEntity } from '../entities/ValidationReportOptionsEntity.js';
+import { ValidationViolationsEntity } from '../entities/ValidationViolationsEntity.js';
 import { RuntimeError } from './RuntimeError.js';
-import { ValidationError } from './ValidationError.js';
 
 
 
 /** RFC 9457 3.1.3: the status an origin server would generate for a validation failure. */
 const UNPROCESSABLE_ENTITY_STATUS = 422;
 
-interface ValidationErrorsSubclassInterface<TInstance> extends Function {
+interface ValidationErrorsSubclassInterface<TInstance extends ValidationErrors> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -34,10 +34,10 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
   /** Creates a `ValidationErrors` from an array of violations (or the subclass instance when called on a subclass). */
   public static create<TInstance extends ValidationErrors = ValidationErrors>(
     this: ValidationErrorsSubclassInterface<TInstance>,
-    items: readonly ValidationViolationEntity.Type[]
+    items: unknown
   ): TInstance {
     const result: unknown = Reflect.construct(this, [items]);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('ValidationErrors.create() did not construct the requested subclass.');
     }
     return result;
@@ -104,20 +104,17 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     return result;
   }
 
-  protected constructor(items: readonly ValidationViolationEntity.Type[]) {
-    const typedItems = items;
-    if (!Predicates.isArray(items)) {
-      throw ValidationError.create({ 'message': 'items must be an array', 'path': 'items' });
-    }
-    const snapshot: ValidationViolationEntity.Type[] = [];
-    const length = typedItems.length;
-    for (let index = 0; index < length; index += 1) {
-      const item = typedItems[index];
-      if (item === undefined) {
-        continue;
-      }
-      snapshot.push({ 'keyword': item.keyword, 'message': item.message, 'path': item.path });
-    }
+  protected constructor(items: unknown) {
+    const normalizedItems = ValidationViolationsEntity.intake(items);
+    const snapshot: ValidationViolationEntity.Type[] = normalizedItems.map((item) => {
+      const snapshotItem: ValidationViolationEntity.Type = {
+        'keyword': item.keyword,
+        'message': item.message,
+        'path': item.path
+      };
+
+      return snapshotItem;
+    });
     this.#items = snapshot;
   }
 
@@ -149,16 +146,17 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
    * occurrence's violations, per 3.1.4. The individual violations ride in the `errors`
    * extension member (3.2) rather than displacing any registered member.
    */
-  public report(options?: ValidationReportOptionsEntity.Type): ProblemDetailsEntity.Type {
+  public report(options?: unknown): ProblemDetailsEntity.Type {
+    const validated = options === undefined ? undefined : ValidationReportOptionsEntity.intake(options);
     const count = this.#items.length;
     const detail = count === 1 ? '1 validation error' : `${count} validation errors`;
-    const result: ProblemDetailsEntity.Type = {
+    const result = ProblemDetailsEntity.intake({
       'detail': detail,
       'errors': [...this.items],
-      'status': options?.status ?? UNPROCESSABLE_ENTITY_STATUS,
-      'title': options?.title ?? PROBLEM_TITLE_VALIDATION,
-      'type': options?.type ?? PROBLEM_TYPE_VALIDATION
-    };
+      'status': validated?.status ?? UNPROCESSABLE_ENTITY_STATUS,
+      'title': validated?.title ?? PROBLEM_TITLE_VALIDATION,
+      'type': validated?.type ?? PROBLEM_TYPE_VALIDATION
+    });
     return result;
   }
 

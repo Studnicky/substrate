@@ -1,6 +1,6 @@
-import { ConfigurationError } from '@studnicky/config/node';
-import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { ConfigurationError } from '@studnicky/config/browser';
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
@@ -9,16 +9,6 @@ import type { TimingInterface } from '../interfaces/TimingInterface.js';
 import { DEFAULT_MAXIMUM_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
 
-class TimingInstance {
-  static construct(constructor: Function, argumentsList: readonly object[]): object {
-    const result: unknown = Reflect.construct(constructor, argumentsList);
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('Timing.create() did not construct an object.');
-    }
-    return result;
-  }
-
-}
 
 /**
  * High-resolution timing tracker for collecting operation metrics.
@@ -57,11 +47,10 @@ class TimingInstance {
  */
 export class Timing implements TimingInterface {
   /**
-   * Direct factory method for creating a Timing instance.
-   * Subclasses benefit from `new this(options)` so that overrides work correctly.
+   * Creates a Timing instance.
    *
    * @param options - Timing configuration options
-   * @returns A new Timing (or subclass) instance
+   * @returns A new Timing instance
    *
    * @example
    * ```typescript
@@ -70,15 +59,10 @@ export class Timing implements TimingInterface {
    * const timing = Timing.create();
    * ```
    */
-  static create<TInstance extends Timing = Timing>(
-    this: Function & { readonly 'prototype': TInstance; },
+  static create(
     options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
-  ): TInstance {
-    const result = TimingInstance.construct(this, [options]);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Timing.create() did not construct the requested subclass.');
-    }
-    return result;
+  ): Timing {
+    return new Timing(options);
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

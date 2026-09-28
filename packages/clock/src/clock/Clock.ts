@@ -7,33 +7,23 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { ClockError } from '../errors/ClockError.js';
+import { ClockProviderEntity } from './ClockProviderEntity.js';
 
 const HRTIME_ZERO = 0n;
 
-interface ClockSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Time source instance. Delegates to a `ClockProvider` (real or virtual)
  * while enforcing per-instance monotonicity for `now()` and `hrtime()`.
  */
 export class Clock {
-  static create<TInstance extends Clock = Clock>(
-    this: ClockSubclassInterface<TInstance>,
-    provider: ClockProviderInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [provider]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Clock.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(this: typeof Clock, provider: ClockProviderInterface): Clock {
+    return new this(provider);
   }
 
   readonly #provider: ClockProviderInterface;
@@ -46,17 +36,12 @@ export class Clock {
    * Property write order: #provider, #lastHrtime, #lastNow.
    */
   protected constructor(provider: ClockProviderInterface) {
-    if (!Clock.isValidProvider(provider)) {
+    if (!ClockProviderEntity.validate({ 'hrtime': provider.hrtime, 'now': provider.now })) {
       throw new ClockError('provider must implement ClockProviderInterface');
     }
     this.#provider = provider;
     this.#lastHrtime = HRTIME_ZERO;
     this.#lastNow = 0;
-  }
-
-  private static isValidProvider(provider: ClockProviderInterface): boolean {
-    const result = Predicates.isFunction(provider.now) && Predicates.isFunction(provider.hrtime);
-    return result;
   }
 
   // ---------------------------------------------------------------------------

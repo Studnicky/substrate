@@ -1,23 +1,25 @@
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import { Clone } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Clone } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';
+import type { ConfigurationCollaboratorsInterface } from '../interfaces/ConfigurationCollaboratorsInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
+import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 
 import { ClientConfigDataEntity } from '../entities/ClientConfigDataEntity.js';
 import { ConfigurationError } from '../errors/ConfigurationError.js';
 import { UrlQueryString } from './UrlQueryString.js';
 
 interface FetchClientConfigurationResultInterface {
-  readonly 'config': ClientConfigInterface;
+  readonly 'config': ResolvedClientConfigInterface;
   readonly 'queryParameters': QueryParametersEntity.Type | undefined;
 }
 
 interface RuntimeOptionValuesInterface {
-  readonly 'body': FetchOptionsInterface['body'] | undefined;
+  readonly 'body': unknown;
   readonly 'dispatcher': unknown;
   readonly 'json': unknown;
   readonly 'signal': AbortSignal | undefined;
@@ -25,19 +27,20 @@ interface RuntimeOptionValuesInterface {
 
 /** Normalizes schema data and snapshots runtime values for both fetch clients. */
 export class FetchClientConfiguration {
-  public static intake(config: ClientConfigInterface): FetchClientConfigurationResultInterface {
+  public static intake(config: unknown, collaborators: ConfigurationCollaboratorsInterface = {}): FetchClientConfigurationResultInterface {
     if (!Predicates.isRecord(config)) {
       throw new ConfigurationError('config must be an object');
     }
 
     const {
-      clock,
+      'clock': _clock,
       'options': configuredOptions,
       'parameters': runtimeParameters,
-      requestIdGenerator,
-      'signal': signalComposer,
+      'requestIdGenerator': _requestIdGenerator,
+      'signal': _signal,
       ...configData
     } = config;
+    const { clock, requestIdGenerator, 'signal': signalComposer } = collaborators;
 
     FetchClientConfiguration.assertTimeout(configData.hookTimeoutMs, 'hookTimeoutMs', false);
     FetchClientConfiguration.assertTimeout(configData.timeout, 'timeout', true);
@@ -48,24 +51,52 @@ export class FetchClientConfiguration {
       ? configData
       : { ...configData, 'options': optionValues.data };
     const parsed = FetchClientConfiguration.intakeData(data);
-    const options = parsed.options === undefined
-      ? undefined
-      : FetchClientConfiguration.snapshotOptions({
-        ...parsed.options,
-        ...(optionValues.runtime.body === undefined ? {} : { 'body': optionValues.runtime.body }),
-        ...(optionValues.runtime.dispatcher === undefined ? {} : { 'dispatcher': optionValues.runtime.dispatcher }),
-        ...(optionValues.runtime.json === undefined ? {} : { 'json': optionValues.runtime.json }),
-        ...(optionValues.runtime.signal === undefined ? {} : { 'signal': optionValues.runtime.signal })
-      });
-    const normalized: ClientConfigInterface = {
+    const options = FetchClientConfiguration.buildRuntimeOptions(parsed.options, optionValues.runtime);
+    const normalized = FetchClientConfiguration.buildNormalizedConfig(parsed, options, clock, requestIdGenerator, signalComposer);
+
+    return { 'config': normalized, 'queryParameters': queryParameters };
+  }
+
+  /** Extracts the typed collaborators `ClientConfigInterface` carries alongside schema data. */
+  public static collaboratorsFrom(config: ClientConfigInterface): ConfigurationCollaboratorsInterface {
+    return {
+      ...(config.clock === undefined ? {} : { 'clock': config.clock }),
+      ...(config.requestIdGenerator === undefined ? {} : { 'requestIdGenerator': config.requestIdGenerator }),
+      ...(config.signal === undefined ? {} : { 'signal': config.signal })
+    };
+  }
+
+  private static buildRuntimeOptions(
+    parsedOptions: FetchOptionsInterface | undefined,
+    runtime: RuntimeOptionValuesInterface
+  ): FetchOptionsInterface | undefined {
+    if (parsedOptions === undefined) {
+      return undefined;
+    }
+    const result = FetchClientConfiguration.snapshotOptions({
+      ...parsedOptions,
+      ...(runtime.body === undefined ? {} : { 'body': runtime.body }),
+      ...(runtime.dispatcher === undefined ? {} : { 'dispatcher': runtime.dispatcher }),
+      ...(runtime.json === undefined ? {} : { 'json': runtime.json }),
+      ...(runtime.signal === undefined ? {} : { 'signal': runtime.signal })
+    });
+    return result;
+  }
+
+  private static buildNormalizedConfig(
+    parsed: ClientConfigDataEntity.Type,
+    options: FetchOptionsInterface | undefined,
+    clock: ConfigurationCollaboratorsInterface['clock'],
+    requestIdGenerator: ConfigurationCollaboratorsInterface['requestIdGenerator'],
+    signalComposer: ConfigurationCollaboratorsInterface['signal']
+  ): ResolvedClientConfigInterface {
+    return {
       ...parsed,
       ...(clock === undefined ? {} : { 'clock': clock }),
       ...(options === undefined ? {} : { 'options': options }),
       ...(requestIdGenerator === undefined ? {} : { 'requestIdGenerator': requestIdGenerator }),
       ...(signalComposer === undefined ? {} : { 'signal': signalComposer })
     };
-
-    return { 'config': normalized, 'queryParameters': queryParameters };
   }
 
   private static assertTimeout(value: unknown, name: string, requiresInteger: boolean): void {
@@ -101,7 +132,7 @@ export class FetchClientConfiguration {
     }
   }
 
-  private static partitionOptions(options: FetchOptionsInterface | undefined): {
+  private static partitionOptions(options: unknown): {
     readonly 'data': Record<string, unknown>;
     readonly 'runtime': RuntimeOptionValuesInterface;
   } {

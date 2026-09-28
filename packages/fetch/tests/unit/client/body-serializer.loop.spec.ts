@@ -1,69 +1,31 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BodySerializer } from '../../../src/modules/BodySerializer.js';
+
+import { BodySerializerScenarioCaseEntity } from './entities/BodySerializerScenarioCaseEntity.js';
 import scenarioGroups from './body-serializer.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { decision: boolean };
-      input: { body: unknown };
-      shape: 'needs-json-content-type-array';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { decision: boolean };
-      input: { body: unknown };
-      shape: 'needs-json-content-type-buffer';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { decision: boolean };
-      input: { body: unknown };
-      shape: 'needs-json-content-type-object';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { decision: boolean };
-      input: { body: unknown };
-      shape: 'needs-json-content-type-primitive';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { bytes: number[]; constructorName: 'Uint8Array' };
-      input: { shape: 'data-view-visible-range'; source: number[]; view: { byteLength: number; byteOffset: number } };
-      shape: 'data-view-visible-range';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { bytes: number[]; constructorName: 'Uint8Array'; remainsDetachedAfterSourceMutation: true };
-      input: { shape: 'typed-array-byte-range'; source: number[]; typedArray: 'Uint16Array' };
-      shape: 'typed-array-byte-range';
-      name: string;
-    };
+type ScenarioCase = BodySerializerScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(BodySerializerScenarioCaseEntity.Schema, BodySerializerScenarioCaseEntity.Node);
 
 type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
 type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-type BodyScenarioCase = Extract<ScenarioCase, { input: { body: unknown } }>;
 
 const runnerMap: RunnerMap = {
   'needs-json-content-type-array': (scenarioCase) => {
-    assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
+    assert.equal(BodySerializer.needsJsonContentType(scenarioCase.input.body), scenarioCase.expected.decision);
   },
   'needs-json-content-type-buffer': (scenarioCase) => {
-    assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
+    assert.equal(BodySerializer.needsJsonContentType(Buffer.from(scenarioCase.input.body.bytes)), scenarioCase.expected.decision);
   },
   'needs-json-content-type-object': (scenarioCase) => {
-    assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
+    assert.equal(BodySerializer.needsJsonContentType(scenarioCase.input.body), scenarioCase.expected.decision);
   },
   'needs-json-content-type-primitive': (scenarioCase) => {
-    assert.equal(BodySerializer.needsJsonContentType(materializeBody(scenarioCase.input.body)), scenarioCase.expected.decision);
+    assert.equal(BodySerializer.needsJsonContentType(scenarioCase.input.body), scenarioCase.expected.decision);
   },
   'data-view-visible-range': (scenarioCase) => {
     const source = new Uint8Array(scenarioCase.input.source);
@@ -98,32 +60,8 @@ function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<Scen
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-function materializeBody(body: BodyScenarioCase['input']['body']): BodyScenarioCase['input']['body'] {
-  if (body === null || body === undefined) {
-    return body;
-  }
-
-  if (Array.isArray(body)) {
-    return body.map((value) => { return materializeBody(value); });
-  }
-
-  if (typeof body === 'object') {
-    const record = body as Record<string, unknown>;
-
-    if (record.shape === 'buffer' && Array.isArray(record.bytes)) {
-      return Buffer.from(record.bytes as number[]);
-    }
-
-    if (record.shape === 'undefined') {
-      return undefined;
-    }
-  }
-
-  return body;
-}
-
 void describe('body serializer', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

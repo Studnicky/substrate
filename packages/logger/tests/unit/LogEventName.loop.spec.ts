@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -5,96 +6,12 @@ import {
 
 import { EVENT_COMPONENTS } from '../../src/constants/EVENT_COMPONENTS.js';
 import { LogEventName } from '../../src/modules/LogEventName.js';
+import { LogEventNameScenarioCaseEntity } from './entities/LogEventNameScenarioCaseEntity.js';
 import scenarioGroups from './LogEventName.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        components: typeof EVENT_COMPONENTS;
-      };
-      input: Record<string, never>;
-      name: string;
-      shape: 'component-prefixes';
-    }
-  | {
-      description: string;
-      expected: string;
-      input: {
-        component: string;
-        operation: string;
-      };
-      name: string;
-      shape: 'create-graph-query';
-    }
-  | {
-      description: string;
-      expected: string;
-      input: {
-        component: string;
-        operation: string;
-      };
-      name: string;
-      shape: 'create-query-planner';
-    }
-  | {
-      description: string;
-      expected: string;
-      input: {
-        component: string;
-        operation: string;
-      };
-      name: string;
-      shape: 'create-constant-component';
-    }
-  | {
-      description: string;
-      expected: {
-        component: string;
-        operation: string;
-      };
-      input: {
-        event: string;
-      };
-      name: string;
-      shape: 'parse-graph-query';
-    }
-  | {
-      description: string;
-      expected: {
-        component: string;
-        operation: string;
-      };
-      input: {
-        event: string;
-      };
-      name: string;
-      shape: 'parse-query-planner';
-    }
-  | {
-      description: string;
-      expected: {
-        component: string;
-        operation: string;
-      };
-      input: {
-        event: string;
-      };
-      name: string;
-      shape: 'parse-multiple-dots';
-    }
-  | {
-      description: string;
-      expected: {
-        component: string;
-        operation: string;
-      };
-      input: {
-        event: string;
-      };
-      name: string;
-      shape: 'parse-standalone';
-    };
+type ScenarioCase = LogEventNameScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(LogEventNameScenarioCaseEntity.Schema, LogEventNameScenarioCaseEntity.Node);
 
 type ScenarioRunner<K extends ScenarioCase['shape']> =
   (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
@@ -146,7 +63,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('LogEventName', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "description": "the defaultInterpreter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/defaultInterpreter.ts"
+      },
+      "name": "defaultInterpreter",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the error-handling example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/error-handling.ts"
+      },
+      "name": "error-handling",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the interpreterHistory example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/interpreterHistory.ts"
+      },
+      "name": "interpreterHistory",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedFsm example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedFsm.ts"
+      },
+      "name": "observedFsm",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the registry example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/registry.ts"
+      },
+      "name": "registry",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the traffic-light example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/traffic-light.ts"
+      },
+      "name": "traffic-light",
+      "shape": "imports-example"
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -9,29 +10,17 @@ import {
 } from '../../src/constants/LOG_STATUS.js';
 import { LogStatusEntity } from '../../src/entities/LogStatusEntity.js';
 import { LogStatus } from '../../src/modules/LogStatus.js';
+import { LogStatusScenarioCaseEntity } from './entities/LogStatusScenarioCaseEntity.js';
 import scenarioGroups from './LogStatus.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-lifecycle-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-success-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-failure-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-retry-values' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-lifecycle' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-success' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-failure' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'status-categories-retry' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-success-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-success-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-failure-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-failure-false' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-lifecycle-true' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; name: string; shape: 'is-lifecycle-false' };
+type ScenarioCase = LogStatusScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(LogStatusScenarioCaseEntity.Schema, LogStatusScenarioCaseEntity.Node);
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
 function assertValues(scenarioCase: ScenarioCase, actual: readonly string[]): void {
-  const expected = scenarioCase.expected as { values: string[] };
-  assert.deepStrictEqual(actual, expected.values);
+  assert.deepStrictEqual(actual, scenarioCase.expected.values);
 }
 
 function assertPredicate(
@@ -39,8 +28,7 @@ function assertPredicate(
   predicate: (value: LogStatusEntity.Type) => boolean,
   expectedValue: boolean
 ): void {
-  const expected = scenarioCase.expected as { values: LogStatusEntity.Type[] };
-  for (const value of expected.values) {
+  for (const value of scenarioCase.expected.values) {
     assert.strictEqual(predicate(value), expectedValue);
   }
 }
@@ -115,7 +103,7 @@ function runCase(scenarioCase: ScenarioCase): void {
 }
 
 void describe('LogStatus', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       runCase(scenario);
     });

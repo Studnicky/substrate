@@ -48,6 +48,23 @@ export const BANNED_SHORTENINGS = new Set([
 
 export const IDENTIFIER_NAME_PATTERN = /^[A-Za-z_$][\w$]*$/u;
 
+/** JSON Schema's own published keyword vocabulary that collides with a banned min/max
+ * shortening — the spec chose these names, not this codebase, so they are never flagged. */
+export const JSON_SCHEMA_VOCABULARY_KEYS: ReadonlySet<string> = new Set([
+  'exclusiveMaximum',
+  'exclusiveMinimum',
+  'maxContains',
+  'maximum',
+  'maxItems',
+  'maxLength',
+  'maxProperties',
+  'minContains',
+  'minimum',
+  'minItems',
+  'minLength',
+  'minProperties'
+]);
+
 /**
  * Global platform class names an identifier is allowed to end with even when a camelCase token
  * inside that name matches a banned shortening — `URLSearchParams` is the actual runtime class

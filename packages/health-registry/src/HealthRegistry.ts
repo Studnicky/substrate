@@ -1,16 +1,16 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
 import {
-  type HookInvocationError, HookInvoker, RuntimeError
-} from '@studnicky/errors/node';
-import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+  type HookInvocationError, HookInvoker
+} from '@studnicky/errors/browser';
+import { Signal } from '@studnicky/signal/browser';
 
-import type { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
 import type { HealthCheckInterface } from './interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from './interfaces/HealthCheckResultInterface.js';
 import type { HealthEvaluationInterface } from './interfaces/HealthEvaluationInterface.js';
+
+import { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
 
 interface HealthCheckEntryInterface {
   readonly 'check': HealthCheckInterface;
@@ -54,17 +54,8 @@ export class HealthRegistry {
     protected override onHookError(): void {}
   };
 
-  static create<TInstance extends HealthRegistry>(this: Function & { readonly 'prototype': TInstance }): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
-    }
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
-    }
-
-    return result;
+  static create(this: typeof HealthRegistry): HealthRegistry {
+    return new this();
   }
 
   readonly #registry = new Map<string, HealthCheckEntryInterface>();
@@ -97,10 +88,11 @@ export class HealthRegistry {
    * @param check - Async function resolving to a status and optional metadata
    * @param options - Per-check options; `timeoutMs` bounds how long the check may run
    */
-  register(name: string, check: HealthCheckInterface, options?: HealthCheckOptionsEntity.Type): void {
+  register(name: string, check: HealthCheckInterface, options?: HealthCheckOptionsEntity.InputType): void {
+    const validated = options === undefined ? undefined : HealthCheckOptionsEntity.intake(options);
     const entry: HealthCheckEntryInterface = {
       'check': check,
-      'timeoutMs': options?.timeoutMs
+      'timeoutMs': validated?.timeoutMs
     };
 
     this.#registry.set(name, entry);
@@ -223,7 +215,8 @@ export class HealthRegistry {
   async #runWithTimeout(name: string, check: HealthCheckInterface, timeoutMs: number): Promise<HealthCheckResultInterface> {
     const checkPromise = check();
     const completionController = new AbortController();
-    const timeoutSignal = await this.#signal.compose({ 'deadlineMs': timeoutMs, 'signal': completionController.signal });
+    const composed = await this.#signal.compose({ 'deadlineMs': timeoutMs, 'signal': completionController.signal });
+    const timeoutSignal = composed.signal;
 
     const timeoutPromise = new Promise<HealthCheckResultInterface>((resolve) => {
       const onAbort = (): void => {
@@ -257,6 +250,7 @@ export class HealthRegistry {
       return result;
     } finally {
       completionController.abort();
+      composed.dispose();
     }
   }
 

@@ -1,5 +1,5 @@
-import { Plugin } from '@studnicky/filters/node';
-import { JaccardScorer } from '@studnicky/matching/node';
+import { Plugin } from '@studnicky/filters/browser';
+import { JaccardScorer } from '@studnicky/matching/browser';
 
 import { StringArrayPredicate } from './predicates/StringArrayPredicate.js';
 import { StringArrayThresholdFilterValuePredicate } from './predicates/StringArrayThresholdFilterValuePredicate.js';

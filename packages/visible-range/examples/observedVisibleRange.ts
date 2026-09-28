@@ -34,14 +34,15 @@ console.log('Fixed-mode ranges:', fixedModeChanges);
 
 // Variable mode: rows have an estimated size, corrected as real
 // measurements arrive (e.g. after a row renders and reports its height).
-const list = VisibleRange.create({
-  'count': 500,
-  'estimateSize': () => {
-    const estimatedItemSize = 16 * 2;
-    return estimatedItemSize;
-  },
-  'overscan': 1
-});
+const list = VisibleRange.create(
+  { 'count': 500, 'overscan': 1 },
+  {
+    'estimateSize': () => {
+      const estimatedItemSize = 16 * 2;
+      return estimatedItemSize;
+    }
+  }
+);
 
 list.setViewportSize(200);
 list.setScrollOffset(320);

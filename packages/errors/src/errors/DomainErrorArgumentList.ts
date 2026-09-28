@@ -5,7 +5,7 @@
  *
  * @module
  */
-import { PickDefined } from '@studnicky/types/node';
+import { PickDefined } from '@studnicky/types/browser';
 
 import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
 import type { DomainErrorOptionsInterface } from '../interfaces/DomainErrorOptionsInterface.js';

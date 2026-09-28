@@ -1,4 +1,8 @@
+import type { ClientConfigInterface } from '../../../src/interfaces/ClientConfigInterface.js';
+import type { FetchOptionsInterface } from '../../../src/interfaces/FetchOptionsInterface.js';
+
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import {
   after, before, describe, it
@@ -8,9 +12,11 @@ import {
   FetchClient,
   TimeoutError
 } from '../../../src/node/index.js';
+import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
+import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
 
 type RuntimeTag =
   | { shape: 'infinity' }
@@ -75,6 +81,109 @@ void after(async () => {
   await stopTestServer();
 });
 
+const runtimeValueGuard = createRuntimeValueGuard(['infinity', 'nan', 'undefined'] as const);
+
+function isMessageIncludes(value: unknown): value is readonly string[] {
+  return value === undefined || (Array.isArray(value) && value.every((fragment) => { return typeof fragment === 'string'; }));
+}
+
+function isRequestSignal(value: unknown): value is RequestSignal {
+  if (!Predicates.isObject(value)) {
+    return false;
+  }
+  if (value.shape === 'already-aborted') {
+    return true;
+  }
+  return value.shape === 'abort-after-ms' && typeof value.delayMs === 'number';
+}
+
+function isRequestDefinition(value: unknown): value is RequestDefinition {
+  if (!Predicates.isObject(value) || typeof value.url !== 'string') {
+    return false;
+  }
+  if (value.timeout !== undefined && !runtimeValueGuard.isRuntimeValue(value.timeout)) {
+    return false;
+  }
+  return value.signal === undefined || isRequestSignal(value.signal);
+}
+
+function isRequestExpectation(value: unknown): value is RequestExpectation {
+  if (!Predicates.isObject(value)) {
+    return false;
+  }
+  if (value.shape === 'status') {
+    return typeof value.status === 'number';
+  }
+  if (value.shape !== 'rejects') {
+    return false;
+  }
+  if (value.error !== 'AbortError' && value.error !== 'Error' && value.error !== 'TimeoutError') {
+    return false;
+  }
+  if (!isMessageIncludes(value.messageIncludes) || (value.timeoutMs !== undefined && typeof value.timeoutMs !== 'number')) {
+    return false;
+  }
+  return value.urlIncludes === undefined || typeof value.urlIncludes === 'string';
+}
+
+function isSequencedStep(value: unknown): value is SequencedStep {
+  return Predicates.isObject(value) && isRequestExpectation(value.expect) && isRequestDefinition(value.request);
+}
+
+function isSteps(value: unknown): value is readonly SequencedStep[] {
+  return Array.isArray(value) && value.every(isSequencedStep);
+}
+
+function isScenarioExpectation(value: unknown): value is ScenarioCase['expected'] {
+  if (!Predicates.isObject(value)) {
+    return false;
+  }
+  if (value.shape === 'create-ok') {
+    return true;
+  }
+  if (value.shape === 'create-throws') {
+    return Array.isArray(value.messageIncludes) && value.messageIncludes.every((fragment) => { return typeof fragment === 'string'; });
+  }
+  if (value.shape === 'parallel' || value.shape === 'sequence') {
+    return isSteps(value.steps);
+  }
+  return isRequestExpectation(value);
+}
+
+function isClientConfigInput(value: unknown): value is { baseURL?: string; timeout?: RuntimeValue } {
+  if (!Predicates.isObject(value)) {
+    return false;
+  }
+  if (value.baseURL !== undefined && typeof value.baseURL !== 'string') {
+    return false;
+  }
+  return value.timeout === undefined || runtimeValueGuard.isRuntimeValue(value.timeout);
+}
+
+function isScenarioCase(value: unknown): value is ScenarioCase {
+  if (!Predicates.isObject(value) || typeof value.description !== 'string' || typeof value.name !== 'string') {
+    return false;
+  }
+  if (!isScenarioExpectation(value.expected) || !Predicates.isObject(value.input)) {
+    return false;
+  }
+  if (value.input.clientConfig !== undefined && !isClientConfigInput(value.input.clientConfig)) {
+    return false;
+  }
+  return value.input.request === undefined || isRequestDefinition(value.input.request);
+}
+
+function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
+  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
+}
+
+function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
+  if (!isScenarioFile(value)) {
+    throw RuntimeError.create('timeout.errors.scenarios.json does not match the expected scenario case shape');
+  }
+  return value;
+}
+
 function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
   return typeof value === 'object' && value !== null && 'shape' in value;
 }
@@ -105,7 +214,7 @@ function materializeRuntimeValue(value: RuntimeValue): unknown {
 
     const materialized: Record<string, unknown> = {};
     for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
+      materialized[key] = materializeRuntimeValue(entry);
     }
     return materialized;
   }
@@ -131,36 +240,37 @@ function materializeSignal(signal: RequestSignal | undefined): AbortSignal | und
   return controller.signal;
 }
 
+function requireNumber(value: unknown, message: string): number {
+  if (typeof value !== 'number') {
+    throw RuntimeError.create(message);
+  }
+  return value;
+}
+
+function materializeTimeout(value: RuntimeValue | undefined): number | undefined {
+  return value === undefined ? undefined : requireNumber(materializeRuntimeValue(value), 'expected timeout to materialize to a number for a live FetchClient');
+}
+
 function materializeRequest(request: RequestDefinition): {
-  options: {
-    signal?: AbortSignal;
-    timeout?: unknown;
-  };
+  options: FetchOptionsInterface;
   url: string;
 } {
   const signal = materializeSignal(request.signal);
-  const options: {
-    signal?: AbortSignal;
-    timeout?: unknown;
-  } = {};
-
-  if (request.timeout !== undefined) {
-    options.timeout = materializeRuntimeValue(request.timeout);
-  }
-
-  if (signal !== undefined) {
-    options.signal = signal;
-  }
+  const timeout = materializeTimeout(request.timeout);
+  const options: FetchOptionsInterface = {
+    ...(timeout === undefined ? {} : { timeout }),
+    ...(signal === undefined ? {} : { signal })
+  };
 
   return {
     options,
-    url: materializeRuntimeValue(request.url) as string
+    url: request.url.replaceAll('__TEST_URL__', testUrl)
   };
 }
 
 async function invokeRequest(clientInstance: ReturnType<typeof FetchClient.create>, request: RequestDefinition): Promise<Response> {
   const materialized = materializeRequest(request);
-  return await clientInstance.get(materialized.url, materialized.options as never);
+  return await clientInstance.get(materialized.url, materialized.options);
 }
 
 async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.create>, request: RequestDefinition): Promise<
@@ -245,35 +355,38 @@ async function runRequestGroup(
 
 async function runCase(scenarioCase: ScenarioCase): Promise<void> {
   const { expected } = scenarioCase;
-  const clientConfig = {
-    ...(scenarioCase.input.clientConfig?.baseURL === undefined ? {} : {
-      baseURL: materializeRuntimeValue(scenarioCase.input.clientConfig.baseURL) as never
-    }),
-    ...(scenarioCase.input.clientConfig?.timeout === undefined ? {} : {
-      timeout: materializeRuntimeValue(scenarioCase.input.clientConfig.timeout) as never
-    })
-  };
+  const rawClientConfig = scenarioCase.input.clientConfig;
 
-  if (expected.shape === 'create-throws') {
-    assert.throws(() => {
-      FetchClient.create(clientConfig as never);
-    }, (error: Error) => {
-      for (const fragment of expected.messageIncludes) {
-        assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
-      }
-      return true;
-    });
-    return;
-  }
+  if (expected.shape === 'create-throws' || expected.shape === 'create-ok') {
+    const config = {
+      ...(rawClientConfig?.baseURL === undefined ? {} : { baseURL: rawClientConfig.baseURL }),
+      ...(rawClientConfig?.timeout === undefined ? {} : { timeout: materializeRuntimeValue(rawClientConfig.timeout) })
+    };
 
-  if (expected.shape === 'create-ok') {
+    if (expected.shape === 'create-throws') {
+      assert.throws(() => {
+        FetchClientConfiguration.intake(config);
+      }, (error: Error) => {
+        for (const fragment of expected.messageIncludes) {
+          assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
+        }
+        return true;
+      });
+      return;
+    }
+
     assert.doesNotThrow(() => {
-      FetchClient.create(clientConfig as never);
+      FetchClientConfiguration.intake(config);
     });
     return;
   }
 
-  const clientInstance = FetchClient.create(clientConfig as never);
+  const timeout = materializeTimeout(rawClientConfig?.timeout);
+  const clientConfig: ClientConfigInterface = {
+    ...(rawClientConfig?.baseURL === undefined ? {} : { baseURL: rawClientConfig.baseURL.replaceAll('__TEST_URL__', testUrl) }),
+    ...(timeout === undefined ? {} : { timeout })
+  };
+  const clientInstance = FetchClient.create(clientConfig);
 
   if (expected.shape === 'sequence' || expected.shape === 'parallel') {
     await runRequestGroup(clientInstance, expected.steps, expected.shape);
@@ -288,7 +401,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Timeout Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

@@ -2,464 +2,597 @@
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/boundary-kit
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/throttle@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/resilience@14.0.0
+  - @studnicky/throttle@14.0.0
+  - @studnicky/retry@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/bounded-dispatcher
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/event-bus@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/pipeline@14.0.0
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/event-bus@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
+  - @studnicky/scheduler@14.0.0
 
 ### @studnicky/cache
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/circular-buffer
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/clock
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/concurrency
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/circular-buffer@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/config
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/context
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/drilldown
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/cache@14.0.0
+  - @studnicky/entity@14.0.0
+
+### @studnicky/entity
+
+### Patch Changes
+
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
 
 ### @studnicky/entity-store
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/errors
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
 
 ### @studnicky/eslint-config
 
 ### Patch Changes
 
-- a0c5bf8: Ensures consumer lint configuration updates publish through a verified release lifecycle.
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/event-bus
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/circular-buffer@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/fetch
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/file-lock
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/virtual-fs@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/json@14.0.0
+  - @studnicky/scheduler@14.0.0
+  - @studnicky/virtual-fs@14.0.0
 
 ### @studnicky/filters
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/flag-evaluator
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/fsm
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/circular-buffer@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/health-registry
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/idempotency-guard
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/intake-kit
-
-### Patch Changes
-
-- 9b93e0f: Clarifies consumer documentation for parser-backed entity intake APIs.
-- @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/cache@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/json
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/keyed-rate-limiter
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/resilience@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/cache@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/keyed-work-gate
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/mutex@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/mutex@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/logger
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/matching
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/cache@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/matching-filters
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/filters@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/filters@14.0.0
+  - @studnicky/matching@14.0.0
 
 ### @studnicky/memoize
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/cache@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/mutex
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/config@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/paginator
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/pipeline
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/process-kit
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
+- @studnicky/entity@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/scheduler@14.0.0
 
 ### @studnicky/request-executor
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fetch@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/pipeline@14.0.0
+  - @studnicky/retry@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fetch@14.0.0
+  - @studnicky/json@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/resilience
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/circular-buffer@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/scheduler@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/retry
 
+### Minor Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/event-bus@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/config@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/sample-buffer
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/scheduler
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/semantic-matching
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/signal
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/sliding-window-limiter
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
 
 ### @studnicky/store
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/mutex@12.2.1
+- Updated dependencies [06e7613]
+  - @studnicky/mutex@14.0.0
+  - @studnicky/context@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/strata-store-kit
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/mutex@12.2.1
-  - @studnicky/store@12.2.1
+- Updated dependencies [06e7613]
+  - @studnicky/store@14.0.0
+  - @studnicky/mutex@14.0.0
 
 ### @studnicky/system
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
 
 ### @studnicky/throttle
 
+### Major Changes
+
+- 06e7613: Composable concurrency controls, typed operation pipelines, coordinated stores, and resilience rate limiting provide matching `/node` and `/browser` runtime contracts with neutral `/entities` and `/interfaces` declarations. `@studnicky/resilience` provides sliding-window limiting alongside its resilience controls.
+
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/sample-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/config@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/sample-buffer@14.0.0
+  - @studnicky/signal@14.0.0
 
 ### @studnicky/timing
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/config@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/topic-router
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/matching@14.0.0
 
 ### @studnicky/topic-router-models
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/topic-router@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/matching@14.0.0
+  - @studnicky/topic-router@14.0.0
+
+### @studnicky/types
+
+### Patch Changes
+
+- 4d4555f: Runs trusted pull-request head resolution before policy workflows detach to the event base revision.
 
 ### @studnicky/virtual-fs
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/clock@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/visible-range
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [4d4555f]
+  - @studnicky/types@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/json@14.0.0
 
 ### @studnicky/worker-pool
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/batch@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/system@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [06e7613]
+- Updated dependencies [4d4555f]
+  - @studnicky/concurrency@14.0.0
+  - @studnicky/types@14.0.0
+  - @studnicky/batch@14.0.0
+  - @studnicky/entity@14.0.0
+  - @studnicky/errors@14.0.0
+  - @studnicky/fsm@14.0.0
+  - @studnicky/signal@14.0.0
+  - @studnicky/system@14.0.0

@@ -3,8 +3,7 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 // #region usage
-import type { BatchStatsEntity } from '../src/entities/index.js';
-
+import { BatchStatsEntity } from '../src/entities/index.js';
 import { Batch } from '../src/index.js';
 import { ObservedBatchFixture } from './fixtures/ObservedBatchFixture.js';
 
@@ -111,7 +110,7 @@ class ObservedBatchExample {
 
     // onBatchComplete: once, after processSettled finishes all batches
     assert.ok(observed.capturedStats !== undefined, 'onBatchComplete must fire');
-    const expectedStats: BatchStatsEntity.Type = { 'failed': 1, 'succeeded': 4, 'total': 5 };
+    const expectedStats: BatchStatsEntity.Type = BatchStatsEntity.create({ 'failed': 1, 'succeeded': 4, 'total': 5 });
     assert.deepStrictEqual(observed.capturedStats, expectedStats);
 
     // processSettled produces 5 settled results

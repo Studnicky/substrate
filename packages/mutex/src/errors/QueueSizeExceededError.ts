@@ -4,7 +4,7 @@
  * Thrown by Mutex when attempting to acquire a lock while the wait queue
  * for that key has reached the configured maximum size.
  */
-import { DomainErrorArgumentList } from '@studnicky/errors/node';
+import { DomainErrorArgumentList } from '@studnicky/errors/browser';
 
 import { MutexError } from './MutexError.js';
 

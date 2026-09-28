@@ -1,22 +1,14 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { BaseError, RuntimeError } from '../../src/index.js';
+import { RuntimeErrorScenarioCaseEntity } from './entities/RuntimeErrorScenarioCaseEntity.js';
 import scenarioGroups from './runtime-error.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = {
-  readonly 'description': string;
-  readonly 'expected': {
-    readonly 'code': string;
-    readonly 'hasCause': boolean;
-    readonly 'retryable': boolean;
-  };
-  readonly 'input': {
-    readonly 'causeMessage'?: string;
-    readonly 'message': string;
-  };
-  readonly 'name': string;
-};
+type ScenarioCase = RuntimeErrorScenarioCaseEntity.Type;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(RuntimeErrorScenarioCaseEntity.Schema, RuntimeErrorScenarioCaseEntity.Node);
 
 function createRuntimeError(input: ScenarioCase['input']): RuntimeError {
   const result = input.causeMessage === undefined
@@ -26,7 +18,7 @@ function createRuntimeError(input: ScenarioCase['input']): RuntimeError {
 }
 
 void describe('RuntimeError', () => {
-  for (const scenario of scenarioGroups.cases as readonly ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, () => {
       const error = createRuntimeError(scenario.input);
       assert.ok(error instanceof BaseError);

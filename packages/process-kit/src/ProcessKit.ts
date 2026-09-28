@@ -24,8 +24,8 @@
 
 import type { ScheduledTaskInterface, SchedulerProviderInterface } from '@studnicky/scheduler/interfaces';
 
-import { EffectInterpreter } from '@studnicky/fsm/node';
-import { RealTimeScheduler } from '@studnicky/scheduler/node';
+import { EffectInterpreter } from '@studnicky/fsm/browser';
+import { RealTimeScheduler } from '@studnicky/scheduler/browser';
 
 import type { ProcessKitConfigInterface } from './interfaces/ProcessKitConfigInterface.js';
 
@@ -71,9 +71,8 @@ export class ProcessKit<
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
   >(config: ProcessKitConfigInterface<S, E, Ef>): ProcessKit<S, E, Ef> {
-    const interpreter = EffectInterpreter.create<S, E, Ef>({
-      'handler': config.handler,
-      'machine': config.machine
+    const interpreter = EffectInterpreter.create<S, E, Ef>(config.machine, {
+      'handler': config.handler
     });
 
     const result = new ProcessKit<S, E, Ef>({

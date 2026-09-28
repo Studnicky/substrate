@@ -1,7 +1,8 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Valid component prefixes for hierarchical log events. */
 export namespace EventComponentEntity {
@@ -13,9 +14,14 @@ export namespace EventComponentEntity {
       'timing', 'workflow'
     ],
     'type': 'string'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineEnum({}, [
+    'api', 'auth', 'cache', 'dataSource', 'db', 'entity', 'graph', 'llm',
+    'ontology', 'queryPlanner', 'queryRouter', 'queryTranslate', 'schema',
+    'timing', 'workflow'
+  ] as const);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

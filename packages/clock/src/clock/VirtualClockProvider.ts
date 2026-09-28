@@ -5,20 +5,17 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
 
 import { ClockError } from '../errors/ClockError.js';
+import { VirtualTimeCounterEntity } from './VirtualTimeCounterEntity.js';
 
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
 
-interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * `ClockProvider` backed by a `VirtualTimeCounter`.
@@ -26,15 +23,11 @@ interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
  * `hrtime()` returns the same value converted to nanoseconds.
  */
 export class VirtualClockProvider implements ClockProviderInterface {
-  static create<TInstance extends VirtualClockProvider = VirtualClockProvider>(
-    this: VirtualClockProviderSubclassInterface<TInstance>,
+  static create(
+    this: typeof VirtualClockProvider,
     counter: Readonly<VirtualTimeCounter>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [counter]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('VirtualClockProvider.create() did not construct the requested subclass.');
-    }
-    return result;
+  ): VirtualClockProvider {
+    return new this(counter);
   }
 
   readonly #counter: Readonly<VirtualTimeCounter>;
@@ -45,15 +38,10 @@ export class VirtualClockProvider implements ClockProviderInterface {
    * Property write order: #counter.
    */
   protected constructor(counter: Readonly<VirtualTimeCounter>) {
-    if (!VirtualClockProvider.isValidCounter(counter)) {
+    if (!VirtualTimeCounterEntity.validate({ 'advance': counter.advance, 'nowMs': counter.nowMs })) {
       throw new ClockError('counter must be a VirtualTimeCounter instance');
     }
     this.#counter = counter;
-  }
-
-  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
-    const result = Predicates.isFunction(counter.nowMs) && Predicates.isFunction(counter.advance);
-    return result;
   }
 
   /**

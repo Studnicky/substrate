@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 export namespace JobEffectEntity {
   export const Schema = {
@@ -24,9 +25,10 @@ export namespace JobEffectEntity {
         'type': 'object'
       }
     ]
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ 'type': 'object' } as const, { 'delayMs': SchemaNode.defineNumber({ 'type': 'number' } as const), 'variant': SchemaNode.defineConst({}, 'scheduleAdvance' as const) }, ['delayMs', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineConst({}, 'requestAck' as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} })]);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

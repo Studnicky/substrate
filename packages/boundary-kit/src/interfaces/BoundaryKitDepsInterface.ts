@@ -1,6 +1,6 @@
-import type { CircuitBreaker } from '@studnicky/resilience/node';
-import type { Retry } from '@studnicky/retry/node';
-import type { Throttle } from '@studnicky/throttle/node';
+import type { CircuitBreaker } from '@studnicky/resilience/browser';
+import type { Retry } from '@studnicky/retry/browser';
+import type { Throttle } from '@studnicky/throttle/browser';
 
 /** Runtime dependencies composed by `BoundaryKit`. */
 export interface BoundaryKitDepsInterface {

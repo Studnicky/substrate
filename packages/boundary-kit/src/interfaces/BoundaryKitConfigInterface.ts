@@ -2,11 +2,13 @@
  * BoundaryKit configuration contract
  */
 
-import type { CircuitBreaker, CircuitBreakerOptionsInterface } from '@studnicky/resilience/node';
+import type { CircuitBreaker } from '@studnicky/resilience/browser';
+import type { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+import type { CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/interfaces';
+import type { Retry } from '@studnicky/retry/browser';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import type { Retry } from '@studnicky/retry/node';
+import type { Throttle } from '@studnicky/throttle/browser';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
-import type { Throttle } from '@studnicky/throttle/node';
 
 /**
  * Configuration accepted by `BoundaryKit.create()`.
@@ -14,7 +16,7 @@ import type { Throttle } from '@studnicky/throttle/node';
  * Each composed primitive accepts either a pre-built instance (subclassed or not) or
  * a config shape that is passed to the primitive's own `create()`. `circuitBreaker`
  * has no zero-arg default the way `Throttle`/`Retry` do — `failureThreshold` and
- * `resetTimeoutMs` are required by `CircuitBreakerOptionsInterface` — so an omitted
+ * `resetTimeoutMs` are required by `CircuitBreakerOptionsEntity` — so an omitted
  * `circuitBreaker` key resolves against `BoundaryKit`'s own defaults, not the bare
  * primitive's.
  */
@@ -23,7 +25,7 @@ export interface BoundaryKitConfigInterface {
    * A pre-built `CircuitBreaker` instance, or config passed to `CircuitBreaker.create()`.
    * Defaults to `{ failureThreshold: 5, resetTimeoutMs: 30_000 }` when omitted.
    */
-  readonly 'circuitBreaker'?: CircuitBreaker | CircuitBreakerOptionsInterface;
+  readonly 'circuitBreaker'?: CircuitBreaker | (CircuitBreakerCollaboratorsInterface & CircuitBreakerOptionsEntity.InputType);
 
   /**
    * A pre-built `Retry` instance, or config passed to `Retry.create()`.

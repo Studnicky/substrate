@@ -8,8 +8,9 @@ import { setTimeout } from 'node:timers/promises';
 
 
 import { Context } from '../../../src/node/index.js';
-import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
-import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
+import { NodeContextStorage } from '../../../src/node/NodeContextStorage.js';
+import { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
+import type { ContextScopeInterface, ContextStorageInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './Context.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
@@ -94,7 +95,11 @@ function requireRecord<TValue>(value: TValue, label: string): Record<string, unk
   return value;
 }
 
-function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
+function snapshotToRecord(snapshot: ReadonlyMap<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(snapshot);
+}
+
+function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.InputType {
   const context = requireRecord(scenarioCase.input.context, 'input.context');
   const name = context.name;
   if (typeof name !== 'string') {
@@ -148,7 +153,7 @@ function createContext(scenarioCase: ScenarioCase): Context {
 }
 
 function multiContextInput(scenarioCase: ScenarioCase, key: string): {
-  context: ContextConfigEntity.Type;
+  context: ContextConfigEntity.InputType;
   initial: Record<string, unknown> | undefined;
 } {
   const contexts = requireRecord(scenarioCase.input.contexts, 'input.contexts');
@@ -168,8 +173,11 @@ function multiContextInput(scenarioCase: ScenarioCase, key: string): {
   };
 }
 
-function makeLenientContext(config: ContextConfigEntity.Type): Context {
+function makeLenientContext(config: ContextConfigEntity.InputType): Context {
   class LenientContext extends Context {
+    static override create(options: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): LenientContext {
+      return new LenientContext(ContextConfigEntity.create(options), storage);
+    }
     protected override onMissingContext(): boolean {
       return true;
     }
@@ -187,7 +195,7 @@ const runnerMap = {
 
   'invalid-name': (scenarioCase) => {
     assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
+      () => { Context.assertValidConfig(scenarioCase.input.context); },
       { message: scenarioCase.expected.message }
     );
     return;
@@ -263,7 +271,7 @@ const runnerMap = {
       }
       context.set('count', count + 1);
     });
-    assert.strictEqual(scope.terminate().count, scenarioCase.expected.count);
+    assert.strictEqual(scope.terminate().get('count'), scenarioCase.expected.count);
     return;
   },
 
@@ -282,14 +290,14 @@ const runnerMap = {
       context.set('statusCode', 200);
       context.set('result', 'success');
     });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.snapshot);
+    assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.snapshot);
     return;
   },
 
   'terminate-clears': (scenarioCase) => {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.strictEqual(scope.terminate().key, scenarioCase.expected.firstValue);
+    assert.strictEqual(scope.terminate().get('key'), scenarioCase.expected.firstValue);
     assert.throws(() => scope.terminate(), { message: 'test scope has already been terminated' });
     return;
   },
@@ -400,7 +408,7 @@ const runnerMap = {
     const context = createContext(scenarioCase);
     const scope = context.initialize(scopeInitial(scenarioCase));
     scope.execute(() => {
-      assert.deepStrictEqual(context.snapshot(), scenarioCase.expected.snapshot);
+      assert.deepStrictEqual(snapshotToRecord(context.snapshot()), scenarioCase.expected.snapshot);
     });
     return;
   },
@@ -411,7 +419,7 @@ const runnerMap = {
     scope.execute(() => {
       const snap = context.snapshot();
       context.set('key', scenarioCase.expected.current);
-      assert.strictEqual(snap.key, scenarioCase.expected.snapshot);
+      assert.strictEqual(snap.get('key'), scenarioCase.expected.snapshot);
       assert.strictEqual(context.get('key'), scenarioCase.expected.current);
     });
     return;
@@ -463,7 +471,7 @@ const runnerMap = {
     assert.strictEqual('getStore' in context, false);
     assert.strictEqual(context.has('key'), scenarioCase.expected.has);
     assert.deepStrictEqual(context.keys(), scenarioCase.expected.keys);
-    assert.deepStrictEqual(context.snapshot(), scenarioCase.expected.snapshot);
+    assert.deepStrictEqual(snapshotToRecord(context.snapshot()), scenarioCase.expected.snapshot);
     return;
   },
 
@@ -544,8 +552,8 @@ const runnerMap = {
         assert.strictEqual(context.get('value'), scopeInitial(scenarioCase, 'initial2')?.value);
       })
     ]).then(() => {
-      assert.strictEqual(scope1.terminate().value, scenarioCase.expected.scope1);
-      assert.strictEqual(scope2.terminate().value, scenarioCase.expected.scope2);
+      assert.strictEqual(scope1.terminate().get('value'), scenarioCase.expected.scope1);
+      assert.strictEqual(scope2.terminate().get('value'), scenarioCase.expected.scope2);
     });
   },
 
@@ -565,10 +573,10 @@ const runnerMap = {
     ]).then(() => {
       const final1 = scope1.terminate();
       const final2 = scope2.terminate();
-      assert.ok('only1' in final1);
-      assert.ok(!('only2' in final1));
-      assert.ok('only2' in final2);
-      assert.ok(!('only1' in final2));
+      assert.ok(final1.has('only1'));
+      assert.ok(!final1.has('only2'));
+      assert.ok(final2.has('only2'));
+      assert.ok(!final2.has('only1'));
     });
   },
 
@@ -624,7 +632,7 @@ const runnerMap = {
       return scenarioCase.expected.result;
     }).then((result) => {
       assert.strictEqual(result, scenarioCase.expected.result);
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.finalState);
+      assert.deepStrictEqual(snapshotToRecord(scope.terminate()), scenarioCase.expected.finalState);
       assert.throws(() => scope.execute(() => {}), {
         message: `${context.name} scope has been terminated`
       });
@@ -633,6 +641,9 @@ const runnerMap = {
 
   'subclass-on-initialize': (scenarioCase) => {
     class SeededContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): SeededContext {
+        return new SeededContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(_initial: Record<string, unknown> | undefined, scope: ContextScopeInterface): void {
         scope.execute(() => {
           this.set('seeded', scenarioCase.expected.seeded);
@@ -649,6 +660,9 @@ const runnerMap = {
 
   'subclass-on-initialize-with-caller': (scenarioCase) => {
     class SeededContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): SeededContext {
+        return new SeededContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(_initial: Record<string, unknown> | undefined, scope: ContextScopeInterface): void {
         scope.execute(() => {
           this.set('seeded', scenarioCase.expected.seeded);
@@ -667,6 +681,9 @@ const runnerMap = {
   'subclass-on-set': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onSet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
@@ -685,6 +702,9 @@ const runnerMap = {
   'subclass-on-get': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
@@ -703,6 +723,9 @@ const runnerMap = {
   'subclass-on-delete': (scenarioCase) => {
     const events: Array<{ existed: boolean; key: string }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onDelete(key: string, existed: boolean): void {
         events.push({ existed, key });
       }
@@ -721,6 +744,9 @@ const runnerMap = {
   'subclass-on-get-tryget': (scenarioCase) => {
     const events: string[] = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet(key: string): void {
         events.push(key);
       }
@@ -738,6 +764,9 @@ const runnerMap = {
 
   'throwing-on-initialize': (scenarioCase) => {
     class ThrowingInitializeContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingInitializeContext {
+        return new ThrowingInitializeContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -752,6 +781,9 @@ const runnerMap = {
 
   'throwing-on-set': (scenarioCase) => {
     class ThrowingSetContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingSetContext {
+        return new ThrowingSetContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onSet(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -772,6 +804,9 @@ const runnerMap = {
 
   'throwing-on-get': (scenarioCase) => {
     class ThrowingGetContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingGetContext {
+        return new ThrowingGetContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -790,6 +825,9 @@ const runnerMap = {
 
   'throwing-on-delete': (scenarioCase) => {
     class ThrowingDeleteContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingDeleteContext {
+        return new ThrowingDeleteContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onDelete(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -809,6 +847,9 @@ const runnerMap = {
 
   'async-on-set-safe': (scenarioCase) => {
     class AsyncRejectingContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): AsyncRejectingContext {
+        return new AsyncRejectingContext(ContextConfigEntity.create(config), storage);
+      }
       protected override async onSet(): Promise<void> {
         await setTimeout(5);
         throw RuntimeError.create('onSet boom');
@@ -834,7 +875,7 @@ const runnerMap = {
 
   'config-validation': (scenarioCase) => {
     assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
+      () => { Context.assertValidConfig(scenarioCase.input.context); },
       { message: scenarioCase.expected.message }
     );
     return;

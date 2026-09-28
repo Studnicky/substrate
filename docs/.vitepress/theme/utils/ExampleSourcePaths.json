@@ -185,5 +185,6 @@
   "packages/visible-range/examples/observedVisibleRange",
   "packages/worker-pool/examples/browserWorkerPool",
   "packages/worker-pool/examples/entities/ItemEntity",
-  "packages/worker-pool/examples/observedWorkerPool"
+  "packages/worker-pool/examples/observedWorkerPool",
+  "packages/worker-pool/examples/observedWorkerPoolWorker"
 ]

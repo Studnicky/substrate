@@ -1,3 +1,4 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
@@ -7,107 +8,26 @@ import {
 import { HealthRegistry } from '../../src/HealthRegistry.js';
 import type { HealthStatusEntity } from '../../src/entities/HealthStatusEntity.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
+import { HealthRegistryHooksScenarioCaseEntity } from './entities/HealthRegistryHooksScenarioCaseEntity.js';
 import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { type: 'json' };
+
+const fileIntake = ScenarioFileCompiler.compileIntake(HealthRegistryHooksScenarioCaseEntity.Schema, HealthRegistryHooksScenarioCaseEntity.Node);
 
 function createUnhandledRejectionAssertion(message: string): () => void {
   return () => { assert.fail(message); };
 }
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { registeredCalls: string[] };
-      input: { checks: Array<{ name: string; status: HealthStatusEntity.Type }> };
-      shape: 'on-check-registered';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultCalls: Array<{ metadata?: unknown; name: string; status: HealthStatusEntity.Type }> };
-      input: { checks: Array<{ metadata?: unknown; name: string; status: HealthStatusEntity.Type }> };
-      shape: 'on-check-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultCalls: Array<{ name: string; status: 'unhealthy' }> };
-      input: { errorMessage: string; name: string };
-      shape: 'rejecting-check-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultStatus: 'unhealthy'; timeoutCalls: Array<{ name: string; timeoutMs: number }> };
-      input: { delayMs: number; name: string; status: 'healthy'; timeoutMs: number };
-      shape: 'timeout-plus-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultStatus: 'healthy'; timeoutCount: 0 };
-      input: { delayMs: number; name: string; status: 'healthy'; timeoutMs: number };
-      shape: 'no-timeout-after-fast-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        aggregateCalls: Array<{ overall: HealthStatusEntity.Type; size: number }>;
-        aggregateCountAfterFirst: number;
-        aggregateCountAfterSecond: number;
-      };
-      input: { checks: Array<{ name: string; status: HealthStatusEntity.Type }> };
-      shape: 'on-aggregate-after-settle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { order: string[] };
-      input: { name: string; status: 'healthy' };
-      shape: 'hook-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultStatus: 'healthy' };
-      input: { name: string; status: 'healthy' };
-      shape: 'throwing-on-check-result';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { resultStatus: 'degraded' };
-      input: { name: string; status: 'degraded' };
-      shape: 'throwing-on-aggregate';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorCount: 1; hookName: 'onCheckRegistered' };
-      input: { firstCause: string; secondCause: string };
-      shape: 'hook-errors-owned-by-instance';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorCount: 1; message: string; nestedChecks: string[] };
-      input: { causeMessage: string; mutateChecks: string[]; nestedChecks: string[] };
-      shape: 'deeply-detached-hook-errors';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { hookErrorCount: 1; hookName: 'onAggregate'; rejectionCount: 0; resultStatus: 'healthy' };
-      input: { name: string; status: 'healthy'; waitMs: number };
-      shape: 'async-aggregate-rejection';
-      name: string;
-    };
+type ScenarioCase = HealthRegistryHooksScenarioCaseEntity.Type;
 
 class ObservedRegistry extends HealthRegistry {
   readonly registeredCalls: string[] = [];
   readonly resultCalls: { name: string; result: HealthCheckResultInterface }[] = [];
   readonly aggregateCalls: { overall: HealthStatusEntity.Type; size: number }[] = [];
   readonly timeoutCalls: { name: string; timeoutMs: number }[] = [];
+
+  static override create(): ObservedRegistry {
+    return new ObservedRegistry();
+  }
 
   protected override onCheckRegistered(name: string): void {
     this.registeredCalls.push(name);
@@ -204,6 +124,10 @@ const runnerMap: RunnerMap = {
     'hook-errors-owned-by-instance': async (scenarioCase) => {
       class ThrowingRegistrationRegistry extends HealthRegistry {
         #cause = RuntimeError.create('unconfigured hook failure');
+
+        static override create(): ThrowingRegistrationRegistry {
+          return new ThrowingRegistrationRegistry();
+        }
 
         failWith(cause: RuntimeError): void {
           this.#cause = cause;
@@ -346,7 +270,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 }
 
 void describe('HealthRegistry lifecycle hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

@@ -45,6 +45,7 @@ import type {
 
 import { ErrorDefaults } from '../constants/index.js';
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
+import { ErrorScenarioGuard } from '../validation/ErrorScenarioGuard.js';
 import { BaseError } from './BaseError.js';
 import { ValidationError } from './ValidationError.js';
 
@@ -61,7 +62,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    * User-provided options take precedence over scenario defaults.
    */
   static create(message: string, options: ModuleErrorCreateOptionsInterface): ModuleError {
-    if (!(options.scenario in ErrorDefaults)) {
+    if (!ErrorScenarioGuard.isKnownScenario(options.scenario)) {
       throw ValidationError.create({
         'message': `Must be one of: ${Object.keys(ErrorDefaults).join(', ')}`,
         'path': 'scenario',

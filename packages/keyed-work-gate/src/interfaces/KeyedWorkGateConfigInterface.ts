@@ -1,14 +1,14 @@
+import type { Coalesce } from '@studnicky/concurrency/browser';
 import type { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
-import type { Coalesce } from '@studnicky/concurrency/node';
-import type { MutexConfigEntity } from '@studnicky/mutex/entities';
-import type { Mutex } from '@studnicky/mutex/node';
+import type { Mutex } from '@studnicky/mutex/browser';
+import type { MutexCreateOptionsInterface } from '@studnicky/mutex/interfaces';
 
 /** Composition configuration for `KeyedWorkGate.create()`. */
 export interface KeyedWorkGateConfigInterface<
   K extends PropertyKey = string
 > {
   /** Pre-built `Coalesce` instance, or config forwarded to `Coalesce.create()`. Defaults to `Coalesce.create()`. */
-  'coalesce'?: Coalesce<unknown> | CoalesceOptionsEntity.Type;
+  'coalesce'?: Coalesce<unknown> | CoalesceOptionsEntity.InputType;
   /** Pre-built `Mutex` instance, or config forwarded to `Mutex.create()`. Defaults to `Mutex.create()`. */
-  'mutex'?: Mutex<K> | Partial<MutexConfigEntity.Type>;
+  'mutex'?: Mutex<K> | MutexCreateOptionsInterface;
 }

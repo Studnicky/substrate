@@ -27,11 +27,10 @@ class TrafficMachine extends StateMachine<TrafficStateEntity.Type, TrafficEventE
 }
 
 // A bounded ring of the last 2 transitions — older records are dropped.
-const history = InterpreterHistory.create({
-  'capacity': 2,
-  'machine': TrafficMachine.make(),
-  'machineId': 'traffic-light'
-});
+const history = InterpreterHistory.create(
+  TrafficMachine.make(),
+  { 'capacity': 2, 'machineId': 'traffic-light' }
+);
 
 history.start();
 await history.send({ 'type': 'advance' }); // red -> green

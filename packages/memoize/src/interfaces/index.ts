@@ -1,1 +1,1 @@
-export type { MemoizeOptionsInterface } from './MemoizeOptionsInterface.js';
+export type { MemoizeCollaboratorsInterface } from './MemoizeCollaboratorsInterface.js';

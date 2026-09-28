@@ -16,8 +16,7 @@ import {
   PROBLEM_TYPE_THROWN_STRING
 } from '../../src/constants/ProblemConstants.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
-import { ThrownValueProjection } from '../../src/validation/thrownValueProjection.js';
+import { ThrownValueEntity, ThrownValueProjection } from '../../src/entities/ThrownValueEntity.js';
 void describe('ThrownValueEntity', () => {
   void it('is total: never throws for cyclic objects, functions, symbols, and caught-value shapes', () => {
     const cyclic: Record<string, unknown> = {};
@@ -167,5 +166,16 @@ void describe('ThrownValueEntity', () => {
     const withName = ThrownValueEntity.create({ 'detail': 'boom', 'name': 'X' , 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR });
     assert.deepEqual(withName, { 'detail': 'boom', 'name': 'X' , 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR });
     assert.equal(Object.hasOwn(withName, 'stack'), false);
+  });
+
+  void it('create accepts a plain unbranded literal for the maxItems-constrained causes array and validates', () => {
+    const result = ThrownValueEntity.create({
+      'causes': [{ 'detail': 'inner', 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR }],
+      'detail': 'outer',
+      'title': PROBLEM_TITLE_ERROR,
+      'type': PROBLEM_TYPE_ERROR
+    });
+    assert.deepEqual(result.causes, [{ 'detail': 'inner', 'title': PROBLEM_TITLE_ERROR, 'type': PROBLEM_TYPE_ERROR }]);
+    assert.equal(ThrownValueEntity.validate(result), true);
   });
 });

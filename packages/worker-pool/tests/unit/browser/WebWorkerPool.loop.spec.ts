@@ -1,3 +1,4 @@
+import { getEventListeners } from 'node:events';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -115,6 +116,40 @@ class WorkerFactory implements WorkerFactoryInterface<WebWorkerInterface> {
     this.created += 1;
 
     const worker = new WorkerFixture(this.created);
+    this.workers.push(worker);
+    return worker;
+  }
+
+  public async initialize(_worker: WebWorkerInterface): Promise<void> {}
+
+  public observe(worker: WebWorkerInterface): WorkerObservationInterface {
+    return {
+      'close': (): void => {},
+      'isAlive': (): boolean => {
+        const result = !(worker instanceof WorkerFixture) || !worker.terminated;
+        return result;
+      }
+    };
+  }
+
+  public async terminate(worker: WebWorkerInterface): Promise<void> {
+    worker.terminate();
+  }
+}
+
+class SlowWorkerFactory implements WorkerFactoryInterface<WebWorkerInterface> {
+  public readonly workers: WorkerFixture[] = [];
+  readonly #delayMs: number;
+  #created = 0;
+
+  public constructor(delayMs: number) {
+    this.#delayMs = delayMs;
+  }
+
+  public async create(): Promise<WebWorkerInterface> {
+    await new Promise<void>((resolve): void => { setTimeout(resolve, this.#delayMs); });
+    this.#created += 1;
+    const worker = new WorkerFixture(this.#created);
     this.workers.push(worker);
     return worker;
   }
@@ -258,10 +293,75 @@ void describe('WebWorkerPool', () => {
     const run = pool.run([1]);
 
     await transport.waitForRequest();
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 1);
     controller.abort(new Error('cancelled by test'));
 
     await assert.rejects(run, /cancelled/u);
     assert.equal(factory.workers[0]?.terminated, true);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+
+    await pool.close();
+  });
+
+  void it('cancels a request via the caller signal while its worker is still starting', async () => {
+    const controller = new AbortController();
+    const factory = new SlowWorkerFactory(500);
+    const cancellationReason = new Error('cancelled during startup');
+    const pool = WebWorkerPool.create({
+      'abortSignal': controller.signal,
+      'factory': factory,
+      'maximumWorkers': 1,
+      'startupTimeoutMs': 5000,
+      'transport': new WorkerTransport()
+    });
+
+    const run = pool.run([1]);
+    await new Promise<void>((resolve): void => { setTimeout(resolve, 20); });
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 1);
+    controller.abort(cancellationReason);
+
+    await assert.rejects(run, (error: unknown): boolean => {
+      assert.ok(error instanceof Error);
+      assert.ok(error.message.includes('finished starting'));
+      return true;
+    });
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+
+    await pool.close();
+  });
+
+  void it('rejects with a startup-specific error when worker creation exceeds startupTimeoutMs', async () => {
+    const factory = new SlowWorkerFactory(200);
+    const pool = WebWorkerPool.create({
+      'factory': factory,
+      'maximumWorkers': 1,
+      'startupTimeoutMs': 1,
+      'timeoutMs': 5000,
+      'transport': new WorkerTransport()
+    });
+
+    await assert.rejects(pool.run([1]), (error: unknown): boolean => {
+      assert.ok(error instanceof Error);
+      assert.ok(error.message.includes('did not finish starting'));
+      assert.ok(!error.message.includes('exceeded its timeout'));
+      return true;
+    });
+
+    await pool.close();
+  });
+
+  void it('resolves an instant request within a short timeoutMs despite slow worker creation', async () => {
+    const factory = new SlowWorkerFactory(50);
+    const pool = WebWorkerPool.create({
+      'factory': factory,
+      'maximumWorkers': 1,
+      'startupTimeoutMs': 5000,
+      'timeoutMs': 10,
+      'transport': new WorkerTransport()
+    });
+
+    const result = await pool.run([1]);
+    assert.deepEqual(result, ['1:1']);
 
     await pool.close();
   });

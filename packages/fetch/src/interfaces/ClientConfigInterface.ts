@@ -22,12 +22,12 @@ export interface ClientConfigInterface {
    * When enabled, each request gets a unique ID for correlation
    * The ID is accessible in lifecycle hooks via metadata.requestId
    */
-  'autoGenerateRequestId'?: ClientConfigDataEntity.Type['autoGenerateRequestId'];
+  'autoGenerateRequestId'?: ClientConfigDataEntity.InputType['autoGenerateRequestId'];
 
   /**
    * Base URL prepended to all requests
    */
-  'baseURL'?: ClientConfigDataEntity.Type['baseURL'];
+  'baseURL'?: ClientConfigDataEntity.InputType['baseURL'];
 
   /** Clock used to measure Node client request durations. Default: `RealTimeClockProvider`. */
   'clock'?: ClockProviderInterface;
@@ -55,12 +55,12 @@ export interface ClientConfigInterface {
    * { dispatcher: { enabled: true, connections: 20 } }
    * ```
    */
-  'dispatcher'?: DispatcherConfigEntity.Type;
+  'dispatcher'?: DispatcherConfigEntity.InputType;
 
   /**
    * Default headers for all requests
    */
-  'headers'?: ClientConfigDataEntity.Type['headers'];
+  'headers'?: ClientConfigDataEntity.InputType['headers'];
 
   /**
    * Timeout in milliseconds for lifecycle hook invocations (onRequestStart,
@@ -71,7 +71,7 @@ export interface ClientConfigInterface {
    * When set, a hook that never settles within this window fails with a
    * HookInvocationError whose cause is a HookTimeoutError.
    */
-  'hookTimeoutMs'?: ClientConfigDataEntity.Type['hookTimeoutMs'];
+  'hookTimeoutMs'?: ClientConfigDataEntity.InputType['hookTimeoutMs'];
 
   /**
    * Default metadata for all requests
@@ -89,7 +89,7 @@ export interface ClientConfigInterface {
    * }
    * ```
    */
-  'metadata'?: ClientConfigDataEntity.Type['metadata'];
+  'metadata'?: ClientConfigDataEntity.InputType['metadata'];
 
   /**
    * Additional fetch options applied to all requests
@@ -125,5 +125,5 @@ export interface ClientConfigInterface {
   /**
    * Default timeout in milliseconds
    */
-  'timeout'?: ClientConfigDataEntity.Type['timeout'];
+  'timeout'?: ClientConfigDataEntity.InputType['timeout'];
 }

@@ -1,93 +1,17 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
-import type { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
-
+import { CircularBufferUnshiftScenarioCaseEntity } from '../entities/CircularBufferUnshiftScenarioCaseEntity.js';
 import scenarioGroups from './CircularBuffer.unshift.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { length: number };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'unshift-adds-item';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { length: number; shifted: number };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'unshift-empty-then-shift';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shifted: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'unshift-then-shift-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shifted: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'multiple-unshifts-reverse-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { length: number; shifted: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'overwrite-mode-unshift-evicts-tail';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { evictLog: number[]; overflowLog: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'overwrite-mode-unshift-fires-hooks';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { length: number; shifted: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'grow-mode-unshift-grows';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { newCapacity: number; oldCapacity: number };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'grow-mode-unshift-fires-onGrow';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { pushCount: number };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'onPush-fires-for-unshift';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shifted: string[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'mixed-push-unshift-shift-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { shifted: number[] };
-      input: { options: CircularBufferOptionsEntity.Type };
-      shape: 'interleaved-wraparound-order';
-      name: string;
-    };
+const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferUnshiftScenarioCaseEntity.Schema, CircularBufferUnshiftScenarioCaseEntity.Node);
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+type ScenarioCase = CircularBufferUnshiftScenarioCaseEntity.Type;
+type ScenarioShape = ScenarioCase['shape'];
+
+type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
 
 class GrowLogBuffer<T> extends CircularBuffer<T> {
   readonly growLog: Array<{ oldCapacity: number; newCapacity: number }> = [];
@@ -118,7 +42,19 @@ class TraceBuffer<T> extends CircularBuffer<T> {
   }
 }
 
-const runnerMap: RunnerMap = {
+const requireExpectedNumber = (scenarioCase: ScenarioCase, name: 'length' | 'newCapacity' | 'oldCapacity' | 'pushCount'): number => {
+  const value = scenarioCase.expected[name];
+  assert.equal(typeof value, 'number', `${scenarioCase.name} must define expected.${name}`);
+  return value ?? 0;
+};
+
+const requireShiftedArray = (scenarioCase: ScenarioCase): readonly (number | string)[] => {
+  const { shifted } = scenarioCase.expected;
+  assert.ok(Array.isArray(shifted), `${scenarioCase.name} must define expected.shifted as an array`);
+  return shifted;
+};
+
+const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
   'grow-mode-unshift-fires-onGrow': (scenario) => {
     const buf = GrowLogBuffer.create<number, GrowLogBuffer<number>>(scenario.input.options);
     buf.push(1);
@@ -126,16 +62,16 @@ const runnerMap: RunnerMap = {
     buf.unshift(0);
 
     assert.strictEqual(buf.growLog.length, 1);
-    assert.strictEqual(buf.growLog[0]?.oldCapacity, scenario.expected.oldCapacity);
-    assert.strictEqual(buf.growLog[0]?.newCapacity, scenario.expected.newCapacity);
+    assert.strictEqual(buf.growLog[0]?.oldCapacity, requireExpectedNumber(scenario, 'oldCapacity'));
+    assert.strictEqual(buf.growLog[0]?.newCapacity, requireExpectedNumber(scenario, 'newCapacity'));
   },
   'grow-mode-unshift-grows': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
     buf.push(1);
     buf.push(2);
     buf.unshift(0);
-    assert.equal(buf.length, scenario.expected.length);
-    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], scenario.expected.shifted);
+    assert.equal(buf.length, requireExpectedNumber(scenario, 'length'));
+    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], requireShiftedArray(scenario));
   },
   'interleaved-wraparound-order': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
@@ -150,16 +86,17 @@ const runnerMap: RunnerMap = {
       const value = buf.shift();
       if (value !== undefined) result.push(value);
     }
-    assert.deepEqual(result, scenario.expected.shifted);
+    assert.deepEqual(result, requireShiftedArray(scenario));
   },
   'mixed-push-unshift-shift-order': (scenario) => {
     const buf = CircularBuffer.create<string>(scenario.input.options);
     buf.push('A');
     buf.push('B');
     buf.unshift('C');
-    assert.equal(buf.shift(), scenario.expected.shifted[0]);
-    assert.equal(buf.shift(), scenario.expected.shifted[1]);
-    assert.equal(buf.shift(), scenario.expected.shifted[2]);
+    const shifted = requireShiftedArray(scenario);
+    assert.equal(buf.shift(), shifted[0]);
+    assert.equal(buf.shift(), shifted[1]);
+    assert.equal(buf.shift(), shifted[2]);
   },
   'multiple-unshifts-reverse-order': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
@@ -172,13 +109,13 @@ const runnerMap: RunnerMap = {
       const value = buf.shift();
       if (value !== undefined) result.push(value);
     }
-    assert.deepEqual(result, scenario.expected.shifted);
+    assert.deepEqual(result, requireShiftedArray(scenario));
   },
   'onPush-fires-for-unshift': (scenario) => {
     const buf = PushCountBuffer.create<number, PushCountBuffer<number>>(scenario.input.options);
     buf.push(1);
     buf.unshift(0);
-    assert.strictEqual(buf.pushCount, scenario.expected.pushCount);
+    assert.strictEqual(buf.pushCount, requireExpectedNumber(scenario, 'pushCount'));
   },
   'overwrite-mode-unshift-evicts-tail': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
@@ -186,8 +123,8 @@ const runnerMap: RunnerMap = {
     buf.push(2);
     buf.push(3);
     buf.unshift(0);
-    assert.equal(buf.length, scenario.expected.length);
-    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], scenario.expected.shifted);
+    assert.equal(buf.length, requireExpectedNumber(scenario, 'length'));
+    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], requireShiftedArray(scenario));
   },
   'overwrite-mode-unshift-fires-hooks': (scenario) => {
     const buf = TraceBuffer.create<number, TraceBuffer<number>>(scenario.input.options);
@@ -201,29 +138,29 @@ const runnerMap: RunnerMap = {
   'unshift-adds-item': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
     buf.unshift(1);
-    assert.equal(buf.length, scenario.expected.length);
+    assert.equal(buf.length, requireExpectedNumber(scenario, 'length'));
   },
   'unshift-empty-then-shift': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
     buf.unshift(1);
     assert.equal(buf.shift(), scenario.expected.shifted);
-    assert.equal(buf.length, scenario.expected.length);
+    assert.equal(buf.length, requireExpectedNumber(scenario, 'length'));
   },
   'unshift-then-shift-order': (scenario) => {
     const buf = CircularBuffer.create<number>(scenario.input.options);
     buf.push(1);
     buf.push(2);
     buf.unshift(0);
-    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], scenario.expected.shifted);
+    assert.deepEqual([buf.shift(), buf.shift(), buf.shift()], requireShiftedArray(scenario));
   }
 };
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
+function runCase(scenarioCase: ScenarioCase): void {
   runnerMap[scenarioCase.shape](scenarioCase);
 }
 
 void describe('CircularBuffer unshift', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {
       runCase(scenarioCase);
     });

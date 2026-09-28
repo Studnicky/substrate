@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
 
 /**
  * Configuration validation error. Extends `BaseError` so consumers get

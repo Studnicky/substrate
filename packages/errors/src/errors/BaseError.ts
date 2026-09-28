@@ -18,7 +18,7 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/browser';
 
 import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
 import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
@@ -29,7 +29,7 @@ import {
   CAUSE_DEPTH_SENTINEL
 } from '../constants/CauseChainConstants.js';
 import { PROBLEM_TYPE_BASE } from '../constants/ProblemConstants.js';
-import { ThrownValueProjection } from '../validation/thrownValueProjection.js';
+import { ThrownValueProjection } from '../entities/ThrownValueEntity.js';
 
 /**
  * Abstract base class for all errors in the system.
@@ -69,8 +69,8 @@ export abstract class BaseError extends Error {
     this.name = new.target.name;
     this.code = argumentList.code;
     const metadataEntries = argumentList.metadata !== undefined ? Object.entries(argumentList.metadata) : [];
-    const metadata: Record<string, JSONSchema7Type> = {};
     const metadataEntriesLength = metadataEntries.length;
+    const metadataMap = new Map<string, JSONSchema7Type>();
 
     for (let entryIndex = 0; entryIndex < metadataEntriesLength; entryIndex += 1) {
       const entry = metadataEntries[entryIndex];
@@ -83,9 +83,9 @@ export abstract class BaseError extends Error {
         value
       ] = entry;
 
-      Reflect.set(metadata, key, JsonValue.from(value));
+      metadataMap.set(key, JsonValue.from(value));
     }
-    this.metadata = metadataEntriesLength > 0 ? Object.freeze(metadata) : undefined;
+    this.metadata = metadataEntriesLength > 0 ? Object.freeze(JsonObject.fromEntries(metadataMap)) : undefined;
     this.timestamp = Date.now();
     this.correlationId = argumentList.correlationId;
     this.retryable = argumentList.retryable ?? false;
@@ -255,7 +255,7 @@ export abstract class BaseError extends Error {
     // absent members itself, the same way this method does.
     const extras = this.serializeExtra();
 
-    const result = { ...extras, ...problem } as ProblemDetailsEntity.Type;
+    const result: ProblemDetailsEntity.Type = { ...extras, ...problem };
 
     return result;
   }

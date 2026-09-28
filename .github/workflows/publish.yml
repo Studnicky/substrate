@@ -136,13 +136,19 @@ jobs:
           install: false
 
       - name: Extract changelog notes
-        run: node scripts/extract-release-notes.mjs > release_notes.md
+        run: node scripts/extract-release-notes.ts > release_notes.md
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --notes-file release_notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "$TAG" \
+              --notes-file release_notes.md
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file release_notes.md
+          fi

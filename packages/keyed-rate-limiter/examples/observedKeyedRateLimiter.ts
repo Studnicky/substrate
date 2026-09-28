@@ -1,18 +1,23 @@
 /** observedKeyedRateLimiter — override onKeyCreated/onKeyEvicted/onLimitExceeded/onTokenAcquired to collect telemetry. Run: npx tsx examples/observedKeyedRateLimiter.ts */
 // #region usage
 import type { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
+import type { RateLimitConsumptionInterface } from '@studnicky/resilience/interfaces';
 
 import { RuntimeError } from '@studnicky/errors/node';
 import { TokenBucketExhaustedError } from '@studnicky/resilience/node';
 import assert from 'node:assert/strict';
 
 import type { RateLimiterStrategyInterface } from '../src/index.js';
+import type { KeyedRateLimiterCreateConfigInterface } from '../src/interfaces/index.js';
 
 import { KeyedRateLimiter } from '../src/index.js';
 
 const telemetryEvents: string[] = [];
 
 class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TelemetryKeyedRateLimiter {
+    return new TelemetryKeyedRateLimiter(super.createDefaultDependencies(config));
+  }
   protected override onKeyCreated(key: string): void {
     console.log(`[keyed-rate-limiter] key created key=${key}`);
     telemetryEvents.push(`created:${key}`);
@@ -39,7 +44,7 @@ class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
   }
 }
 
-const limiter = TelemetryKeyedRateLimiter.create({
+const limiter = TelemetryKeyedRateLimiter.build({
   'burstSize': 2,
   'clock': () => {
     const epoch = new Date(0);
@@ -73,14 +78,14 @@ console.log('Events:', telemetryEvents);
 class FixedAllowance implements RateLimiterStrategyInterface {
   #remaining: number;
   constructor(allowance: number) { this.#remaining = allowance; }
-  consume(tokens = 1): RateLimitConsumptionEntity.Type {
+  consume(tokens = 1): RateLimitConsumptionInterface {
     if (this.#remaining < tokens) { throw RuntimeError.create('exhausted'); }
     this.#remaining -= tokens;
     return { 'consumedTokens': tokens, 'remainingTokens': this.#remaining };
   }
   waitForToken(
     options?: { 'signal'?: AbortSignal; 'tokens'?: number }
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const result = Promise.resolve(this.consume(options?.tokens ?? 1));
     return result;
   }

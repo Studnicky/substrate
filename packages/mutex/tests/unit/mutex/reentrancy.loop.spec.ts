@@ -1,37 +1,17 @@
 import { RuntimeError, HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-
-
 import { Mutex } from '../../../src/mutex/index.js';
+import { ReentrancyScenarioCaseEntity } from './entities/ReentrancyScenarioCaseEntity.js';
 import scenarioGroups from './reentrancy.scenarios.json' with { type: 'json' };
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; hookName: 'beforeAcquire'; lockedAfterOuterRelease: boolean };
-      input: { key: string };
-      shape: 'beforeAcquire-reentrant-same-key';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; lockedAfterFirstRelease: boolean; lockedAfterSecondRelease: boolean; lockedAfterThirdRelease: boolean };
-      input: { batch: { pendingCount: number }; key: string };
-      shape: 'onRelease-reentrant-same-key';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { complete: boolean; hookErrorCount: number; keys: string[] };
-      input: { keys: string[] };
-      shape: 'different-keys-unaffected';
-      name: string;
-    };
-
+type ScenarioCase = ReentrancyScenarioCaseEntity.Type;
 type ScenarioShape = ScenarioCase['shape'];
 type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<ScenarioCase, { shape: Shape }>;
+
+const fileIntake = ScenarioFileCompiler.compileIntake(ReentrancyScenarioCaseEntity.Schema, ReentrancyScenarioCaseEntity.Node);
 
 function readArrayItem<T>(items: readonly T[], index: number, label: string): T {
   const item = items[index];
@@ -42,6 +22,9 @@ function readArrayItem<T>(items: readonly T[], index: number, label: string): T 
 }
 
 class ReentrantBeforeAcquireMutex extends Mutex<string> {
+  static build(): ReentrantBeforeAcquireMutex {
+    return new ReentrantBeforeAcquireMutex();
+  }
   #reentered = false;
 
   protected override beforeAcquire(key: string): void {
@@ -57,6 +40,9 @@ class ReentrantBeforeAcquireMutex extends Mutex<string> {
 }
 
 class ReentrantOnReleaseMutex extends Mutex<string> {
+  static build(): ReentrantOnReleaseMutex {
+    return new ReentrantOnReleaseMutex();
+  }
   #reentered = false;
   #release1: (() => void) | undefined;
 
@@ -77,6 +63,9 @@ class ReentrantOnReleaseMutex extends Mutex<string> {
 }
 
 class DifferentKeysMutex extends Mutex<string> {
+  static build(): DifferentKeysMutex {
+    return new DifferentKeysMutex();
+  }
   readonly beforeAcquireKeys: string[] = [];
   readonly onReleaseKeys: string[] = [];
 
@@ -95,7 +84,7 @@ class DifferentKeysMutex extends Mutex<string> {
 
 const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> } = {
   'beforeAcquire-reentrant-same-key': async (scenarioCase) => {
-      const mutex = ReentrantBeforeAcquireMutex.create();
+      const mutex = ReentrantBeforeAcquireMutex.build();
       const outerRelease = await mutex.acquire(scenarioCase.input.key);
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
       const err = mutex.getHookErrors()[0];
@@ -112,7 +101,7 @@ const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Pr
       assert.ok(mutex.isComplete() === scenarioCase.expected.complete);
   },
   'different-keys-unaffected': async (scenarioCase) => {
-      const mutex = DifferentKeysMutex.create();
+      const mutex = DifferentKeysMutex.build();
       const [releaseA, releaseB] = await Promise.all([
         mutex.acquire(scenarioCase.input.keys[0]!),
         mutex.acquire(scenarioCase.input.keys[1]!)
@@ -131,7 +120,7 @@ const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Pr
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
   },
   'onRelease-reentrant-same-key': async (scenarioCase) => {
-      const mutex = ReentrantOnReleaseMutex.create();
+      const mutex = ReentrantOnReleaseMutex.build();
       const release1 = await mutex.acquire(scenarioCase.input.key);
       const pendings = Array.from({ length: scenarioCase.input.batch.pendingCount }, () => mutex.acquire(scenarioCase.input.key));
       mutex.setRelease1(release1);
@@ -153,7 +142,7 @@ async function runCase<Shape extends ScenarioShape>(scenarioCase: ScenarioCaseOf
 }
 
 void describe('Mutex reentrancy', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

@@ -2,8 +2,8 @@
  * ProcessKit configuration contract
  */
 
-import type { EffectHandlerInterface, StateMachine } from '@studnicky/fsm/node';
-import type { SchedulerProviderInterface } from '@studnicky/scheduler/node';
+import type { EffectHandlerInterface, StateMachine } from '@studnicky/fsm/browser';
+import type { SchedulerProviderInterface } from '@studnicky/scheduler/browser';
 
 /**
  * Configuration accepted by `ProcessKit.create()`.
@@ -20,7 +20,7 @@ export interface ProcessKitConfigInterface<
   TEffect extends { readonly 'variant': string } = never
 > {
   /**
-   * Effect handler passed straight to `EffectInterpreter.create({ machine, handler })`.
+   * Effect handler passed straight to `EffectInterpreter.create(machine, { handler })`.
    * No default — a machine with no effects needs none.
    */
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;

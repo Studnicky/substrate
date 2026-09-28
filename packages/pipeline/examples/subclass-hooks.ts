@@ -6,6 +6,7 @@
  * Run: npx tsx packages/pipeline/examples/subclass-hooks.ts
  */
 
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 import { Pipeline } from '../src/index.js';
@@ -20,7 +21,11 @@ class TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {
   }
 
   protected override afterStage(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {
-    return { ...context, 'elapsed': Date.now() - this.startTime };
+    const candidate: unknown = { ...context, 'elapsed': Date.now() - this.startTime };
+    if (!HookRequestContextEntity.validate(candidate)) {
+      throw RuntimeError.create('assembled hook request context failed validation');
+    }
+    return candidate;
   }
 }
 

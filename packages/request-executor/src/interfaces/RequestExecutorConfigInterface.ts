@@ -12,7 +12,7 @@ import type { RequestScopeFactoryInterface } from './RequestScopeFactoryInterfac
  */
 export interface RequestExecutorConfigInterface {
   /** Default deadline in milliseconds for calls without a per-call deadline. */
-  readonly 'deadlineMs'?: RequestExecutorConfigDataEntity.Type['deadlineMs'];
+  readonly 'deadlineMs'?: RequestExecutorConfigDataEntity.InputType['deadlineMs'];
 
   /** HTTP client implementation for this runtime. */
   readonly 'fetchClient': FetchClientInterface;

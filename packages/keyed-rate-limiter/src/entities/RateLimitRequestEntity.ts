@@ -1,21 +1,25 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+import { TokenCountEntity } from '@studnicky/resilience/entities';
 
-/** Canonical key and token count accepted by rate-limit operations. */
+/** Canonical key and token count accepted by rate-limit operations. `tokens` composes `TokenCountEntity` — resilience owns that constraint, since it also backs `TokenBucket`. */
 export namespace RateLimitRequestEntity {
   export const Schema = {
     'additionalProperties': false,
     'properties': {
       'key': { 'minLength': 1, 'type': 'string' },
-      'tokens': { 'exclusiveMinimum': 0, 'type': 'number' }
+      'tokens': TokenCountEntity.Schema
     },
     'required': ['key'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'tokens': TokenCountEntity.Node }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

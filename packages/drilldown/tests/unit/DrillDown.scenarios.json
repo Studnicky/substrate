@@ -11,7 +11,7 @@
   },
   "configs": {
     "explicitCategory": {
-      "minimumGroupSize": 0,
+      "minimumGroupSize": 1,
       "rules": {
         "group": [{
           "property": "category",
@@ -24,7 +24,7 @@
       }
     },
     "excludeWest": {
-      "minimumGroupSize": 0,
+      "minimumGroupSize": 1,
       "filter": [{ "operator": "exclude", "property": "region", "type": "value", "values": ["west"] }],
       "rules": {
         "group": [{

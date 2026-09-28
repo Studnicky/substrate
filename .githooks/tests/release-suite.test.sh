@@ -19,13 +19,17 @@ assert_release_suite_routes_git_flow() {
     printf '%s\n' '{"name":"a","version":"1.0.0"}' > packages/a/package.json
     printf '%s\n' '{"name":"b","version":"1.0.0"}' > packages/b/package.json
     stub_cmd "$repo" pnpm 'printf "%s\n" "$*"'
-    stub_cmd "$repo" node "case \"\$1\" in */scripts/validate-changeset-ref.mjs) exit 0 ;; esac
+    stub_cmd "$repo" node "case \"\$1\" in */scripts/validate-changeset-ref.ts) exit 0 ;; esac
 exec \"$node_binary\" \"\$@\""
     git add -A
     git commit -q -m "chore: base release state"
     git update-ref refs/remotes/origin/main HEAD
     git update-ref refs/remotes/origin/develop HEAD
     git switch -q -c feature/release-flow
+
+    printf '%s\n' 'export const a = 1;' > packages/a/index.js
+    git add packages/a/index.js
+    git commit -q -m "feat: deliver package a change"
 
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" verify-lockstep 1.0.0
     PATH="$repo/bin:$PATH" /bin/bash "$RELEASE_SUITE" changeset-status origin/develop

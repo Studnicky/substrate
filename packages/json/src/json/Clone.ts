@@ -1,6 +1,6 @@
 /** Deep cloning for JavaScript values. */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 export class Clone {
   /** Clone an array element-by-element. */
@@ -51,18 +51,18 @@ export class Clone {
 
   /** Clone an object's own enumerable keys. */
   protected static cloneObject(value: Record<string, unknown>): Record<string, unknown> {
-    const cloned: Record<string, unknown> = {};
-
     const entries = Object.entries(value);
+    const clonedEntries = new Map<string, unknown>();
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];
       if (entry === undefined) {
         continue;
       }
       const [key, item] = entry;
-      Reflect.set(cloned, key, this.deep(item));
+      clonedEntries.set(key, this.deep(item));
     }
 
+    const cloned = JsonObject.fromEntries(clonedEntries);
     return cloned;
   }
 

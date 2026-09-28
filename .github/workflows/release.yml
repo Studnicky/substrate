@@ -185,7 +185,7 @@ jobs:
           bash scripts/ci-suite.sh predocs-build >"$tmpdir/predocs.log" 2>&1 &
           predocs_pid=$!
 
-          node scripts/extract-release-notes.mjs >"$tmpdir/release_notes.md" &
+          node scripts/extract-release-notes.ts >"$tmpdir/release_notes.md" &
           notes_pid=$!
 
           if ! wait "$predocs_pid"; then

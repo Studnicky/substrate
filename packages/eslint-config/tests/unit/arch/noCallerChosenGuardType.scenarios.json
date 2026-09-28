@@ -1,0 +1,49 @@
+{
+  "valid": [
+    {
+      "code": "function isInstanceOf<Instance>(value: unknown, ctor: Function & { readonly 'prototype': Instance }): value is Instance { return value instanceof ctor; } class MyClass {} declare const existing: unknown; if (isInstanceOf(existing, MyClass)) {}",
+      "name": "an inferred type argument resolved to a non-generic class with no `any` is valid"
+    },
+    {
+      "code": "function isString<T>(value: T): value is string & T { return typeof value === 'string'; } declare const input: number; if (isString(input)) {}",
+      "name": "a guard whose predicate is fully determined by its own parameter's type is valid"
+    },
+    {
+      "code": "declare const value: unknown; if (Array.isArray(value)) {}",
+      "name": "Array.isArray narrowing is valid"
+    },
+    {
+      "code": "function areInstancesOf<T>(value: unknown, other: unknown, ctor: new (...args: unknown[]) => T): value is T { return value instanceof ctor && other instanceof ctor; }",
+      "name": "a predicate derived from a parameter's own construct-signature return type is valid"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "function isInstanceOf<Instance>(value: unknown, ctor: Function & { readonly 'prototype': Instance }): value is Instance { return value instanceof ctor; } class Container<T> { value?: T; } declare const existing: unknown; if (isInstanceOf<Container<number>>(existing, Container)) {}",
+      "errors": [
+        {
+          "messageId": "explicitTypeArgument"
+        }
+      ],
+      "name": "an explicit type argument on a generic-container instance guard is invalid"
+    },
+    {
+      "code": "function isInstanceOf<Instance>(value: unknown, ctor: Function & { readonly 'prototype': Instance }): value is Instance { return value instanceof ctor; } declare const existing: unknown; if (isInstanceOf(existing, Map)) {}",
+      "errors": [
+        {
+          "messageId": "inferredAnyTypeArgument"
+        }
+      ],
+      "name": "an inferred type argument that resolves through Map's own any is invalid"
+    },
+    {
+      "code": "function pickAny<T>(value: unknown): value is T { return true; }",
+      "errors": [
+        {
+          "messageId": "freePickDeclaration"
+        }
+      ],
+      "name": "a predicate declaration whose bare type parameter no parameter constrains is invalid"
+    }
+  ]
+}

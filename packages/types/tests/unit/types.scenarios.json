@@ -1368,47 +1368,176 @@
       "input": {
         "a": 1
       },
-      "outcome": true
+      "outcome": true,
+      "method": "is"
     },
     {
       "description": "rejects null",
       "input": {
         "shape": "null"
       },
-      "outcome": false
+      "outcome": false,
+      "method": "is"
     },
     {
       "description": "rejects arrays",
       "input": [],
-      "outcome": false
+      "outcome": false,
+      "method": "is"
     },
     {
       "description": "rejects Map",
       "input": {
         "shape": "map"
       },
-      "outcome": false
+      "outcome": false,
+      "method": "is"
     },
     {
       "description": "rejects Set",
       "input": {
         "shape": "set"
       },
-      "outcome": false
+      "outcome": false,
+      "method": "is"
     },
     {
       "description": "rejects a regular expression",
       "input": {
         "shape": "regex"
       },
-      "outcome": false
+      "outcome": false,
+      "method": "is"
     },
     {
       "description": "accepts a plain object with null prototype",
       "input": {
         "shape": "nullPrototypeObject"
       },
-      "outcome": true
+      "outcome": true,
+      "method": "is"
+    },
+    {
+      "method": "fromEntries",
+      "description": "converts a Map of entries into a plain object",
+      "input": {
+        "shape": "mapWithEntries"
+      },
+      "outcome": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "method": "fromEntries",
+      "description": "converts an array of pairs into a plain object",
+      "input": [
+        [
+          "a",
+          1
+        ],
+        [
+          "b",
+          2
+        ]
+      ],
+      "outcome": {
+        "a": 1,
+        "b": 2
+      }
+    },
+    {
+      "method": "fromEntries",
+      "description": "a later duplicate key overwrites an earlier one",
+      "input": [
+        [
+          "a",
+          1
+        ],
+        [
+          "a",
+          2
+        ]
+      ],
+      "outcome": {
+        "a": 2
+      }
+    },
+    {
+      "method": "fromEntries",
+      "description": "an empty iterable produces an empty object",
+      "input": [],
+      "outcome": {}
+    },
+    {
+      "method": "write",
+      "description": "writes a runtime key onto an existing target",
+      "input": {
+        "target": {},
+        "key": "a",
+        "value": 1
+      },
+      "outcome": {
+        "prototypeIntact": true,
+        "result": true,
+        "target": {
+          "a": 1
+        }
+      }
+    },
+    {
+      "method": "write",
+      "description": "overwrites an existing key on the target",
+      "input": {
+        "target": {
+          "a": 1
+        },
+        "key": "a",
+        "value": 2
+      },
+      "outcome": {
+        "prototypeIntact": true,
+        "result": true,
+        "target": {
+          "a": 2
+        }
+      }
+    },
+    {
+      "method": "write",
+      "description": "rejects a __proto__ key and leaves the prototype intact",
+      "input": {
+        "target": {},
+        "key": "__proto__",
+        "value": {
+          "polluted": true
+        }
+      },
+      "outcome": {
+        "prototypeIntact": true,
+        "result": false,
+        "target": {}
+      }
+    },
+    {
+      "method": "write",
+      "description": "rejects a __proto__ key without touching sibling keys",
+      "input": {
+        "target": {
+          "a": 1
+        },
+        "key": "__proto__",
+        "value": {
+          "polluted": true
+        }
+      },
+      "outcome": {
+        "prototypeIntact": true,
+        "result": false,
+        "target": {
+          "a": 1
+        }
+      }
     }
   ],
   "jsonValue": [

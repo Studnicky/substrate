@@ -1,8 +1,9 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { DEFAULT_EXEMPT_PACKAGES } from '../constants/IntakeParseOnlyConstants.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 import { ResolvedType } from '../shared/ResolvedType.js';
 import { EntityIntake } from './EntityIntake.js';
 import { ExemptPackage } from './ExemptPackage.js';
@@ -20,15 +21,13 @@ import { ExemptPackage } from './ExemptPackage.js';
 
 class AssertionShape {
   public static source(node: Rule.Node): Rule.Node | undefined {
-    const raw = node as unknown as Record<string, unknown>;
-    const expression: unknown = raw.expression;
-    const result = Predicates.isRecord(expression) ? expression as unknown as Rule.Node : undefined;
+    const expression = AstHelpers.getNodeProperty(node, 'expression');
+    const result = AstHelpers.isNode(expression) ? expression : undefined;
     return result;
   }
 
   public static hasNamedTarget(node: Rule.Node): boolean {
-    const raw = node as unknown as Record<string, unknown>;
-    const typeAnnotation: unknown = raw.typeAnnotation;
+    const typeAnnotation = AstHelpers.getNodeProperty(node, 'typeAnnotation');
     const result = Predicates.isRecord(typeAnnotation) && typeAnnotation.type === 'TSTypeReference';
     return result;
   }

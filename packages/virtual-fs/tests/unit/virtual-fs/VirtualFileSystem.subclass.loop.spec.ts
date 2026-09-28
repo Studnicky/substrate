@@ -1,16 +1,13 @@
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-
-
 import { VirtualFileSystem } from "../../../src/virtual-fs/VirtualFileSystem.js";
+import { VirtualFileSystemSubclassScenarioCaseEntity } from "./entities/VirtualFileSystemSubclassScenarioCaseEntity.js";
 import scenarioGroups from "./VirtualFileSystem.subclass.scenarios.json" with { type: "json" };
 
-type ScenarioCase = {
-  [Shape in ScenarioShape]: ScenarioMetadata<Shape> &
-    ScenarioCaseByShape[Shape];
-}[ScenarioShape];
+type ScenarioCase = VirtualFileSystemSubclassScenarioCaseEntity.Type;
 
 type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<
   ScenarioCase,
@@ -25,121 +22,17 @@ type ScenarioHandlers = {
   [Shape in ScenarioShape]: ScenarioHandler<Shape>;
 };
 
-type ScenarioShape = keyof ScenarioCaseByShape;
+type ScenarioShape = ScenarioCase["shape"];
 
-type ScenarioMetadata<Shape extends string> = {
-  description: string;
-  shape: Shape;
-  name: string;
-};
-
-interface ScenarioCaseByShape {
-  "async-create-hook": {
-    expected: { content: string; rejections: unknown[] };
-    input: { content: string; path: string };
-  };
-  "full-trace": {
-    expected: {
-      createLog: string[];
-      deleteLog: string[];
-      readLog: string[];
-      renameCount: number;
-      writeLog: string[];
-    };
-    input: {
-      contentA: string;
-      contentB: string;
-      path: string;
-      renamed: string;
-    };
-  };
-  "hook-cause-chains": {
-    expected: { causeMatches: boolean };
-    input: { content: string; path: string };
-  };
-  "onCreate-new-files": {
-    expected: { createLog: string[] };
-    input: { files: Array<{ content: string; path: string }> };
-  };
-  "onCreate-no-overwrite": {
-    expected: { createCount: number };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
-  "onCreate-recursive-mkdir": {
-    expected: { createLogIncludes: string[] };
-    input: { path: string };
-  };
-  "onDelete-not-before-unlink": {
-    expected: { deleteCount: number };
-    input: { content: string; path: string };
-  };
-  "onDelete-unlinkSync": {
-    expected: { deleteLog: string[] };
-    input: { content: string; path: string };
-  };
-  "onRead-readFileSync": {
-    expected: { readLog: string[] };
-    input: { content: string; path: string };
-  };
-  "onRead-readdirSync": {
-    expected: { readLogIncludes: string[] };
-    input: { path: string };
-  };
-  "onRename-paths": {
-    expected: { renameLog: Array<{ from: string; to: string }> };
-    input: {
-      content: string;
-      from: string;
-      to: string;
-    };
-  };
-  "onWrite-update-only": {
-    expected: { writeLog: string[] };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
-  "subclass-create-instance": {
-    expected: { instanceofBase: boolean; instanceofSubclass: boolean };
-    input: { factory: string };
-  };
-  "throwing-create-hook": {
-    expected: { hookName: string; written: boolean };
-    input: { content: string; path: string };
-  };
-  "throwing-delete-hook": {
-    expected: { exists: boolean; hookName: string };
-    input: { content: string; path: string };
-  };
-  "throwing-read-hook": {
-    expected: { hookName: string };
-    input: { content: string; path: string };
-  };
-  "throwing-rename-hook": {
-    expected: { hookName: string; newContent: string; oldExists: boolean };
-    input: {
-      content: string;
-      from: string;
-      to: string;
-    };
-  };
-  "throwing-write-hook": {
-    expected: { hookName: string; written: boolean };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
-}
+const fileIntake = ScenarioFileCompiler.compileIntake(
+  VirtualFileSystemSubclassScenarioCaseEntity.Schema,
+  VirtualFileSystemSubclassScenarioCaseEntity.Node,
+);
 
 class CreateLogFs extends VirtualFileSystem {
+  static override create(): CreateLogFs {
+    return new CreateLogFs({});
+  }
   readonly createLog: string[] = [];
   override onCreate(path: string): void {
     this.createLog.push(path);
@@ -147,6 +40,9 @@ class CreateLogFs extends VirtualFileSystem {
 }
 
 class WriteLogFs extends VirtualFileSystem {
+  static override create(): WriteLogFs {
+    return new WriteLogFs({});
+  }
   readonly writeLog: string[] = [];
   override onWrite(path: string): void {
     this.writeLog.push(path);
@@ -154,6 +50,9 @@ class WriteLogFs extends VirtualFileSystem {
 }
 
 class ReadLogFs extends VirtualFileSystem {
+  static override create(): ReadLogFs {
+    return new ReadLogFs({});
+  }
   readonly readLog: string[] = [];
   override onRead(path: string): void {
     this.readLog.push(path);
@@ -161,6 +60,9 @@ class ReadLogFs extends VirtualFileSystem {
 }
 
 class DeleteLogFs extends VirtualFileSystem {
+  static override create(): DeleteLogFs {
+    return new DeleteLogFs({});
+  }
   readonly deleteLog: string[] = [];
   override onDelete(path: string): void {
     this.deleteLog.push(path);
@@ -168,6 +70,9 @@ class DeleteLogFs extends VirtualFileSystem {
 }
 
 class RenameLogFs extends VirtualFileSystem {
+  static override create(): RenameLogFs {
+    return new RenameLogFs({});
+  }
   readonly renameLog: Array<{ from: string; to: string }> = [];
   override onRename(oldPath: string, newPath: string): void {
     this.renameLog.push({ from: oldPath, to: newPath });
@@ -175,6 +80,9 @@ class RenameLogFs extends VirtualFileSystem {
 }
 
 class FullTraceFs extends VirtualFileSystem {
+  static override create(): FullTraceFs {
+    return new FullTraceFs({});
+  }
   readonly createLog: string[] = [];
   readonly deleteLog: string[] = [];
   readonly readLog: string[] = [];
@@ -238,6 +146,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "async-create-hook": async (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class AsyncRejectingCreateFs extends VirtualFileSystem {
+      static override create(): AsyncRejectingCreateFs {
+        return new AsyncRejectingCreateFs({});
+      }
       override onCreate(_path: string): Promise<void> {
         return Promise.reject(RuntimeError.create("async onCreate boom"));
       }
@@ -284,6 +195,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const original = RuntimeError.create("original boom");
     class ThrowingCreateFs extends VirtualFileSystem {
+      static override create(): ThrowingCreateFs {
+        return new ThrowingCreateFs({});
+      }
       override onCreate(): void {
         throw original;
       }
@@ -376,6 +290,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "throwing-create-hook": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class ThrowingCreateFs extends VirtualFileSystem {
+      static override create(): ThrowingCreateFs {
+        return new ThrowingCreateFs({});
+      }
       override onCreate(): void {
         throw RuntimeError.create("onCreate boom");
       }
@@ -401,6 +318,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "throwing-delete-hook": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class ThrowingDeleteFs extends VirtualFileSystem {
+      static override create(): ThrowingDeleteFs {
+        return new ThrowingDeleteFs({});
+      }
       override onDelete(): void {
         throw RuntimeError.create("onDelete boom");
       }
@@ -424,6 +344,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "throwing-read-hook": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class ThrowingReadFs extends VirtualFileSystem {
+      static override create(): ThrowingReadFs {
+        return new ThrowingReadFs({});
+      }
       override onRead(): void {
         throw RuntimeError.create("onRead boom");
       }
@@ -446,6 +369,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "throwing-rename-hook": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class ThrowingRenameFs extends VirtualFileSystem {
+      static override create(): ThrowingRenameFs {
+        return new ThrowingRenameFs({});
+      }
       override onRename(): void {
         throw RuntimeError.create("onRename boom");
       }
@@ -470,6 +396,9 @@ const scenarioHandlers: ScenarioHandlers = {
   "throwing-write-hook": (scenarioCase) => {
     const { expected, input } = scenarioCase;
     class ThrowingWriteFs extends VirtualFileSystem {
+      static override create(): ThrowingWriteFs {
+        return new ThrowingWriteFs({});
+      }
       override onWrite(): void {
         throw RuntimeError.create("onWrite boom");
       }
@@ -501,10 +430,8 @@ function runCase<Shape extends ScenarioShape>(
   return scenarioHandlers[scenarioCase.shape](scenarioCase);
 }
 
-const scenarios = scenarioGroups.cases as ScenarioCase[];
-
 void describe("VirtualFileSystem subclasses", () => {
-  for (const scenario of scenarios) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

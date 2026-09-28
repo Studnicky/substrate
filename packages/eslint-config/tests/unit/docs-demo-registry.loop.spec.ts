@@ -11,7 +11,7 @@ import {
 } from 'node:test';
 
 const REPOSITORY_ROOT = fileURLToPath(new URL('../../../../', import.meta.url));
-const CHECKER_PATH = join(REPOSITORY_ROOT, 'scripts', 'check-docs-demos.mjs');
+const CHECKER_PATH = join(REPOSITORY_ROOT, 'scripts', 'check-docs-demos.ts');
 
 function writeFixtureFile(root: string, relativePath: string, content: string): void {
   const filePath = join(root, relativePath);

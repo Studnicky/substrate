@@ -40,7 +40,7 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * ```typescript
  * scope.execute(() => context.set('a', 1));
  * scope.execute(() => context.set('b', 2));
- * scope.terminate(); // { a: 1, b: 2 }
+ * scope.terminate(); // Map { 'a' => 1, 'b' => 2 }
  * ```
  *
  * ## Async Propagation
@@ -48,9 +48,9 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * Node retains Context through ordinary await. Browser code retains Context
  * through the transform. Without the transform, call await(value) for a promise
  * and bind(callback) before handing a callback to an opaque API. Context.run()
- * owns only callbacks that settle within its operation. A callback invoked later
- * uses Context.initialize(); remove it, then call terminate() when it is no
- * longer needed:
+ * and Context.runAsync() own only callbacks that settle within their operation.
+ * A callback invoked later uses Context.initialize(); remove it, then call
+ * terminate() when it is no longer needed:
  *
  * ```typescript
  * await scope.execute(async () => {
@@ -69,7 +69,7 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * });
  *
  * const finalState = scope.terminate();
- * // { requestId: '123', logger: ..., statusCode: 200 }
+ * // Map { 'requestId' => '123', 'logger' => ..., 'statusCode' => 200 }
  * ```
  *
  * @example Try/finally pattern for guaranteed cleanup
@@ -334,20 +334,17 @@ export class ContextScope implements ContextScopeInterface {
    * Returns a snapshot of all values accumulated during execution.
    * After termination, execute() will throw and the internal store is cleared.
    *
-   * @returns Snapshot of all context values at termination
+   * @returns Map of all context values at termination, keyed by context key
    * @throws {ContextError} If already terminated
    */
-  terminate(): Record<string, unknown> {
+  terminate(): ReadonlyMap<string, unknown> {
     if (this.#state === 'terminated') {
       throw new ContextError(`${this.name} scope has already been terminated`);
     }
 
     this.transition('terminated');
 
-    const snapshot: Record<string, unknown> = {};
-    for (const [key, value] of this.#store) {
-      Reflect.set(snapshot, key, value);
-    }
+    const snapshot = new Map(this.#store);
 
     this.#store.clear();
     this.hooks.invoke('onDispose', () => {
@@ -355,7 +352,7 @@ export class ContextScope implements ContextScopeInterface {
       return hookResult;
     });
 
-    const result: Record<string, unknown> = snapshot;
+    const result: ReadonlyMap<string, unknown> = snapshot;
     return result;
   }
 }

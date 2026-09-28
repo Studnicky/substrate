@@ -43,7 +43,7 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
 
 const pool = TelemetryWorkerPool.create({
   'concurrency': 2,
-  'workerPath': fileURLToPath(new URL('./observedWorkerPoolWorker.mjs', import.meta.url))
+  'workerPath': fileURLToPath(new URL('./observedWorkerPoolWorker.ts', import.meta.url))
 });
 
 const results = await pool.run([{ 'n': 5 }, { 'n': 10 }, { 'n': 15 }]);

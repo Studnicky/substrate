@@ -6,14 +6,14 @@ cd "$(dirname "$0")" || exit 1
 source "_helpers.sh"
 
 REPO_ROOT="$(cd "$PWD/../.." && pwd)"
-TEST_SUITE="$REPO_ROOT/scripts/test-suite.mjs"
+TEST_SUITE="$REPO_ROOT/scripts/test-suite.ts"
 
 repo=$(make_repo)
 (
   cd "$repo" || exit 1
   mkdir -p scripts packages/foo/tests/unit packages/foo/tests/integration packages/foo/tests/smoke packages/bar/tests/unit
 
-  cp "$TEST_SUITE" scripts/test-suite.mjs
+  cp "$TEST_SUITE" scripts/test-suite.ts
 
   cat > package.json <<'JSON'
 {"name":"@test/repo","private":true,"workspaces":["packages/*"]}
@@ -26,7 +26,7 @@ JSON
   : > packages/foo/tests/smoke/foo.loop.spec.ts
   : > packages/bar/tests/unit/bar.loop.spec.ts
 
-  out=$(node scripts/test-suite.mjs all --dry-run)
+  out=$(node scripts/test-suite.ts all --dry-run)
   assert_contains "runner unit tier" "unit:" "$out"
   assert_contains "runner integration tier" "integration:" "$out"
   assert_contains "runner smoke tier" "smoke:" "$out"
@@ -34,11 +34,11 @@ JSON
   assert_contains "runner integration file" "packages/foo/tests/integration/foo.loop.spec.ts" "$out"
   assert_contains "runner smoke file" "packages/foo/tests/smoke/foo.loop.spec.ts" "$out"
 
-  out=$(node scripts/test-suite.mjs all --package @test/foo --dry-run)
+  out=$(node scripts/test-suite.ts all --package @test/foo --dry-run)
   assert_contains "runner package filter" "packages/foo/tests/unit/foo.loop.spec.ts" "$out"
   assert_not_contains "runner package filter excludes sibling" "packages/bar/tests/unit/bar.loop.spec.ts" "$out"
 
-  out=$(node scripts/test-suite.mjs unit --package packages/foo --dry-run)
+  out=$(node scripts/test-suite.ts unit --package packages/foo --dry-run)
   assert_contains "runner dir filter" "packages/foo/tests/unit/foo.loop.spec.ts" "$out"
   assert_not_contains "runner dir filter excludes sibling" "packages/bar/tests/unit/bar.loop.spec.ts" "$out"
 )

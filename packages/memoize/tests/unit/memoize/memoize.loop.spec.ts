@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError } from '@studnicky/errors/node';
 
 import {
@@ -8,65 +9,17 @@ import {
   MemoizeConfigError
 } from '../../../src/index.js';
 import { CacheLookupEntity } from '../../../src/entities/index.js';
-import type { MemoizeOptionsInterface } from '../../../src/interfaces/index.js';
+import type { MemoizeCollaboratorsInterface } from '../../../src/interfaces/index.js';
+import { MemoizeScenarioCaseEntity } from '../entities/MemoizeScenarioCaseEntity.js';
 import scenarioGroups from './memoize.scenarios.json' with { type: 'json' };
 
-type ScenarioShape =
-  | 'async-hooks-safe'
-  | 'clear-recomputes-all'
-  | 'coalesce-shared-call'
-  | 'coalesced-failure-recomputes'
-  | 'coalesced-hooks'
-  | 'config-error'
-  | 'create-rejects-foreign-construction'
-  | 'different-keys'
-  | 'entities'
-  | 'failure-recomputes-after-rejection'
-  | 'hit-and-miss-hooks'
-  | 'hit-cache'
-  | 'invalidate-preserves-other-keys'
-  | 'invalidate-recomputes'
-  | 'isolated-hook-ownership'
-  | 'miss-before-fn'
-  | 'per-key-hook-args'
-  | 'rejecting-coalesced-hook'
-  | 'rejecting-miss-hook'
-  | 'sync-fn'
-  | 'throwing-coalesced-hook'
-  | 'throwing-hit-hook'
-  | 'throwing-miss-hook'
-  | 'ttl-stale-options'
-  | 'undefined-result-cache';
+const fileIntake = ScenarioFileCompiler.compileIntake(MemoizeScenarioCaseEntity.Schema, MemoizeScenarioCaseEntity.Node);
 
-type KeyFnShape = 'compound' | 'identity' | 'number-string';
+type ScenarioShape = MemoizeScenarioCaseEntity.Type['shape'];
 
-type MemoizeConfigInput = {
-  capacity: number;
-  keyFnShape: KeyFnShape;
-  staleMs?: number;
-  ttlMs?: number;
-};
+type KeyFnShape = NonNullable<MemoizeScenarioCaseEntity.Type['input']['memoize']['keyFnShape']>;
 
-type BatchInput = {
-  callCount?: number;
-};
-
-type ScenarioInput = {
-  batch?: BatchInput;
-  failureMessage?: string;
-  failuresBeforeSuccess?: number;
-  key?: string;
-  memoize: MemoizeConfigInput;
-  successValue?: string;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: ScenarioInput;
-  shape: ScenarioShape;
-  name: string;
-};
+type ScenarioCase = MemoizeScenarioCaseEntity.Type;
 
 type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
 
@@ -77,15 +30,18 @@ const keyFnMap = {
 } satisfies Record<KeyFnShape, (...args: never[]) => string>;
 
 function memoizeOptions<TArgs extends unknown[]>(
-  config: MemoizeConfigInput,
+  config: MemoizeScenarioCaseEntity.Type['input']['memoize'],
   keyFn: (...args: TArgs) => string
-): MemoizeOptionsInterface<TArgs> {
-  return {
-    capacity: config.capacity,
-    'keyDeriver': keyFn,
-    ...(config.staleMs === undefined ? {} : { staleMs: config.staleMs }),
-    ...(config.ttlMs === undefined ? {} : { ttlMs: config.ttlMs })
-  };
+): readonly [unknown, MemoizeCollaboratorsInterface<TArgs>] {
+  const capacity = readNumber(config.capacity, 'Scenario input.memoize.capacity');
+  return [
+    {
+      capacity,
+      ...(config.staleMs === undefined ? {} : { staleMs: config.staleMs }),
+      ...(config.ttlMs === undefined ? {} : { ttlMs: config.ttlMs })
+    },
+    { 'keyDeriver': keyFn }
+  ];
 }
 
 function readString<TValue>(value: TValue, label: string): string {
@@ -191,7 +147,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const pending = createPendingValue<string>();
     const memo = AsyncRejectingHooksMemoize.create(
       async (_key: string) => pending.promise,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     try {
@@ -217,7 +173,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `value:${id}:${calls}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     await memo.call('a');
@@ -236,7 +192,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `${id}:${await pending.promise}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const callsForKey = createSameKeyCalls(memo, 'x', readBatchCallCount(scenarioCase));
@@ -274,7 +230,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
         return readString(scenarioCase.input.successValue, 'Scenario input.successValue');
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const [leader, follower] = createSameKeyCalls(memo, key, readBatchCallCount(scenarioCase));
@@ -310,7 +266,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = TrackedMemoize.create(
       async (id: string) => `${id}:${await pending.promise}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const calls = createSameKeyCalls(memo, 'x', readBatchCallCount(scenarioCase));
@@ -336,7 +292,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     assert.throws(() => {
       ForeignMemoize.create(
         (id: string) => `value:${id}`,
-        memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+        ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
       );
     }, (error) => {
       assert.ok(error instanceof RuntimeError);
@@ -352,7 +308,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `value:${id}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     assert.deepEqual(
@@ -389,7 +345,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         }
         return readString(scenarioCase.input.successValue, 'Scenario input.successValue');
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     await assert.rejects(memo.call(key), { message: scenarioCase.expected.firstErrorMessage });
@@ -413,7 +369,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = TrackedMemoize.create(
       (id: string, revision: number) => `${id}@${revision}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.compound)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.compound)
     );
 
     await memo.call('order-1', 3);
@@ -428,7 +384,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `value:${id}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     assert.equal(await memo.call('a'), scenarioCase.expected.first);
@@ -442,7 +398,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `value:${id}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     await memo.call('a');
@@ -459,7 +415,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return `value:${id}:${calls}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     assert.equal(await memo.call('a'), scenarioCase.expected.first);
@@ -484,11 +440,11 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
     const pendingB = createPendingValue<string>();
     const memoA = TrackedMemoize.create(
       async (_key: string, caller: string) => `${caller}:${await pendingA.promise}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
     const memoB = TrackedMemoize.create(
       async (_key: string, caller: string) => `${caller}:${await pendingB.promise}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const leaderA = memoA.call('shared', 'leader-a');
@@ -518,7 +474,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         events.push('function');
         return `value:${id}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     await memo.call('a');
@@ -545,7 +501,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         const pending = id === 'x' ? pendingX.promise : pendingY.promise;
         return `${id}@${revision}:${await pending}`;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const leaderX = memo.call('x', 1);
@@ -576,7 +532,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = RejectingCoalescedMemoize.create(
       async (id: string) => `${id}:${await pending.promise}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const calls = createSameKeyCalls(memo, 'x', readBatchCallCount(scenarioCase));
@@ -597,7 +553,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = RejectingMissMemoize.create(
       (id: string) => `value:${id}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     assert.equal(await memo.call('a'), scenarioCase.expected.first);
@@ -610,7 +566,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return value * 2;
       },
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap['number-string'])
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap['number-string'])
     );
 
     assert.deepEqual([await memo.call(21), await memo.call(21)], scenarioCase.expected.results);
@@ -627,7 +583,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = ThrowingCoalescedMemoize.create(
       async (id: string) => `${id}:${await pending.promise}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const calls = createSameKeyCalls(memo, 'x', readBatchCallCount(scenarioCase));
@@ -647,7 +603,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = ThrowingHitMemoize.create(
       (id: string) => `value:${id}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     await memo.call('a');
@@ -662,7 +618,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const memo = ThrowingMissMemoize.create(
       (id: string) => `value:${id}`,
-      memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     assert.equal(await memo.call('a'), scenarioCase.expected.first);
@@ -682,7 +638,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
           calls += 1;
           return `value:${id}:${calls}`;
         },
-        memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
+        ...memoizeOptions(scenarioCase.input.memoize, keyFnMap.identity)
       );
 
       assert.equal(await memo.call('a'), scenarioCase.expected.first);
@@ -707,7 +663,7 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
         calls += 1;
         return undefined;
       },
-      memoizeOptions<[string]>(scenarioCase.input.memoize, keyFnMap.identity)
+      ...memoizeOptions<[string]>(scenarioCase.input.memoize, keyFnMap.identity)
     );
 
     const first = await memo.call(key);
@@ -723,7 +679,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Memoize', () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.description, async () => {
       await runCase(scenarioCase);
     });

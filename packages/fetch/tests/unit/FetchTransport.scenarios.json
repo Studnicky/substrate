@@ -36,7 +36,7 @@
     {
       "name": "uses-undici-fetch-null-dispatcher",
       "description": "FetchTransport falls back to undici when dispatcher is null",
-      "operation": "uses-undici-fetch",
+      "operation": "uses-undici-fetch-null-dispatcher",
       "input": {},
       "expected": {
         "responseBody": "undici response"

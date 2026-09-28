@@ -1,8 +1,9 @@
 /** 02-override-hooks — subclass FetchClient and override onRequest/onResponse to transform requests and responses. Run: npx tsx packages/fetch/examples/02-override-hooks.ts */
 
+// #region usage
+import { JsonObject, Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
-// #region usage
 import type { RequestContextInterface, ResponseContextInterface } from '../src/node/index.js';
 
 import { FetchClient } from '../src/node/index.js';
@@ -44,10 +45,7 @@ class AuthClient extends FetchClient {
 await (async function runOverrideHooksExample(): Promise<void> {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (_input, init) => {
-    const echoed: Record<string, string> = {};
-    for (const [name, value] of new Headers(init?.headers).entries()) {
-      Reflect.set(echoed, name, value);
-    }
+    const echoed = JsonObject.fromEntries(new Headers(init?.headers).entries());
 
     const result = Promise.resolve(new Response(JSON.stringify({ 'echoed': echoed }), {
       'headers': { 'Content-Type': 'application/json' },
@@ -60,7 +58,10 @@ await (async function runOverrideHooksExample(): Promise<void> {
 
   try {
     const res = await client.get('/check');
-    const body = await res.json() as { 'echoed': Record<string, string> };
+    const parsedBody: unknown = await res.json();
+    assert.ok(Predicates.isObject(parsedBody), 'response body is an object');
+    const { echoed } = parsedBody;
+    assert.ok(Predicates.isObject(echoed), 'response body has an echoed headers object');
 
     assert.ok(client instanceof FetchClient, 'AuthClient is-a FetchClient');
     assert.ok(client instanceof AuthClient, 'instanceof works for subclass');
@@ -68,8 +69,8 @@ await (async function runOverrideHooksExample(): Promise<void> {
     assert.ok(client.requestLog[0]?.includes('/check') === true, 'onRequest received the correct url');
     assert.strictEqual(client.responseLog.length, 1, 'onResponse fired once');
     assert.strictEqual(client.responseLog[0], 200, 'onResponse received 200 status');
-    assert.strictEqual(body.echoed.authorization, 'Bearer example-token', 'Authorization header was injected');
-    assert.strictEqual(body.echoed['x-client'], 'AuthClient', 'X-Client header was injected');
+    assert.strictEqual(echoed.authorization, 'Bearer example-token', 'Authorization header was injected');
+    assert.strictEqual(echoed['x-client'], 'AuthClient', 'X-Client header was injected');
 
     console.log('02-override-hooks: all assertions passed');
   } finally {

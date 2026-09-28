@@ -11,7 +11,7 @@ function delay(milliseconds: number): Promise<void> {
   return result;
 }
 
-describe('Context.run', () => {
+describe('Context.run and Context.runAsync', () => {
   it('returns a synchronous operation value and cleans up its scope', () => {
     const context = NodeContext.create({ 'name': 'sync-run' });
     const result = context.run({ 'id': 'sync' }, (scope) => {
@@ -22,7 +22,7 @@ describe('Context.run', () => {
     });
 
     assert.deepStrictEqual(result, {
-      'snapshot': { 'id': 'sync', 'state': 'complete' },
+      'snapshot': new Map([['id', 'sync'], ['state', 'complete']]),
       'value': 42
     });
     assert.strictEqual(context.isActive(), false);
@@ -31,14 +31,14 @@ describe('Context.run', () => {
 
   it('returns an asynchronous operation value and cleans up its scope', async () => {
     const context = NodeContext.create({ 'name': 'async-run' });
-    const result = await context.run({ 'id': 'async' }, async (scope) => {
+    const result = await context.runAsync({ 'id': 'async' }, async (scope) => {
       await scope.await(delay(1));
       context.set('state', 'complete');
       return 'done';
     });
 
     assert.deepStrictEqual(result, {
-      'snapshot': { 'id': 'async', 'state': 'complete' },
+      'snapshot': new Map([['id', 'async'], ['state', 'complete']]),
       'value': 'done'
     });
     assert.strictEqual(context.isActive(), false);
@@ -49,7 +49,7 @@ describe('Context.run', () => {
     const context = NodeContext.create({ 'name': 'rejected-run' });
     const failure = new Error('operation failed');
 
-    await assert.rejects(context.run({ 'id': 'rejected' }, async (scope) => {
+    await assert.rejects(context.runAsync({ 'id': 'rejected' }, async (scope) => {
       await scope.await(delay(1));
       throw failure;
     }), failure);

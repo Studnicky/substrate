@@ -1,9 +1,10 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Predicates } from '@studnicky/types/browser';
 
 namespace RequireOptionsObjectOptionsEntity {
   export const Schema = {
@@ -17,12 +18,19 @@ namespace RequireOptionsObjectOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'minimumOptionals': SchemaNode.defineNumber({
+    'default': 2,
+    'description': 'Minimum number of optional parameters to trigger the rule.',
+    'minimum': 2,
+    'type': 'number'
+  } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }
 
 interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
@@ -33,12 +41,7 @@ interface TypeScriptRuleListenerInterface extends Rule.RuleListener {
 }
 
 class ParamInspector {
-  /**
-   * Returns true when an `Identifier` param's own type annotation is a union containing
-   * `undefined` (`value: T | undefined`). No `?` and no default value are present, but a caller
-   * may still idiomatically omit the argument (`undefined` is a valid explicit value at every
-   * call site), so this counts the same as an explicitly optional parameter.
-   */
+  // `T | undefined` counts as optional even with no `?` — see docs/eslint/rules/require-options-object.md.
   private static hasUndefinedUnionAnnotation(param: Record<string, unknown>): boolean {
     const ann = param.typeAnnotation;
     if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return false; }
@@ -49,12 +52,7 @@ class ParamInspector {
     return result;
   }
 
-  /**
-   * A rest param typed as a tuple (`...args: [name?: string, age?: number]`) is not a single
-   * non-optional unit — its own optional tuple members are exactly the kind of "caller may omit
-   * this" surface the rule exists to catch. Named tuple members mark themselves via
-   * `optional: true`; unnamed members wrap their element type in `TSOptionalType`.
-   */
+  // Rest-tuple optional members count individually: `optional: true` (named) or `TSOptionalType` (unnamed).
   private static tupleOptionalCount(param: Record<string, unknown>): number {
     const ann = param.typeAnnotation;
     if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return 0; }
@@ -70,11 +68,6 @@ class ParamInspector {
     return count;
   }
 
-  /**
-   * Returns how many "caller may omit" optional slots a single parameter contributes. Ordinary
-   * optional parameters contribute at most one; a rest-tuple parameter can contribute several,
-   * one per optional tuple member, since it is not really a single param for this rule's purposes.
-   */
   public static optionalCount(param: unknown): number {
     if (!Predicates.isRecord(param)) { return 0; }
     if (param.type === 'RestElement') { const result = ParamInspector.tupleOptionalCount(param);
@@ -139,19 +132,34 @@ class FunctionName {
   public static fromParent(node: Rule.Node): string {
     const parent: unknown = node.parent;
     if (!Predicates.isRecord(parent)) { return '(anonymous)'; }
-    if (parent.type === 'VariableDeclarator' && Predicates.isRecord(parent.id) && parent.id.type === 'Identifier') {
-      const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
-      return result;
-    }
-    if (
-      (parent.type === 'MethodDefinition' || parent.type === 'Property')
-      && Predicates.isRecord(parent.key)
-      && parent.key.type === 'Identifier'
-    ) {
-      const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
-      return result;
-    }
+
+    const variableName = FunctionName.variableDeclaratorName(parent);
+    if (variableName !== undefined) { return variableName; }
+
+    const memberName = FunctionName.memberKeyName(parent);
+    if (memberName !== undefined) { return memberName; }
+
     return '(anonymous)';
+  }
+
+  private static variableDeclaratorName(parent: Record<string, unknown>): string | undefined {
+    if (parent.type !== 'VariableDeclarator' || !Predicates.isRecord(parent.id) || parent.id.type !== 'Identifier') { return undefined; }
+
+    const result = typeof parent.id.name === 'string' ? parent.id.name : '(anonymous)';
+
+    return result;
+  }
+
+  private static memberKeyName(parent: Record<string, unknown>): string | undefined {
+    if (
+      (parent.type !== 'MethodDefinition' && parent.type !== 'Property')
+      || !Predicates.isRecord(parent.key)
+      || parent.key.type !== 'Identifier'
+    ) { return undefined; }
+
+    const result = typeof parent.key.name === 'string' ? parent.key.name : '(anonymous)';
+
+    return result;
   }
 }
 

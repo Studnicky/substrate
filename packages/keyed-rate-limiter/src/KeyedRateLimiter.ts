@@ -3,14 +3,14 @@
  */
 
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
-import type { TokenBucketOptionsInterface } from '@studnicky/resilience/interfaces';
+import type { RateLimitConsumptionInterface, TokenBucketOptionsInterface } from '@studnicky/resilience/interfaces';
 
-import { LruCache } from '@studnicky/cache/node';
-import { EntityCompiler } from '@studnicky/entity/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { LruCache } from '@studnicky/cache/browser';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { RateLimiterClock, ResilienceConfigError, TokenBucket } from '@studnicky/resilience/browser';
 import { RateLimitConsumptionEntity } from '@studnicky/resilience/entities';
-import { RateLimiterClock, ResilienceConfigError, TokenBucket } from '@studnicky/resilience/node';
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { KeyedRateLimiterCreateConfigInterface } from './interfaces/KeyedRateLimiterCreateConfigInterface.js';
 import type { KeyedRateLimiterStrategyConfigInterface } from './interfaces/KeyedRateLimiterStrategyConfigInterface.js';
@@ -23,14 +23,11 @@ import { KeyedRateLimiterBoundaryError } from './errors/KeyedRateLimiterBoundary
 import { KeyedRateLimiterConfigError } from './errors/KeyedRateLimiterConfigError.js';
 
 interface KeyedRateLimiterDepsInterface<TStrategy extends RateLimiterStrategyInterface> {
-  'cacheOptions': LruCacheOptionsEntity.Type;
+  'cacheOptions': LruCacheOptionsEntity.InputType;
   'factory': (this: KeyedRateLimiter<TStrategy>, key: string) => TStrategy;
   'tokenBucketOptions': TokenBucketOptionsInterface | undefined;
 }
 
-interface KeyedRateLimiterSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /** Default `maximumKeys` when a caller omits it — bounds unbounded key growth without requiring every caller to pick a number. */
 const DEFAULT_MAXIMUM_KEYS = 10_000;
@@ -70,7 +67,7 @@ class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
  * @example Generic strategy extension point
  * ```typescript
  * import { KeyedRateLimiter } from '@studnicky/keyed-rate-limiter/node';
- * import { SlidingWindowLimiter } from '@studnicky/resilience/node';
+ * import { SlidingWindowLimiter } from '@studnicky/resilience/browser';
  *
  * const limiter = KeyedRateLimiter.create({
  *   factory: () => SlidingWindowLimiter.create({
@@ -84,7 +81,7 @@ class KeyedRateLimiterFailureIsolatingHookInvoker extends HookInvoker {
  * ```
  */
 export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = TokenBucket> {
-  static #createCacheOptions(options: KeyedRateLimiterRegistryOptionsEntity.Type): LruCacheOptionsEntity.Type {
+  static #createCacheOptions(options: KeyedRateLimiterRegistryOptionsEntity.Type): LruCacheOptionsEntity.InputType {
     return {
       'capacity': options.maximumKeys ?? DEFAULT_MAXIMUM_KEYS,
       ...(options.keyIdleTtlMs === undefined ? {} : { 'ttlMs': options.keyIdleTtlMs })
@@ -100,7 +97,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     constructor(
       hookInvoker: HookInvoker,
       notifyKeyEviction: (key: string) => void,
-      options: LruCacheOptionsEntity.Type
+      options: LruCacheOptionsEntity.InputType
     ) {
       super(options);
       this.#hookInvoker = hookInvoker;
@@ -137,48 +134,39 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * Creates a `KeyedRateLimiter` whose default factory constructs one
    * `TokenBucket` per key from `requestsPerSecond`/`burstSize`/`clock`.
    *
-   * @param config - `{requestsPerSecond, burstSize, maximumKeys?, keyIdleTtlMs?, clock?}`
-   * @returns New `KeyedRateLimiter<TokenBucket>` instance
+   * @param config - Default TokenBucket options or a per-key strategy factory with registry options.
+   * @returns A limiter using TokenBucket for default options or the factory-supplied strategy.
    */
-  static create<TInstance extends KeyedRateLimiter<TokenBucket> = KeyedRateLimiter<TokenBucket>>(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
-    config: KeyedRateLimiterCreateConfigInterface
-  ): TInstance;
-  static create<
-    TStrategy extends RateLimiterStrategyInterface,
-    TInstance extends KeyedRateLimiter<TStrategy> = KeyedRateLimiter<TStrategy>
-  >(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
-    config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): TInstance;
-  static create<
-    TStrategy extends RateLimiterStrategyInterface,
-    TInstance extends KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> =
-      KeyedRateLimiter<TokenBucket>
-  >(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
+  static create<TStrategy extends RateLimiterStrategyInterface>(
     config: KeyedRateLimiterCreateConfigInterface | KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): TInstance {
+  ): KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> {
     if ('factory' in config) {
-      const { factory, ...registryOptions } = config;
-      if (typeof factory !== 'function') {
-        throw new KeyedRateLimiterConfigError('factory must be a function');
-      }
-      if (!KeyedRateLimiterRegistryOptionsEntity.validate(registryOptions)) {
-        const messages = EntityCompiler.formatErrors(KeyedRateLimiterRegistryOptionsEntity.validate.errors);
-        throw new KeyedRateLimiterConfigError(messages);
-      }
-      const result: unknown = Reflect.construct(this, [{
-        'cacheOptions': KeyedRateLimiter.#createCacheOptions(registryOptions),
-        'factory': factory,
-        'tokenBucketOptions': undefined
-      }]);
-      if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-        throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
-      }
-      return result;
+      return new KeyedRateLimiter<TStrategy>(KeyedRateLimiter.createFactoryDependencies(config));
     }
+    return new KeyedRateLimiter<TokenBucket>(KeyedRateLimiter.createDefaultDependencies(config));
+  }
 
+  protected static createFactoryDependencies<TStrategy extends RateLimiterStrategyInterface>(
+    config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
+  ): KeyedRateLimiterDepsInterface<TStrategy> {
+    const { factory, ...registryOptions } = config;
+    if (typeof factory !== 'function') {
+      throw new KeyedRateLimiterConfigError('factory must be a function');
+    }
+    if (!KeyedRateLimiterRegistryOptionsEntity.validate(registryOptions)) {
+      const messages = EntityCompiler.formatErrors(KeyedRateLimiterRegistryOptionsEntity.validate.errors);
+      throw new KeyedRateLimiterConfigError(messages);
+    }
+    return {
+      'cacheOptions': KeyedRateLimiter.#createCacheOptions(registryOptions),
+      'factory': factory,
+      'tokenBucketOptions': undefined
+    };
+  }
+
+  protected static createDefaultDependencies(
+    config: KeyedRateLimiterCreateConfigInterface
+  ): KeyedRateLimiterDepsInterface<TokenBucket> {
     const { clock, ...serializableOptions } = config;
     if (!KeyedRateLimiterDefaultOptionsEntity.validate(serializableOptions)) {
       const messages = EntityCompiler.formatErrors(KeyedRateLimiterDefaultOptionsEntity.validate.errors);
@@ -199,17 +187,12 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       ...(verifiedClock === undefined ? {} : { 'clock': verifiedClock })
     };
 
-    const result: unknown = Reflect.construct(this, [{
+    return {
       'cacheOptions': KeyedRateLimiter.#createCacheOptions(serializableOptions),
       'factory': KeyedRateLimiter.#createTokenBucket,
       'tokenBucketOptions': tokenBucketOptions
-    }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
-    }
-    return result;
+    };
   }
-
   readonly #cache: LruCache<string, TStrategy>;
   readonly #factory: (this: KeyedRateLimiter<TStrategy>, key: string) => TStrategy;
   readonly #tokenBucketOptions: TokenBucketOptionsInterface | undefined;
@@ -237,8 +220,8 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    *   (`TokenBucketExhaustedError` for the default `TokenBucket` path)
    */
   consume(
-    key: RateLimitRequestEntity.Type['key'],
-    tokens?: RateLimitRequestEntity.Type['tokens']
+    key: unknown,
+    tokens?: unknown
   ): RateLimitConsumptionEntity.Type {
     const request = this.#intakeRequest(key, tokens);
     const strategy = this.#resolveStrategy(request.key);
@@ -267,10 +250,10 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * @param options - `{signal?, tokens?}`, forwarded to the underlying strategy
    */
   async waitForToken(
-    key: RateLimitRequestEntity.Type['key'],
+    key: unknown,
     options?: {
       'signal'?: AbortSignal;
-      'tokens'?: RateLimitRequestEntity.Type['tokens'];
+      'tokens'?: unknown;
     }
   ): Promise<RateLimitConsumptionEntity.Type> {
     const request = this.#intakeRequest(key, options?.tokens);
@@ -279,7 +262,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       ? undefined
       : {
         ...(options.signal === undefined ? {} : { 'signal': options.signal }),
-        ...(request.tokens === undefined ? {} : { 'tokens': request.tokens })
+        'tokens': request.tokens
       };
     const result = this.#intakeConsumption(await strategy.waitForToken(strategyOptions));
     this.hooks.invoke('onTokenAcquired', () => {
@@ -329,7 +312,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     }
   }
 
-  #intakeConsumption(value: RateLimitConsumptionEntity.Type): RateLimitConsumptionEntity.Type {
+  #intakeConsumption(value: RateLimitConsumptionInterface): RateLimitConsumptionEntity.Type {
     try {
       const result = RateLimitConsumptionEntity.intake(value);
       return result;

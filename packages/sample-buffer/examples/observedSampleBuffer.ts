@@ -14,6 +14,10 @@ class TracedSampleBuffer extends SampleBuffer {
   readonly percentileLog: { 'pct': number; 'result': number }[] = [];
   clearCount = 0;
 
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): TracedSampleBuffer {
+    return new TracedSampleBuffer(options);
+  }
+
   protected override onOverflow(value: number): void {
     console.log(`[sample-buffer] overflow value=${String(value)} capacity=${String(this.capacity)}`);
     this.overflowLog.push(value);

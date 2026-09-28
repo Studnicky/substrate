@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { MESSAGE, RULE_NAME } from './constants/EvalFunctionConstants.js';
@@ -25,7 +25,13 @@ class EvalAstHelpers {
     const property = node.property;
     if (!Predicates.isRecord(property)) { return false; }
 
-    if (node.computed === true) {
+    const result = EvalAstHelpers.isEvalPropertyName(property, node.computed === true);
+
+    return result;
+  }
+
+  private static isEvalPropertyName(property: Record<string, unknown>, computed: boolean): boolean {
+    if (computed) {
       const result = property.type === 'Literal' && property.value === 'eval';
       return result;
     }
@@ -41,7 +47,7 @@ class EvalAstHelpers {
     const expressions = node.expressions;
     if (!Array.isArray(expressions) || expressions.length === 0) { return false; }
 
-    const last: unknown = (expressions as readonly unknown[]).at(-1);
+    const last: unknown = expressions.at(-1);
     const result = EvalAstHelpers.isEvalIdentifier(last) || EvalAstHelpers.isEvalMemberExpression(last);
     return result;
   }
@@ -72,9 +78,8 @@ export const evalFunction: Rule.RuleModule = {
     };
 
     const onVariableDeclarator: NonNullable<Rule.RuleListener['VariableDeclarator']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const id = rawNode.id;
-      const init = rawNode.init;
+      const id = node.id;
+      const init = node.init;
 
       if (!Predicates.isRecord(id) || id.type !== 'Identifier') { return; }
       if (!EvalAstHelpers.isEvalReference(init)) { return; }
@@ -84,8 +89,7 @@ export const evalFunction: Rule.RuleModule = {
     };
 
     const onCallExpression: NonNullable<Rule.RuleListener['CallExpression']> = (node) => {
-      const rawNode = node as unknown as Record<string, unknown>;
-      const callee = rawNode.callee;
+      const callee = node.callee;
 
       if (EvalAstHelpers.isEvalReference(callee)) {
         report(node);

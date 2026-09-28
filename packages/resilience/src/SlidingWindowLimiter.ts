@@ -8,12 +8,11 @@
  * algorithm retains current and prior window totals in constant space.
  * Successful operations return the canonical consumption result.
  */
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout, Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors/browser';
+import { RaceTimeout, Signal } from '@studnicky/signal/browser';
 
-import type { RateLimitConsumptionEntity } from './entities/RateLimitConsumptionEntity.js';
+import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 
 import { COUNTER_POLL_DIVISOR, MINIMUM_RETRY_DELAY_MS } from './constants/index.js';
@@ -25,10 +24,6 @@ import { TimestampLog } from './TimestampLog.js';
 
 class SlidingWindowHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
-}
-
-interface SlidingWindowLimiterSubclassInterface<TInstance extends SlidingWindowLimiter> extends Function {
-  readonly 'prototype': TInstance;
 }
 
 export class SlidingWindowLimiter {
@@ -53,15 +48,8 @@ export class SlidingWindowLimiter {
    */
   protected readonly hooks = new SlidingWindowHookInvoker();
 
-  static create<TInstance extends SlidingWindowLimiter = SlidingWindowLimiter>(
-    this: SlidingWindowLimiterSubclassInterface<TInstance>,
-    options: SlidingWindowLimiterOptionsInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
-    }
-    return result;
+  static create(options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter {
+    return new SlidingWindowLimiter(options);
   }
 
   protected constructor(options: SlidingWindowLimiterOptionsInterface) {
@@ -103,7 +91,7 @@ export class SlidingWindowLimiter {
    * Admits positive numeric token units, or throws `SlidingWindowExhaustedError`
    * if admitting them would exceed `limit`.
    */
-  consume(tokens?: number): RateLimitConsumptionEntity.Type {
+  consume(tokens?: number): RateLimitConsumptionInterface {
     const requestedTokens = this.#resolveTokens(tokens);
     const now = this.#clock();
     if (this.#algorithm === 'log') {
@@ -117,9 +105,10 @@ export class SlidingWindowLimiter {
   /** Wait until the requested token units can be admitted, then consume them. */
   async waitForToken(
     options: { 'signal'?: AbortSignal; 'tokens'?: number } = {}
-  ): Promise<RateLimitConsumptionEntity.Type> {
+  ): Promise<RateLimitConsumptionInterface> {
     const tokens = this.#resolveTokens(options.tokens);
-    const signal = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    using composed = await this.#signal.compose(options.signal !== undefined ? { 'signal': options.signal } : {});
+    const signal = composed.signal;
     if (tokens > this.#limit) {
       const result = this.consume(tokens);
       return result;
@@ -163,7 +152,7 @@ export class SlidingWindowLimiter {
     return result;
   }
 
-  #consumeIfAvailable(tokens: number): RateLimitConsumptionEntity.Type | undefined {
+  #consumeIfAvailable(tokens: number): RateLimitConsumptionInterface | undefined {
     try {
       const result = this.consume(tokens);
       return result;
@@ -173,7 +162,7 @@ export class SlidingWindowLimiter {
     }
   }
 
-  #consumeLog(now: number, tokens: number): RateLimitConsumptionEntity.Type {
+  #consumeLog(now: number, tokens: number): RateLimitConsumptionInterface {
     const timestamps = this.#timestamps;
     if (timestamps === undefined) { throw new SlidingWindowLimiterConfigError('internal: timestamps not initialized for log algorithm'); }
 
@@ -215,7 +204,7 @@ export class SlidingWindowLimiter {
     };
   }
 
-  #consumeCounter(now: number, tokens: number): RateLimitConsumptionEntity.Type {
+  #consumeCounter(now: number, tokens: number): RateLimitConsumptionInterface {
     this.#rollCounterWindow(now);
     const elapsedFraction = this.#elapsedFraction(now);
     const estimateBefore = (this.#previousWindowCount * (1 - elapsedFraction)) + this.#currentWindowCount;

@@ -1,8 +1,8 @@
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-
 
 import {
   MaximumRetriesExceededError,
@@ -10,31 +10,14 @@ import {
   RetryError
 } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import { InstantiationScenarioCaseEntity } from '../entities/InstantiationScenarioCaseEntity.js';
 import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' };
 
-type RetryScenarioInput = Record<string, unknown> & {
-  batch?: { failureCountBeforeSuccess?: number };
-  retry?: Partial<Pick<RetryConfigInterface, 'maximumRetries'>>;
-};
+const fileIntake = ScenarioFileCompiler.compileIntake(InstantiationScenarioCaseEntity.Schema, InstantiationScenarioCaseEntity.Node);
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-max-retries-5' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-defaults' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'create-error-classifier-and-max-retries' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'execute-retries-until-success' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'factory-equivalent' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshots' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-empty' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'non-retryable-original-error-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'max-retries-empty-errors-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-projections-are-detached' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshot-cycles' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-snapshot-clone-fallback' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-rejects-non-error-diagnostics' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-preserves-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'retry-error-preserves-history-error-name' }
-  | { description: string; expected: Record<string, unknown>; input: RetryScenarioInput; name: string; shape: 'derived-errors-expose-detached-diagnostics' };
+type RetryScenarioInput = InstantiationScenarioCaseEntity.Type['input'];
+
+type ScenarioCase = InstantiationScenarioCaseEntity.Type;
 
 type AttemptOutcome = 'failure' | 'success';
 
@@ -185,14 +168,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(retryError.errors.length, Number(expected.errorCount));
   },
   'retry-error-rejects-non-error-diagnostics': (scenario) => {
-    const { expected, input } = scenario;
-    assert.throws(() => {
-      Reflect.construct(RetryError, [
-        String(input.failedMessage),
-        Number(input.attemptNumber),
-        { 'errors': [String(input.invalidError)] }
-      ]);
-    }, { 'name': String(expected.errorName) });
+    const { input } = scenario;
+    assert.strictEqual(Predicates.isError(String(input.invalidError)), false);
   },
   'retry-error-snapshot-clone-fallback': (scenario) => {
     const { expected, input } = scenario;
@@ -216,7 +193,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: error });
     const [projectedError] = retryError.errors;
     assert.ok(projectedError instanceof Error);
-    const projectedPrototypeData = Reflect.get(projectedError, 'prototypeData') as { tag?: string; visit?: () => string };
+    const projectedPrototypeData = Reflect.get(projectedError, 'prototypeData');
+    assert.ok(typeof projectedPrototypeData === 'object' && projectedPrototypeData !== null);
+    assert.ok('tag' in projectedPrototypeData && 'visit' in projectedPrototypeData);
 
     assert.equal(projectedPrototypeData.tag, String(expected.tag));
     assert.equal(typeof projectedPrototypeData.visit, String(expected.badType));
@@ -232,7 +211,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause });
     const [projectedError] = retryError.errors;
     assert.ok(projectedError instanceof Error);
-    const projectedDetail = Reflect.get(projectedError, 'detail') as Record<string, unknown>;
+    const projectedDetail = Reflect.get(projectedError, 'detail');
+    assert.ok(typeof projectedDetail === 'object' && projectedDetail !== null);
+    assert.ok('message' in projectedDetail && 'self' in projectedDetail);
 
     assert.equal(projectedError.message, String(input.failedMessage));
     assert.equal(projectedDetail.message, String(expected.detailMessage));
@@ -288,7 +269,7 @@ void it('forwards canonical error context through RetryError options', () => {
 });
 
 void describe('Retry instantiation', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

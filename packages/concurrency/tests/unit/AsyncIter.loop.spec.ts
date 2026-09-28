@@ -1,8 +1,10 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { AsyncIter } from '../../src/AsyncIter.js';
+import { AsyncIterScenarioCaseEntity } from './entities/AsyncIterScenarioCaseEntity.js';
 import scenarioGroups from './AsyncIter.scenarios.json' with { type: 'json' };
 
 async function collect<T>(gen: AsyncIterable<T>): Promise<T[]> {
@@ -19,95 +21,8 @@ async function* fromArray<T>(arr: T[]): AsyncGenerator<T> {
   }
 }
 
-type BatchInput = {
-  itemCount: number;
-};
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { items: number[] };
-      input: { sources: number[][] };
-      shape: 'merge-empty';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: number[] };
-      input: { sources: number[][] };
-      shape: 'merge-single';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { includes: number[]; length: number };
-      input: { sources: number[][] };
-      shape: 'merge-two-sources';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { errorMessage: string };
-      input: { errorMessage: string; sources: number[][] };
-      shape: 'merge-propagates-error';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { first: number; last: number; length: number };
-      input: { batch: BatchInput };
-      shape: 'merge-high-volume';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: number[] };
-      input: { predicate: 'even' | 'all'; values: number[] };
-      shape: 'filter-sync';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: number[] };
-      input: { predicate: 'even' | 'all'; values: number[] };
-      shape: 'filter-empty';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: number[] };
-      input: { predicate: 'even' | 'all'; values: number[] };
-      shape: 'filter-all';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: string[] };
-      input: { minLength: number; values: string[] };
-      shape: 'filter-async';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: Array<{ id: number; label?: string }> };
-      input: { values: Array<{ id: number }> };
-      shape: 'enrich-value';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: Array<{ id: number; label?: string }> };
-      input: { values: Array<{ id: number }> };
-      shape: 'enrich-partial';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { items: Array<{ id: number; label?: string }> };
-      input: { values: Array<{ id: number }> };
-      shape: 'enrich-none';
-      name: string;
-    };
+type ScenarioCase = AsyncIterScenarioCaseEntity.Type;
+type BatchInput = Extract<ScenarioCase, { shape: 'merge-high-volume' }>['input']['batch'];
 
 function makeNumberSources(values: number[][]): AsyncGenerator<number>[] {
   return values.map((source) => fromArray(source));
@@ -159,14 +74,14 @@ const runnerMap: RunnerMap = {
   },
   'filter-async': async (scenarioCase) => {
     const items = await collect(
-      AsyncIter.filter(fromArray(scenarioCase.input.values), async (s) => Promise.resolve((s as string).length > scenarioCase.input.minLength))
+      AsyncIter.filter(fromArray(scenarioCase.input.values), async (s) => Promise.resolve(s.length > scenarioCase.input.minLength))
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
   },
   'filter-empty': async (scenarioCase) => {
     const items = await collect(
       AsyncIter.filter(fromArray(scenarioCase.input.values), (n) => {
-        return scenarioCase.input.predicate === 'even' ? (n as number) % 2 === 0 : true;
+        return scenarioCase.input.predicate === 'even' ? n % 2 === 0 : true;
       })
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
@@ -174,7 +89,7 @@ const runnerMap: RunnerMap = {
   'filter-sync': async (scenarioCase) => {
     const items = await collect(
       AsyncIter.filter(fromArray(scenarioCase.input.values), (n) => {
-        return scenarioCase.input.predicate === 'even' ? (n as number) % 2 === 0 : true;
+        return scenarioCase.input.predicate === 'even' ? n % 2 === 0 : true;
       })
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
@@ -218,8 +133,10 @@ async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Sc
   return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
+const fileIntake = ScenarioFileCompiler.compileIntake(AsyncIterScenarioCaseEntity.Schema, AsyncIterScenarioCaseEntity.Node);
+
 void describe('AsyncIter', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
+  for (const scenario of fileIntake(scenarioGroups).cases) {
     void it(scenario.name, async () => {
       await runCase(scenario);
     });

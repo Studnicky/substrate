@@ -1,12 +1,14 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { JsonObject } from '@studnicky/types/browser';
 
-import type { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
 
 import { BusQueue } from './BusQueue.js';
+import { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
+import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a throwing hook must not replace publish()/subscribe() or block delivery. */
 class EventBusHookInvoker extends HookInvoker {
@@ -14,22 +16,6 @@ class EventBusHookInvoker extends HookInvoker {
 }
 
 interface DrainableQueueInterface {
-  drain(): Promise<void>;
-}
-
-interface EventBusSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// TTopicMap only appears in EventBus's covariant/contravariant members
-// (subscribe/publish), so a bound of `EventBus<TTopicMap>` would force
-// `EventBus<TTopicMap>` (the method's own general TTopicMap) to satisfy
-// `EventBus<never>`/`EventBus<any>`, which either fails to typecheck or
-// requires a banned `any`. `drain()`/`close()` are public members that don't
-// mention TTopicMap at all, so they constrain TInstance to "is actually
-// EventBus-shaped" without hitting that wall.
-interface EventBusShapeInterface {
-  close(): Promise<void>;
   drain(): Promise<void>;
 }
 
@@ -88,52 +74,50 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   };
 
   protected readonly hooks: HookInvoker = new EventBusHookInvoker();
-  readonly #store = new Map<keyof TTopicMap, unknown>();
+  readonly #store: { [K in keyof TTopicMap]?: Set<BusQueue<TTopicMap[K]>> } = {};
   readonly #queues = new Set<DrainableQueueInterface>();
   readonly #busController = new AbortController();
   readonly #config: BusQueueOptionsEntity.Type;
 
-  static create<
-    TTopicMap extends object,
-    TInstance extends EventBusShapeInterface = EventBus<TTopicMap>
-  >(
-    this: EventBusSubclassInterface<TInstance>,
-    config?: BusQueueOptionsEntity.Type
-  ): TInstance {
-    // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
-    // passing `this` directly as a call argument) so the receiver is obtained
-    // only through the rule-permitted `return this` form.
-    const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
-    const constructor = getConstructor();
-    const result: unknown = Reflect.construct(constructor, [config]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
-      throw RuntimeError.create('EventBus.create() did not construct the requested subclass.');
-    }
+  static create<TTopicMap extends object>(
+    this: typeof EventBus,
+    config?: BusQueueOptionsEntity.InputType
+  ): EventBus<TTopicMap> {
+    const result = new this(config);
     return result;
   }
 
-  protected constructor(config?: BusQueueOptionsEntity.Type) {
-    this.#config = Object.freeze(structuredClone(config ?? {}));
+  protected constructor(config?: BusQueueOptionsEntity.InputType) {
+    try {
+      this.#config = Object.freeze(BusQueueOptionsEntity.intake(config ?? {}));
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new BusQueueConfigError(error.message);
+      }
+      throw error;
+    }
   }
 
-  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: true): Set<BusQueue<TTopicMap[K]>>;
-  #getTopicSubscriptions<K extends keyof TTopicMap>(topic: K, create: false): Set<BusQueue<TTopicMap[K]>> | undefined;
-  #getTopicSubscriptions(topic: keyof TTopicMap, create: boolean): unknown {
-    const existing = this.#store.get(topic);
-    if (existing !== undefined || !create) {
+  #ensureTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> {
+    const existing = this.#store[topic];
+    if (existing !== undefined) {
       return existing;
     }
-    const fresh = new Set<unknown>();
-    this.#store.set(topic, fresh);
+    const fresh = new Set<BusQueue<TTopicMap[K]>>();
+    JsonObject.write(this.#store, topic, fresh);
     return fresh;
   }
 
+  #findTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> | undefined {
+    const result = this.#store[topic];
+    return result;
+  }
   subscribe<K extends keyof TTopicMap>(
     topic: K,
     handler: EventHandlerInterface<TTopicMap[K]>,
     options?: { 'signal'?: AbortSignal }
   ): UnsubscribeInterface {
-    const topicSubscriptions = this.#getTopicSubscriptions(topic, true);
+    const topicSubscriptions = this.#ensureTopicSubscriptions(topic);
     const queueController = new AbortController();
     const callerSignal = options?.signal;
     const queueHandler = async (payload: TTopicMap[K]): Promise<void> => {
@@ -157,7 +141,6 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
       unsubscribed = true;
       topicSubscriptions.delete(queue);
       this.#queues.delete(queue);
-      if (topicSubscriptions.size === 0) { this.#store.delete(topic); }
       queueController.abort();
       this.#busController.signal.removeEventListener('abort', unsubscribe);
       callerSignal?.removeEventListener('abort', unsubscribe);
@@ -184,7 +167,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   }
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
-    const topicSubscriptions = this.#getTopicSubscriptions(topic, false);
+    const topicSubscriptions = this.#findTopicSubscriptions(topic);
     if (topicSubscriptions === undefined || topicSubscriptions.size === 0) { return; }
     await this.hooks.invokeAsync('onPublish', () => {
       const result = this.onPublish(topic, payload);

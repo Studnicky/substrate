@@ -4,6 +4,12 @@
   },
   "references": [
     {
+      "path": "scripts"
+    },
+    {
+      "path": ".github/scripts"
+    },
+    {
       "path": "packages/cache"
     },
     {
@@ -308,6 +314,18 @@
     },
     {
       "path": "packages/drilldown/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/example-smoke-kit"
+    },
+    {
+      "path": "packages/example-smoke-kit/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/scenario-kit"
+    },
+    {
+      "path": "packages/scenario-kit/tsconfig.tests.json"
     }
   ],
   "files": []

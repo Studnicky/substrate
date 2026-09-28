@@ -54,11 +54,11 @@
     },
     {
       "shape": "owner-direct",
-      "name": "derivation resolves through re-export and namespace proxies and needs no satisfies clause, while a non-const-asserted value and an inline schema stay invalid",
+      "name": "derivation resolves through re-export and namespace proxies, while a local shadow, a type-annotated node, and an inline schema stay invalid",
       "input": {
         "files": {
-          "proxy.ts": "export type { FromSchema, JSONSchema } from 'json-schema-to-ts';",
-          "root.ts": "import type { FromSchema as DirectFromSchema, JSONSchema as DirectJSONSchema } from 'json-schema-to-ts';\nimport type { FromSchema as ProxyFromSchema, JSONSchema as ProxyJSONSchema } from './proxy.ts';\nimport type * as JsonSchema from 'json-schema-to-ts';\nimport type * as ProxySchema from './proxy.ts';\ntype FromSchema<T> = T;\nnamespace LocalSchema { export type FromSchema<T> = T; }\ntype JSONSchema = { readonly type: 'string' };\nconst DirectSchema = { type: 'string' } as const satisfies DirectJSONSchema;\nconst NamespaceSchema = { type: 'string' } as const satisfies JsonSchema.JSONSchema;\nconst ProxyConstrainedSchema = { type: 'string' } as const satisfies ProxyJSONSchema;\nconst ProxyNamespaceSchema = { type: 'string' } as const satisfies ProxySchema.JSONSchema;\nconst ShadowedSchema = { type: 'string' } as const satisfies JSONSchema;\nconst MutableConstrainedSchema = { type: 'string' } satisfies DirectJSONSchema;\nconst UnconstrainedSchema = { type: 'string' } as const;\ntype DirectType = DirectFromSchema<typeof DirectSchema>;\ntype DirectNamespaceType = JsonSchema.FromSchema<typeof NamespaceSchema>;\ntype ProxyType = ProxyFromSchema<typeof DirectSchema>;\ntype ProxyNamespaceType = ProxySchema.FromSchema<typeof DirectSchema>;\ntype ProxyConstraintType = DirectFromSchema<typeof ProxyConstrainedSchema>;\ntype ProxyNamespaceConstraintType = DirectFromSchema<typeof ProxyNamespaceSchema>;\ntype ShadowedFromSchemaType = FromSchema<typeof DirectSchema>;\ntype ShadowedNamespaceFromSchemaType = LocalSchema.FromSchema<typeof DirectSchema>;\ntype ShadowedJSONSchemaType = DirectFromSchema<typeof ShadowedSchema>;\ntype MutableConstraintType = DirectFromSchema<typeof MutableConstrainedSchema>;\ntype UnconstrainedType = DirectFromSchema<typeof UnconstrainedSchema>;\ntype InlineSchemaType = DirectFromSchema<{ readonly type: 'string' }>;"
+          "proxy.ts": "export type { NodeStaticType } from '@studnicky/entity/types';",
+          "root.ts": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType as DirectNodeStaticType } from '@studnicky/entity/types';\nimport type { NodeStaticType as ProxyNodeStaticType } from './proxy.ts';\nimport type * as EntityTypes from '@studnicky/entity/types';\nimport type * as ProxyTypes from './proxy.ts';\ntype NodeStaticType<T> = T;\nnamespace LocalSchema { export type NodeStaticType<T> = T; }\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nconst DirectNode = defineNode<string>({ type: 'string' } as const);\nconst AnnotatedNode: SchemaNodeInterface<unknown, string> = defineNode<string>({ type: 'string' } as const);\ntype DirectType = DirectNodeStaticType<typeof DirectNode>;\ntype DirectNamespaceType = EntityTypes.NodeStaticType<typeof DirectNode>;\ntype ProxyType = ProxyNodeStaticType<typeof DirectNode>;\ntype ProxyNamespaceType = ProxyTypes.NodeStaticType<typeof DirectNode>;\ntype ShadowedNodeStaticType = NodeStaticType<typeof DirectNode>;\ntype ShadowedNamespaceNodeStaticType = LocalSchema.NodeStaticType<typeof DirectNode>;\ntype AnnotatedNodeType = DirectNodeStaticType<typeof AnnotatedNode>;\ntype InlineSchemaType = DirectNodeStaticType<{ readonly type: 'string' }>;"
         }
       },
       "expected": {
@@ -84,44 +84,24 @@
             "reason": "fromSchema"
           },
           {
-            "name": "ProxyConstraintType",
-            "classification": "pureDataCanonical",
-            "reason": "fromSchema"
+            "name": "ShadowedNodeStaticType",
+            "classification": "interfaceContract",
+            "reason": "nonJson"
           },
           {
-            "name": "ProxyNamespaceConstraintType",
-            "classification": "pureDataCanonical",
-            "reason": "fromSchema"
+            "name": "ShadowedNamespaceNodeStaticType",
+            "classification": "interfaceContract",
+            "reason": "nonJson"
           },
           {
-            "name": "ShadowedFromSchemaType",
-            "classification": "pureDataInvalid",
-            "reason": "unresolvedReference"
-          },
-          {
-            "name": "ShadowedNamespaceFromSchemaType",
-            "classification": "pureDataInvalid",
-            "reason": "unresolvedReference"
-          },
-          {
-            "name": "ShadowedJSONSchemaType",
-            "classification": "pureDataCanonical",
-            "reason": "fromSchema"
-          },
-          {
-            "name": "MutableConstraintType",
-            "classification": "pureDataInvalid",
-            "reason": "unresolvedReference"
-          },
-          {
-            "name": "UnconstrainedType",
-            "classification": "pureDataCanonical",
-            "reason": "fromSchema"
+            "name": "AnnotatedNodeType",
+            "classification": "interfaceContract",
+            "reason": "indexedAccess"
           },
           {
             "name": "InlineSchemaType",
-            "classification": "pureDataInvalid",
-            "reason": "unresolvedReference"
+            "classification": "interfaceContract",
+            "reason": "indexedAccess"
           }
         ]
       }

@@ -1,26 +1,26 @@
 /**
- * Idempotency key guard composing cache, concurrency, and json
+ * Idempotency key guard composing cache and concurrency.
  */
 
-import { LruCache } from '@studnicky/cache/node';
-import { Coalesce } from '@studnicky/concurrency/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { LruCache } from '@studnicky/cache/browser';
+import { Coalesce } from '@studnicky/concurrency/browser';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 
-import type { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
 import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
 
-import { IdempotencyConflictError } from './errors/index.js';
+import { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
+import { IdempotencyConflictError, IdempotencyGuardConfigError } from './errors/index.js';
 
 class IdempotencyGuardHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
 }
 
 /**
- * Composes `@studnicky/cache` (`LruCache`), `@studnicky/concurrency`
- * (`Coalesce`), and `@studnicky/json` (`Hash`) into the "check cache → check
- * in-flight → run → store" idempotency-key pattern.
+ * Composes `@studnicky/cache` (`LruCache`) and `@studnicky/concurrency`
+ * (`Coalesce`) into the "check cache → check in-flight → run → store"
+ * idempotency-key pattern.
  *
  * `run(key, payload, factory)` fingerprints `payload` by sorted entries and
  * checks the composed `LruCache` for an existing entry under `key`:
@@ -89,26 +89,14 @@ export class IdempotencyGuard<TResult = unknown> {
    *
    * @param options - `{ capacity, ttlMs }` for the composed `LruCache`
    * @returns New IdempotencyGuard instance
+   * @throws {IdempotencyGuardConfigError} `options` fails `IdempotencyGuardOptionsEntity`'s schema
    */
 
-  static create<
-    TResult = unknown,
-    TInstance extends IdempotencyGuard<TResult> = IdempotencyGuard<TResult>
-  >(
-    this: Function & { readonly 'prototype': TInstance },
-    options: IdempotencyGuardOptionsEntity.Type
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
-    }
-
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
-    }
-
-    return result;
+  static create<TResult = unknown>(
+    this: typeof IdempotencyGuard,
+    options: IdempotencyGuardOptionsEntity.InputType
+  ): IdempotencyGuard<TResult> {
+    return new this(options);
   }
 
   readonly #cache: LruCache<string, IdempotencyGuardEntryInterface<TResult>>;
@@ -116,7 +104,17 @@ export class IdempotencyGuard<TResult = unknown> {
   readonly #inFlightFingerprints = new Map<string, string>();
   protected readonly hooks: HookInvoker = new IdempotencyGuardHookInvoker();
 
-  protected constructor(options: IdempotencyGuardOptionsEntity.Type) {
+  protected constructor(config: IdempotencyGuardOptionsEntity.InputType) {
+    let options: IdempotencyGuardOptionsEntity.Type;
+    try {
+      options = IdempotencyGuardOptionsEntity.intake(config);
+    } catch (error) {
+      if (error instanceof SchemaIntakeError) {
+        throw new IdempotencyGuardConfigError(RuntimeError.toMessage(error));
+      }
+      throw error;
+    }
+
     this.#cache = LruCache.create<string, IdempotencyGuardEntryInterface<TResult>>({
       'capacity': options.capacity,
       'ttlMs': options.ttlMs

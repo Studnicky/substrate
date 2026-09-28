@@ -15,7 +15,7 @@
  * - String comparisons respect case sensitivity settings from FilterConditionInterface
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface
@@ -37,12 +37,10 @@ import { AreStringsEqual } from './areStringsEqual.js';
  */
 export class AreDeeplyEqual {
   static areDeeplyEqual<Value>(value: Value, filterValue: Value, condition: FilterConditionInterface = {}): boolean {
-    // Handle NaN specially - for deep equality, NaN should equal NaN
-    if (Predicates.isNumber(value) && Predicates.isNumber(filterValue)) {
-      if (Number.isNaN(value) || Number.isNaN(filterValue)) {
-        const result = Predicates.areNaNEqual(value, filterValue);
-        return result;
-      }
+    const nanResult = AreDeeplyEqual.compareNaN(value, filterValue);
+
+    if (nanResult !== null) {
+      return nanResult;
     }
 
     // Quick reference equality check
@@ -51,13 +49,13 @@ export class AreDeeplyEqual {
     }
 
     // Handle null/undefined
-    if (Predicates.isNull(value) || Predicates.isUndefined(value) || Predicates.isNull(filterValue) || Predicates.isUndefined(filterValue)) {
+    if (AreDeeplyEqual.isNullish(value) || AreDeeplyEqual.isNullish(filterValue)) {
       const result = Predicates.areNullUndefinedEqual(value, filterValue);
       return result;
     }
 
     // Delegate structural runtime values to the shared predicate contract.
-    if ((Predicates.isTypeOf(value, 'object') && !Predicates.isNull(value)) || (Predicates.isTypeOf(filterValue, 'object') && !Predicates.isNull(filterValue))) {
+    if (AreDeeplyEqual.isStructural(value) || AreDeeplyEqual.isStructural(filterValue)) {
       const result = Predicates.areDeeplyEqual(value, filterValue);
       return result;
     }
@@ -67,14 +65,47 @@ export class AreDeeplyEqual {
       return false;
     }
 
-    // For strings, handle case sensitivity
+    const result = AreDeeplyEqual.comparePrimitive(value, filterValue, condition);
+
+    return result;
+  }
+
+  /** For strings, handles case sensitivity; for numbers, booleans, etc., uses strict equality. */
+  private static comparePrimitive<Value>(value: Value, filterValue: Value, condition: FilterConditionInterface): boolean {
     if (Predicates.isString(value) && Predicates.isString(filterValue)) {
       const result = AreStringsEqual.areStringsEqual(value, filterValue, condition);
+
       return result;
     }
 
-    // For numbers, booleans, etc., use strict equality
     const result = value === filterValue;
+
+    return result;
+  }
+
+  /** NaN should equal NaN for deep equality; `null` means neither operand is a NaN number. */
+  private static compareNaN<Value>(value: Value, filterValue: Value): boolean | null {
+    if (!Predicates.isNumber(value) || !Predicates.isNumber(filterValue)) {
+      return null;
+    }
+    if (!Number.isNaN(value) && !Number.isNaN(filterValue)) {
+      return null;
+    }
+
+    const result = Predicates.areNaNEqual(value, filterValue);
+
+    return result;
+  }
+
+  private static isNullish(value: unknown): boolean {
+    const result = Predicates.isNull(value) || Predicates.isUndefined(value);
+
+    return result;
+  }
+
+  private static isStructural(value: unknown): boolean {
+    const result = Predicates.isTypeOf(value, 'object') && !Predicates.isNull(value);
+
     return result;
   }
 }

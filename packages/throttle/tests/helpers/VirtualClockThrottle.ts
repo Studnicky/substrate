@@ -1,5 +1,3 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
 /**
  * `Throttle` subclass whose `now()` reads a virtual clock instead of the wall
  * clock, so adaptive-concurrency tests can drive operation latency
@@ -9,8 +7,6 @@ import { Predicates } from '@studnicky/types/node';
  */
 
 import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
-
-import type { ThrottleConfigEntity } from '../../src/entities/ThrottleConfigEntity.js';
 
 import { Throttle } from '../../src/index.js';
 
@@ -26,9 +22,6 @@ export interface ThrottleClockInputInterface {
   startMs: number;
 }
 
-interface VirtualClockThrottleSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * `Throttle` subclass backed by a `VirtualTimeCounter`. `now()` reads the
@@ -37,16 +30,12 @@ interface VirtualClockThrottleSubclassInterface<TInstance> extends Function {
  * extend this class directly and inherit its protected constructor.
  */
 export class VirtualClockThrottle extends Throttle {
-  static createWithClock<TInstance extends VirtualClockThrottle = VirtualClockThrottle>(
-    this: VirtualClockThrottleSubclassInterface<TInstance>,
+  static createWithClock(
+    this: typeof VirtualClockThrottle,
     input: ThrottleClockInputInterface,
-    config?: Partial<ThrottleConfigEntity.Type>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [config, input]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('VirtualClockThrottle.createWithClock() did not construct the requested subclass.');
-    }
-    return result;
+    config?: unknown
+  ): VirtualClockThrottle {
+    return new this(config, input);
   }
 
   readonly #clock: Clock;
@@ -56,7 +45,7 @@ export class VirtualClockThrottle extends Throttle {
   /**
    * Property write order: #input, #counter, #clock.
    */
-  protected constructor(config: Partial<ThrottleConfigEntity.Type> | undefined, input: ThrottleClockInputInterface) {
+  protected constructor(config: unknown, input: ThrottleClockInputInterface) {
     super(config);
     this.#input = input;
     this.#counter = VirtualTimeCounter.create({ startMs: input.startMs });

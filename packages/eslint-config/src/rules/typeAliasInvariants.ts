@@ -1,17 +1,35 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 import {
+  isIndexedAccessTypeNode,
+  isLiteralTypeNode,
+  isMappedTypeNode,
+  isPropertySignature,
+  isStringLiteral,
   isTypeAliasDeclaration,
+  isTypeLiteralNode,
+  isTypeReferenceNode,
+  isUnionTypeNode,
+  type MappedTypeNode,
   type Node,
   type Program,
-  type TypeAliasDeclaration
+  type Symbol,
+  SymbolFlags,
+  SyntaxKind,
+  type Type,
+  type TypeAliasDeclaration,
+  type TypeChecker,
+  type TypeElement,
+  type TypeNode,
+  type TypeReferenceNode
 } from 'typescript';
 
 import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES
 } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 /**
@@ -21,6 +39,8 @@ import { TypeContractClassification } from './shared/TypeContractClassification.
  * 2. noReadonly — type aliases must not author readonly output policy.
  * 3. noAliasing — disallow naked type re-aliases and import aliases.
  * 4. derivedFromSchema — retain only verified schema-derived pure-data aliases.
+ * 5. noPartialCanonicalType — canonical, codebase-owned types are consumed whole, never
+ *    subsetted via `Partial`/`Pick`/`Omit` or a structural equivalent.
  *
  * Declaration-shape and canonical-purity verdicts precede naming and readonly checks.
  * Precise alias-identity diagnostics refine invalid pure-data provenance without
@@ -59,46 +79,53 @@ class ReexportedTypeNames {
     const body: readonly unknown[] = Array.isArray(program.body) ? program.body : [];
 
     body.forEach((statement) => {
-      if (!Predicates.isRecord(statement)) {
-        return;
-      }
-      if (statement.type !== 'ExportNamedDeclaration') {
-        return;
-      }
-      if (statement.declaration !== null && statement.declaration !== undefined) {
-        return;
-      }
-      if (statement.source !== null && statement.source !== undefined) {
-        return;
-      }
-
-      const specifiers: readonly unknown[] = Array.isArray(statement.specifiers) ? statement.specifiers : [];
-      const specifiersLength = specifiers.length;
-
-      for (let specifierIndex = 0; specifierIndex < specifiersLength; specifierIndex += 1) {
-        const specifier = specifiers.at(specifierIndex);
-
-        if (!Predicates.isRecord(specifier)) {
-          continue;
-        }
-        if (statement.exportKind === 'type' || specifier.exportKind === 'type') {
-          const localName = Predicates.isRecord(specifier.local)
-            ? AstHelpers.getIdentifierName(specifier.local)
-            : undefined;
-          const exportedName = Predicates.isRecord(specifier.exported)
-            ? AstHelpers.getIdentifierName(specifier.exported)
-            : undefined;
-
-          if (localName !== undefined && exportedName !== undefined) {
-            names.set(localName, exportedName);
-          }
-        }
-      }
+      ReexportedTypeNames.collectFromStatement(statement, names);
     });
 
     ReexportedTypeNames.cache.set(program, names);
 
     return names;
+  }
+
+  private static collectFromStatement(statement: unknown, names: Map<string, string>): void {
+    if (!Predicates.isRecord(statement) || statement.type !== 'ExportNamedDeclaration') {
+      return;
+    }
+    if (statement.declaration !== null && statement.declaration !== undefined) {
+      return;
+    }
+    if (statement.source !== null && statement.source !== undefined) {
+      return;
+    }
+
+    const specifiers: readonly unknown[] = Array.isArray(statement.specifiers) ? statement.specifiers : [];
+    const specifiersLength = specifiers.length;
+
+    for (let specifierIndex = 0; specifierIndex < specifiersLength; specifierIndex += 1) {
+      const specifier = specifiers.at(specifierIndex);
+
+      if (!Predicates.isRecord(specifier)) {
+        continue;
+      }
+      ReexportedTypeNames.collectFromSpecifier(statement.exportKind, specifier, names);
+    }
+  }
+
+  private static collectFromSpecifier(statementExportKind: unknown, specifier: Record<string, unknown>, names: Map<string, string>): void {
+    if (statementExportKind !== 'type' && specifier.exportKind !== 'type') {
+      return;
+    }
+
+    const localName = Predicates.isRecord(specifier.local)
+      ? AstHelpers.getIdentifierName(specifier.local)
+      : undefined;
+    const exportedName = Predicates.isRecord(specifier.exported)
+      ? AstHelpers.getIdentifierName(specifier.exported)
+      : undefined;
+
+    if (localName !== undefined && exportedName !== undefined) {
+      names.set(localName, exportedName);
+    }
   }
 }
 
@@ -141,6 +168,7 @@ class MustEndTypeCheck {
 
 interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap': ReadonlyMap<object, Node>;
+  readonly 'getTypeAtLocation': (node: unknown) => Type;
   readonly 'program': Program;
 }
 
@@ -154,6 +182,9 @@ class ParserServicesGuard {
       return false;
     }
     if (!Predicates.isRecord(value.esTreeNodeToTSNodeMap) || typeof value.esTreeNodeToTSNodeMap.get !== 'function') {
+      return false;
+    }
+    if (typeof value.getTypeAtLocation !== 'function') {
       return false;
     }
 
@@ -378,21 +409,9 @@ class AliasingCheck {
     const leftParamNames = AliasingAstHelpers.getTypeParamNames(rawNode.typeParameters);
 
     if (leftParamNames.length > 0) {
-      const forwarding = GenericAliasAnalysis.isGenericForwardingShim(leftParamNames, rawNode.typeAnnotation);
+      const result = AliasingCheck.reportGenericForwardingShim(context, node, name, leftParamNames, rawNode.typeAnnotation);
 
-      if (forwarding !== undefined) {
-        context.report({
-          'data': {
-            'name': name, 'parameters': forwarding.parameters, 'rhs': forwarding.rhsName
-          },
-          'messageId': 'genericForwardingAlias',
-          'node': node
-        });
-
-        return true;
-      }
-
-      return false;
+      return result;
     }
 
     const annotation = rawNode.typeAnnotation;
@@ -403,42 +422,76 @@ class AliasingCheck {
     }
 
     if (PRIMITIVE_TYPES.has(annotationType)) {
-      const display = PrimitiveDisplay.get(annotationType);
-
-      context.report({
-        'data': {
-          'name': name, 'rhs': display
-        },
-        'messageId': 'primitiveTypeAlias',
-        'node': node
-      });
+      AliasingCheck.reportPrimitiveTypeAlias(context, node, name, annotationType);
 
       return true;
     }
 
     if (annotationType === 'TSTypeReference') {
-      if (GenericAliasAnalysis.hasTypeParameters(annotation)) {
-        return false;
-      }
-      const typeName = Predicates.isRecord(annotation) ? annotation.typeName : undefined;
-      const rhsName = AstHelpers.getIdentifierName(typeName);
+      const result = AliasingCheck.reportNakedTypeAlias(context, node, name, annotation);
 
-      if (rhsName === undefined) {
-        return false;
-      }
-
-      context.report({
-        'data': {
-          'name': name, 'rhs': rhsName
-        },
-        'messageId': 'nakedTypeAlias',
-        'node': node
-      });
-
-      return true;
+      return result;
     }
 
     return false;
+  }
+
+  private static reportGenericForwardingShim(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    name: string,
+    leftParamNames: readonly string[],
+    typeAnnotation: unknown
+  ): boolean {
+    const forwarding = GenericAliasAnalysis.isGenericForwardingShim(leftParamNames, typeAnnotation);
+
+    if (forwarding === undefined) {
+      return false;
+    }
+
+    context.report({
+      'data': {
+        'name': name, 'parameters': forwarding.parameters, 'rhs': forwarding.rhsName
+      },
+      'messageId': 'genericForwardingAlias',
+      'node': node
+    });
+
+    return true;
+  }
+
+  private static reportPrimitiveTypeAlias(context: Rule.RuleContext, node: Rule.Node, name: string, annotationType: string): void {
+    const display = PrimitiveDisplay.get(annotationType);
+
+    context.report({
+      'data': {
+        'name': name, 'rhs': display
+      },
+      'messageId': 'primitiveTypeAlias',
+      'node': node
+    });
+  }
+
+  private static reportNakedTypeAlias(context: Rule.RuleContext, node: Rule.Node, name: string, annotation: unknown): boolean {
+    if (GenericAliasAnalysis.hasTypeParameters(annotation)) {
+      return false;
+    }
+    const typeName = Predicates.isRecord(annotation) ? annotation.typeName : undefined;
+    const rhsName = AstHelpers.getIdentifierName(typeName);
+
+    if (rhsName === undefined) {
+      return false;
+    }
+
+    context.report({
+      'data': {
+        'name': name, 'rhs': rhsName
+      },
+      'messageId': 'nakedTypeAlias',
+      'node': node
+    });
+
+    return true;
   }
 
   public static checkImportSpecifier(context: Rule.RuleContext, node: Rule.Node): void {
@@ -469,8 +522,448 @@ class AliasingCheck {
 }
 
 // ---------------------------------------------------------------------------
+// Check 5: noPartialCanonicalType — canonical, codebase-owned types are
+// consumed whole, never subsetted via `Partial`/`Pick`/`Omit` or an equivalent.
+// ---------------------------------------------------------------------------
+
+const SUBSETTING_UTILITY_NAMES = new Set(['Omit', 'Partial', 'Pick']);
+
+class SubsettingUtilityMatch {
+  public static getUtilityName(node: Record<string, unknown>): string | undefined {
+    if (AstHelpers.getNodeType(node) !== 'TSTypeReference') { return undefined; }
+    const name = AstHelpers.getIdentifierName(node.typeName);
+    if (name === undefined || !SUBSETTING_UTILITY_NAMES.has(name)) { return undefined; }
+    return name;
+  }
+
+  public static getFirstTypeArgument(node: Record<string, unknown>): unknown {
+    const wrapper = node.typeArguments ?? node.typeParameters;
+    if (!Predicates.isRecord(wrapper)) { return undefined; }
+    const parameters: unknown = wrapper.params;
+    if (!Array.isArray(parameters)) { return undefined; }
+    const result: unknown = parameters.at(0);
+    return result;
+  }
+}
+
+class CanonicalTypeResolution {
+  public static isCanonicalOwnedType(typeArgNode: unknown, services: ParserServicesInterface): boolean {
+    if (!Predicates.isRecord(typeArgNode)) { return false; }
+    if (AstHelpers.getNodeType(typeArgNode) !== 'TSTypeReference') { return false; }
+
+    const type = services.getTypeAtLocation(typeArgNode);
+    const symbol: Symbol | undefined = type.aliasSymbol ?? type.getSymbol();
+    if (symbol === undefined) { return false; }
+
+    const declarations = symbol.getDeclarations() ?? [];
+    if (declarations.length === 0) { return false; }
+
+    const isGenericParameter = declarations.some((declaration) => { const result = declaration.kind === SyntaxKind.TypeParameter;
+      return result; });
+    if (isGenericParameter) { return false; }
+
+    const isNamedTypeDeclaration = declarations.some((declaration) => {
+      const result = declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      return result;
+    });
+    if (!isNamedTypeDeclaration) { return false; }
+
+    const isExternallyOwned = declarations.every((declaration) => {
+      const fileName = declaration.getSourceFile().fileName;
+      const result = fileName.includes('/node_modules/');
+      return result;
+    });
+    const result = !isExternallyOwned;
+    return result;
+  }
+
+  /**
+   * The `TypeNode`-based twin of {@link isCanonicalOwnedType}, for callers that already hold a
+   * TypeScript compiler `TypeNode` (the mapped-type and indexed-access structural-matching paths)
+   * rather than an ESTree node paired with `getTypeAtLocation`.
+   */
+  public static isCanonicalOwnedTypeNode(typeNode: TypeNode, checker: TypeChecker): boolean {
+    if (!isTypeReferenceNode(typeNode)) { return false; }
+
+    const type = checker.getTypeFromTypeNode(typeNode);
+    const symbol: Symbol | undefined = type.aliasSymbol ?? type.getSymbol();
+    if (symbol === undefined) { return false; }
+
+    const declarations = symbol.getDeclarations() ?? [];
+    if (declarations.length === 0) { return false; }
+
+    const isGenericParameter = declarations.some((declaration) => { const result = declaration.kind === SyntaxKind.TypeParameter;
+      return result; });
+    if (isGenericParameter) { return false; }
+
+    const isNamedTypeDeclaration = declarations.some((declaration) => {
+      const result = declaration.kind === SyntaxKind.TypeAliasDeclaration || declaration.kind === SyntaxKind.InterfaceDeclaration;
+      return result;
+    });
+    if (!isNamedTypeDeclaration) { return false; }
+
+    const isExternallyOwned = declarations.every((declaration) => {
+      const fileName = declaration.getSourceFile().fileName;
+      const result = fileName.includes('/node_modules/');
+      return result;
+    });
+    const result = !isExternallyOwned;
+    return result;
+  }
+}
+
+/**
+ * Resolves the literal string-key set a mapped type's key clause (`[K in ...]`) enumerates,
+ * when that clause is a string-literal type or a union of string-literal types — the shape a
+ * manual `Pick`/`Omit` reimplementation's key clause takes (`'a'`, `'a' | 'b'`). Any other
+ * constraint shape (a `keyof` operator, a generic type parameter, ...) returns `undefined`,
+ * since those are not the literal-key subsetting pattern this check targets.
+ */
+class MappedKeySet {
+  public static resolve(constraint: TypeNode | undefined): Set<string> | undefined {
+    if (constraint === undefined) { return undefined; }
+
+    if (isLiteralTypeNode(constraint) && isStringLiteral(constraint.literal)) {
+      return new Set([constraint.literal.text]);
+    }
+
+    if (isUnionTypeNode(constraint)) {
+      const keys = new Set<string>();
+      for (const member of constraint.types) {
+        if (!isLiteralTypeNode(member) || !isStringLiteral(member.literal)) { return undefined; }
+        keys.add(member.literal.text);
+      }
+      return keys;
+    }
+
+    return undefined;
+  }
+}
+
+/**
+ * Structural (not name-based) matching for the mapped-type shape a manual `Pick`/`Omit`
+ * reimplementation takes — `{ [P in K]: T[P] }` — used both directly on a mapped type written at
+ * the use site and, recursively, on a locally-defined generic alias's own body to catch a
+ * custom-named reimplementation (`type MyPick<T, K extends keyof T> = { [P in K]: T[P] }`).
+ */
+class MappedSubsettingShape {
+  /**
+   * True when the mapped type's value clause is an indexed-access `objectType[indexType]` where
+   * `indexType` is a bare reference to the mapped type's own key parameter — the structural core
+   * of every `Pick`/`Omit`/manual-subsetting mapped type, regardless of what the key clause or
+   * object type resolve to.
+   */
+  public static indexesOwnKeyParameter(node: MappedTypeNode, checker: TypeChecker): TypeReferenceNode | undefined {
+    if (node.type === undefined || !isIndexedAccessTypeNode(node.type)) { return undefined; }
+    const { indexType, objectType } = node.type;
+    if (!isTypeReferenceNode(objectType) || !isTypeReferenceNode(indexType)) { return undefined; }
+
+    const keyParameterSymbol = checker.getSymbolAtLocation(node.typeParameter.name);
+    const indexSymbol = checker.getSymbolAtLocation(indexType.typeName);
+    if (keyParameterSymbol === undefined || indexSymbol !== keyParameterSymbol) { return undefined; }
+
+    return objectType;
+  }
+
+  /**
+   * True when a generic alias's own declared body is structurally the `{ [P in K]: T[P] }`
+   * reimplementation shape, with `T` and `K` both being the alias's OWN, DISTINCT type
+   * parameters (a reusable utility, not yet applied to any concrete type) — the shape
+   * `type MyPick<T, K extends keyof T> = { [P in K]: T[P] }` takes.
+   *
+   * The key clause must be a bare reference to a SEPARATE type parameter, not a `keyof T`
+   * operator applied directly — that second detail is what distinguishes an externally
+   * caller-narrowable subset (`Pick`'s own `K extends keyof T`, where a caller supplies which
+   * keys to keep) from a full-key transform like `Required<T> = { [P in keyof T]-?: T[P] }` or
+   * `Partial`, which structurally share the identical `{ [P in K]: T[P] }` skeleton but always
+   * retain every one of `T`'s own keys and therefore never hide any property.
+   */
+  public static isReusableUtilityBody(mapped: MappedTypeNode, checker: TypeChecker): boolean {
+    const objectType = MappedSubsettingShape.indexesOwnKeyParameter(mapped, checker);
+    if (objectType === undefined) { return false; }
+
+    const objectSymbol = checker.getSymbolAtLocation(objectType.typeName);
+    if (objectSymbol === undefined || (objectSymbol.flags & SymbolFlags.TypeParameter) === 0) { return false; }
+
+    const constraint = mapped.typeParameter.constraint;
+    if (constraint === undefined || !isTypeReferenceNode(constraint) || constraint.typeArguments !== undefined) {
+      return false;
+    }
+    const constraintSymbol = checker.getSymbolAtLocation(constraint.typeName);
+    if (constraintSymbol === undefined || (constraintSymbol.flags & SymbolFlags.TypeParameter) === 0) { return false; }
+
+    const result = constraintSymbol !== objectSymbol;
+    return result;
+  }
+}
+
+/**
+ * Resolves `getUtilityName`'s literal-name miss (a `TSTypeReference` whose name is not
+ * `Omit`/`Partial`/`Pick`) by checking whether the referenced alias's OWN definition is itself a
+ * `{ [P in K]: T[P] }` reusable-utility reimplementation — closing the "custom-named alias"
+ * subsetting-utility gap without hardcoding any additional name.
+ */
+class CustomUtilityAliasMatch {
+  public static resolve(typeNode: Node, checker: TypeChecker): string | undefined {
+    if (!isTypeReferenceNode(typeNode)) { return undefined; }
+
+    const symbol = checker.getSymbolAtLocation(typeNode.typeName);
+    if (symbol === undefined) { return undefined; }
+    const resolved = (symbol.flags & SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(symbol) : symbol;
+
+    const aliasDeclaration = (resolved.getDeclarations() ?? []).find(isTypeAliasDeclaration);
+    if (aliasDeclaration === undefined || !isMappedTypeNode(aliasDeclaration.type)) { return undefined; }
+    if (!MappedSubsettingShape.isReusableUtilityBody(aliasDeclaration.type, checker)) { return undefined; }
+
+    const result = resolved.getName();
+    return result;
+  }
+}
+
+class PartialCanonicalTypeCheck {
+  public static report(context: Rule.RuleContext, node: Rule.Node, utility: string): void {
+    context.report({
+      'data': { 'utility': utility },
+      'messageId': 'noPartialCanonicalType',
+      'node': node
+    });
+  }
+
+  public static onTSTypeReference(
+    context: Rule.RuleContext, services: ParserServicesInterface, checker: TypeChecker, node: Rule.Node
+  ): void {
+    const rawNode: unknown = node;
+    if (!Predicates.isRecord(rawNode)) { return; }
+    const literalUtilityName = SubsettingUtilityMatch.getUtilityName(rawNode);
+
+    if (literalUtilityName !== undefined) {
+      const typeArgNode = SubsettingUtilityMatch.getFirstTypeArgument(rawNode);
+      if (CanonicalTypeResolution.isCanonicalOwnedType(typeArgNode, services)) {
+        PartialCanonicalTypeCheck.report(context, node, literalUtilityName);
+      }
+      return;
+    }
+
+    // The reference's own name isn't a literal `Omit`/`Partial`/`Pick` — check whether it
+    // resolves to a LOCALLY-DEFINED alias that is itself a `{ [P in K]: T[P] }` reusable
+    // reimplementation of the same subsetting effect (`type MyPick<T, K> = { [P in K]: T[P] }`).
+    const typeScriptNode = services.esTreeNodeToTSNodeMap.get(node);
+    if (typeScriptNode === undefined) { return; }
+    const customUtilityName = CustomUtilityAliasMatch.resolve(typeScriptNode, checker);
+    if (customUtilityName === undefined) { return; }
+
+    const typeArgNode = SubsettingUtilityMatch.getFirstTypeArgument(rawNode);
+    if (CanonicalTypeResolution.isCanonicalOwnedType(typeArgNode, services)) {
+      PartialCanonicalTypeCheck.report(context, node, customUtilityName);
+    }
+  }
+
+  // A manual mapped type reproducing `Pick`/`Omit`'s effect with zero reference to any
+  // Omit/Partial/Pick-named utility type at all — `{ [K in 'a']: FooType[K] }` — subsets a
+  // canonical type's own property set exactly as `Pick<FooType, 'a'>` would, just spelled out
+  // by hand. Flagged when the mapped type's key clause resolves to a literal, non-empty,
+  // PROPER subset of the target canonical type's own property names.
+  private static canonicalPropertyKeys(typeNode: TypeNode, checker: TypeChecker): Set<string> {
+    const canonicalKeys = new Set<string>();
+    const properties = checker.getTypeFromTypeNode(typeNode).getProperties();
+    const propertyCount = properties.length;
+
+    for (let propertyIndex = 0; propertyIndex < propertyCount; propertyIndex += 1) {
+      const property = properties.at(propertyIndex);
+
+      if (property === undefined) { continue; }
+      canonicalKeys.add(property.getName());
+    }
+
+    return canonicalKeys;
+  }
+
+  private static isProperSubsetOfCanonicalType(keys: ReadonlySet<string>, canonicalTypeNode: TypeNode, checker: TypeChecker): boolean {
+    const canonicalKeys = PartialCanonicalTypeCheck.canonicalPropertyKeys(canonicalTypeNode, checker);
+    const result = keys.size < canonicalKeys.size && [...keys].every(canonicalKeys.has, canonicalKeys);
+
+    return result;
+  }
+
+  public static onMappedType(
+    context: Rule.RuleContext, services: ParserServicesInterface, checker: TypeChecker, node: Rule.Node
+  ): void {
+    const mapped = services.esTreeNodeToTSNodeMap.get(node);
+    if (mapped === undefined || !isMappedTypeNode(mapped)) { return; }
+
+    const objectType = MappedSubsettingShape.indexesOwnKeyParameter(mapped, checker);
+    if (objectType === undefined) { return; }
+    if (!CanonicalTypeResolution.isCanonicalOwnedTypeNode(objectType, checker)) { return; }
+
+    const keys = MappedKeySet.resolve(mapped.typeParameter.constraint);
+    if (keys === undefined || keys.size === 0) { return; }
+
+    if (!PartialCanonicalTypeCheck.isProperSubsetOfCanonicalType(keys, objectType, checker)) { return; }
+
+    PartialCanonicalTypeCheck.report(context, node, 'a manually mapped Pick');
+  }
+
+  // Plain inline indexed-access subsetting — `{ a: FooType['a']; b: FooType['b']; }` — reaches
+  // the same result as `Pick<FooType, 'a' | 'b'>` by spelling each retained property out
+  // individually via indexed access into the same canonical type, with no utility type or
+  // mapped-type syntax involved at all. Flagged only when EVERY member of the type literal is
+  // such an indexed-access reference into the SAME canonical type, keeping this from
+  // misfiring on a heterogeneous type literal that merely borrows one property's type.
+  private static memberIndexedAccessKey(member: TypeElement): { 'key': string; 'objectType': TypeReferenceNode } | undefined {
+    if (!isPropertySignature(member) || member.type === undefined || !isIndexedAccessTypeNode(member.type)) {
+      return undefined;
+    }
+    const { indexType, objectType } = member.type;
+
+    if (!isTypeReferenceNode(objectType) || !isLiteralTypeNode(indexType) || !isStringLiteral(indexType.literal)) {
+      return undefined;
+    }
+
+    return { 'key': indexType.literal.text, 'objectType': objectType };
+  }
+
+  private static resolveIndexedAccessSubset(
+    members: readonly TypeElement[],
+    checker: TypeChecker
+  ): { 'canonicalObjectType': TypeReferenceNode; 'keys': Set<string> } | undefined {
+    let canonicalObjectType: TypeReferenceNode | undefined;
+    let canonicalSymbol: Symbol | undefined;
+    const keys = new Set<string>();
+    const membersLength = members.length;
+
+    for (let memberIndex = 0; memberIndex < membersLength; memberIndex += 1) {
+      const member = members[memberIndex]!;
+      const resolved = PartialCanonicalTypeCheck.memberIndexedAccessKey(member);
+
+      if (resolved === undefined) {
+        return undefined;
+      }
+
+      const symbol = checker.getSymbolAtLocation(resolved.objectType.typeName);
+
+      if (canonicalObjectType === undefined) {
+        canonicalObjectType = resolved.objectType;
+        canonicalSymbol = symbol;
+      } else if (symbol === undefined || symbol !== canonicalSymbol) {
+        return undefined;
+      }
+
+      keys.add(resolved.key);
+    }
+
+    if (canonicalObjectType === undefined) {
+      return undefined;
+    }
+
+    return { 'canonicalObjectType': canonicalObjectType, 'keys': keys };
+  }
+
+  public static onTypeLiteral(
+    context: Rule.RuleContext, services: ParserServicesInterface, checker: TypeChecker, node: Rule.Node
+  ): void {
+    const literal = services.esTreeNodeToTSNodeMap.get(node);
+    if (literal === undefined || !isTypeLiteralNode(literal) || literal.members.length === 0) { return; }
+
+    const subset = PartialCanonicalTypeCheck.resolveIndexedAccessSubset(literal.members, checker);
+    if (subset === undefined) { return; }
+    if (!CanonicalTypeResolution.isCanonicalOwnedTypeNode(subset.canonicalObjectType, checker)) { return; }
+
+    if (!PartialCanonicalTypeCheck.isProperSubsetOfCanonicalType(subset.keys, subset.canonicalObjectType, checker)) { return; }
+
+    PartialCanonicalTypeCheck.report(context, node, 'inline indexed-access Pick');
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Rule
 // ---------------------------------------------------------------------------
+
+class TypeAliasDeclarationCheck {
+  public static run(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    declaration: TypeAliasDeclaration,
+    classification: TypeContractClassification,
+    analysis: ReturnType<TypeContractClassification['analyzeAlias']>
+  ): void {
+    if (analysis.classification === 'interfaceContract') {
+      TypeAliasDeclarationCheck.reportInterfaceContract(context, declaration, classification, analysis);
+
+      return;
+    }
+
+    if (analysis.classification === 'pureDataInvalid') {
+      TypeAliasDeclarationCheck.reportPureDataInvalid(context, node, declaration, analysis);
+
+      return;
+    }
+
+    if (AliasingCheck.checkTypeAlias(context, node)) {
+      return;
+    }
+    MustEndTypeCheck.run(context, node);
+    ReadonlyCheck.checkAlias(context, declaration, analysis);
+  }
+
+  private static reportInterfaceContract(
+    context: Rule.RuleContext,
+    declaration: TypeAliasDeclaration,
+    classification: TypeContractClassification,
+    analysis: ReturnType<TypeContractClassification['analyzeAlias']>
+  ): void {
+    // Mixed union/intersection has no interface remedy; `no-mixed-callable-shapes` owns the
+    // diagnostic, except when `any` is a direct constituent (D6) — reported here unconditionally.
+    if (
+      classification.isTopLevelMixedCallableData(declaration.type)
+      && !classification.topLevelMixIncludesAny(declaration.type)
+    ) {
+      return;
+    }
+
+    // A top-level union of independently-declared, named schema-derived constituents (every
+    // member a pure-data contract interface or a canonical Type-alias reference) has no
+    // interface remedy either — the same "TypeScript cannot express a union as one interface"
+    // limitation above. See `isTopLevelUnionOfNamedSchemaDerivedConstituents`'s doc comment.
+    if (classification.isTopLevelUnionOfNamedSchemaDerivedConstituents(declaration.type)) {
+      return;
+    }
+
+    TypeAliasDeclarationCheck.report(context, declaration, analysis, 'aliasMustBeInterface');
+  }
+
+  private static reportPureDataInvalid(
+    context: Rule.RuleContext,
+    node: Rule.Node,
+    declaration: TypeAliasDeclaration,
+    analysis: ReturnType<TypeContractClassification['analyzeAlias']>
+  ): void {
+    if (AliasingCheck.checkTypeAlias(context, node)) {
+      return;
+    }
+
+    TypeAliasDeclarationCheck.report(context, declaration, analysis, 'derivedFromSchema');
+  }
+
+  private static report(
+    context: Rule.RuleContext,
+    declaration: TypeAliasDeclaration,
+    analysis: ReturnType<TypeContractClassification['analyzeAlias']>,
+    messageId: string
+  ): void {
+    const sourceFile = declaration.getSourceFile();
+    const evidenceStart = analysis.evidence.getStart(sourceFile);
+    const evidenceEnd = analysis.evidence.getEnd();
+
+    context.report({
+      'data': { 'name': declaration.name.text },
+      'loc': {
+        'end': context.sourceCode.getLocFromIndex(evidenceEnd),
+        'start': context.sourceCode.getLocFromIndex(evidenceStart)
+      },
+      'messageId': messageId
+    });
+  }
+}
 
 export const typeAliasInvariants: Rule.RuleModule = {
   'create': (context) => {
@@ -488,104 +981,61 @@ export const typeAliasInvariants: Rule.RuleModule = {
         ? undefined
         : classification.analyzeAlias(declaration);
 
-      if (analysis === undefined || declaration === undefined) {
+      if (analysis === undefined || declaration === undefined || classification === undefined) {
+        return;
+      }
+      // entity-file-shape consults the same predicate on this file's own AST; consulting it
+      // here too keeps both rules agreeing on the same declaration rather than each running
+      // its own derivation-legitimacy judgment.
+      if (SchemaMemberGuards.isJustifiedHandWrittenEntityType(node)) {
         return;
       }
 
-      if (analysis.classification === 'interfaceContract') {
-        // A top-level mixed union/intersection has no interface remedy at all — `interface X`
-        // cannot itself be a union — so `no-mixed-callable-shapes` owns this declaration's only
-        // diagnostic instead of the unfollowable "declare as an interface" advice.
-        //
-        // D6 (see the eslint-config objectives): EXCEPT when the mix includes `any` as a direct
-        // constituent — `any`'s "callable" classification is `classifyCallability`'s own
-        // escape-hatch heuristic (see `topLevelMixIncludesAny`'s doc comment), not a genuine
-        // callable shape needing a split into an interface, and `no-mixed-callable-shapes` is not
-        // enabled in `eslint.config.mjs` (see C1). Deferring THIS declaration's only diagnostic to
-        // a rule that may never run means `type X = any | Data;` escapes every custom type rule
-        // silently — VERIFIED via `npx eslint` probe (ZzP4 prefix). Report it here instead,
-        // unconditionally, regardless of whether `no-mixed-callable-shapes` ever gets enabled.
-        if (
-          classification?.isTopLevelMixedCallableData(declaration.type) === true
-          && !classification.topLevelMixIncludesAny(declaration.type)
-        ) {
-          return;
-        }
-
-        // A top-level union of independently-declared, pure-data contract interfaces (every
-        // constituent readonly-evidenced, none callable) has no interface remedy either — the
-        // same "TypeScript cannot express a union as one interface" limitation above, just
-        // without a callable constituent to name it after. See
-        // `isTopLevelUnionOfDataContractInterfaces`'s doc comment.
-        if (classification?.isTopLevelUnionOfDataContractInterfaces(declaration.type) === true) {
-          return;
-        }
-
-        const sourceFile = declaration.getSourceFile();
-        const evidenceStart = analysis.evidence.getStart(sourceFile);
-        const evidenceEnd = analysis.evidence.getEnd();
-
-        context.report({
-          'data': { 'name': declaration.name.text },
-          'loc': {
-            'end': context.sourceCode.getLocFromIndex(evidenceEnd),
-            'start': context.sourceCode.getLocFromIndex(evidenceStart)
-          },
-          'messageId': 'aliasMustBeInterface'
-        });
-
-        return;
-      }
-
-      if (analysis.classification === 'pureDataInvalid') {
-        if (AliasingCheck.checkTypeAlias(context, node)) {
-          return;
-        }
-
-        const sourceFile = declaration.getSourceFile();
-        const evidenceStart = analysis.evidence.getStart(sourceFile);
-        const evidenceEnd = analysis.evidence.getEnd();
-
-        context.report({
-          'data': { 'name': declaration.name.text },
-          'loc': {
-            'end': context.sourceCode.getLocFromIndex(evidenceEnd),
-            'start': context.sourceCode.getLocFromIndex(evidenceStart)
-          },
-          'messageId': 'derivedFromSchema'
-        });
-
-        return;
-      }
-
-      if (AliasingCheck.checkTypeAlias(context, node)) {
-        return;
-      }
-      MustEndTypeCheck.run(context, node);
-      ReadonlyCheck.checkAlias(context, declaration, analysis);
+      TypeAliasDeclarationCheck.run(context, node, declaration, classification, analysis);
     };
 
     const onImportSpecifier = (node: Rule.Node): void => {
       AliasingCheck.checkImportSpecifier(context, node);
     };
 
+    const checker: TypeChecker | undefined = services?.program === undefined ? undefined : services.program.getTypeChecker();
+
+    const onTSTypeReference = (node: Rule.Node): void => {
+      if (services === undefined || checker === undefined) { return; }
+      PartialCanonicalTypeCheck.onTSTypeReference(context, services, checker, node);
+    };
+
+    const onTSMappedType = (node: Rule.Node): void => {
+      if (services === undefined || checker === undefined) { return; }
+      PartialCanonicalTypeCheck.onMappedType(context, services, checker, node);
+    };
+
+    const onTSTypeLiteral = (node: Rule.Node): void => {
+      if (services === undefined || checker === undefined) { return; }
+      PartialCanonicalTypeCheck.onTypeLiteral(context, services, checker, node);
+    };
+
     return {
       'ImportSpecifier': onImportSpecifier,
-      'TSTypeAliasDeclaration': onTSTypeAliasDeclaration
+      'TSMappedType': onTSMappedType,
+      'TSTypeAliasDeclaration': onTSTypeAliasDeclaration,
+      'TSTypeLiteral': onTSTypeLiteral,
+      'TSTypeReference': onTSTypeReference
     };
   },
   'meta': {
     'docs': {
       'description':
-        'Type aliases preserve canonical schema-derived data identity, use interfaces for contracts, and avoid readonly output policy.'
+        'Type aliases preserve canonical schema-derived data identity, use interfaces for contracts, avoid readonly output policy, and consume canonical types whole.'
     },
     'messages': {
       'aliasMustBeInterface': "Type alias '{{name}}' represents a contract or non-schema type computation. Declare the contract as an interface or redesign the type as schema-derived canonical data.",
-      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'FromSchema<typeof Schema>' and compose only verified canonical data types.",
+      'derivedFromSchema': "Type alias '{{name}}' is not verified schema-derived pure data. Define canonical data with 'NodeStaticType<typeof Node>' and compose only verified canonical data types.",
       'genericForwardingAlias': "Type alias '{{name}}' is a generic forwarding shim — '{{rhs}}<{{parameters}}>' renames '{{rhs}}' without transformation. Use '{{rhs}}' directly with the type arguments at each call site.",
       'importAlias': "Import alias '{{local}}' hides the canonical name '{{imported}}'. Use '{{imported}}' directly.",
       'mustEndType': "Exported type alias '{{name}}' must end in 'Type'. Rename to '{{name}}Type'.",
       'nakedTypeAlias': "Type alias '{{name}}' is a naked rename of '{{rhs}}'. Use '{{rhs}}' directly — do not create local synonyms for canonical types.",
+      'noPartialCanonicalType': "'{{utility}}<...>' derives an implicit subset of a canonical type. A partial type masks what the real data shape is — consumers must always be aware of every property a canonical shape carries. Use the full type, or define an explicit, fully-spelled-out type/entity for the shape you actually need. There is no exemption for this rule.",
       'noReadonly': "Data type '{{name}}' bakes in `readonly` output policy. Consumers declare immutability at the use site.",
       'primitiveTypeAlias': "Type alias '{{name}}' wraps primitive type '{{rhs}}'. Use '{{rhs}}' directly."
     },
