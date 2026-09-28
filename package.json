@@ -25,6 +25,7 @@
   "scripts": {
     "build": "tsc -b",
     "check:browser-entrypoints": "tsx scripts/check-browser-entrypoints.ts",
+    "check:project-references": "node scripts/check-project-references.ts",
     "check:no-json-schema-to-ts": "tsx scripts/check-no-json-schema-to-ts.ts",
     "check:runtime-exports": "tsx scripts/check-browser-entrypoints.ts",
     "changeset": "changeset",

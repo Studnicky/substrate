@@ -28,6 +28,12 @@
     },
     {
       "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

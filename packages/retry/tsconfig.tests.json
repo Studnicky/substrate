@@ -25,6 +25,12 @@
     },
     {
       "path": "../scenario-kit"
+    },
+    {
+      "path": "../event-bus"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

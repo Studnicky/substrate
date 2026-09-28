@@ -6,6 +6,7 @@
   "exclude": ["node_modules", "dist"],
   "references": [
     { "path": "../errors" },
-    { "path": "../types" }
+    { "path": "../types" },
+    { "path": "../cache" }
   ]
 }
