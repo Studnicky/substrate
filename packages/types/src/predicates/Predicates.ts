@@ -312,8 +312,16 @@ export class Predicates {
   /** Checks whether a value is greater than or equal to another — numbers, strings, `Date`. */
   public static readonly isGreaterThanOrEqual: (value: unknown, comparison: unknown) => boolean = TypeGuardPredicates.isGreaterThanOrEqual;
 
-  /** Checks whether a value is an instance of the given constructor. */
-  public static isInstanceOf<Instance>(value: unknown, constructor: Function & { readonly 'prototype': Instance }): value is Instance {
+  /**
+   * Checks whether a value is an instance of the given constructor. `TConstructor` is inferred
+   * from the constructor argument's own `prototype`, an indexed lookup on that exact inferred
+   * type rather than a free-standing type parameter — an explicit type argument naming an
+   * unrelated shape fails to satisfy the constraint outright, and a protected/private
+   * constructor still satisfies it since only `.prototype` (always public) is required. For a
+   * generic lib constructor whose own `prototype` is typed with `any` (`Map`, `Set`), use
+   * `isMap`/`isSet` instead.
+   */
+  public static isInstanceOf<TConstructor extends Function & { readonly 'prototype': object }>(value: unknown, constructor: TConstructor): value is TConstructor['prototype'] {
     const result = TypeGuardPredicates.isInstanceOf(value, constructor);
     return result;
   }

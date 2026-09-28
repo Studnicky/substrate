@@ -435,8 +435,17 @@ export class TypeGuardPredicates {
     return false;
   }
 
-  /** Checks whether a value is an instance of the given constructor. */
-  public static isInstanceOf<Instance>(value: unknown, constructor: Function & { readonly 'prototype': Instance }): value is Instance {
+  /**
+   * Checks whether a value is an instance of the given constructor. `TConstructor` is inferred
+   * from the constructor argument's own `prototype`, an indexed lookup on that exact inferred
+   * type rather than a free-standing type parameter — an explicit type argument naming an
+   * unrelated shape fails to satisfy the constraint outright, and a protected/private
+   * constructor still satisfies it since only `.prototype` (always public) is required, not a
+   * callable `new` signature. For a generic lib constructor whose own `prototype` is typed with
+   * `any` (`Map`, `Set`), the inferred type still resolves through the `any` lib carries; use
+   * `isMap`/`isSet` instead.
+   */
+  public static isInstanceOf<TConstructor extends Function & { readonly 'prototype': object }>(value: unknown, constructor: TConstructor): value is TConstructor['prototype'] {
     try {
       const result = value instanceof constructor;
       return result;

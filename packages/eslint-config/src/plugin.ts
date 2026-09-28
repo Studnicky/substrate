@@ -7,6 +7,7 @@ import { intakeParseOnly } from './rules/arch/intakeParseOnly.js';
 import { knownTypesOutsideAdapters } from './rules/arch/knownTypesOutsideAdapters.js';
 import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
+import { noCallerChosenGuardType } from './rules/arch/noCallerChosenGuardType.js';
 import { noCircularImports } from './rules/arch/noCircularImports.js';
 import { noDoubleAssertion } from './rules/arch/noDoubleAssertion.js';
 import { noReflectArgumentLaundering } from './rules/arch/noReflectArgumentLaundering.js';
@@ -50,6 +51,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'known-types-outside-adapters': knownTypesOutsideAdapters,
     'layer-import-boundary': layerImportBoundary,
     'lexical-this-only': lexicalThisOnly,
+    'no-caller-chosen-guard-type': noCallerChosenGuardType,
     'no-circular-imports': noCircularImports,
     'no-double-assertion': noDoubleAssertion,
     'no-function-registries': noFunctionRegistries,
