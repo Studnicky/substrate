@@ -1,5 +1,6 @@
 import type { JSONSchema7 } from 'json-schema';
 
+import type { AnnotationKeywordsInterface } from '../../interfaces/AnnotationKeywordsInterface.js';
 import type { DefineObjectOptionsInterface } from '../../interfaces/DefineObjectOptionsInterface.js';
 import type { ObjectSchemaShapeInterface } from '../../interfaces/ObjectSchemaShapeInterface.js';
 import type { SchemaNodeInterface } from '../../interfaces/SchemaNodeInterface.js';
@@ -254,9 +255,18 @@ export class SchemaNode {
     return { 'schema': schema };
   }
 
-  /** Layers sibling schema keys (e.g. `default`) onto `target`'s own schema without discarding it — unlike `defineDecorated`, which replaces it. */
-  public static defineAnnotated<const TSchema extends Record<string, unknown>, TTargetSchema, TTarget extends SchemaNodeInterface<TTargetSchema, unknown>>(
-    schema: TSchema,
+  /**
+   * Layers sibling schema keys (e.g. `default`) onto `target`'s own schema without discarding it —
+   * unlike `defineDecorated`, which replaces it. `schema` is constrained to annotation keywords only:
+   * a structural keyword here would overwrite `target`'s own schema at runtime while `NodeStaticType`
+   * keeps reading `target`'s static type unchanged, silently diverging schema from type.
+   */
+  public static defineAnnotated<
+    const TSchema extends AnnotationKeywordsInterface,
+    TTargetSchema,
+    TTarget extends SchemaNodeInterface<TTargetSchema, unknown>
+  >(
+    schema: Record<Exclude<keyof TSchema, keyof AnnotationKeywordsInterface>, never> & TSchema,
     target: TTarget
   ): SchemaNodeInterface<TSchema & TTargetSchema, NodeStaticType<TTarget>, NodeInputType<TTarget>> {
     const merged = { ...target.schema, ...schema };
