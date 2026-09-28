@@ -1,3 +1,4 @@
+export type { ComposedSignalInterface } from './ComposedSignalInterface.js';
 export type { DeadlineTimerHandleInterface } from './DeadlineTimerHandleInterface.js';
 export type { DeadlineTimerInterface } from './DeadlineTimerInterface.js';
 export type { RaceTimeoutOptionsInterface } from './RaceTimeoutOptionsInterface.js';

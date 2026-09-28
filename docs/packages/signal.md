@@ -48,7 +48,7 @@ The output confirms each composition case: caller+deadline composite, caller-onl
 | Member | Signature | Description |
 |--------|-----------|-------------|
 | `create` | `static () => Signal` | Creates a Signal instance |
-| `compose` | `(options: { signal?, deadlineMs? }) => Promise<AbortSignal>` | Merges caller signal and/or timeout; returns never-signal when neither is provided |
+| `compose` | `(options: { signal?, deadlineMs? }) => Promise<ComposedSignalInterface>` | Returns a disposable handle whose `signal` merges caller signal and/or timeout; dispose it when the operation ends |
 | `never` | `static () => AbortSignal` | Returns a singleton signal that never aborts |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/signal)

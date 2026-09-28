@@ -15,7 +15,7 @@ import { Retry } from '@studnicky/retry/node';
 import type { OperationFunctionInterface, OperationInterceptorInterface, OperationPipelineInterface } from '@studnicky/pipeline/interfaces';
 import { RequestStatsEntity } from '@studnicky/retry/entities';
 import type { RetryContextInterface, RetryConfigInterface, RetryInterface } from '@studnicky/retry/interfaces';
-import type { SignalInterface } from '@studnicky/signal/interfaces';
+import type { ComposedSignalInterface, SignalInterface } from '@studnicky/signal/interfaces';
 
 import { RequestExecutor } from '../../../src/index.js';
 import { RequestDeadlineEntity, RequestExecutorConfigDataEntity, RequestExecutorExecuteOptionsDataEntity } from '../../../src/entities/index.js';
@@ -749,9 +749,9 @@ void describe('RequestExecutor', () => {
 
     const controller = new AbortController();
     const signalProvider: SignalInterface = {
-      async compose(options): Promise<AbortSignal> {
+      async compose(options): Promise<ComposedSignalInterface> {
         assert.strictEqual(options.signal, controller.signal);
-        return controller.signal;
+        return await BrowserSignal.create().compose(options);
       }
     };
     const executor = RequestExecutor.create({
@@ -953,10 +953,9 @@ void describe('RequestExecutor', () => {
       resetStats(): void {}
     };
     const signal: SignalInterface = {
-      async compose(options): Promise<AbortSignal> {
+      async compose(options): Promise<ComposedSignalInterface> {
         composeCount += 1;
-        const result = options.signal ?? new AbortController().signal;
-        return result;
+        return await BrowserSignal.create().compose(options);
       }
     };
     const executor = RequestExecutor.create({

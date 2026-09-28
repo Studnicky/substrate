@@ -48,11 +48,11 @@ const signal = Signal.create();
 
 const response = await (async (): Promise<Response> => {
   const options: RequestExecutorExecuteOptionsInterface = { 'deadlineMs': 5000 };
-  const composedSignal = await signal.compose(
+  using composed = await signal.compose(
     options.deadlineMs === undefined ? {} : { 'deadlineMs': options.deadlineMs }
   );
   const result = await retry.execute(async (): Promise<Response> => {
-    const attempt = await fetchClient.get('/flaky', { 'signal': composedSignal });
+    const attempt = await fetchClient.get('/flaky', { 'signal': composed.signal });
 
     if (!attempt.ok) {
       throw RuntimeError.create(`HTTP ${attempt.status}`);

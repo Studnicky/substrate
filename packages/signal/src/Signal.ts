@@ -2,6 +2,7 @@
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
+import type { ComposedSignalInterface } from './interfaces/ComposedSignalInterface.js';
 import type { DeadlineTimerInterface } from './interfaces/DeadlineTimerInterface.js';
 import type { SignalComposeOptionsInterface } from './interfaces/SignalComposeOptionsInterface.js';
 
@@ -13,6 +14,38 @@ interface SignalResolveOptionsInterface {
   readonly 'timeoutSignal': AbortSignal | undefined;
 }
 
+class ComposedSignal implements ComposedSignalInterface {
+  #disposed = false;
+
+  constructor(
+    public readonly signal: AbortSignal,
+    private readonly timeoutDispose: (() => void) | undefined
+  ) {
+    if (this.timeoutDispose !== undefined) {
+      this.signal.addEventListener('abort', this.#onAbort, { 'once': true });
+    }
+    if (this.signal.aborted) {
+      this.dispose();
+    }
+  }
+
+  [Symbol.dispose](): void {
+    this.dispose();
+  }
+
+  dispose(): void {
+    if (this.#disposed) {
+      return;
+    }
+    this.#disposed = true;
+    this.timeoutDispose?.();
+    this.signal.removeEventListener('abort', this.#onAbort);
+  }
+
+  #onAbort = (): void => {
+    this.dispose();
+  };
+}
 class SignalInstance {
   static construct(constructor: Function): object {
     const result: unknown = Reflect.construct(constructor, []);
@@ -44,21 +77,30 @@ export class Signal {
     return controller.signal;
   }
 
-  async compose(options: SignalComposeOptionsInterface): Promise<AbortSignal> {
+  async compose(options: SignalComposeOptionsInterface): Promise<ComposedSignalInterface> {
     Signal.#validateDeadline(options.deadlineMs);
 
-    const timeoutSignal = options.deadlineMs !== undefined
+    const timeoutResult = options.deadlineMs !== undefined
       ? Signal.#createTimeoutSignal(options.deadlineMs, options.timer ?? RealDeadlineTimer.create())
       : undefined;
-    const result = Signal.#resolveSignal({ 'callerSignal': options.signal, 'timeoutSignal': timeoutSignal });
-
-    await this.hooks.invokeAsync('onCompose', async () => {
-      const hookResult = this.onCompose(options, result);
-
-      await hookResult;
+    const result = Signal.#resolveSignal({
+      'callerSignal': options.signal,
+      'timeoutSignal': timeoutResult?.signal
     });
+    const composed = new ComposedSignal(result, timeoutResult?.dispose);
 
-    return result;
+    try {
+      await this.hooks.invokeAsync('onCompose', async () => {
+        const hookResult = this.onCompose(options, composed.signal);
+
+        await hookResult;
+      });
+    } catch (error) {
+      composed.dispose();
+      throw error;
+    }
+
+    return composed;
   }
 
   static #validateDeadline(deadlineMs: number | undefined): void {
@@ -68,12 +110,22 @@ export class Signal {
   }
 
   /** Builds an AbortSignal that aborts once `timer` fires at `timer.now() + deadlineMs`. */
-  static #createTimeoutSignal(deadlineMs: number, timer: DeadlineTimerInterface): AbortSignal {
+  static #createTimeoutSignal(deadlineMs: number, timer: DeadlineTimerInterface): { 'dispose': () => void; 'signal': AbortSignal } {
     const controller = new AbortController();
-    timer.scheduleAt(timer.now() + deadlineMs, () => {
+    let fired = false;
+    const handle = timer.scheduleAt(timer.now() + deadlineMs, () => {
+      fired = true;
       controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
     });
-    return controller.signal;
+    return {
+      'dispose': () => {
+        if (!fired) {
+          fired = true;
+          handle.cancel();
+        }
+      },
+      'signal': controller.signal
+    };
   }
 
   /** Prefers the caller signal combined with the deadline timeout; falls back to whichever is supplied, then the never-aborting sentinel. */

@@ -1,3 +1,5 @@
+import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
+
 import { Signal } from '@studnicky/signal/browser';
 
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
@@ -153,12 +155,15 @@ export class BrowserFetchClient implements FetchClientInterface {
     const { 'signal': externalSignal, timeout } = encoded;
     const init: Record<string, unknown> = { ...encoded.requestInit };
     const normalizedSignal = externalSignal ?? undefined;
-    const requestSignal = await this.#composeRequestSignal(init, { 'normalizedSignal': normalizedSignal, 'timeout': timeout });
+    const composedSignal = await this.#composeRequestSignal(init, { 'normalizedSignal': normalizedSignal, 'timeout': timeout });
+    const requestSignal = composedSignal?.signal;
 
     try {
       return await FetchTransport.fetch(url, init);
     } catch (error) {
       throw this.#classifyRequestError(error, url, { 'externalSignal': externalSignal, 'requestSignal': requestSignal, 'timeout': timeout });
+    } finally {
+      composedSignal?.dispose();
     }
   }
 
@@ -166,7 +171,7 @@ export class BrowserFetchClient implements FetchClientInterface {
   async #composeRequestSignal(
     init: Record<string, unknown>,
     options: ComposeBrowserRequestSignalOptionsInterface
-  ): Promise<AbortSignal | undefined> {
+  ): Promise<ComposedSignalInterface | undefined> {
     if (options.timeout === undefined && options.normalizedSignal === undefined) {
       return undefined;
     }
@@ -178,9 +183,9 @@ export class BrowserFetchClient implements FetchClientInterface {
     if (options.normalizedSignal !== undefined) {
       composeOptions.signal = options.normalizedSignal;
     }
-    const requestSignal = await this.#signal.compose(composeOptions);
-    init.signal = requestSignal;
-    return requestSignal;
+    const composed = await this.#signal.compose(composeOptions);
+    init.signal = composed.signal;
+    return composed;
   }
 
   #classifyRequestError(error: unknown, url: string, options: RequestErrorClassificationOptionsInterface): unknown {

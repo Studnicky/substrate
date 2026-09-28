@@ -1,3 +1,5 @@
+import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
+
 import { Batch } from '@studnicky/batch/node';
 /** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
@@ -482,7 +484,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     state: WorkerPoolRunState<TMessage, TResult>,
     worker: Worker,
     entry: PendingEntryInterface<TMessage, TResult>
-  ): Promise<AbortSignal | undefined> {
+  ): Promise<ComposedSignalInterface | undefined> {
     const composeOptions: { 'signal'?: AbortSignal; } = {};
     if (this.#abortSignal !== undefined) {
       composeOptions.signal = this.#abortSignal;
@@ -501,7 +503,8 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   }
 
   /** The task's only listener on the caller-derived signal; both the startup and task deadlines derive from `controller.signal`. */
-  #bindTaskCancellation(cancellationSignal: AbortSignal): TaskCancellationBindingInterface {
+  #bindTaskCancellation(composed: ComposedSignalInterface): TaskCancellationBindingInterface {
+    const cancellationSignal = composed.signal;
     const controller = new AbortController();
     const onCancellationAbort = (): void => {
       controller.abort(cancellationSignal.reason);
@@ -513,6 +516,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     }
     const release = (): void => {
       cancellationSignal.removeEventListener('abort', onCancellationAbort);
+      composed.dispose();
     };
     return { 'controller': controller, 'release': release };
   }

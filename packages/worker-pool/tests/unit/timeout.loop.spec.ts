@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
@@ -81,10 +82,14 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
         super();
       }
 
-      override async compose(): Promise<AbortSignal> {
+      override async compose(): Promise<ComposedSignalInterface> {
         const controller = new AbortController();
         controller.abort(abortReason);
-        return controller.signal;
+        return {
+          'signal': controller.signal,
+          'dispose': (): void => {},
+          [Symbol.dispose](): void {}
+        };
       }
     }
 

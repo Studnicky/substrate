@@ -283,7 +283,8 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     if (this.#abortSignal !== undefined) {
       composeOptions.signal = this.#abortSignal;
     }
-    const cancellationSignal = await this.#signal.compose(composeOptions);
+    const composed = await this.#signal.compose(composeOptions);
+    const cancellationSignal = composed.signal;
 
     const controller = new AbortController();
     const onCancellationAbort = (): void => {
@@ -296,6 +297,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     }
     const release = (): void => {
       cancellationSignal.removeEventListener('abort', onCancellationAbort);
+      composed.dispose();
     };
 
     return { 'controller': controller, 'release': release };
