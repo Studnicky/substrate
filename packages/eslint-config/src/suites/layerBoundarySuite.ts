@@ -12,8 +12,9 @@ import { plugin } from '../plugin.js';
  * factory rather than a static suite: call `LayerBoundarySuite.create(...)`
  * with the shared layer config plus each rule's own extras to get one
  * ready-to-spread flat-config entry enabling all six consistently.
- * no-circular-imports takes no options of its own — it runs off the
- * TypeScript program, not the layer configuration.
+ * no-circular-imports, no-reflect-argument-laundering, and
+ * no-unchecked-overload-implementation take no options of their own — each
+ * runs off the TypeScript program, not the layer configuration.
  */
 export class LayerBoundarySuite {
   public static create(options: LayerOptionsEntity.Type & {
@@ -46,7 +47,9 @@ export class LayerBoundarySuite {
         '@studnicky/intake-parse-only': ['error', { ...intakeParseOnly }],
         '@studnicky/known-types-outside-adapters': ['error', { ...layerOptions, ...knownTypesOutsideAdapters }],
         '@studnicky/layer-import-boundary': ['error', layerOptions],
-        '@studnicky/no-circular-imports': 'error'
+        '@studnicky/no-circular-imports': 'error',
+        '@studnicky/no-reflect-argument-laundering': 'error',
+        '@studnicky/no-unchecked-overload-implementation': 'error'
       }
     };
   }
