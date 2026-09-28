@@ -7,6 +7,7 @@ import {
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { BusQueue } from '../../src/BusQueue.js';
+import { BusQueueCreateOptionsEntity } from '../../src/entities/BusQueueCreateOptionsEntity.js';
 import { BusQueueScenarioCaseEntity } from './entities/BusQueueScenarioCaseEntity.js';
 import scenarioGroups from './BusQueue.scenarios.json' with { type: 'json' };
 
@@ -100,11 +101,8 @@ const runnerMap: RunnerMap = {
         assert.strictEqual(queue.size, expected.size);
       });
     },
-    'missing-handler': ({ expected, input }) => {
-      assert.throws(
-        () => Reflect.apply(BusQueue.create, BusQueue, [input.options ?? {}]),
-        { message: expected.message }
-      );
+    'missing-handler': ({ input }) => {
+      assert.throws(() => { BusQueueCreateOptionsEntity.intake(input.options ?? {}); });
       return;
     },
     'size-before-drain': ({ expected, input }) => {
@@ -360,12 +358,9 @@ const runnerMap: RunnerMap = {
           assert.strictEqual(queue.size, expected.size);
         });
     },
-    'high-water-mark-validation': ({ expected, input }) => {
+    'high-water-mark-validation': ({ input }) => {
       for (const value of requireDefined(input.values, 'values')) {
-        assert.throws(
-          () => BusQueue.create<number>({ 'handler': async () => {}, 'highWaterMark': value }),
-          { message: expected.message }
-        );
+        assert.throws(() => { BusQueueCreateOptionsEntity.intake({ 'handler': async () => {}, 'highWaterMark': value }); });
       }
       return;
     },

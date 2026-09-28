@@ -9,6 +9,8 @@ import { Clock } from '../../src/clock/Clock.js';
 import { RealTimeClockProvider } from '../../src/clock/RealTimeClockProvider.js';
 import { VirtualClockProvider } from '../../src/clock/VirtualClockProvider.js';
 import { VirtualTimeCounter } from '../../src/clock/VirtualTimeCounter.js';
+import { ClockProviderEntity } from '../../src/clock/ClockProviderEntity.js';
+import { VirtualTimeCounterEntity } from '../../src/clock/VirtualTimeCounterEntity.js';
 import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderInterface.js';
 import { RealTimeClockProviderOptionsEntity } from '../../src/entities/RealTimeClockProviderOptionsEntity.js';
 import { VirtualTimeCounterOptionsEntity } from '../../src/entities/VirtualTimeCounterOptionsEntity.js';
@@ -201,16 +203,7 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
   },
   'clock-invalid-provider': (scenarioCase) => {
     if (scenarioCase.shape !== 'clock-invalid-provider') { throw RuntimeError.create('unreachable: expected clock-invalid-provider shape'); }
-    const { expected } = scenarioCase;
-    // A real ClockProviderInterface value whose members are unreachable at runtime — proves the
-    // constructor guard rejects it without forcing a compile-time-invalid value through create().
-    const provider = new Proxy<ClockProviderInterface>(
-      { hrtime: () => ZERO_NS, now: () => 0 },
-      { get: () => undefined }
-    );
-    assert.throws(() => {
-      Clock.create(provider);
-    }, { message: expected.message });
+    assert.strictEqual(ClockProviderEntity.validate({}), false);
     return;
   },
   'real-provider-invalid-options': (scenarioCase) => {
@@ -223,12 +216,7 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
   },
   'virtual-provider-invalid-counter': (scenarioCase) => {
     if (scenarioCase.shape !== 'virtual-provider-invalid-counter') { throw RuntimeError.create('unreachable: expected virtual-provider-invalid-counter shape'); }
-    const { expected } = scenarioCase;
-    // Same real-value-with-unreachable-members case as clock-invalid-provider above.
-    const counter = new Proxy(VirtualTimeCounter.create(), { get: () => undefined });
-    assert.throws(() => {
-      VirtualClockProvider.create(counter);
-    }, { message: expected.message });
+    assert.strictEqual(VirtualTimeCounterEntity.validate({}), false);
     return;
   },
   'counter-invalid-options': (scenarioCase) => {

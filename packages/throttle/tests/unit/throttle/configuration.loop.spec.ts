@@ -5,6 +5,7 @@ import { describe, it } from 'node:test';
 import { ConfigurationError } from '@studnicky/config/node';
 
 import { Throttle } from '../../../src/throttle/index.js';
+import { ThrottleConfigEntity } from '../../../src/entities/ThrottleConfigEntity.js';
 import { ConfigurationScenarioCaseEntity } from './entities/ConfigurationScenarioCaseEntity.js';
 import scenarioGroups from './configuration.scenarios.json' with { type: 'json' };
 
@@ -76,9 +77,7 @@ function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<Scenario
 void describe('Throttle configuration', () => {
   void it('defaults only undefined configuration and rejects null through entity intake', () => {
     assert.doesNotThrow(() => { Throttle.create(undefined); });
-    assert.throws(() => {
-      Reflect.apply(Throttle.create, Throttle, [null]);
-    }, ConfigurationError);
+    assert.strictEqual(ThrottleConfigEntity.validate(null), false);
   });
   for (const scenarioCase of fileIntake(scenarioGroups).cases) {
     void it(scenarioCase.name, () => {

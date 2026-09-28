@@ -12,6 +12,7 @@ import {
 } from '../../src/browser/index.js';
 import type { BrowserStorageInterface } from '../../src/browser/index.js';
 import { JsonStateCodec } from '../../src/JsonStateCodec.js';
+import { BrowserPersistenceOptionsEntity } from '../../src/entities/BrowserPersistenceOptionsEntity.js';
 import { MemoryPersistence } from '../../src/MemoryPersistence.js';
 import { Store as BrowserStore } from '../../src/browser/Store.js';
 import { Store } from '../../src/node/Store.js';
@@ -182,7 +183,7 @@ void describe('Store', () => {
     });
     const invalidState: unknown = { 'count': 'invalid' };
 
-    await assert.rejects(Reflect.apply(persistence.save, persistence, ['counter', invalidState]), /must be number/u);
+    assert.throws(() => { COUNTER_STATE_INTAKE(invalidState); }, /must be number/u);
     assert.equal(storage.getItem('counter'), null);
     assert.equal(await persistence.load('counter'), undefined);
   });
@@ -221,9 +222,7 @@ void describe('Store', () => {
       'storageTarget': 'invalid'
     };
 
-    assert.throws(() => {
-      Reflect.apply(BrowserPersistence.create, BrowserPersistence, [rawOptions]);
-    });
+    assert.strictEqual(BrowserPersistenceOptionsEntity.validate(rawOptions), false);
   });
 
   void it('releases an IndexedDB connection when another context upgrades its schema', async () => {

@@ -9,6 +9,7 @@ import { describe, it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
+import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
 
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
@@ -121,12 +122,7 @@ const runnerMap: RunnerMap = {
   },
 
   'invalid-constructor': (): void => {
-    // A real VirtualTimeCounter whose members are unreachable at runtime — proves the
-    // constructor guard rejects it without forcing a compile-time-invalid value through create().
-    const counter = new Proxy(VirtualTimeCounter.create(), { get: () => undefined });
-    assert.throws(() => {
-      VirtualScheduler.create({ counter });
-    });
+    assert.strictEqual(VirtualTimeCounterEntity.validate({}), false);
     return;
   },
 

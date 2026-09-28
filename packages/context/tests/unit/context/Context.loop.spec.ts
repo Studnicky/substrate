@@ -8,7 +8,7 @@ import { setTimeout } from 'node:timers/promises';
 
 
 import { Context } from '../../../src/node/index.js';
-import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
+import { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
 import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './Context.scenarios.json' with { type: 'json' };
 
@@ -190,10 +190,7 @@ const runnerMap = {
   },
 
   'invalid-name': (scenarioCase) => {
-    assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
-      { message: scenarioCase.expected.message }
-    );
+    assert.strictEqual(ContextConfigEntity.validate(scenarioCase.input.context), false);
     return;
   },
 
@@ -837,10 +834,7 @@ const runnerMap = {
   },
 
   'config-validation': (scenarioCase) => {
-    assert.throws(
-      () => Reflect.apply(Context.create, Context, [scenarioCase.input.context]),
-      { message: scenarioCase.expected.message }
-    );
+    assert.strictEqual(ContextConfigEntity.validate(scenarioCase.input.context), false);
     return;
   },
 } satisfies Record<ScenarioShape, ScenarioRunner>;

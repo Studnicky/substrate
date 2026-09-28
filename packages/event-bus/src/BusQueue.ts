@@ -18,6 +18,7 @@ import {
   BUS_QUEUE_DEFAULT_HIGH_WATER_MARK,
   BUS_QUEUE_DEFAULT_WAITER_CAPACITY
 } from './constants/index.js';
+import { BusQueueCreateOptionsEntity } from './entities/BusQueueCreateOptionsEntity.js';
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 
 /** Swallows hook failures rather than throwing — a queue processing loop must not halt because an observer hook threw. */
@@ -109,13 +110,13 @@ export class BusQueue<T> {
   }
 
   protected constructor(options: BusQueueCreateOptionsInterface<T>) {
-    if (!Predicates.isFunction(options.handler)) {
-      throw new BusQueueConfigError('BusQueue.create(options): options.handler must be a function');
+    if (!BusQueueCreateOptionsEntity.validate(options)
+      || !Predicates.isFunction(options.handler)
+      || (options.onError !== undefined && !Predicates.isFunction(options.onError))
+      || (options.signal !== undefined && !(options.signal instanceof AbortSignal))) {
+      throw new BusQueueConfigError('BusQueue.create(options) received invalid options');
     }
     const hwmOption = options.highWaterMark;
-    if (hwmOption !== undefined && (!Number.isInteger(hwmOption) || hwmOption <= 0)) {
-      throw new BusQueueConfigError('highWaterMark must be a positive integer');
-    }
     this.#handler = options.handler;
     this.#hwm = hwmOption ?? BUS_QUEUE_DEFAULT_HIGH_WATER_MARK;
     this.#onError = options.onError;
