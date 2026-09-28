@@ -41,6 +41,10 @@ run_config_schema_check() {
   node scripts/config-schema.ts --check
 }
 
+run_project_references_check() {
+  node scripts/check-project-references.ts
+}
+
 case "${1:-}" in
   branch)
     run_branch_check "${2:?missing branch}"
@@ -62,6 +66,9 @@ case "${1:-}" in
     ;;
   config-schema)
     run_config_schema_check
+    ;;
+  project-references)
+    run_project_references_check
     ;;
   *)
     echo "policy-suite: unknown check '${1:-}'" >&2

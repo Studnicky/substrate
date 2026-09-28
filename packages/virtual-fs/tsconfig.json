@@ -11,6 +11,7 @@
   "references": [
     { "path": "../clock" },
     { "path": "../entity" },
-    { "path": "../errors" }
+    { "path": "../errors" },
+    { "path": "../types" }
   ]
 }

@@ -42,6 +42,9 @@
     },
     {
       "path": "../types"
+    },
+    {
+      "path": "../event-bus"
     }
   ]
 }

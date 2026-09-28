@@ -15,6 +15,9 @@
   "references": [
     {
       "path": "./tsconfig.json"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }

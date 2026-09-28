@@ -34,6 +34,12 @@
     },
     {
       "path": "../retry"
+    },
+    {
+      "path": "../example-smoke-kit"
+    },
+    {
+      "path": "../scenario-kit"
     }
   ]
 }

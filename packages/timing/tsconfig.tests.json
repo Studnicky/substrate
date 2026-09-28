@@ -25,6 +25,9 @@
     },
     {
       "path": "../scenario-kit"
+    },
+    {
+      "path": "../example-smoke-kit"
     }
   ]
 }
