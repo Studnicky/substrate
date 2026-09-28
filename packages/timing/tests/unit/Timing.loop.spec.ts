@@ -158,6 +158,11 @@ const runnerMap: RunnerMap = {
 
   'constructor-wraps-error': (scenarioCase) => {
     class ThrowingHrtimeTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingHrtimeTiming {
+        return new ThrowingHrtimeTiming(options);
+      }
       protected override readHrtime(): bigint {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -338,6 +343,11 @@ const runnerMap: RunnerMap = {
 
   'throwing-onInitialize': (scenarioCase) => {
     class ThrowingInitializeTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingInitializeTiming {
+        return new ThrowingInitializeTiming(options);
+      }
       protected override onInitialize(): void {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -350,6 +360,11 @@ const runnerMap: RunnerMap = {
 
   'throwing-onClear': (scenarioCase) => {
     class ThrowingClearTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingClearTiming {
+        return new ThrowingClearTiming(options);
+      }
       protected override onClear(): void {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -365,6 +380,11 @@ const runnerMap: RunnerMap = {
   'throwing-onEvict': (scenarioCase) => {
     const input = scenarioCase.input;
     class ThrowingEvictTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingEvictTiming {
+        return new ThrowingEvictTiming(options);
+      }
       protected override onEvict(): void {
         throw RuntimeError.create(input.errorMessage);
       }
@@ -378,6 +398,11 @@ const runnerMap: RunnerMap = {
 
   'throwing-onEvent': (scenarioCase) => {
     class ThrowingEventTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingEventTiming {
+        return new ThrowingEventTiming(options);
+      }
       protected override onEvent(): void {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -391,6 +416,11 @@ const runnerMap: RunnerMap = {
 
   'throwing-onGetEvents': (scenarioCase) => {
     class ThrowingGetEventsTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingGetEventsTiming {
+        return new ThrowingGetEventsTiming(options);
+      }
       protected override onGetEvents(): void {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -404,6 +434,11 @@ const runnerMap: RunnerMap = {
 
   'hook-error-instance': (scenarioCase) => {
     class ThrowingEventTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): ThrowingEventTiming {
+        return new ThrowingEventTiming(options);
+      }
       protected override onEvent(): void {
         throw RuntimeError.create(scenarioCase.input.errorMessage);
       }
@@ -422,6 +457,11 @@ const runnerMap: RunnerMap = {
 
   'async-onEvent-unhandled': (scenarioCase) => {
     class AsyncRejectingEventTiming extends Timing {
+      static create(
+        options: Parameters<typeof TimingOptionsEntity.create>[0] = {}
+      ): AsyncRejectingEventTiming {
+        return new AsyncRejectingEventTiming(options);
+      }
       protected override async onEvent(): Promise<void> {
         await Promise.resolve();
         throw RuntimeError.create(scenarioCase.input.errorMessage);

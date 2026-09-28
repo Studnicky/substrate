@@ -123,7 +123,7 @@ export namespace LoggerScenarioCaseEntity {
     'properties': {
       'description': { 'minLength': 1, 'type': 'string' },
       'level': logLevelEnumSchema,
-      'metadata': { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' },
+      'metadata': { 'type': 'object' },
       'name': { 'minLength': 1, 'type': 'string' },
       'shape': { 'const': 'create-with-metadata' }
     },
@@ -150,11 +150,9 @@ export namespace LoggerScenarioCaseEntity {
   } as const;
   const createInvalidTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
       'shape': SchemaNode.defineConst({}, 'create-invalid-transports' as const)
-    }, ['description', 'expectedMessage', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
+    }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const globalFloorSchema = {
     'additionalProperties': false,
     'properties': {
