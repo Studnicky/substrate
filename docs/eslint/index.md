@@ -181,6 +181,7 @@ export default [
 | [`@studnicky/no-double-assertion`](/eslint/rules/no-double-assertion) | No | `error` |
 | [`@studnicky/no-function-registries`](/eslint/rules/no-function-registries) | No | `error` |
 | [`@studnicky/no-mixed-callable-shapes`](/eslint/rules/no-mixed-callable-shapes) | No | `error` |
+| [`@studnicky/no-caller-chosen-guard-type`](/eslint/rules/no-caller-chosen-guard-type) | No | `error` |
 | [`@studnicky/no-redefined-external-types`](/eslint/rules/no-redefined-external-types) | No | `error` |
 | [`@studnicky/no-reflect-argument-laundering`](/eslint/rules/no-reflect-argument-laundering) | No | `error` |
 | [`@studnicky/no-threaded-vocabulary`](/eslint/rules/no-threaded-vocabulary) | No | `error` |

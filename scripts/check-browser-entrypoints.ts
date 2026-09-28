@@ -408,17 +408,20 @@ for (const directoryName of packageDirectories) {
     }
   }
 
-  const nodeTarget = executableTarget(typedExportsMap['./node'], packageName, './node');
-  const browserTarget = executableTarget(typedExportsMap['./browser'], packageName, './browser');
+  const nodeExport = typedExportsMap['./node'];
+  const browserExport = typedExportsMap['./browser'];
+  if (nodeExport !== undefined && browserExport !== undefined) {
+    const nodeTarget = executableTarget(nodeExport, packageName, './node');
+    const browserTarget = executableTarget(browserExport, packageName, './browser');
+    if (nodeTarget !== undefined && browserTarget !== undefined) {
+      if (nodeTarget.importTarget === browserTarget.importTarget && nodeTarget.typesTarget !== browserTarget.typesTarget) {
+        errors.push(`${packageName} ./node and ./browser share ${nodeTarget.importTarget} but declare different type artifacts`);
+      }
 
-  if (nodeTarget !== undefined && browserTarget !== undefined) {
-    if (nodeTarget.importTarget === browserTarget.importTarget && nodeTarget.typesTarget !== browserTarget.typesTarget) {
-      errors.push(`${packageName} ./node and ./browser share ${nodeTarget.importTarget} but declare different type artifacts`);
-    }
-
-    const entrypoint = sourceEntrypoint(packageDirectory, packageName, browserTarget.importTarget);
-    if (entrypoint !== undefined) {
-      browserEntrypoints.push({ 'entrypoint': entrypoint, 'packageName': packageName });
+      const entrypoint = sourceEntrypoint(packageDirectory, packageName, browserTarget.importTarget);
+      if (entrypoint !== undefined) {
+        browserEntrypoints.push({ 'entrypoint': entrypoint, 'packageName': packageName });
+      }
     }
   }
 
