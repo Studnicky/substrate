@@ -22,7 +22,7 @@ pnpm add @studnicky/context
 
 ## Node usage
 
-On Node, ordinary `await` preserves the active Context. Use `context.run(initial, operation)` for a one-shot scope that returns `{ value, snapshot }` after automatic cleanup.
+On Node, ordinary `await` preserves the active Context. Use `context.run(initial, operation)` for a synchronous one-shot scope, or `context.runAsync(initial, operation)` for an asynchronous one — both return `{ value, snapshot }` after automatic cleanup.
 
 ```typescript
 import { Context } from '@studnicky/context/node';

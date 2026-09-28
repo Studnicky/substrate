@@ -48,9 +48,9 @@ import { ContextScopeMachine } from './ContextScopeMachine.js';
  * Node retains Context through ordinary await. Browser code retains Context
  * through the transform. Without the transform, call await(value) for a promise
  * and bind(callback) before handing a callback to an opaque API. Context.run()
- * owns only callbacks that settle within its operation. A callback invoked later
- * uses Context.initialize(); remove it, then call terminate() when it is no
- * longer needed:
+ * and Context.runAsync() own only callbacks that settle within their operation.
+ * A callback invoked later uses Context.initialize(); remove it, then call
+ * terminate() when it is no longer needed:
  *
  * ```typescript
  * await scope.execute(async () => {
