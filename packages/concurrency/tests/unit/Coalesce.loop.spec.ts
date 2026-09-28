@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Coalesce } from '../../src/Coalesce.js';
+import { CoalesceOptionsEntity } from '../../src/entities/CoalesceOptionsEntity.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
 import { CoalesceScenarioCaseEntity } from './entities/CoalesceScenarioCaseEntity.js';
 import scenarioGroups from './Coalesce.scenarios.json' with { type: 'json' };
@@ -20,6 +21,10 @@ class ObservedCoalesce<T> extends Coalesce<T> {
   readonly startEvents: string[] = [];
   readonly joinEvents: string[] = [];
   readonly settledEvents: { 'key': string; 'success': boolean }[] = [];
+
+  static override create<T>(options?: CoalesceOptionsEntity.InputType): ObservedCoalesce<T> {
+    return new ObservedCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+  }
   protected override onCoalesceStart(key: string): void { this.startEvents.push(key); }
   protected override onCoalesceJoin(key: string): void { this.joinEvents.push(key); }
   protected override onCoalesceSettled(key: string, success: boolean): void { this.settledEvents.push({ 'key': key, 'success': success }); }
@@ -27,6 +32,10 @@ class ObservedCoalesce<T> extends Coalesce<T> {
 
 class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
   readonly timeoutEvents: { 'key': string; 'timeoutMs': number }[] = [];
+
+  static override create<T>(options?: CoalesceOptionsEntity.InputType): ObservedTimeoutCoalesce<T> {
+    return new ObservedTimeoutCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+  }
   protected override onTimeout(key: string, timeoutMs: number): void {
     this.timeoutEvents.push({ 'key': key, 'timeoutMs': timeoutMs });
   }
@@ -96,6 +105,10 @@ const scenarioRunners: RunnerMap = {
   'join-hook-rejects': async (scenarioCase) => {
     class RejectingJoinCoalesce<T> extends Coalesce<T> {
       readonly settledEvents: boolean[] = [];
+
+      static override create<T>(options?: CoalesceOptionsEntity.InputType): RejectingJoinCoalesce<T> {
+        return new RejectingJoinCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+      }
       protected override onCoalesceJoin(): void {
         throw RuntimeError.create(scenarioCase.input.message);
       }
@@ -223,6 +236,10 @@ const scenarioRunners: RunnerMap = {
     const startGate = Promise.withResolvers<void>();
     class RejectingStartCoalesce<T> extends Coalesce<T> {
       readonly settledEvents: boolean[] = [];
+
+      static override create<T>(options?: CoalesceOptionsEntity.InputType): RejectingStartCoalesce<T> {
+        return new RejectingStartCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+      }
       protected override onCoalesceStart(): Promise<void> {
         return startGate.promise;
       }

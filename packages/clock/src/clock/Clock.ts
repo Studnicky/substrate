@@ -7,8 +7,7 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
@@ -17,24 +16,14 @@ import { ClockProviderEntity } from './ClockProviderEntity.js';
 
 const HRTIME_ZERO = 0n;
 
-interface ClockSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Time source instance. Delegates to a `ClockProvider` (real or virtual)
  * while enforcing per-instance monotonicity for `now()` and `hrtime()`.
  */
 export class Clock {
-  static create<TInstance extends Clock = Clock>(
-    this: ClockSubclassInterface<TInstance>,
-    provider: ClockProviderInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [provider]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Clock.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(this: typeof Clock, provider: ClockProviderInterface): Clock {
+    return new this(provider);
   }
 
   readonly #provider: ClockProviderInterface;

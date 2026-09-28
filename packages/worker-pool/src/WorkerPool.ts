@@ -220,7 +220,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       'timeoutMs': parsedConfig.timeoutMs,
       'workerPath': parsedConfig.workerPath
     }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw new WorkerPoolError({
         'code': 'workerPool.invalidConstruction',
         'message': 'WorkerPool.create() must construct a WorkerPool instance'

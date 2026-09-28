@@ -10,6 +10,10 @@ import scenarioGroups from "./SampleBufferSubclass.scenarios.json" with { type: 
 class EvictTracker extends SampleBuffer {
   readonly evictedValues: number[] = [];
 
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): EvictTracker {
+    return new EvictTracker(options);
+  }
+
   override onEvict(oldValue: number): void {
     this.evictedValues.push(oldValue);
   }
@@ -18,6 +22,10 @@ class EvictTracker extends SampleBuffer {
 class PushAudit extends SampleBuffer {
   readonly pushLog: Array<{ value: number; evicted: boolean }> = [];
 
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): PushAudit {
+    return new PushAudit(options);
+  }
+
   override onPush(value: number, evicted: boolean): void {
     this.pushLog.push({ evicted, value });
   }
@@ -25,6 +33,10 @@ class PushAudit extends SampleBuffer {
 
 class ClearCounter extends SampleBuffer {
   clearCount = 0;
+
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): ClearCounter {
+    return new ClearCounter(options);
+  }
   override onClear(): void {
     this.clearCount += 1;
   }
@@ -32,6 +44,10 @@ class ClearCounter extends SampleBuffer {
 
 class PercentileAudit extends SampleBuffer {
   readonly percentileLog: Array<{ pct: number; result: number }> = [];
+
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): PercentileAudit {
+    return new PercentileAudit(options);
+  }
   override onPercentile(pct: number, result: number): void {
     this.percentileLog.push({ pct, result });
   }
@@ -39,6 +55,10 @@ class PercentileAudit extends SampleBuffer {
 
 class OverflowTracker extends SampleBuffer {
   readonly overflowValues: number[] = [];
+
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): OverflowTracker {
+    return new OverflowTracker(options);
+  }
   override onOverflow(value: number): void {
     this.overflowValues.push(value);
   }
@@ -46,6 +66,10 @@ class OverflowTracker extends SampleBuffer {
 
 class ComputeAudit extends SampleBuffer {
   readonly computeStartLengths: number[] = [];
+
+  static override create(options: Parameters<typeof SampleBuffer.create>[0]): ComputeAudit {
+    return new ComputeAudit(options);
+  }
   readonly computeCompletes: Array<{
     length: number;
     sorted: readonly number[];
@@ -287,6 +311,10 @@ const runnerMap: RunnerMap = {
     class OverflowEvictOrder extends SampleBuffer {
       readonly events: string[] = [];
 
+      static override create(options: Parameters<typeof SampleBuffer.create>[0]): OverflowEvictOrder {
+        return new OverflowEvictOrder(options);
+      }
+
       override onOverflow(value: number): void {
         this.events.push(`overflow:${String(value)}`);
       }
@@ -389,6 +417,9 @@ const runnerMap: RunnerMap = {
   "inspect-protected-fields": (scenarioCase) => {
     const { input, expected } = scenarioCase;
     class InspectBuffer extends SampleBuffer {
+      static override create(options: Parameters<typeof SampleBuffer.create>[0]): InspectBuffer {
+        return new InspectBuffer(options);
+      }
       inspect(): {
         capacity: number;
         head: number;

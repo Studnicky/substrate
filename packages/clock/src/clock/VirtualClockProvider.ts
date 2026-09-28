@@ -5,8 +5,7 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 import type { VirtualTimeCounter } from './VirtualTimeCounter.js';
@@ -17,9 +16,6 @@ import { VirtualTimeCounterEntity } from './VirtualTimeCounterEntity.js';
 /** Named constant: nanoseconds per millisecond, as BigInt. */
 const NS_PER_MS = 1_000_000n;
 
-interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * `ClockProvider` backed by a `VirtualTimeCounter`.
@@ -27,15 +23,11 @@ interface VirtualClockProviderSubclassInterface<TInstance> extends Function {
  * `hrtime()` returns the same value converted to nanoseconds.
  */
 export class VirtualClockProvider implements ClockProviderInterface {
-  static create<TInstance extends VirtualClockProvider = VirtualClockProvider>(
-    this: VirtualClockProviderSubclassInterface<TInstance>,
+  static create(
+    this: typeof VirtualClockProvider,
     counter: Readonly<VirtualTimeCounter>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [counter]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('VirtualClockProvider.create() did not construct the requested subclass.');
-    }
-    return result;
+  ): VirtualClockProvider {
+    return new this(counter);
   }
 
   readonly #counter: Readonly<VirtualTimeCounter>;

@@ -1,6 +1,5 @@
 import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
@@ -10,11 +9,6 @@ import type { VirtualFileSystemOptionsInterface } from '../interfaces/VirtualFil
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 
-interface VirtualFileSystemConstructorInterface<
-  TInstance extends VirtualFileSystem
-> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 interface RenameSourceInterface {
   readonly 'content': string | undefined;
@@ -47,22 +41,8 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
-    this: VirtualFileSystemConstructorInterface<TInstance>,
-    options?: VirtualFileSystemOptionsInterface
-  ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [options ?? {}]);
-    if (!Predicates.isObjectLike(constructed)) {
-      throw RuntimeError.create(
-        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
-      );
-    }
-    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
-      throw RuntimeError.create(
-        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
-      );
-    }
-    return constructed;
+  static create(options?: VirtualFileSystemOptionsInterface): VirtualFileSystem {
+    return new VirtualFileSystem(options ?? {});
   }
 
   static #splitPath(path: string): { 'name': string; 'parent': string } {

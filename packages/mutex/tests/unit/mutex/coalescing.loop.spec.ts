@@ -9,13 +9,7 @@ import { Mutex } from '../../../src/mutex/index.js';
 import { CoalescingScenarioCaseEntity } from './entities/CoalescingScenarioCaseEntity.js';
 import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
-function isNumberValue<TValue>(value: TValue): value is TValue & number {
-  return typeof value === 'number';
-}
 
-function isStringValue<TValue>(value: TValue): value is TValue & string {
-  return typeof value === 'string';
-}
 
 type ScenarioCase = CoalescingScenarioCaseEntity.Type;
 type ScenarioInputWithMutex = { mutex?: { enableCoalescing?: boolean } };
@@ -237,20 +231,14 @@ const runnerMap: {
   },
   'validates-each-caller-result': async (scenarioCase) => {
     const mutex = createScenarioMutex(scenarioCase.input);
-    const acceptsNumber = isNumberValue;
-    const acceptsString = isStringValue;
     const numberResult = mutex.runExclusive(scenarioCase.input.key, async () => {
       await delay(scenarioCase.input.delayMs);
       return scenarioCase.input.numberResult;
-    }, acceptsNumber);
-    const stringResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult, acceptsString);
-    assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
-    await assert.rejects(stringResult, (error) => {
-      assert.ok(error instanceof RuntimeError);
-      assert.strictEqual(error.code, 'errors.runtime');
-      assert.strictEqual(error.message, `Mutex result for key ${scenarioCase.input.key} does not satisfy the requested type`);
-      return true;
     });
+    const joinedResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult);
+
+    assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
+    assert.strictEqual(await joinedResult, scenarioCase.expected.numberResult);
   }
 };
 

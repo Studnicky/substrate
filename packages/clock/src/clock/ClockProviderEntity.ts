@@ -16,7 +16,7 @@ export namespace ClockProviderEntity {
     { 'type': 'object' } as const,
     { 'hrtime': SchemaNode.defineUnknown({} as const), 'now': SchemaNode.defineUnknown({} as const) },
     ['hrtime', 'now'] as const,
-    { 'additionalProperties': false }
+    { 'additionalProperties': false, 'patternProperties': {} }
   );
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;

@@ -92,7 +92,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
       'timeoutMs': options.timeoutMs,
       'transport': options.transport
     }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw new WorkerPoolError({
         'code': 'workerPool.invalidConstruction',
         'message': 'WebWorkerPool.create() must construct a WebWorkerPool instance'

@@ -74,10 +74,6 @@ interface InFlightOperationInterface {
   'promise': Promise<unknown>;
 }
 
-interface MutexConstructorInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 interface QueueNodeInterface extends QueueEntryInterface {
   'next': QueueNodeInterface | undefined;
   'previous': QueueNodeInterface | undefined;
@@ -201,9 +197,8 @@ class LinkedAcquisitionQueue {
  *
  * A dedicated class (rather than an object literal built up property by
  * property) gives every instance the same hidden class from construction.
- * `acquireDisposable` attaches `Symbol.asyncDispose` after construction and
- * delegates to `release`, so manual release and disposal share one idempotent
- * path.
+ * `MutexLock` implements `Symbol.asyncDispose` directly, so manual release and
+ * disposal share one idempotent path.
  */
 class MutexLock<K extends PropertyKey> {
   readonly 'key': K;
@@ -214,6 +209,12 @@ class MutexLock<K extends PropertyKey> {
   constructor(key: K, releaseFunction: () => void) {
     this.key = key;
     this.#releaseFunction = releaseFunction;
+  }
+
+  [Symbol.asyncDispose](): Promise<void> {
+    this.release();
+    const result = Promise.resolve();
+    return result;
   }
 
   release(): void {
@@ -275,16 +276,6 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
 
-  /**
-   * Narrows `value` to `MutexLockInterface` after `acquireDisposable` has
-   * attached `Symbol.asyncDispose` onto a `MutexLock` instance at runtime
-   * (the symbol-keyed member cannot be a computed class member — see
-   * `MutexLock` above — so it is not statically present on the class type).
-   */
-  private static hasAsyncDispose(value: object): value is MutexLockInterface {
-    const result = Predicates.isFunction(Reflect.get(value, Symbol.asyncDispose));
-    return result;
-  }
 
   /** A clock reading earns its brand via a positive guard before entering lock metrics. */
   private static buildLockMetrics(acquiredAt: number): LockMetricsEntity.Type {
@@ -304,17 +295,11 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     return candidate.queuedAt;
   }
 
-  static create<
-    K extends PropertyKey = string,
-    TInstance extends Mutex<K> = Mutex<K>
-  >(
-    this: MutexConstructorInterface<TInstance>,
+  static create<K extends PropertyKey = string>(
+    this: typeof Mutex,
     config?: MutexCreateOptionsInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Mutex.create() must construct a Mutex instance');
-    }
+  ): Mutex<K> {
+    const result = new this<K>(config);
     return result;
   }
 
@@ -472,19 +457,6 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   async acquireDisposable(key: K): Promise<MutexLockInterface> {
     const release = await this.acquire(key);
     const lock = new MutexLock<K>(key, release);
-    const asyncDispose = async (): Promise<void> => {
-      // Async disposal pattern - ensure proper Promise resolution
-      await Promise.resolve();
-      lock.release();
-    };
-
-    Reflect.set(lock, Symbol.asyncDispose, asyncDispose);
-
-    if (!Mutex.hasAsyncDispose(lock)) {
-      lock.release();
-      throw RuntimeError.create('Mutex.acquireDisposable() failed to attach Symbol.asyncDispose');
-    }
-
     return lock;
   }
 
@@ -1127,45 +1099,25 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    *
    * @param key - The key to lock on
    * @param fn - The function to execute exclusively
-   * @param acceptsResult - Optional runtime predicate that validates and narrows the shared result
-   * @returns The shared result as `unknown`, or as the predicate's proven type
+   * @returns The shared result as `unknown`.
    * @throws {QueueSizeExceededError} If maximumQueueSize is exceeded
    * @throws {LockTimeoutError} If timeout is exceeded
    *
    * @example
    * ```typescript
-   * const acceptsEntity = (value: unknown): value is Entity => value instanceof Entity;
    * const result = await mutex.runExclusive('user1', async () => {
    *   // This code has exclusive access for key 'user1'
    *   return await resolveEntity('user1');
-   * }, acceptsEntity);
+   * });
    * ```
    */
-  runExclusive(key: K, callback: () => unknown): Promise<unknown>;
-  runExclusive<T>(
-    key: K,
-    callback: () => unknown,
-    acceptsResult: (value: unknown) => value is T
-  ): Promise<T>;
-  async runExclusive<T>(
-    key: K,
-    callback: () => unknown,
-    acceptsResult?: (value: unknown) => value is T
-  ): Promise<unknown> {
+  async runExclusive(key: K, callback: () => unknown): Promise<unknown> {
     const result = this.config.enableCoalescing
       ? await this.runExclusiveCoalesced(key, callback)
       : await this.runExclusiveStandard(key, callback);
-
-    if (acceptsResult !== undefined && !acceptsResult(result)) {
-      throw RuntimeError.create(`Mutex result for key ${String(key)} does not satisfy the requested type`);
-    }
-
     return result;
   }
 
-  /**
-   * Execute with coalescing - concurrent calls share the result
-   */
   private runExclusiveCoalesced(
     key: K,
     callback: () => unknown

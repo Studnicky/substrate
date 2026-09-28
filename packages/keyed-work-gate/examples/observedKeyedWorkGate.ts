@@ -10,6 +10,9 @@ import { setTimeout } from 'node:timers/promises';
 import { KeyedWorkGate } from '../src/index.js';
 
 class TelemetryMutex extends Mutex<string> {
+  static build(): TelemetryMutex {
+    return new TelemetryMutex();
+  }
   readonly acquisitions: string[] = [];
 
   protected override afterAcquire(key: string, waitTimeMs: number): void {
@@ -23,6 +26,9 @@ class TelemetryMutex extends Mutex<string> {
 }
 
 class TelemetryCoalesce extends Coalesce<unknown> {
+  static build(): TelemetryCoalesce {
+    return new TelemetryCoalesce();
+  }
   readonly leaders: string[] = [];
   readonly joiners: string[] = [];
 
@@ -79,8 +85,8 @@ class WorkResult {
 }
 
 // #region usage
-const mutex = TelemetryMutex.create();
-const coalesce = TelemetryCoalesce.create();
+const mutex = TelemetryMutex.build();
+const coalesce = TelemetryCoalesce.build();
 
 const gate = ReportingKeyedWorkGate.tracked(mutex, coalesce);
 

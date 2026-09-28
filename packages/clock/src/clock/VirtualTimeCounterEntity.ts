@@ -16,7 +16,7 @@ export namespace VirtualTimeCounterEntity {
     { 'type': 'object' } as const,
     { 'advance': SchemaNode.defineUnknown({} as const), 'nowMs': SchemaNode.defineUnknown({} as const) },
     ['advance', 'nowMs'] as const,
-    { 'additionalProperties': false }
+    { 'additionalProperties': false, 'patternProperties': {} }
   );
   export type Type = NodeStaticType<typeof Node>;
   export type InputType = NodeInputType<typeof Node>;

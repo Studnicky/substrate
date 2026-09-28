@@ -74,6 +74,9 @@ const scenarioRunners = {
 
   'backend-overrides': ({ batch, input }): void => {
     class BackendScheduler extends RealTimeScheduler {
+      static override create(): BackendScheduler {
+        return new BackendScheduler();
+      }
       public timeoutCount = 0;
       public intervalCount = 0;
       public clearCount = 0;

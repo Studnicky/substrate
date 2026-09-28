@@ -8,12 +8,16 @@ import { TokenBucketExhaustedError } from '@studnicky/resilience/node';
 import assert from 'node:assert/strict';
 
 import type { RateLimiterStrategyInterface } from '../src/index.js';
+import type { KeyedRateLimiterCreateConfigInterface } from '../src/interfaces/index.js';
 
 import { KeyedRateLimiter } from '../src/index.js';
 
 const telemetryEvents: string[] = [];
 
 class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TelemetryKeyedRateLimiter {
+    return new TelemetryKeyedRateLimiter(super.createDefaultDependencies(config));
+  }
   protected override onKeyCreated(key: string): void {
     console.log(`[keyed-rate-limiter] key created key=${key}`);
     telemetryEvents.push(`created:${key}`);
@@ -40,7 +44,7 @@ class TelemetryKeyedRateLimiter extends KeyedRateLimiter {
   }
 }
 
-const limiter = TelemetryKeyedRateLimiter.create({
+const limiter = TelemetryKeyedRateLimiter.build({
   'burstSize': 2,
   'clock': () => {
     const epoch = new Date(0);

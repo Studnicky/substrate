@@ -1,11 +1,9 @@
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 /**
  * Context implementation using ContextStorageInterface.
  */
 import type { ContextLookupEntity } from '../entities/ContextLookupEntity.js';
-import type { ContextConstructorInterface } from '../interfaces/ContextConstructorInterface.js';
 import type { ContextInterface } from '../interfaces/ContextInterface.js';
 import type { ContextRunResultInterface } from '../interfaces/ContextRunResultInterface.js';
 import type { ContextScopeInterface } from '../interfaces/ContextScopeInterface.js';
@@ -63,16 +61,11 @@ export class Context implements ContextInterface {
    * const context = Context.create({ name: 'request' });
    * ```
    */
-  static create<TInstance extends Context = Context>(
-    this: ContextConstructorInterface<TInstance>,
+  static create(
     config: ContextConfigEntity.InputType,
     storage: ContextStorageInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [config, storage]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Context.create() did not construct the requested subclass.');
-    }
-    return result;
+  ): Context {
+    return new Context(ContextConfigEntity.create(config), storage);
   }
 
   /**

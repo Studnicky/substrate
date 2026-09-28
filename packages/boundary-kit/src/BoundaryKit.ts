@@ -5,11 +5,9 @@
 import type { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
 import type { CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/interfaces';
 
-import { RuntimeError } from '@studnicky/errors/browser';
 import { CircuitBreaker } from '@studnicky/resilience/browser';
 import { Retry } from '@studnicky/retry/browser';
 import { Throttle } from '@studnicky/throttle/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { BoundaryKitConfigInterface } from './interfaces/BoundaryKitConfigInterface.js';
 import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInterface.js';
@@ -17,9 +15,6 @@ import type { BoundaryKitDepsInterface } from './interfaces/BoundaryKitDepsInter
 import { BOUNDARY_KIT_DEFAULTS } from './constants/BOUNDARY_KIT_DEFAULTS.js';
 import { BoundaryKitAbortedError } from './errors/BoundaryKitAbortedError.js';
 
-interface BoundaryKitSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Default `CircuitBreaker` options `BoundaryKit` resolves against when `circuitBreaker`
@@ -69,22 +64,12 @@ export class BoundaryKit {
    * @param config - Composition configuration
    * @returns New BoundaryKit instance
    */
-  static create<TInstance extends BoundaryKit = BoundaryKit>(
-    this: BoundaryKitSubclassInterface<TInstance>,
-    config: BoundaryKitConfigInterface = {}
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [{
+  static create(config: BoundaryKitConfigInterface = {}): BoundaryKit {
+    return new this({
       'circuitBreaker': BoundaryKit.#resolveCircuitBreaker(config.circuitBreaker),
       'retry': BoundaryKit.#resolveRetry(config.retry),
       'throttle': BoundaryKit.#resolveThrottle(config.throttle)
-    }]);
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
-    }
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('BoundaryKit.create() must construct a BoundaryKit instance');
-    }
-    return result;
+    });
   }
 
   static #resolveCircuitBreaker(value: BoundaryKitConfigInterface['circuitBreaker']): CircuitBreaker {

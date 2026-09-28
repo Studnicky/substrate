@@ -9,9 +9,8 @@
  * Successful operations return the canonical consumption result.
  */
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors/browser';
 import { RaceTimeout, Signal } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
@@ -25,10 +24,6 @@ import { TimestampLog } from './TimestampLog.js';
 
 class SlidingWindowHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
-}
-
-interface SlidingWindowLimiterSubclassInterface<TInstance extends SlidingWindowLimiter> extends Function {
-  readonly 'prototype': TInstance;
 }
 
 export class SlidingWindowLimiter {
@@ -53,15 +48,8 @@ export class SlidingWindowLimiter {
    */
   protected readonly hooks = new SlidingWindowHookInvoker();
 
-  static create<TInstance extends SlidingWindowLimiter = SlidingWindowLimiter>(
-    this: SlidingWindowLimiterSubclassInterface<TInstance>,
-    options: SlidingWindowLimiterOptionsInterface
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('SlidingWindowLimiter.create() must construct a SlidingWindowLimiter instance');
-    }
-    return result;
+  static create(options: SlidingWindowLimiterOptionsInterface): SlidingWindowLimiter {
+    return new SlidingWindowLimiter(options);
   }
 
   protected constructor(options: SlidingWindowLimiterOptionsInterface) {

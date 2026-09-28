@@ -3,7 +3,7 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 
-interface EntityStoreConstructorInterface<TInstance> extends Function {
+interface EntityStoreConstructorInterface<TEntity, TId extends PropertyKey, TInstance extends EntityStore<TEntity, TId>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -52,11 +52,11 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     TId extends PropertyKey = string,
     TInstance extends EntityStore<TEntity, TId> = EntityStore<TEntity, TId>
   >(
-    this: EntityStoreConstructorInterface<TInstance>,
+    this: EntityStoreConstructorInterface<TEntity, TId, TInstance>,
     options: EntityStoreOptionsInterface<TEntity, TId>
   ): TInstance {
     const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('EntityStore.create() must construct an EntityStore instance');
     }
     return result;

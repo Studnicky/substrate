@@ -10,6 +10,9 @@ import { Throttle } from '../src/index.js';
 // #region usage
 
 class TracingThrottle extends Throttle {
+  static override create(config?: unknown): TracingThrottle {
+    return new TracingThrottle(config);
+  }
   readonly acquireEvents: { 'activeCount': number; 'queuedCount': number }[] = [];
   readonly contendedEvents: { 'activeCount': number; 'queuedCount': number }[] = [];
   readonly acquireWaitEvents: { 'queuedCount': number }[] = [];

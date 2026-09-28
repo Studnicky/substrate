@@ -21,7 +21,7 @@ interface LruCacheNodeInterface<K, V> {
   'value': V;
 }
 
-interface LruCacheConstructorInterface<TInstance> extends Function {
+interface LruCacheConstructorInterface<K, V, TInstance extends LruCache<K, V>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -73,7 +73,7 @@ export class LruCache<K, V> {
     V = unknown,
     TInstance extends LruCache<K, V> = LruCache<K, V>
   >(
-    this: LruCacheConstructorInterface<TInstance>,
+    this: LruCacheConstructorInterface<K, V, TInstance>,
     config: unknown,
     collaborators: LruCacheCollaboratorsInterface = {}
   ): TInstance {
@@ -83,7 +83,7 @@ export class LruCache<K, V> {
         'LruCache.create() must construct a LruCache instance'
       );
     }
-    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
+    if (!Predicates.isInstanceOf(constructed, this)) {
       throw RuntimeError.create(
         'LruCache.create() must construct a LruCache instance'
       );

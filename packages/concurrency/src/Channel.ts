@@ -2,8 +2,7 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
@@ -38,31 +37,11 @@ class ChannelVariantGuards {
   }
 }
 
-interface ChannelSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// T only appears in Channel's covariant/contravariant members (publish/subscribe),
-// so a bound of `Channel<T>` would force `Channel<T>` (the method's own general T)
-// to satisfy `Channel<never>`/`Channel<any>`, which either fails to typecheck or
-// requires a banned `any`. `close()` is the one public member that doesn't
-// mention T at all, so it constrains TInstance to "is actually Channel-shaped"
-// without hitting that wall.
-interface ChannelShapeInterface {
-  close(): Promise<void>;
-}
-
 export class Channel<T> {
-  static create<
-    T,
-    TInstance extends ChannelShapeInterface = Channel<T>
-  >(
-    this: ChannelSubclassInterface<TInstance>,
+  static create<T>(
+    this: typeof Channel,
     options?: ChannelOptionsEntity.InputType
-  ): TInstance {
-    const getCurrentConstructor = (): ChannelSubclassInterface<TInstance> => { return this; };
-    const currentConstructor = getCurrentConstructor();
-
+  ): Channel<T> {
     let validated: ChannelOptionsEntity.Type;
     try {
       validated = ChannelOptionsEntity.intake(options ?? {});
@@ -73,12 +52,7 @@ export class Channel<T> {
       throw error;
     }
 
-    const result: unknown = Reflect.construct(currentConstructor, [validated]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, currentConstructor)) {
-      throw RuntimeError.create('Channel.create() did not construct the requested subclass.');
-    }
-    const instance: TInstance = result;
-    return instance;
+    return new this(validated);
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

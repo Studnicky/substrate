@@ -10,7 +10,7 @@ import { FlagDefinitionValidationError } from './errors/FlagDefinitionValidation
 
 const BUCKET_SPACE = 100;
 
-interface FlagEvaluatorConstructorInterface<TInstance> {
+interface FlagEvaluatorConstructorInterface<TInstance extends FlagEvaluator> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -59,8 +59,6 @@ export class FlagEvaluator {
     return result;
   }
 
-  // `TInstance` is supplied explicitly at the call site and flows into BOTH the constructor
-  // parameter and the type predicate, so it is load-bearing rather than a phantom generic.
 
   private static isConstructor(value: object): value is Function {
     const result = Predicates.isFunction(value);
@@ -74,7 +72,7 @@ export class FlagEvaluator {
       throw RuntimeError.create('FlagEvaluator.create() requires a constructor');
     }
     const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('FlagEvaluator.create() must construct a FlagEvaluator instance');
     }
     return result;

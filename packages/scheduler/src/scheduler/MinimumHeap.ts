@@ -1,11 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
-
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
-
-interface MinimumHeapSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 export class MinimumHeap {
   readonly #heap: PendingTaskInterface[];
@@ -13,14 +6,8 @@ export class MinimumHeap {
   protected constructor() { this.#heap = []; }
 
   /** Creates a new `MinimumHeap` instance. */
-  static create<TInstance extends MinimumHeap = MinimumHeap>(
-    this: MinimumHeapSubclassInterface<TInstance>
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('MinimumHeap.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(): MinimumHeap {
+    return new MinimumHeap();
   }
 
   public insert(task: Readonly<PendingTaskInterface>): void {

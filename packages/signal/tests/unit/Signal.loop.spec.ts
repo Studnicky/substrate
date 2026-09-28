@@ -57,6 +57,9 @@ type ComposeRuntime = { controllers: Record<ComposeSignalId, AbortController> };
 type ScenarioCase = SignalScenarioCaseEntity.Type;
 
 class RecordingSignal extends Signal {
+  static override create(): RecordingSignal {
+    return new RecordingSignal();
+  }
   public calls: Array<{ options: ComposeOptions; result: AbortSignal }> = [];
 
   protected override onCompose(options: ComposeOptions, result: AbortSignal): void {
@@ -96,7 +99,7 @@ async function runOnComposeRecording(
   input: { composeOptions: SerializableComposeOptions },
   expected: { callCount: 1; resultMatches: true }
 ): Promise<void> {
-  const s = RecordingSignal.create<RecordingSignal>();
+  const s = RecordingSignal.create();
   const options = materializeComposeOptions(input.composeOptions);
   using result = await s.compose(options);
   assert.equal(s.calls.length, expected.callCount);
@@ -234,6 +237,9 @@ const runnerMap: RunnerMap = {
     const originalError = RuntimeError.create(scenarioCase.input.message);
 
     class AsyncThrowingSignal extends Signal {
+      static override create(): AsyncThrowingSignal {
+        return new AsyncThrowingSignal();
+      }
       protected override async onCompose(): Promise<void> {
         await delay(1);
         throw originalError;
@@ -363,6 +369,9 @@ void describe('Signal composed resource', () => {
   void it('hook failure disposes the deadline timer', async () => {
     const { timer, scheduledCount } = createVirtualTimers();
     class FailingSignal extends Signal {
+      static override create(): FailingSignal {
+        return new FailingSignal();
+      }
       protected override onCompose(): void {
         throw RuntimeError.create('compose hook failed');
       }

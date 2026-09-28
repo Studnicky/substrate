@@ -15,7 +15,7 @@ interface KeyedWorkGateDepsInterface<K extends PropertyKey> {
   'mutex': Mutex<K>;
 }
 
-interface KeyedWorkGateConstructorInterface<TInstance> extends Function {
+interface KeyedWorkGateConstructorInterface<K extends PropertyKey, TInstance extends KeyedWorkGate<K>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -60,7 +60,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     K extends PropertyKey = string,
     TInstance extends KeyedWorkGate<K> = KeyedWorkGate<K>
   >(
-    this: KeyedWorkGateConstructorInterface<TInstance>,
+    this: KeyedWorkGateConstructorInterface<K, TInstance>,
     config: KeyedWorkGateConfigInterface<K> = {}
   ): TInstance {
     const result: unknown = Reflect.construct(this, [{
@@ -70,7 +70,7 @@ export class KeyedWorkGate<K extends PropertyKey = string> {
     if (!Predicates.isObjectLike(result)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('KeyedWorkGate.create() must construct a KeyedWorkGate instance');
     }
     return result;

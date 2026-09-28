@@ -1,7 +1,7 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
@@ -54,21 +54,6 @@ class BusQueueEntry<T> {
   }
 }
 
-interface BusQueueSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// T only appears in BusQueue's covariant/contravariant members (enqueue()'s item,
-// the handler passed to create()), so a bound of `BusQueue<T>` would force
-// `BusQueue<T>` (the method's own general T) to satisfy `BusQueue<never>`/
-// `BusQueue<any>`, which either fails to typecheck or requires a banned `any`.
-// `drain()` is a public member that doesn't mention T at all, so it constrains
-// TInstance to "is actually BusQueue-shaped" without hitting that wall.
-interface BusQueueShapeInterface {
-  drain(): Promise<void>;
-}
-
-
 export class BusQueue<T> {
   protected readonly hooks: HookInvoker = new BusQueueHookInvoker();
   readonly #handler: (item: T) => Promise<void>;
@@ -91,22 +76,11 @@ export class BusQueue<T> {
   #drainTask: Promise<void> | undefined = undefined;
   #activeEntry: BusQueueEntry<T> | undefined = undefined;
 
-  static create<
-    T,
-    TInstance extends BusQueueShapeInterface = BusQueue<T>
-  >(
-    this: BusQueueSubclassInterface<TInstance>,
+  static create<T>(
+    this: typeof BusQueue,
     options: BusQueueCreateOptionsInterface<T>
-  ): TInstance {
-    // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
-    // passing `this` directly as a call argument) so the receiver is obtained
-    // only through the rule-permitted `return this` form.
-    const getConstructor = (): BusQueueSubclassInterface<TInstance> => { return this; };
-    const constructor = getConstructor();
-    const result: unknown = Reflect.construct(constructor, [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
-      throw RuntimeError.create('BusQueue.create() did not construct the requested subclass.');
-    }
+  ): BusQueue<T> {
+    const result = new this(options);
     return result;
   }
 

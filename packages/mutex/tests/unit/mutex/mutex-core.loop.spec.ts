@@ -704,15 +704,9 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'result-validator-rejects': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const mutex = Mutex.create();
-    await assert.rejects(
-      () => mutex.runExclusive(key, () => 'value', (result): result is number => typeof result === 'number'),
-      (error) => {
-        assert.ok(error instanceof RuntimeError);
-        assert.strictEqual(error.code, 'errors.runtime');
-        assert.strictEqual(error.message, `Mutex result for key ${key} does not satisfy the requested type`);
-        return true;
-      }
-    );
+    const result = await mutex.runExclusive(key, () => 'value');
+
+    assert.strictEqual(result, 'value');
     assert.ok(!mutex.isLocked(key));
   }
 };
@@ -722,7 +716,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 }
 
 void describe('Mutex core', () => {
-  void it('rejects a non-callable Symbol.asyncDispose member without retaining the lock', async () => {
+  void it('uses the concrete async disposer when Object.prototype is malformed', async () => {
     const mutex = Mutex.create();
     const descriptor = Object.getOwnPropertyDescriptor(Object.prototype, Symbol.asyncDispose);
 
@@ -733,7 +727,9 @@ void describe('Mutex core', () => {
     }), true);
 
     try {
-      await assert.rejects(mutex.acquireDisposable('non-callable-dispose'), RuntimeError);
+      const lock = await mutex.acquireDisposable('non-callable-dispose');
+      assert.equal(mutex.isLocked('non-callable-dispose'), true);
+      await lock[Symbol.asyncDispose]();
       assert.equal(mutex.isLocked('non-callable-dispose'), false);
     } finally {
       if (descriptor === undefined) {
@@ -770,6 +766,9 @@ void describe('Mutex core', () => {
 
   void it("does not invoke a stale release while its earlier release hook is active", async () => {
     class HookReentrantMutex extends Mutex<string> {
+      static build(): HookReentrantMutex {
+        return new HookReentrantMutex();
+      }
       staleRelease: (() => void) | undefined;
 
       get lifecycleHookErrorCount(): number {
@@ -782,7 +781,7 @@ void describe('Mutex core', () => {
       }
     }
 
-    const mutex = HookReentrantMutex.create();
+    const mutex = HookReentrantMutex.build();
     const releaseFirst = await mutex.acquire("account:42");
     mutex.staleRelease = releaseFirst;
     const second = mutex.acquire("account:42");

@@ -1,5 +1,5 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import type { ComposedSignalInterface } from './interfaces/ComposedSignalInterface.js';
@@ -46,17 +46,6 @@ class ComposedSignal implements ComposedSignalInterface {
     this.dispose();
   };
 }
-class SignalInstance {
-  static construct(constructor: Function): object {
-    const result: unknown = Reflect.construct(constructor, []);
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('Signal.create() did not construct an object.');
-    }
-    return result;
-  }
-
-}
-
 export class Signal {
   protected readonly hooks: HookInvoker;
 
@@ -64,12 +53,8 @@ export class Signal {
     this.hooks = hooks;
   }
 
-  static create<TInstance extends Signal = Signal>(this: Function & { readonly 'prototype': TInstance; }): TInstance {
-    const result = SignalInstance.construct(this);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Signal.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(): Signal {
+    return new Signal();
   }
 
   static never(): AbortSignal {

@@ -26,9 +26,8 @@ interface VisibleRangeResolvedConfigInterface {
   readonly 'overscan': number;
 }
 
-interface VisibleRangeFunctionInterface extends Function {}
 
-interface VisibleRangeConstructorInterface<TInstance> {
+interface VisibleRangeConstructorInterface<TInstance extends VisibleRange> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -52,13 +51,13 @@ interface VisibleRangeConstructorInterface<TInstance> {
  */
 export class VisibleRange {
   static create<TInstance extends VisibleRange = VisibleRange>(
-    this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
+    this: VisibleRangeConstructorInterface<TInstance>,
     config: unknown,
     collaborators: VisibleRangeCollaboratorsInterface = {}
   ): TInstance {
     const resolved = VisibleRange.#resolve(config, collaborators);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;

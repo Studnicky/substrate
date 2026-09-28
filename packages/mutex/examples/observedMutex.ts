@@ -9,6 +9,9 @@ import { AcquireWaitEventEntity } from '../src/entities/index.js';
 import { Mutex } from '../src/index.js';
 
 class TracingMutex extends Mutex<string> {
+  static build(): TracingMutex {
+    return new TracingMutex();
+  }
   readonly acquireWaitEvents: AcquireWaitEventEntity.Type[] = [];
   readonly queueDrainEvents: QueueDrainEventEntity.Type[] = [];
   readonly releaseEvents: ReleaseEventEntity.Type[] = [];
@@ -82,7 +85,7 @@ class MutexDemoRunner {
   }
 }
 
-const mutex = TracingMutex.create();
+const mutex = TracingMutex.build();
 await MutexDemoRunner.run(mutex);
 // #endregion usage
 

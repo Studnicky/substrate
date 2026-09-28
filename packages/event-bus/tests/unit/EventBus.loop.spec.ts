@@ -8,6 +8,7 @@ import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { EventBus } from '../../src/EventBus.js';
 import type { EventSinkInterface } from '../../src/interfaces/index.js';
+import type { BusQueueOptionsEntity } from '../../src/entities/BusQueueOptionsEntity.js';
 import { EventBusScenarioCaseEntity } from './entities/EventBusScenarioCaseEntity.js';
 import scenarioGroups from './EventBus.scenarios.json' with { type: 'json' };
 
@@ -79,6 +80,9 @@ function expectedStringArray(value: unknown, context: string): string[] {
 }
 
 class ObservedBus extends EventBus<HookTopics> {
+  static createObserved(): ObservedBus {
+    return new ObservedBus();
+  }
   readonly publishEvents: Array<{ 'topic': keyof HookTopics; 'payload': HookTopics[keyof HookTopics] }> = [];
   readonly subscribeEvents: Array<keyof HookTopics> = [];
   readonly unsubscribeEvents: Array<keyof HookTopics> = [];
@@ -129,6 +133,9 @@ class RecordingHookInvoker extends HookInvoker {
 }
 
 class RejectingLifecycleBus extends EventBus<HookTopics> {
+  static createRejecting(): RejectingLifecycleBus {
+    return new RejectingLifecycleBus();
+  }
   readonly subscribeFailure = RuntimeError.create('subscribe hook rejected');
   readonly unsubscribeFailure = RuntimeError.create('unsubscribe hook rejected');
   readonly recordingHooks = new RecordingHookInvoker();
@@ -144,6 +151,9 @@ class RejectingLifecycleBus extends EventBus<HookTopics> {
 }
 
 class RejectingQueueHooksBus extends EventBus<HookTopics> {
+  static createRejecting(): RejectingQueueHooksBus {
+    return new RejectingQueueHooksBus();
+  }
   readonly enqueueFailure = RuntimeError.create('enqueue hook rejected');
   readonly dequeueFailure = RuntimeError.create('dequeue hook rejected');
   readonly deliverFailure = RuntimeError.create('deliver hook rejected');
@@ -164,6 +174,9 @@ class RejectingQueueHooksBus extends EventBus<HookTopics> {
 }
 
 class OverflowObservedBus extends EventBus<{ 'x': string }> {
+  static createObserved(config?: BusQueueOptionsEntity.InputType): OverflowObservedBus {
+    return new OverflowObservedBus(config);
+  }
   readonly overflowDepths: number[] = [];
 
   protected override onOverflow<K extends 'x'>(_topic: K, depth: number): void {
@@ -172,6 +185,9 @@ class OverflowObservedBus extends EventBus<{ 'x': string }> {
 }
 
 class IntrospectableBus extends EventBus<TestTopics> {
+  static createIntrospectable(): IntrospectableBus {
+    return new IntrospectableBus();
+  }
   readonly #topicSubscriberCounts = new Map<keyof TestTopics, number>();
 
   hasTopic(topic: keyof TestTopics): boolean {
@@ -195,6 +211,9 @@ class IntrospectableBus extends EventBus<TestTopics> {
 }
 
 class EmptyTopicPublishBus extends EventBus<TestTopics> {
+  static createEmpty(): EmptyTopicPublishBus {
+    return new EmptyTopicPublishBus();
+  }
   publishFired = false;
   protected override onPublish(): void { this.publishFired = true; }
 }
@@ -416,7 +435,7 @@ const runnerMap: RunnerMap = {
   'publish-empty-topic': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'ping');
     const payload = requireDefined(input.payload, 'payload');
-    const bus = EmptyTopicPublishBus.create();
+    const bus = EmptyTopicPublishBus.createEmpty();
     return bus.publish(topic, payload)
       .then(() => bus.drain())
       .then(() => bus.close())
@@ -429,7 +448,7 @@ const runnerMap: RunnerMap = {
     const topic = requireTopic(input.topic, 'order:created');
     const firstId = requireDefined(input.firstId, 'firstId');
     const secondId = requireDefined(input.secondId, 'secondId');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     bus.subscribe(topic, async () => {});
 
     return bus.publish(topic, { 'id': firstId })
@@ -444,7 +463,7 @@ const runnerMap: RunnerMap = {
 
   'on-subscribe': ({ expected, input }) => {
     const topics = requireDefined(input.topics, 'topics').map(requireHookTopic);
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     for (const topic of topics) {
       bus.subscribe(topic, async () => {});
     }
@@ -458,7 +477,7 @@ const runnerMap: RunnerMap = {
 
   'on-unsubscribe': ({ expected, input }) => {
     const topic = requireHookTopic(requireDefined(input.topic, 'topic'));
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     const unsub = bus.subscribe(topic, async () => {});
     assert.strictEqual(bus.unsubscribeEvents.length, 0);
     unsub();
@@ -470,7 +489,7 @@ const runnerMap: RunnerMap = {
   'async-subscription-hooks': ({ expected, input }) => {
     const hookNames = requireDefined(input.hookNames, 'hookNames');
     const unhandledRejectionsExpected = requireDefined(input.unhandledRejections, 'unhandledRejections');
-    const bus = RejectingLifecycleBus.create();
+    const bus = RejectingLifecycleBus.createRejecting();
     const unhandledRejections: unknown[] = [];
     const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
@@ -499,7 +518,7 @@ const runnerMap: RunnerMap = {
     const hookNames = requireDefined(input.hookNames, 'hookNames');
     const payloadId = requireDefined(input.payloadId, 'payloadId');
     const unhandledRejectionsExpected = requireDefined(input.unhandledRejections, 'unhandledRejections');
-    const bus = RejectingQueueHooksBus.create();
+    const bus = RejectingQueueHooksBus.createRejecting();
     const received: string[] = [];
     const unhandledRejections: unknown[] = [];
     const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
@@ -529,7 +548,7 @@ const runnerMap: RunnerMap = {
   'on-deliver': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'order:created');
     const payloadId = requireDefined(input.payloadId, 'payloadId');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     bus.subscribe(topic, async () => {});
     bus.subscribe(topic, async () => {});
 
@@ -546,8 +565,8 @@ const runnerMap: RunnerMap = {
     const topic = requireTopic(input.topic, 'order:created');
     const firstId = requireDefined(input.firstId, 'firstId');
     const secondId = requireDefined(input.secondId, 'secondId');
-    const first = ObservedBus.create();
-    const second = ObservedBus.create();
+    const first = ObservedBus.createObserved();
+    const second = ObservedBus.createObserved();
     const received: string[] = [];
     const sharedHandler = async (payload: { 'id': string }): Promise<void> => {
       received.push(payload.id);
@@ -575,7 +594,7 @@ const runnerMap: RunnerMap = {
     const topic = requireTopic(input.topic, 'order:created');
     const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
     const payloadId = requireDefined(input.payloadId, 'payloadId');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     bus.subscribe(topic, async () => { throw RuntimeError.create(errorMessage); });
 
     return bus.publish(topic, { 'id': payloadId })
@@ -591,7 +610,7 @@ const runnerMap: RunnerMap = {
   'enqueue-dequeue-hooks': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'order:created');
     const payloadId = requireDefined(input.payloadId, 'payloadId');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     bus.subscribe(topic, async () => {});
 
     return bus.publish(topic, { 'id': payloadId })
@@ -608,7 +627,7 @@ const runnerMap: RunnerMap = {
   'on-drop-noop': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'order:created');
     const payloadId = requireDefined(input.payloadId, 'payloadId');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     const controller = new AbortController();
     controller.abort();
     bus.subscribe(topic, async () => {}, { 'signal': controller.signal });
@@ -622,7 +641,7 @@ const runnerMap: RunnerMap = {
 
   'on-dispose': ({ input }) => {
     const disposeCount = requireDefined(input.disposeCount, 'disposeCount');
-    const bus = ObservedBus.create();
+    const bus = ObservedBus.createObserved();
     assert.strictEqual(bus.disposeCount.length, 0);
     return bus.close().then(() => {
       assert.strictEqual(bus.disposeCount.length, disposeCount);
@@ -635,6 +654,9 @@ const runnerMap: RunnerMap = {
     const order: string[] = [];
 
     class OrderedBus extends EventBus<HookTopics> {
+      static createOrdered(): OrderedBus {
+        return new OrderedBus();
+      }
       protected override onSubscribe<K extends keyof HookTopics>(_topic: K): void { order.push('subscribe'); }
       protected override onPublish<K extends keyof HookTopics>(_topic: K, _payload: HookTopics[K]): void { order.push('publish'); }
       protected override onEnqueue<K extends keyof HookTopics>(_topic: K): void { order.push('enqueue'); }
@@ -642,7 +664,7 @@ const runnerMap: RunnerMap = {
       protected override onDeliver<K extends keyof HookTopics>(_topic: K, _payload: HookTopics[K]): void { order.push('deliver'); }
     }
 
-    const bus = OrderedBus.create();
+    const bus = OrderedBus.createOrdered();
     bus.subscribe(topic, async () => {});
     return bus.publish(topic, { 'id': payloadId })
       .then(() => bus.drain())
@@ -663,6 +685,9 @@ const runnerMap: RunnerMap = {
     const order: string[] = [];
 
     class PendingAdmissionBus extends EventBus<HookTopics> {
+      static createPending(config?: BusQueueOptionsEntity.InputType): PendingAdmissionBus {
+        return new PendingAdmissionBus(config);
+      }
       protected override onPublish(): void {
         order.push('publish');
       }
@@ -690,7 +715,7 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const bus = PendingAdmissionBus.create(busConfig);
+    const bus = PendingAdmissionBus.createPending(busConfig);
     bus.subscribe(topic, async () => { order.push('handler'); });
 
     const publish = bus.publish(topic, { 'id': payloadId });
@@ -715,7 +740,7 @@ const runnerMap: RunnerMap = {
   'default-hwm': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'x');
     const items = requireDefined(input.items, 'items');
-    const bus = OverflowObservedBus.create();
+    const bus = OverflowObservedBus.createObserved();
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
@@ -746,7 +771,7 @@ const runnerMap: RunnerMap = {
     const topic = requireTopic(input.topic, 'x');
     const items = requireDefined(input.items, 'items');
     const busConfig = requireDefined(input.bus, 'bus');
-    const bus = OverflowObservedBus.create(busConfig);
+    const bus = OverflowObservedBus.createObserved(busConfig);
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
@@ -776,7 +801,7 @@ const runnerMap: RunnerMap = {
     const busInput = requireDefined(input.bus, 'bus');
     const mutatedBusInput = requireDefined(input.mutatedBus, 'mutatedBus');
     const config = { 'highWaterMark': requireDefined(busInput.highWaterMark, 'bus.highWaterMark') };
-    const bus = OverflowObservedBus.create(config);
+    const bus = OverflowObservedBus.createObserved(config);
     config.highWaterMark = requireDefined(mutatedBusInput.highWaterMark, 'mutatedBus.highWaterMark');
 
     const blocked = Promise.withResolvers<void>();
@@ -795,7 +820,7 @@ const runnerMap: RunnerMap = {
   'same-depth-no-overflow': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'x');
     const items = requireDefined(input.items, 'items');
-    const bus = OverflowObservedBus.create();
+    const bus = OverflowObservedBus.createObserved();
     let resolveBlock!: () => void;
     const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
     let first = true;
@@ -826,12 +851,15 @@ const runnerMap: RunnerMap = {
     const received: string[] = [];
 
     class ThrowingPublishBus extends EventBus<TestTopics> {
+      static createThrowing(): ThrowingPublishBus {
+        return new ThrowingPublishBus();
+      }
       protected override onPublish(): void {
         throw RuntimeError.create(errorMessage);
       }
     }
 
-    const bus = ThrowingPublishBus.create();
+    const bus = ThrowingPublishBus.createThrowing();
     bus.subscribe(topic, async (value) => { received.push(value); });
 
     return bus.publish(topic, payload)
@@ -844,7 +872,7 @@ const runnerMap: RunnerMap = {
 
   'topic-entry-cleanup': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'ping');
-    const bus = IntrospectableBus.create();
+    const bus = IntrospectableBus.createIntrospectable();
     assert.strictEqual(bus.hasTopic(topic), expected.before);
     const unsub = bus.subscribe(topic, async () => {});
     assert.strictEqual(bus.hasTopic(topic), expected.during);
@@ -855,7 +883,7 @@ const runnerMap: RunnerMap = {
 
   'topic-entry-kept': ({ expected, input }) => {
     const topic = requireTopic(input.topic, 'ping');
-    const bus = IntrospectableBus.create();
+    const bus = IntrospectableBus.createIntrospectable();
     const unsubA = bus.subscribe(topic, async () => {});
     bus.subscribe(topic, async () => {});
     unsubA();
@@ -870,12 +898,15 @@ const runnerMap: RunnerMap = {
     const received: string[] = [];
 
     class ThrowingDeliverBus extends EventBus<TestTopics> {
+      static createThrowing(): ThrowingDeliverBus {
+        return new ThrowingDeliverBus();
+      }
       protected override onDeliver(): void {
         throw RuntimeError.create(errorMessage);
       }
     }
 
-    const bus = ThrowingDeliverBus.create();
+    const bus = ThrowingDeliverBus.createThrowing();
     bus.subscribe(topic, async (value) => { received.push(value); });
 
     return bus.publish(topic, payload)
@@ -935,6 +966,9 @@ void describe('EventSinkInterface', () => {
 void describe("EventBus subscription ownership", () => {
   void it("aborting a live caller signal removes its subscription with explicit-unsubscribe semantics", async () => {
     class AbortObservedBus extends EventBus<TestTopics> {
+      static createAbortObserved(): AbortObservedBus {
+        return new AbortObservedBus();
+      }
       unsubscribeCount = 0;
 
       protected override onUnsubscribe(): void {
@@ -942,7 +976,7 @@ void describe("EventBus subscription ownership", () => {
       }
     }
 
-    const bus = AbortObservedBus.create();
+    const bus = AbortObservedBus.createAbortObserved();
     const controller = new AbortController();
     const received: string[] = [];
     const unsubscribe = bus.subscribe("ping", async (payload) => {

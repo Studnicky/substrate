@@ -141,17 +141,10 @@ export class Retry implements RetryInterface {
    * @param config - Optional partial configuration for retry behavior
    * @returns New Retry instance
    */
-  static create<TInstance extends Retry = Retry>(
-    this: typeof Retry & { readonly 'prototype': TInstance },
-    config: RetryConfigInterface = {}
-  ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [config]);
-    if (!Predicates.isObjectLike(constructed) || !Predicates.isInstanceOf<TInstance>(constructed, this)) {
-      throw RuntimeError.create('Retry.create() must construct a Retry instance');
-    }
-    const result = constructed;
-    return result;
+  static create(config: RetryConfigInterface = {}): Retry {
+    return new Retry(config);
   }
+
   private readonly classifierCallback: (error: Error, attemptNumber: number) => ErrorClassificationEntity.Type;
   private readonly clock: Clock;
   private readonly defaultClassifier: DefaultHttpErrorClassifier;

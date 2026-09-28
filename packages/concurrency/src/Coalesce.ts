@@ -1,9 +1,8 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
 
@@ -12,28 +11,11 @@ import { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 import { CoalesceConfigError } from './errors/CoalesceConfigError.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
 
-interface CoalesceSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// T only appears in Coalesce's covariant/contravariant members (run()'s factory
-// and return value), so a bound of `Coalesce<T>` would force `Coalesce<T>` (the
-// method's own general T) to satisfy `Coalesce<never>`/`Coalesce<any>`, which
-// either fails to typecheck or requires a banned `any`. `isInflight()` is the one
-// public member that doesn't mention T at all, so it constrains TInstance to
-// "is actually Coalesce-shaped" without hitting that wall.
-interface CoalesceShapeInterface {
-  isInflight(key: string): boolean;
-}
-
 export class Coalesce<T> {
-  static create<
-    T,
-    TInstance extends CoalesceShapeInterface = Coalesce<T>
-  >(
-    this: CoalesceSubclassInterface<TInstance>,
+  static create<T>(
+    this: typeof Coalesce,
     options?: CoalesceOptionsEntity.InputType
-  ): TInstance {
+  ): Coalesce<T> {
     let validated: CoalesceOptionsEntity.Type;
     try {
       validated = CoalesceOptionsEntity.intake(options ?? {});
@@ -43,12 +25,8 @@ export class Coalesce<T> {
       }
       throw error;
     }
-    const result: unknown = Reflect.construct(this, [validated]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Coalesce.create() did not construct the requested subclass.');
-    }
-    const instance: TInstance = result;
-    return instance;
+
+    return new this(validated);
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();

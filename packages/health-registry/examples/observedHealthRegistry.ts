@@ -13,6 +13,10 @@ class TelemetryHealthRegistry extends HealthRegistry {
   readonly checkResults: { 'name': string; 'status': HealthStatusEntity.Type }[] = [];
   readonly timeouts: { 'name': string; 'timeoutMs': number }[] = [];
 
+  static override create(): TelemetryHealthRegistry {
+    return new TelemetryHealthRegistry();
+  }
+
   protected override onCheckRegistered(name: string): void {
     console.log(`[health] registered '${name}'`);
     this.registeredChecks.push(name);

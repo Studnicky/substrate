@@ -11,9 +11,6 @@ interface BatchStatsInterface {
   readonly 'total': number;
 }
 
-interface BatchSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 interface ItemProcessingOptionsInterface {
   readonly 'counters'?: Map<'failed' | 'succeeded', number>;
@@ -33,15 +30,8 @@ export class Batch<TResult = unknown> {
     protected override onHookError(): void {}
   };
 
-  static create<TResult = unknown, TInstance extends Batch<TResult> = Batch<TResult>>(
-    this: BatchSubclassInterface<TInstance>,
-    maximumConcurrent?: number
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [maximumConcurrent]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw new BatchError('Batch.create() must construct a Batch instance');
-    }
-    return result;
+  static create<TResult = unknown>(maximumConcurrent?: number): Batch<TResult> {
+    return new this(maximumConcurrent);
   }
 
   protected readonly maximumConcurrent: number;

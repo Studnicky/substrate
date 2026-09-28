@@ -92,7 +92,7 @@ export class BoundedDispatcher<
         ? config.semaphore
         : Semaphore.create(config.semaphore ?? { 'permits': 1 })
     }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('BoundedDispatcher.create() must construct a BoundedDispatcher instance');
     }
     return result;

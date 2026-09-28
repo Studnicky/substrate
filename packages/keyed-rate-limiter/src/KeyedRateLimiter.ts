@@ -28,9 +28,6 @@ interface KeyedRateLimiterDepsInterface<TStrategy extends RateLimiterStrategyInt
   'tokenBucketOptions': TokenBucketOptionsInterface | undefined;
 }
 
-interface KeyedRateLimiterSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /** Default `maximumKeys` when a caller omits it — bounds unbounded key growth without requiring every caller to pick a number. */
 const DEFAULT_MAXIMUM_KEYS = 10_000;
@@ -137,40 +134,21 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
    * Creates a `KeyedRateLimiter` whose default factory constructs one
    * `TokenBucket` per key from `requestsPerSecond`/`burstSize`/`clock`.
    *
-   * @param config - `{requestsPerSecond, burstSize, maximumKeys?, keyIdleTtlMs?, clock?}`
-   * @returns New `KeyedRateLimiter<TokenBucket>` instance
+   * @param config - Default TokenBucket options or a per-key strategy factory with registry options.
+   * @returns A limiter using TokenBucket for default options or the factory-supplied strategy.
    */
-  static create<TInstance extends KeyedRateLimiter<TokenBucket> = KeyedRateLimiter<TokenBucket>>(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
-    config: KeyedRateLimiterCreateConfigInterface
-  ): TInstance;
-  static create<
-    TStrategy extends RateLimiterStrategyInterface,
-    TInstance extends KeyedRateLimiter<TStrategy> = KeyedRateLimiter<TStrategy>
-  >(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
-    config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): TInstance;
-  static create<
-    TStrategy extends RateLimiterStrategyInterface,
-    TInstance extends KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> =
-      KeyedRateLimiter<TokenBucket>
-  >(
-    this: KeyedRateLimiterSubclassInterface<TInstance>,
+  static create<TStrategy extends RateLimiterStrategyInterface>(
     config: KeyedRateLimiterCreateConfigInterface | KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): TInstance {
+  ): KeyedRateLimiter<TokenBucket> | KeyedRateLimiter<TStrategy> {
     if ('factory' in config) {
-      const result = KeyedRateLimiter.#createFromFactory(this, config);
-      return result;
+      return new KeyedRateLimiter<TStrategy>(KeyedRateLimiter.createFactoryDependencies(config));
     }
-    const result = KeyedRateLimiter.#createFromDefaultOptions(this, config);
-    return result;
+    return new KeyedRateLimiter<TokenBucket>(KeyedRateLimiter.createDefaultDependencies(config));
   }
 
-  static #createFromFactory<TStrategy extends RateLimiterStrategyInterface, TInstance>(
-    ctor: KeyedRateLimiterSubclassInterface<TInstance>,
+  protected static createFactoryDependencies<TStrategy extends RateLimiterStrategyInterface>(
     config: KeyedRateLimiterStrategyConfigInterface<TStrategy>
-  ): TInstance {
+  ): KeyedRateLimiterDepsInterface<TStrategy> {
     const { factory, ...registryOptions } = config;
     if (typeof factory !== 'function') {
       throw new KeyedRateLimiterConfigError('factory must be a function');
@@ -179,21 +157,16 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       const messages = EntityCompiler.formatErrors(KeyedRateLimiterRegistryOptionsEntity.validate.errors);
       throw new KeyedRateLimiterConfigError(messages);
     }
-    const result: unknown = Reflect.construct(ctor, [{
+    return {
       'cacheOptions': KeyedRateLimiter.#createCacheOptions(registryOptions),
       'factory': factory,
       'tokenBucketOptions': undefined
-    }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, ctor)) {
-      throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
-    }
-    return result;
+    };
   }
 
-  static #createFromDefaultOptions<TInstance>(
-    ctor: KeyedRateLimiterSubclassInterface<TInstance>,
+  protected static createDefaultDependencies(
     config: KeyedRateLimiterCreateConfigInterface
-  ): TInstance {
+  ): KeyedRateLimiterDepsInterface<TokenBucket> {
     const { clock, ...serializableOptions } = config;
     if (!KeyedRateLimiterDefaultOptionsEntity.validate(serializableOptions)) {
       const messages = EntityCompiler.formatErrors(KeyedRateLimiterDefaultOptionsEntity.validate.errors);
@@ -214,17 +187,12 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
       ...(verifiedClock === undefined ? {} : { 'clock': verifiedClock })
     };
 
-    const result: unknown = Reflect.construct(ctor, [{
+    return {
       'cacheOptions': KeyedRateLimiter.#createCacheOptions(serializableOptions),
       'factory': KeyedRateLimiter.#createTokenBucket,
       'tokenBucketOptions': tokenBucketOptions
-    }]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, ctor)) {
-      throw RuntimeError.create('KeyedRateLimiter.create() must construct a KeyedRateLimiter instance');
-    }
-    return result;
+    };
   }
-
   readonly #cache: LruCache<string, TStrategy>;
   readonly #factory: (this: KeyedRateLimiter<TStrategy>, key: string) => TStrategy;
   readonly #tokenBucketOptions: TokenBucketOptionsInterface | undefined;

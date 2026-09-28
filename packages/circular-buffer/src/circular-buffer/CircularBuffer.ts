@@ -54,7 +54,7 @@ import {
 import { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import { CircularBufferError } from '../errors/index.js';
 
-interface CircularBufferSubclassInterface<TInstance> extends Function {
+interface CircularBufferSubclassInterface<T, TInstance extends CircularBuffer<T>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -71,11 +71,11 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * ```
    */
   static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
-    this: CircularBufferSubclassInterface<TInstance>,
+    this: CircularBufferSubclassInterface<T, TInstance>,
     config: unknown = {}
   ): TInstance {
     const resolveSubclassConstructor =
-      (): CircularBufferSubclassInterface<TInstance> => {
+      (): CircularBufferSubclassInterface<T, TInstance> => {
         return this;
       };
 
@@ -89,7 +89,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       );
     }
     if (
-      !Predicates.isInstanceOf<TInstance>(constructed, resolveSubclassConstructor())
+      !Predicates.isInstanceOf(constructed, resolveSubclassConstructor())
     ) {
       throw RuntimeError.create(
         'CircularBuffer.create() did not construct the requested subclass.'

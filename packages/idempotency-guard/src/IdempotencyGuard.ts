@@ -6,7 +6,6 @@ import { LruCache } from '@studnicky/cache/browser';
 import { Coalesce } from '@studnicky/concurrency/browser';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEntity.js';
 import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
@@ -93,24 +92,11 @@ export class IdempotencyGuard<TResult = unknown> {
    * @throws {IdempotencyGuardConfigError} `options` fails `IdempotencyGuardOptionsEntity`'s schema
    */
 
-  static create<
-    TResult = unknown,
-    TInstance extends IdempotencyGuard<TResult> = IdempotencyGuard<TResult>
-  >(
-    this: Function & { readonly 'prototype': TInstance },
+  static create<TResult = unknown>(
+    this: typeof IdempotencyGuard,
     options: IdempotencyGuardOptionsEntity.InputType
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
-    }
-
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('IdempotencyGuard.create() must construct an IdempotencyGuard instance');
-    }
-
-    return result;
+  ): IdempotencyGuard<TResult> {
+    return new this(options);
   }
 
   readonly #cache: LruCache<string, IdempotencyGuardEntryInterface<TResult>>;

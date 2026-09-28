@@ -1,8 +1,8 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { JsonObject } from '@studnicky/types/browser';
 
 import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
 
@@ -16,22 +16,6 @@ class EventBusHookInvoker extends HookInvoker {
 }
 
 interface DrainableQueueInterface {
-  drain(): Promise<void>;
-}
-
-interface EventBusSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// TTopicMap only appears in EventBus's covariant/contravariant members
-// (subscribe/publish), so a bound of `EventBus<TTopicMap>` would force
-// `EventBus<TTopicMap>` (the method's own general TTopicMap) to satisfy
-// `EventBus<never>`/`EventBus<any>`, which either fails to typecheck or
-// requires a banned `any`. `drain()`/`close()` are public members that don't
-// mention TTopicMap at all, so they constrain TInstance to "is actually
-// EventBus-shaped" without hitting that wall.
-interface EventBusShapeInterface {
-  close(): Promise<void>;
   drain(): Promise<void>;
 }
 
@@ -95,22 +79,11 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   readonly #busController = new AbortController();
   readonly #config: BusQueueOptionsEntity.Type;
 
-  static create<
-    TTopicMap extends object,
-    TInstance extends EventBusShapeInterface = EventBus<TTopicMap>
-  >(
-    this: EventBusSubclassInterface<TInstance>,
+  static create<TTopicMap extends object>(
+    this: typeof EventBus,
     config?: BusQueueOptionsEntity.InputType
-  ): TInstance {
-    // Lexical arrow closure over `this` (rather than `Reflect.construct(this, ...)`
-    // passing `this` directly as a call argument) so the receiver is obtained
-    // only through the rule-permitted `return this` form.
-    const getConstructor = (): EventBusSubclassInterface<TInstance> => { return this; };
-    const constructor = getConstructor();
-    const result: unknown = Reflect.construct(constructor, [config]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, constructor)) {
-      throw RuntimeError.create('EventBus.create() did not construct the requested subclass.');
-    }
+  ): EventBus<TTopicMap> {
+    const result = new this(config);
     return result;
   }
 

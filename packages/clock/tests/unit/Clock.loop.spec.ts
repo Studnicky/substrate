@@ -326,6 +326,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'hooked-clock-on-now') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now shape'); }
     const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
+      public static override create(provider: ClockProviderInterface): HookedClock {
+        return new HookedClock(provider);
+      }
       readonly nowEvents: number[] = [];
       readonly hrtimeEvents: bigint[] = [];
 
@@ -350,6 +353,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'hooked-clock-on-now-clamped') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now-clamped shape'); }
     const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
+      public static override create(provider: ClockProviderInterface): HookedClock {
+        return new HookedClock(provider);
+      }
       readonly nowEvents: number[] = [];
       protected override onNow(timestamp: number): void {
         this.nowEvents.push(timestamp);
@@ -368,6 +374,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'hooked-clock-on-now-advanced') { throw RuntimeError.create('unreachable: expected hooked-clock-on-now-advanced shape'); }
     const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
+      public static override create(provider: ClockProviderInterface): HookedClock {
+        return new HookedClock(provider);
+      }
       readonly nowEvents: number[] = [];
       protected override onNow(timestamp: number): void {
         this.nowEvents.push(timestamp);
@@ -387,6 +396,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'hooked-clock-on-hrtime') { throw RuntimeError.create('unreachable: expected hooked-clock-on-hrtime shape'); }
     const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
+      public static override create(provider: ClockProviderInterface): HookedClock {
+        return new HookedClock(provider);
+      }
       readonly hrtimeEvents: bigint[] = [];
       protected override onHrtime(value: bigint): void {
         this.hrtimeEvents.push(value);
@@ -405,6 +417,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'hooked-clock-on-hrtime-repeat') { throw RuntimeError.create('unreachable: expected hooked-clock-on-hrtime-repeat shape'); }
     const { expected, input } = scenarioCase;
     class HookedClock extends Clock {
+      public static override create(provider: ClockProviderInterface): HookedClock {
+        return new HookedClock(provider);
+      }
       readonly hrtimeEvents: bigint[] = [];
       protected override onHrtime(value: bigint): void {
         this.hrtimeEvents.push(value);
@@ -424,6 +439,9 @@ const runnerMap: Record<ClockScenarioCaseEntity.Type['shape'], ScenarioRunner> =
     if (scenarioCase.shape !== 'clock-async-on-now-rejection-contained') { throw RuntimeError.create('unreachable: expected clock-async-on-now-rejection-contained shape'); }
     const { expected, input } = scenarioCase;
     class AsyncRejectingNowClock extends Clock {
+      public static override create(provider: ClockProviderInterface): AsyncRejectingNowClock {
+        return new AsyncRejectingNowClock(provider);
+      }
       protected override async onNow(_timestamp: number): Promise<void> {
         await Promise.resolve();
         throw RuntimeError.create(input.message);

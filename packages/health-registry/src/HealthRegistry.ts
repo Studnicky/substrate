@@ -1,10 +1,9 @@
 /** Named async health-check registry with worst-status-wins aggregation */
 
 import {
-  type HookInvocationError, HookInvoker, RuntimeError
+  type HookInvocationError, HookInvoker
 } from '@studnicky/errors/browser';
 import { Signal } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { HealthStatusEntity } from './entities/HealthStatusEntity.js';
 import type { HealthCheckInterface } from './interfaces/HealthCheckInterface.js';
@@ -55,17 +54,8 @@ export class HealthRegistry {
     protected override onHookError(): void {}
   };
 
-  static create<TInstance extends HealthRegistry>(this: Function & { readonly 'prototype': TInstance }): TInstance {
-    const result: unknown = Reflect.construct(this, []);
-
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
-    }
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('HealthRegistry.create() must construct a HealthRegistry instance');
-    }
-
-    return result;
+  static create(this: typeof HealthRegistry): HealthRegistry {
+    return new this();
   }
 
   readonly #registry = new Map<string, HealthCheckEntryInterface>();

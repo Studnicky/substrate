@@ -22,6 +22,9 @@ function readArrayItem<T>(items: readonly T[], index: number, label: string): T 
 }
 
 class ReentrantBeforeAcquireMutex extends Mutex<string> {
+  static build(): ReentrantBeforeAcquireMutex {
+    return new ReentrantBeforeAcquireMutex();
+  }
   #reentered = false;
 
   protected override beforeAcquire(key: string): void {
@@ -37,6 +40,9 @@ class ReentrantBeforeAcquireMutex extends Mutex<string> {
 }
 
 class ReentrantOnReleaseMutex extends Mutex<string> {
+  static build(): ReentrantOnReleaseMutex {
+    return new ReentrantOnReleaseMutex();
+  }
   #reentered = false;
   #release1: (() => void) | undefined;
 
@@ -57,6 +63,9 @@ class ReentrantOnReleaseMutex extends Mutex<string> {
 }
 
 class DifferentKeysMutex extends Mutex<string> {
+  static build(): DifferentKeysMutex {
+    return new DifferentKeysMutex();
+  }
   readonly beforeAcquireKeys: string[] = [];
   readonly onReleaseKeys: string[] = [];
 
@@ -75,7 +84,7 @@ class DifferentKeysMutex extends Mutex<string> {
 
 const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> } = {
   'beforeAcquire-reentrant-same-key': async (scenarioCase) => {
-      const mutex = ReentrantBeforeAcquireMutex.create();
+      const mutex = ReentrantBeforeAcquireMutex.build();
       const outerRelease = await mutex.acquire(scenarioCase.input.key);
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
       const err = mutex.getHookErrors()[0];
@@ -92,7 +101,7 @@ const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Pr
       assert.ok(mutex.isComplete() === scenarioCase.expected.complete);
   },
   'different-keys-unaffected': async (scenarioCase) => {
-      const mutex = DifferentKeysMutex.create();
+      const mutex = DifferentKeysMutex.build();
       const [releaseA, releaseB] = await Promise.all([
         mutex.acquire(scenarioCase.input.keys[0]!),
         mutex.acquire(scenarioCase.input.keys[1]!)
@@ -111,7 +120,7 @@ const runnerMap: { [K in ScenarioShape]: (scenarioCase: ScenarioCaseOf<K>) => Pr
       assert.strictEqual(mutex.getHookErrors().length, scenarioCase.expected.hookErrorCount);
   },
   'onRelease-reentrant-same-key': async (scenarioCase) => {
-      const mutex = ReentrantOnReleaseMutex.create();
+      const mutex = ReentrantOnReleaseMutex.build();
       const release1 = await mutex.acquire(scenarioCase.input.key);
       const pendings = Array.from({ length: scenarioCase.input.batch.pendingCount }, () => mutex.acquire(scenarioCase.input.key));
       mutex.setRelease1(release1);

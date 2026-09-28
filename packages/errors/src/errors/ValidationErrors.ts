@@ -19,7 +19,7 @@ import { RuntimeError } from './RuntimeError.js';
 /** RFC 9457 3.1.3: the status an origin server would generate for a validation failure. */
 const UNPROCESSABLE_ENTITY_STATUS = 422;
 
-interface ValidationErrorsSubclassInterface<TInstance> extends Function {
+interface ValidationErrorsSubclassInterface<TInstance extends ValidationErrors> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -37,7 +37,7 @@ export class ValidationErrors implements Iterable<ValidationViolationEntity.Type
     items: unknown
   ): TInstance {
     const result: unknown = Reflect.construct(this, [items]);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('ValidationErrors.create() did not construct the requested subclass.');
     }
     return result;

@@ -7,6 +7,7 @@ import {
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { BusQueue } from '../../src/BusQueue.js';
+import type { BusQueueCreateOptionsInterface } from '../../src/interfaces/index.js';
 import { BusQueueCreateOptionsEntity } from '../../src/entities/BusQueueCreateOptionsEntity.js';
 import { BusQueueScenarioCaseEntity } from './entities/BusQueueScenarioCaseEntity.js';
 import scenarioGroups from './BusQueue.scenarios.json' with { type: 'json' };
@@ -162,13 +163,16 @@ const runnerMap: RunnerMap = {
       const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
 
       class ObservedQueue extends BusQueue<number> {
+        static createObserved(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
+          return new ObservedQueue(options);
+        }
         protected override onHandlerError<TError>(error: TError): void {
           handlerErrors.push(error);
         }
       }
 
       process.on('unhandledRejection', onUnhandledRejection);
-      const queue = ObservedQueue.create<number>({
+      const queue = ObservedQueue.createObserved({
         'handler': async (item) => {
           if (item === throwOn) { throw handlerFailure; }
           received.push(item);
@@ -212,6 +216,9 @@ const runnerMap: RunnerMap = {
     'abort-initially-cancelled': ({ expected, input }) => {
       const dropped: number[] = [];
       class DropObservedQueue extends BusQueue<number> {
+        static createDropObserved(options: BusQueueCreateOptionsInterface<number>): DropObservedQueue {
+          return new DropObservedQueue(options);
+        }
         protected override onDrop(): void {
           dropped.push(1);
         }
@@ -219,7 +226,7 @@ const runnerMap: RunnerMap = {
 
       const controller = new AbortController();
       controller.abort();
-      const queue = DropObservedQueue.create<number>({
+      const queue = DropObservedQueue.createDropObserved({
         'handler': async (item) => { throw RuntimeError.create(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
@@ -238,13 +245,16 @@ const runnerMap: RunnerMap = {
       const received: number[] = [];
 
       class PendingEnqueueQueue extends BusQueue<number> {
+        static createPending(options: BusQueueCreateOptionsInterface<number>): PendingEnqueueQueue {
+          return new PendingEnqueueQueue(options);
+        }
         protected override async onEnqueue(): Promise<void> {
           enqueueStarted.resolve();
           await enqueueGate.promise;
         }
       }
 
-      const queue = PendingEnqueueQueue.create<number>({
+      const queue = PendingEnqueueQueue.createPending({
         'handler': async (item) => { received.push(item); },
         'signal': controller.signal
       });
@@ -304,12 +314,15 @@ const runnerMap: RunnerMap = {
       const handlerStarted = Promise.withResolvers<void>();
 
       class ObservedQueue extends BusQueue<number> {
+        static createObserved(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
+          return new ObservedQueue(options);
+        }
         protected override onDequeue(_depth: number): void {
           dequeued.push(1);
         }
       }
 
-      const queue = ObservedQueue.create<number>({
+      const queue = ObservedQueue.createObserved({
         'handler': async (item) => {
           handlerStarted.resolve();
           await handlerGate.promise;
@@ -340,6 +353,9 @@ const runnerMap: RunnerMap = {
     'on-drop-noop': ({ expected, input }) => {
       const dropped: number[] = [];
       class DropObservedQueue extends BusQueue<number> {
+        static createDropObserved(options: BusQueueCreateOptionsInterface<number>): DropObservedQueue {
+          return new DropObservedQueue(options);
+        }
         protected override onDrop(): void {
           dropped.push(1);
         }
@@ -347,7 +363,7 @@ const runnerMap: RunnerMap = {
 
       const controller = new AbortController();
       controller.abort();
-      const queue = DropObservedQueue.create<number>({
+      const queue = DropObservedQueue.createDropObserved({
         'handler': async (item) => { throw RuntimeError.create(`unexpected delivery: ${String(item)}`); },
         'signal': controller.signal
       });
@@ -368,9 +384,12 @@ const runnerMap: RunnerMap = {
     'on-enqueue-hook': ({ expected, input }) => {
       const depths: number[] = [];
       class ObservedQueue extends BusQueue<number> {
+        static createObserved(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
+          return new ObservedQueue(options);
+        }
         protected override onEnqueue(depth: number): void { depths.push(depth); }
       }
-      const queue = ObservedQueue.create<number>({ 'handler': async () => {} });
+      const queue = ObservedQueue.createObserved({ 'handler': async () => {} });
       for (const item of numberItems(input.items)) {
         void queue.enqueue(item);
       }
@@ -383,6 +402,9 @@ const runnerMap: RunnerMap = {
       const processed: number[] = [];
       const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
       class ThrowingOnDequeueQueue extends BusQueue<number> {
+        static createThrowing(options: BusQueueCreateOptionsInterface<number>): ThrowingOnDequeueQueue {
+          return new ThrowingOnDequeueQueue(options);
+        }
         #thrown = false;
 
         protected override onDequeue(_depth: number): void {
@@ -391,7 +413,7 @@ const runnerMap: RunnerMap = {
           throw RuntimeError.create(errorMessage);
         }
       }
-      const queue = ThrowingOnDequeueQueue.create<number>({
+      const queue = ThrowingOnDequeueQueue.createThrowing({
         'handler': async (item) => { processed.push(item); },
         'onError': (error) => { errors.push(error); }
       });
@@ -409,6 +431,9 @@ const runnerMap: RunnerMap = {
       const processed: number[] = [];
       const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
       class ThrowingEnqueueQueue extends BusQueue<number> {
+        static createThrowing(options: BusQueueCreateOptionsInterface<number>): ThrowingEnqueueQueue {
+          return new ThrowingEnqueueQueue(options);
+        }
         #attempt = 0;
         protected override async onEnqueue(): Promise<void> {
           this.#attempt += 1;
@@ -417,7 +442,7 @@ const runnerMap: RunnerMap = {
           }
         }
       }
-      const queue = ThrowingEnqueueQueue.create<number>({
+      const queue = ThrowingEnqueueQueue.createThrowing({
         'handler': async (item) => { processed.push(item); }
       });
       return Promise.all(numberItems(input.items).map((item) => queue.enqueue(item)))
@@ -435,13 +460,16 @@ const runnerMap: RunnerMap = {
         }
       }
       class RecordingHookErrorQueue extends BusQueue<number> {
+        static createRecording(options: BusQueueCreateOptionsInterface<number>): RecordingHookErrorQueue {
+          return new RecordingHookErrorQueue(options);
+        }
         protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
         protected override onEnqueue(): void {
           throw failure;
         }
       }
       const processed: number[] = [];
-      const queue = RecordingHookErrorQueue.create<number>({
+      const queue = RecordingHookErrorQueue.createRecording({
         'handler': async (item) => { processed.push(item); }
       });
       return queue.enqueue(itemAt(input.items, 0))
@@ -455,6 +483,9 @@ const runnerMap: RunnerMap = {
       const processed: number[] = [];
       const errorMessage = requireDefined(input.errorMessage, 'errorMessage');
       class ThrowingOverflowQueue extends BusQueue<number> {
+        static createThrowing(options: BusQueueCreateOptionsInterface<number>): ThrowingOverflowQueue {
+          return new ThrowingOverflowQueue(options);
+        }
         #attempt = 0;
         protected override async onOverflow(): Promise<void> {
           this.#attempt += 1;
@@ -463,7 +494,7 @@ const runnerMap: RunnerMap = {
           }
         }
       }
-      const queue = ThrowingOverflowQueue.create<number>({
+      const queue = ThrowingOverflowQueue.createThrowing({
         'handler': async (item) => { processed.push(item); },
         'highWaterMark': requireDefined(input.highWaterMark, 'highWaterMark')
       });
@@ -515,9 +546,12 @@ const runnerMap: RunnerMap = {
       const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
       let first = true;
       class ObservedQueue extends BusQueue<number> {
+        static createObserved(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
+          return new ObservedQueue(options);
+        }
         protected override onOverflow(depth: number): void { overflowDepths.push(depth); }
       }
-      const queue = ObservedQueue.create<number>({
+      const queue = ObservedQueue.createObserved({
         'handler': async () => {
           if (first) {
             first = false;
@@ -545,6 +579,9 @@ const runnerMap: RunnerMap = {
       const overflowStarted = Promise.withResolvers<void>();
       const order: string[] = [];
       class PendingAdmissionQueue extends BusQueue<number> {
+        static createPending(options: BusQueueCreateOptionsInterface<number>): PendingAdmissionQueue {
+          return new PendingAdmissionQueue(options);
+        }
         protected override async onEnqueue(): Promise<void> {
           order.push('enqueue:start');
           enqueueStarted.resolve();
@@ -559,7 +596,7 @@ const runnerMap: RunnerMap = {
           order.push('overflow:end');
         }
       }
-      const queue = PendingAdmissionQueue.create<number>({
+      const queue = PendingAdmissionQueue.createPending({
         'handler': async () => { order.push('handler'); },
         'highWaterMark': requireDefined(input.highWaterMark, 'highWaterMark')
       });
@@ -584,9 +621,12 @@ const runnerMap: RunnerMap = {
     'handler-error-hook': ({ expected, input }) => {
       const errors: unknown[] = [];
       class ObservedQueue extends BusQueue<number> {
+        static createObserved(options: BusQueueCreateOptionsInterface<number>): ObservedQueue {
+          return new ObservedQueue(options);
+        }
         protected override onHandlerError<TError>(err: TError): void { errors.push(err); }
       }
-      const queue = ObservedQueue.create<number>({
+      const queue = ObservedQueue.createObserved({
         'handler': async () => { throw RuntimeError.create(requireDefined(input.errorMessage, 'errorMessage')); }
       });
       return queue.enqueue(itemAt(input.items, 0))

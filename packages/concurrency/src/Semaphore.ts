@@ -1,7 +1,6 @@
 /** Counting permit gate. acquire() returns a release function. */
 
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
 import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
@@ -23,25 +22,12 @@ interface SemaphoreWaiterInterface {
   readonly 'unregisterAbort': () => void;
 }
 
-interface SemaphoreSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
 export class Semaphore {
-  static create<TInstance extends Semaphore = Semaphore>(
-    this: SemaphoreSubclassInterface<TInstance>,
+  static create(
+    this: typeof Semaphore,
     options: SemaphoreOptionsEntity.InputType
-  ): TInstance {
-    const resolveSubclassConstructor = (): SemaphoreSubclassInterface<TInstance> => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, resolveSubclassConstructor())) {
-      throw RuntimeError.create('Semaphore.create() did not construct the requested subclass.');
-    }
-    const instance: TInstance = result;
-    return instance;
+  ): Semaphore {
+    return new this(options);
   }
 
   static #validate(options: SemaphoreOptionsEntity.InputType): void {

@@ -20,10 +20,13 @@ import { LockTimeoutError, Mutex } from '../src/index.js';
 const mutex = Mutex.create<string>({ 'timeout': 200 });
 const coalesce = Coalesce.create<string>({ 'timeout': 100 });
 
-class ResultPredicates {
-  static isString(value: unknown): value is string {
-    const result = typeof value === 'string';
-    return result;
+class ResultValues {
+  static readString(value: unknown): string {
+    if (typeof value !== 'string') {
+      throw new TypeError('Mutex result must be a string');
+    }
+
+    return value;
   }
 }
 
@@ -45,8 +48,16 @@ class Scenarios {
     }
 
     const [singleFlightA, singleFlightB] = await Promise.all([
-      coalesce.run('resource-1', () => { const result = mutex.runExclusive('resource-1', SharedResultFactory.create, ResultPredicates.isString); return result; }),
-      coalesce.run('resource-1', () => { const result = mutex.runExclusive('resource-1', SharedResultFactory.create, ResultPredicates.isString); return result; })
+      coalesce.run('resource-1', async (): Promise<string> => {
+        const result = await mutex.runExclusive('resource-1', SharedResultFactory.create);
+        const stringResult = ResultValues.readString(result);
+        return stringResult;
+      }),
+      coalesce.run('resource-1', async (): Promise<string> => {
+        const result = await mutex.runExclusive('resource-1', SharedResultFactory.create);
+        const stringResult = ResultValues.readString(result);
+        return stringResult;
+      })
     ]);
 
     console.log('Single-flight results:', singleFlightA, singleFlightB, 'factory calls:', factoryCallCount);
@@ -84,17 +95,20 @@ class Scenarios {
 
     let coalesceTimedOut = false;
     const [timeoutOutcome, patientOutcome] = await Promise.allSettled([
-      coalesce.run('resource-3', () => { const result = mutex.runExclusive('resource-3', SlowResultFactory.create, ResultPredicates.isString); return result; }),
+      coalesce.run('resource-3', async (): Promise<string> => {
+        const result = await mutex.runExclusive('resource-3', SlowResultFactory.create);
+        const stringResult = ResultValues.readString(result);
+        return stringResult;
+      }),
       (async (): Promise<string> => {
-        // A second caller joining the same in-flight promise, with no timeout ceiling of its
-        // own on this call path, still receives the eventual result.
         await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
         const result = await mutex.runExclusive(
           'resource-3-patient-marker',
-          async () => { await Promise.resolve(); const markerValue = 'patient-marker'; return markerValue; },
-          (value): value is string => { const isStringValue = typeof value === 'string'; return isStringValue; }
+          async () => { await Promise.resolve(); const markerValue = 'patient-marker'; return markerValue; }
         );
-        return result;
+
+        const stringResult = ResultValues.readString(result);
+        return stringResult;
       })()
     ]);
 

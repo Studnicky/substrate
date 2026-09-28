@@ -54,9 +54,6 @@ import {
 import { Delay } from './Delay.js';
 import { OperationLifecycleMachine } from './OperationLifecycleMachine.js';
 
-interface ThrottleSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Tracks an active operation for detach-and-abandon abort support
@@ -186,19 +183,11 @@ export class Throttle implements ThrottleInterface {
    * const throttle = Throttle.create({ concurrencyLimit: 5 });
    * ```
    */
-  static create<TInstance extends Throttle = Throttle>(
-    this: ThrottleSubclassInterface<TInstance>,
+  static create(
+    this: typeof Throttle,
     config?: unknown
-  ): TInstance {
-    const resolveSubclassConstructor = (): ThrottleSubclassInterface<TInstance> => {
-      return this;
-    };
-
-    const result: unknown = Reflect.construct(resolveSubclassConstructor(), [config]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, resolveSubclassConstructor())) {
-      throw RuntimeError.create('Throttle.create() did not construct the requested subclass.');
-    }
-    return result;
+  ): Throttle {
+    return new this(config);
   }
 
   /**

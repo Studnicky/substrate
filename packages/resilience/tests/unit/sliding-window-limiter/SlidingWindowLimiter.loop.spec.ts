@@ -45,6 +45,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = scenarioCase.input.slidingWindowLimiter;
       const expected = scenarioCase.expected;
       class AsyncRejectingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): AsyncRejectingAllowLimiter {
+          return new AsyncRejectingAllowLimiter(options);
+        }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
@@ -76,6 +79,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const expected = scenarioCase.expected;
       const hookNames = Array.isArray(expected.hookNames) ? expected.hookNames : [];
       class AsyncRejectingNotificationLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): AsyncRejectingNotificationLimiter {
+          return new AsyncRejectingNotificationLimiter(options);
+        }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
         protected override async onAllow(): Promise<void> {
           await Promise.resolve();
@@ -163,6 +169,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = scenarioCase.input.slidingWindowLimiter;
       const expected = scenarioCase.expected;
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): ThrowingAllowLimiter {
+          return new ThrowingAllowLimiter(options);
+        }
         readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }
@@ -192,6 +201,9 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       const input = scenarioCase.input.slidingWindowLimiter;
       const expected = scenarioCase.expected;
       class ThrowingAllowLimiter extends SlidingWindowLimiter {
+        static override create(options: SlidingWindowLimiterOptionsInterface): ThrowingAllowLimiter {
+          return new ThrowingAllowLimiter(options);
+        }
         readonly failure = RuntimeError.create('onAllow boom', { 'cause': { 'windows': [1] } });
         get recordedHookErrorCount(): number { return this.hookErrorCount; }
         get recordedHookErrors(): readonly HookInvocationError[] { return this.getHookErrors(); }

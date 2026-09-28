@@ -25,6 +25,10 @@ class ObservedRegistry extends HealthRegistry {
   readonly aggregateCalls: { overall: HealthStatusEntity.Type; size: number }[] = [];
   readonly timeoutCalls: { name: string; timeoutMs: number }[] = [];
 
+  static override create(): ObservedRegistry {
+    return new ObservedRegistry();
+  }
+
   protected override onCheckRegistered(name: string): void {
     this.registeredCalls.push(name);
   }
@@ -120,6 +124,10 @@ const runnerMap: RunnerMap = {
     'hook-errors-owned-by-instance': async (scenarioCase) => {
       class ThrowingRegistrationRegistry extends HealthRegistry {
         #cause = RuntimeError.create('unconfigured hook failure');
+
+        static override create(): ThrowingRegistrationRegistry {
+          return new ThrowingRegistrationRegistry();
+        }
 
         failWith(cause: RuntimeError): void {
           this.#cause = cause;

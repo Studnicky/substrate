@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { Channel } from '../../src/Channel.js';
+import { ChannelOptionsEntity } from '../../src/entities/ChannelOptionsEntity.js';
 import { ChannelScenarioCaseEntity } from './entities/ChannelScenarioCaseEntity.js';
 import scenarioGroups from './Channel.scenarios.json' with { type: 'json' };
 
@@ -26,6 +27,10 @@ class ObservedChannel<T> extends Channel<T> {
   readonly droppedEvents: { 'key': string; 'item': T }[] = [];
   closeCount = 0;
 
+  static override create<T>(options?: ChannelOptionsEntity.InputType): ObservedChannel<T> {
+    return new ObservedChannel<T>(ChannelOptionsEntity.intake(options ?? {}));
+  }
+
   protected override onEnqueue(key: string, item: T): void {
     this.enqueueEvents.push({ 'key': key, 'item': item });
   }
@@ -42,6 +47,10 @@ class ObservedChannel<T> extends Channel<T> {
 
 class OverflowChannel<T> extends Channel<T> {
   readonly overflowEvents: { 'key': string; 'depth': number }[] = [];
+
+  static override create<T>(options?: ChannelOptionsEntity.InputType): OverflowChannel<T> {
+    return new OverflowChannel<T>(ChannelOptionsEntity.intake(options ?? {}));
+  }
   protected override onOverflow(key: string, depth: number): void {
     this.overflowEvents.push({ 'key': key, 'depth': depth });
   }

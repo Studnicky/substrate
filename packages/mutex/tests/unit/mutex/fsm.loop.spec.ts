@@ -35,6 +35,9 @@ class TrackingMutex extends Mutex<string> {
 }
 
 class ForcingMutex extends Mutex<string> {
+  static build(): ForcingMutex {
+    return new ForcingMutex();
+  }
   protected override guardKey(_from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
     if (to === 'unlocked') return false;
     return super.guardKey(_from, to);
@@ -49,7 +52,7 @@ type ScenarioCaseOf<Shape extends ScenarioCase['shape']> = Extract<ScenarioCase,
 
 const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> | void } = {
   'illegal-transition-throws': (scenarioCase) => {
-    const mutex = ForcingMutex.create();
+    const mutex = ForcingMutex.build();
     assert.throws(() => { mutex.forceKeyTransition(scenarioCase.input.key, 'unlocked'); }, /Illegal state transition/);
     assert.equal(scenarioCase.expected.errorPattern, 'Illegal state transition');
   },

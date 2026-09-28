@@ -23,6 +23,9 @@ function resolveWorkerPath(relativePath: string): string {
  * this is the only way to reach that branch without touching the pool's private closures.
  */
 class WorkerKillingSignal extends Signal {
+  static override create(): WorkerKillingSignal {
+    return new WorkerKillingSignal();
+  }
   #armed = 0;
   readonly killed: Worker[] = [];
 
@@ -75,7 +78,7 @@ void describe('WorkerPool assignTask record === undefined branch', () => {
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      const signal = WorkerKillingSignal.create<WorkerKillingSignal>();
+      const signal = WorkerKillingSignal.create();
       // concurrency === 1: exactly one worker is ever created directly by dispatch(), so the
       // single armed kill can only ever target it — no ambiguity with any self-healed
       // replacement. batchConcurrency === 4 dispatches all four items in the same window, so

@@ -118,6 +118,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const log: string[] = [];
     class TracingFs extends VirtualFileSystem {
+      static override create(): TracingFs {
+        return new TracingFs({});
+      }
       override onCreate(path: string): void {
         log.push(`create:${path}`);
       }
@@ -130,6 +133,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const log: string[] = [];
     class TracingFs extends VirtualFileSystem {
+      static override create(): TracingFs {
+        return new TracingFs({});
+      }
       override onDelete(path: string): void {
         log.push(`delete:${path}`);
       }
@@ -143,6 +149,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const log: string[] = [];
     class TracingFs extends VirtualFileSystem {
+      static override create(): TracingFs {
+        return new TracingFs({});
+      }
       override onRead(path: string): void {
         log.push(`read:${path}`);
       }
@@ -156,6 +165,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const log: Array<{ newPath: string; oldPath: string }> = [];
     class TracingFs extends VirtualFileSystem {
+      static override create(): TracingFs {
+        return new TracingFs({});
+      }
       override onRename(oldPath: string, newPath: string): void {
         log.push({ oldPath, newPath });
       }
@@ -170,6 +182,9 @@ const scenarioHandlers: ScenarioHandlers = {
     const { expected, input } = scenarioCase;
     const log: string[] = [];
     class TracingFs extends VirtualFileSystem {
+      static override create(): TracingFs {
+        return new TracingFs({});
+      }
       override onWrite(path: string): void {
         log.push(`write:${path}`);
       }

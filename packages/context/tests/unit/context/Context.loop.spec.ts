@@ -8,8 +8,9 @@ import { setTimeout } from 'node:timers/promises';
 
 
 import { Context } from '../../../src/node/index.js';
+import { NodeContextStorage } from '../../../src/node/NodeContextStorage.js';
 import { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
-import type { ContextScopeInterface } from '../../../src/interfaces/index.js';
+import type { ContextScopeInterface, ContextStorageInterface } from '../../../src/interfaces/index.js';
 import scenarioGroups from './Context.scenarios.json' with { type: 'json' };
 
 type ScenarioShape =
@@ -174,6 +175,9 @@ function multiContextInput(scenarioCase: ScenarioCase, key: string): {
 
 function makeLenientContext(config: ContextConfigEntity.InputType): Context {
   class LenientContext extends Context {
+    static override create(options: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): LenientContext {
+      return new LenientContext(ContextConfigEntity.create(options), storage);
+    }
     protected override onMissingContext(): boolean {
       return true;
     }
@@ -637,6 +641,9 @@ const runnerMap = {
 
   'subclass-on-initialize': (scenarioCase) => {
     class SeededContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): SeededContext {
+        return new SeededContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(_initial: Record<string, unknown> | undefined, scope: ContextScopeInterface): void {
         scope.execute(() => {
           this.set('seeded', scenarioCase.expected.seeded);
@@ -653,6 +660,9 @@ const runnerMap = {
 
   'subclass-on-initialize-with-caller': (scenarioCase) => {
     class SeededContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): SeededContext {
+        return new SeededContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(_initial: Record<string, unknown> | undefined, scope: ContextScopeInterface): void {
         scope.execute(() => {
           this.set('seeded', scenarioCase.expected.seeded);
@@ -671,6 +681,9 @@ const runnerMap = {
   'subclass-on-set': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onSet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
@@ -689,6 +702,9 @@ const runnerMap = {
   'subclass-on-get': (scenarioCase) => {
     const events: Array<{ key: string; value: unknown }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet<TValue>(key: string, value: TValue): void {
         events.push({ key, value });
       }
@@ -707,6 +723,9 @@ const runnerMap = {
   'subclass-on-delete': (scenarioCase) => {
     const events: Array<{ existed: boolean; key: string }> = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onDelete(key: string, existed: boolean): void {
         events.push({ existed, key });
       }
@@ -725,6 +744,9 @@ const runnerMap = {
   'subclass-on-get-tryget': (scenarioCase) => {
     const events: string[] = [];
     class TracedContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): TracedContext {
+        return new TracedContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet(key: string): void {
         events.push(key);
       }
@@ -742,6 +764,9 @@ const runnerMap = {
 
   'throwing-on-initialize': (scenarioCase) => {
     class ThrowingInitializeContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingInitializeContext {
+        return new ThrowingInitializeContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onInitialize(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -756,6 +781,9 @@ const runnerMap = {
 
   'throwing-on-set': (scenarioCase) => {
     class ThrowingSetContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingSetContext {
+        return new ThrowingSetContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onSet(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -776,6 +804,9 @@ const runnerMap = {
 
   'throwing-on-get': (scenarioCase) => {
     class ThrowingGetContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingGetContext {
+        return new ThrowingGetContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onGet(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -794,6 +825,9 @@ const runnerMap = {
 
   'throwing-on-delete': (scenarioCase) => {
     class ThrowingDeleteContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): ThrowingDeleteContext {
+        return new ThrowingDeleteContext(ContextConfigEntity.create(config), storage);
+      }
       protected override onDelete(): void {
         throw RuntimeError.create(String(scenarioCase.expected.message));
       }
@@ -813,6 +847,9 @@ const runnerMap = {
 
   'async-on-set-safe': (scenarioCase) => {
     class AsyncRejectingContext extends Context {
+      static override create(config: ContextConfigEntity.InputType, storage: ContextStorageInterface = new NodeContextStorage()): AsyncRejectingContext {
+        return new AsyncRejectingContext(ContextConfigEntity.create(config), storage);
+      }
       protected override async onSet(): Promise<void> {
         await setTimeout(5);
         throw RuntimeError.create('onSet boom');

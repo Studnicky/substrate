@@ -1,20 +1,8 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
 
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';
 import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 
-class NoOpTimingInstance {
-  static construct(constructor: Function): object {
-    const result: unknown = Reflect.construct(constructor, []);
-    if (!Predicates.isObjectLike(result)) {
-      throw RuntimeError.create('NoOpTiming.create() did not construct an object.');
-    }
-    return result;
-  }
-
-}
 
 /**
  * No-operation timing tracker that discards all events.
@@ -52,14 +40,8 @@ export class NoOpTiming implements TimingInterface {
    * timing.event(TimingEvent.create({ 'component': 'GraphAdapter', 'operation': 'query' })); // Does nothing
    * ```
    */
-  static create<TInstance extends NoOpTiming = NoOpTiming>(
-    this: Function & { readonly 'prototype': TInstance; }
-  ): TInstance {
-    const result = NoOpTimingInstance.construct(this);
-    if (!Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('NoOpTiming.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(): NoOpTiming {
+    return new NoOpTiming();
   }
 
   /**

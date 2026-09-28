@@ -13,7 +13,11 @@ import {
   KeyedRateLimiterRegistryOptionsEntity,
   RateLimitRequestEntity
 } from '../../../src/entities/index.js';
-import type { KeyedRateLimiterCreateConfigInterface, RateLimiterStrategyInterface } from '../../../src/interfaces/index.js';
+import type {
+  KeyedRateLimiterCreateConfigInterface,
+  KeyedRateLimiterStrategyConfigInterface,
+  RateLimiterStrategyInterface
+} from '../../../src/interfaces/index.js';
 
 type ScenarioCase = {
   description: string;
@@ -30,6 +34,9 @@ type ScenarioInput = {
 };
 
 class TrackingEvictionLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TrackingEvictionLimiter {
+    return new TrackingEvictionLimiter(super.createDefaultDependencies(config));
+  }
   readonly created: string[] = [];
   readonly evicted: string[] = [];
 
@@ -45,6 +52,9 @@ class TrackingEvictionLimiter extends KeyedRateLimiter {
 import scenarioGroups from './keyed-rate-limiter.scenarios.json' with { type: 'json' };
 
 class TrackingLimiter extends KeyedRateLimiter {
+  static build(config: KeyedRateLimiterCreateConfigInterface): TrackingLimiter {
+    return new TrackingLimiter(super.createDefaultDependencies(config));
+  }
   readonly evicted: string[] = [];
 
   protected override onKeyEvicted(key: string): void {
@@ -177,7 +187,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'getters-eviction-on-max-keys': () => {
-      const limiter = TrackingLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -224,6 +234,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
 
       class ObservedGenericLimiter extends KeyedRateLimiter<FakeFixedAllowance> {
+        static build(config: KeyedRateLimiterStrategyConfigInterface<FakeFixedAllowance>): ObservedGenericLimiter {
+          return new ObservedGenericLimiter(super.createFactoryDependencies(config));
+        }
         protected override onTokenAcquired(
           key: string,
           result: RateLimitConsumptionEntity.Type
@@ -232,7 +245,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
 
-      const limiter = ObservedGenericLimiter.create<FakeFixedAllowance>({
+      const limiter = ObservedGenericLimiter.build({
         factory: () => new FakeFixedAllowance(2)
       });
       limiter.consume('user-a');
@@ -300,7 +313,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'evicts-idle-key-at-capacity': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -310,7 +323,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     },
 
     'recreates-strategy-after-eviction': () => {
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -322,7 +335,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'idle-key-expires-and-rebuilds': async () => {
       const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = TrackingEvictionLimiter.create(keyedRateLimiterConfig(input));
+      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input));
       limiter.consume('user-a');
       await new Promise<void>((resolve) => { setTimeout(resolve, Number(keyedRateLimiter.waitMs)); });
       limiter.consume('user-a');
@@ -333,6 +346,9 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
 
     'throwing-on-key-evicted': () => {
       class ThrowingEvictedLimiter extends KeyedRateLimiter {
+        static build(config: KeyedRateLimiterCreateConfigInterface): ThrowingEvictedLimiter {
+          return new ThrowingEvictedLimiter(super.createDefaultDependencies(config));
+        }
         readonly created: string[] = [];
         readonly evicted: string[] = [];
 
@@ -346,7 +362,7 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         }
       }
 
-      const limiter = ThrowingEvictedLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = ThrowingEvictedLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a');
       limiter.consume('user-b');
       limiter.consume('user-c');
@@ -360,12 +376,15 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
 
       class ObservedTokenAcquiredLimiter extends KeyedRateLimiter {
+        static build(config: KeyedRateLimiterCreateConfigInterface): ObservedTokenAcquiredLimiter {
+          return new ObservedTokenAcquiredLimiter(super.createDefaultDependencies(config));
+        }
         protected override onTokenAcquired(key: string, result: RateLimitConsumptionEntity.Type): void {
           acquired.push({ key, result });
         }
       }
 
-      const limiter = ObservedTokenAcquiredLimiter.create(keyedRateLimiterConfig(input, () => 0));
+      const limiter = ObservedTokenAcquiredLimiter.build(keyedRateLimiterConfig(input, () => 0));
       limiter.consume('user-a', 1);
       limiter.consume('user-a', 1);
       assert.deepStrictEqual(acquired, expected.acquired);

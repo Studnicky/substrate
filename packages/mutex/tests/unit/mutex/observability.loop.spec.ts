@@ -33,6 +33,9 @@ function mutexErrorTypeInput(value: string): (typeof mutexErrorTypes)[keyof type
 }
 
 class AcquireTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AcquireTrackingMutex {
+    return new AcquireTrackingMutex(config);
+  }
   readonly acquireEvents: Array<{ key: string; waitTimeMs: number }> = [];
 
   protected override afterAcquire(key: string, waitTimeMs: number): void {
@@ -41,6 +44,9 @@ class AcquireTrackingMutex extends Mutex<string> {
 }
 
 class ReleaseTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ReleaseTrackingMutex {
+    return new ReleaseTrackingMutex(config);
+  }
   readonly releaseEvents: Array<{ holdTimeMs: number; key: string }> = [];
 
   protected override beforeRelease(key: string, holdTimeMs: number): void {
@@ -49,6 +55,9 @@ class ReleaseTrackingMutex extends Mutex<string> {
 }
 
 class TimeoutTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): TimeoutTrackingMutex {
+    return new TimeoutTrackingMutex(config);
+  }
   readonly timeoutEvents: Array<{ key: string; timeoutMs: number }> = [];
 
   protected override onTimeout(key: string, timeoutMs: number): void {
@@ -57,6 +66,9 @@ class TimeoutTrackingMutex extends Mutex<string> {
 }
 
 class ContentionTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ContentionTrackingMutex {
+    return new ContentionTrackingMutex(config);
+  }
   readonly contentionEvents: Array<{ key: string; queueSize: number }> = [];
 
   protected override onContended(key: string, queueSize: number): void {
@@ -65,6 +77,9 @@ class ContentionTrackingMutex extends Mutex<string> {
 }
 
 class AfterReleaseTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AfterReleaseTrackingMutex {
+    return new AfterReleaseTrackingMutex(config);
+  }
   readonly afterReleaseEvents: string[] = [];
 
   protected override afterRelease(key: string): void {
@@ -73,6 +88,9 @@ class AfterReleaseTrackingMutex extends Mutex<string> {
 }
 
 class AfterReleaseHandoffTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AfterReleaseHandoffTrackingMutex {
+    return new AfterReleaseHandoffTrackingMutex(config);
+  }
   readonly afterReleaseEvents: string[] = [];
   readonly onReleaseEvents: string[] = [];
 
@@ -86,6 +104,9 @@ class AfterReleaseHandoffTrackingMutex extends Mutex<string> {
 }
 
 class HookErrorRecordingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): HookErrorRecordingMutex {
+    return new HookErrorRecordingMutex(config);
+  }
   protected override beforeAcquire(_key: string): void {
     throw RuntimeError.create('beforeAcquire boom');
   }
@@ -100,6 +121,9 @@ class HookErrorRecordingMutex extends Mutex<string> {
 }
 
 class ThrowingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ThrowingMutex {
+    return new ThrowingMutex(config);
+  }
   protected override afterAcquire(_key: string, _waitTimeMs: number): void {
     throw RuntimeError.create('Hook error');
   }
@@ -110,6 +134,9 @@ class ThrowingMutex extends Mutex<string> {
 }
 
 class ThrowingQueueMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ThrowingQueueMutex {
+    return new ThrowingQueueMutex(config);
+  }
   readonly acquireKeys: string[] = [];
 
   protected override afterAcquire(key: string, _waitTimeMs: number): void {
@@ -122,6 +149,9 @@ class ThrowingQueueMutex extends Mutex<string> {
 }
 
 class AllHooksMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AllHooksMutex {
+    return new AllHooksMutex(config);
+  }
   readonly acquired: number[] = [];
   readonly released: number[] = [];
   totalHoldTime = 0;
@@ -139,6 +169,9 @@ class AllHooksMutex extends Mutex<string> {
 }
 
 class AsyncRejectingHooksMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AsyncRejectingHooksMutex {
+    return new AsyncRejectingHooksMutex(config);
+  }
   protected override async beforeAcquire(): Promise<void> {
     await Promise.resolve();
     throw RuntimeError.create('beforeAcquire async boom');
@@ -195,6 +228,9 @@ class AsyncRejectingHooksMutex extends Mutex<string> {
 }
 
 class AcquireWaitTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): AcquireWaitTrackingMutex {
+    return new AcquireWaitTrackingMutex(config);
+  }
   readonly acquireWaitEvents: Array<{ key: string; waitTimeMs: number }> = [];
 
   protected override onAcquireWait(key: string, waitTimeMs: number): void {
@@ -203,6 +239,9 @@ class AcquireWaitTrackingMutex extends Mutex<string> {
 }
 
 class ReleaseHookTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ReleaseHookTrackingMutex {
+    return new ReleaseHookTrackingMutex(config);
+  }
   readonly onReleaseEvents: string[] = [];
 
   protected override onRelease(key: string): void {
@@ -211,6 +250,9 @@ class ReleaseHookTrackingMutex extends Mutex<string> {
 }
 
 class QueueDrainTrackingMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): QueueDrainTrackingMutex {
+    return new QueueDrainTrackingMutex(config);
+  }
   readonly queueDrainEvents: string[] = [];
 
   protected override onQueueDrain(key: string): void {
@@ -219,18 +261,27 @@ class QueueDrainTrackingMutex extends Mutex<string> {
 }
 
 class ThrowingReleaseHookMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ThrowingReleaseHookMutex {
+    return new ThrowingReleaseHookMutex(config);
+  }
   protected override onRelease(): void {
     throw RuntimeError.create('Hook error');
   }
 }
 
 class ThrowingQueueDrainMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ThrowingQueueDrainMutex {
+    return new ThrowingQueueDrainMutex(config);
+  }
   protected override onQueueDrain(): void {
     throw RuntimeError.create('Hook error');
   }
 }
 
 class ThrowingTimeoutHookMutex extends Mutex<string> {
+  static build(config?: Parameters<typeof Mutex.create>[0]): ThrowingTimeoutHookMutex {
+    return new ThrowingTimeoutHookMutex(config);
+  }
   protected override onTimeout(): void {
     throw RuntimeError.create('Hook error');
   }
@@ -327,7 +378,7 @@ async function waitForHookRejections(): Promise<void> {
 const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'afterAcquire-error-does-not-stop-queue': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ThrowingQueueMutex.create();
+    const mutex = ThrowingQueueMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     release();
@@ -340,7 +391,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'afterAcquire-immediate': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireTrackingMutex.create();
+    const mutex = AcquireTrackingMutex.build();
     const release = await mutex.acquire(key);
     assert.strictEqual(mutex.acquireEvents.length, scenarioCase.expected.acquireEvents);
     const ev = readArrayItem(mutex.acquireEvents, 0, 'Acquire events');
@@ -351,14 +402,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'afterAcquire-separate-keys': async (scenarioCase) => {
     const keys = readStringKeys(scenarioCase.input);
-    const mutex = AcquireTrackingMutex.create();
+    const mutex = AcquireTrackingMutex.build();
     const releases = await Promise.all(keys.map((key) => mutex.acquire(key)));
     assert.deepStrictEqual(mutex.acquireEvents.map((event) => event.key), scenarioCase.expected.acquireEvents);
     releaseAll(releases);
   },
   'afterAcquire-waiting': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireTrackingMutex.create();
+    const mutex = AcquireTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     await delay(readNumber(scenarioCase.input.waitMs, 'Scenario input.waitMs'));
@@ -371,14 +422,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'afterRelease-fires': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AfterReleaseTrackingMutex.create();
+    const mutex = AfterReleaseTrackingMutex.build();
     const release = await mutex.acquire(key);
     release();
     assert.deepStrictEqual(mutex.afterReleaseEvents, scenarioCase.expected.afterReleaseEvents);
   },
   'afterRelease-fires-on-handoff-and-drop': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AfterReleaseHandoffTrackingMutex.create();
+    const mutex = AfterReleaseHandoffTrackingMutex.build();
     const holderRelease = await mutex.acquire(key);
     const waiterAcquire = mutex.acquire(key);
     await delay(0);
@@ -406,7 +457,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const onUnhandledRejection = <TReason>(reason: TReason): void => { unhandledRejections.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const mutex = AsyncRejectingHooksMutex.create(mutexConfig(scenarioCase));
+      const mutex = AsyncRejectingHooksMutex.build(mutexConfig(scenarioCase));
       const releaseLeader = await mutex.acquire(queuedKey);
       const pending = createAcquireBatch(pendingCount, () => mutex.acquire(queuedKey));
       releaseLeader();
@@ -430,7 +481,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'beforeAcquire-error-is-recorded': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = HookErrorRecordingMutex.create();
+    const mutex = HookErrorRecordingMutex.build();
     const release = await mutex.acquire(key);
     assert.ok(mutex.isLocked(key));
     const errors = mutex.getHookErrors();
@@ -446,7 +497,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'beforeRelease-fires': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ReleaseTrackingMutex.create();
+    const mutex = ReleaseTrackingMutex.build();
     const release = await mutex.acquire(key);
     await delay(readNumber(scenarioCase.input.holdMs, 'Scenario input.holdMs'));
     release();
@@ -458,7 +509,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'beforeRelease-tracks-hold-time': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const holdTimes = readNumberArray(scenarioCase.input.holdMs, 'Scenario input.holdMs');
-    const mutex = ReleaseTrackingMutex.create();
+    const mutex = ReleaseTrackingMutex.build();
     for (const holdMs of holdTimes) {
       const release = await mutex.acquire(key);
       await delay(holdMs);
@@ -471,7 +522,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'hook-errors-do-not-break-locking': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ThrowingMutex.create();
+    const mutex = ThrowingMutex.build();
     const release = await mutex.acquire(key);
     assert.ok(mutex.isLocked(key));
     release();
@@ -480,14 +531,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onAcquireWait-not-immediate': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireWaitTrackingMutex.create();
+    const mutex = AcquireWaitTrackingMutex.build();
     const release = await mutex.acquire(key);
     assert.strictEqual(mutex.acquireWaitEvents.length, scenarioCase.expected.acquireWaitCount);
     release();
   },
   'onAcquireWait-per-waiter': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireWaitTrackingMutex.create();
+    const mutex = AcquireWaitTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     release();
@@ -496,7 +547,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onAcquireWait-queued': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireWaitTrackingMutex.create();
+    const mutex = AcquireWaitTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     await delay(10);
@@ -509,7 +560,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onContended-fires': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ContentionTrackingMutex.create();
+    const mutex = ContentionTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     assert.strictEqual(mutex.contentionEvents.length, scenarioCase.expected.contentionEvents);
@@ -521,7 +572,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onQueueDrain-normal': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = QueueDrainTrackingMutex.create();
+    const mutex = QueueDrainTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     release();
@@ -532,7 +583,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   'onQueueDrain-not-early': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
     const pendingCount = readPendingCount(scenarioCase.input);
-    const mutex = QueueDrainTrackingMutex.create();
+    const mutex = QueueDrainTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(pendingCount, () => mutex.acquire(key));
     release();
@@ -544,7 +595,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onQueueDrain-throw-does-not-replace-handoff': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ThrowingQueueDrainMutex.create();
+    const mutex = ThrowingQueueDrainMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     release();
@@ -553,7 +604,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onQueueDrain-timeout': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = QueueDrainTrackingMutex.create(mutexConfig(scenarioCase));
+    const mutex = QueueDrainTrackingMutex.build(mutexConfig(scenarioCase));
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     for (const waiter of pending) {
@@ -565,7 +616,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onRelease-every-release': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ReleaseHookTrackingMutex.create();
+    const mutex = ReleaseHookTrackingMutex.build();
     const release = await mutex.acquire(key);
     release();
     assert.strictEqual(mutex.onReleaseEvents.length, scenarioCase.expected.onReleaseCount);
@@ -573,7 +624,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onRelease-handoff': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ReleaseHookTrackingMutex.create();
+    const mutex = ReleaseHookTrackingMutex.build();
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     assert.strictEqual(mutex.onReleaseEvents.length, 0);
@@ -584,14 +635,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onRelease-throw-does-not-replace-release': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ThrowingReleaseHookMutex.create();
+    const mutex = ThrowingReleaseHookMutex.build();
     const release = await mutex.acquire(key);
     release();
     assert.strictEqual(mutex.isLocked(key), scenarioCase.expected.lockedAfterRelease);
   },
   'onTimeout-fires': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = TimeoutTrackingMutex.create(mutexConfig(scenarioCase));
+    const mutex = TimeoutTrackingMutex.build(mutexConfig(scenarioCase));
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     for (const waiter of pending) {
@@ -605,7 +656,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'onTimeout-throw-does-not-replace-error': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = ThrowingTimeoutHookMutex.create(mutexConfig(scenarioCase));
+    const mutex = ThrowingTimeoutHookMutex.build(mutexConfig(scenarioCase));
     const release = await mutex.acquire(key);
     const pending = createAcquireBatch(readPendingCount(scenarioCase.input), () => mutex.acquire(key));
     const errorType = mutexErrorTypeInput(readString(scenarioCase.expected.errorName, 'Scenario expected.errorName'));
@@ -619,7 +670,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const firstKey = readArrayItem(keys, 0, 'Scenario input.keys');
     const secondKey = readArrayItem(keys, 1, 'Scenario input.keys');
     const holdMs = readNumber(scenarioCase.input.holdMs, 'Scenario input.holdMs');
-    const mutex = AllHooksMutex.create();
+    const mutex = AllHooksMutex.build();
     const release1 = await mutex.acquire(firstKey);
     await delay(holdMs);
     release1();
