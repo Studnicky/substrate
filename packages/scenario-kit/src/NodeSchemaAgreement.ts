@@ -61,6 +61,22 @@ export class NodeSchemaAgreement {
     return result;
   }
 
+  private static objectEntries(value: unknown): object[] {
+    const result: object[] = [];
+    if (Array.isArray(value)) {
+      const entries: readonly unknown[] = value;
+      const length = entries.length;
+      for (let index = 0; index < length; index += 1) {
+        const entry = entries[index];
+        if (Predicates.isObject(entry)) {
+          result.push(entry);
+        }
+      }
+    }
+
+    return result;
+  }
+
   private static flattenBranches(branches: readonly object[]): object[] {
     const result: object[] = [];
     const length = branches.length;
@@ -197,8 +213,9 @@ export class NodeSchemaAgreement {
     for (let index = 0; index < keywordCount; index += 1) {
       const keyword = NodeSchemaAgreement.SCHEMA_LIST_KEYWORDS[index]!;
       const branches: unknown = Reflect.get(schema, keyword);
-      if (Array.isArray(branches) && branches.every(Predicates.isObject)) {
-        JsonObject.write(flattened, keyword, NodeSchemaAgreement.flattenBranches(branches));
+      const objectBranches = NodeSchemaAgreement.objectEntries(branches);
+      if (Array.isArray(branches) && objectBranches.length === branches.length) {
+        JsonObject.write(flattened, keyword, NodeSchemaAgreement.flattenBranches(objectBranches));
       }
     }
 

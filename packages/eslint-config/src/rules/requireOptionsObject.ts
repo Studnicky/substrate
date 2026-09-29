@@ -47,7 +47,8 @@ class ParamInspector {
     if (!Predicates.isRecord(ann) || !Predicates.isRecord(ann.typeAnnotation)) { return false; }
     const typeAnnotation = ann.typeAnnotation;
     if (typeAnnotation.type !== 'TSUnionType' || !Array.isArray(typeAnnotation.types)) { return false; }
-    const result = typeAnnotation.types.some((member) => {const isUndefinedMember = Predicates.isRecord(member) && member.type === 'TSUndefinedKeyword';
+    const members: readonly unknown[] = typeAnnotation.types;
+    const result = members.some((member) => {const isUndefinedMember = Predicates.isRecord(member) && member.type === 'TSUndefinedKeyword';
       return isUndefinedMember;});
     return result;
   }
@@ -60,7 +61,8 @@ class ParamInspector {
     if (typeAnnotation.type !== 'TSTupleType' || !Array.isArray(typeAnnotation.elementTypes)) { return 0; }
 
     let count = 0;
-    typeAnnotation.elementTypes.forEach((element) => {
+    const elements: readonly unknown[] = typeAnnotation.elementTypes;
+    elements.forEach((element) => {
       if (!Predicates.isRecord(element)) { return; }
       if (element.type === 'TSNamedTupleMember' && element.optional === true) { count += 1; return; }
       if (element.type === 'TSOptionalType') { count += 1; }
@@ -95,7 +97,8 @@ class ParamInspector {
       if (typeAnnotation.type !== 'TSTypeLiteral' || !Array.isArray(typeAnnotation.members)) { return false; }
       // An empty `{}` or a pure index-signature literal (`{ [key: string]: unknown }`) carries
       // none of a real options object's type safety — require at least one named member.
-      const result = typeAnnotation.members.some((member) => {const isNamedMember = Predicates.isRecord(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
+      const members: readonly unknown[] = typeAnnotation.members;
+      const result = members.some((member) => {const isNamedMember = Predicates.isRecord(member) && (member.type === 'TSPropertySignature' || member.type === 'TSMethodSignature');
         return isNamedMember;});
       return result;
     }

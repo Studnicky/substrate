@@ -6,6 +6,7 @@ import type { PatchOperationEntity } from '../entities/PatchOperationEntity.js';
 import type { DraftNodeInterface } from '../interfaces/DraftNodeInterface.js';
 
 import { Patch } from './Patch.js';
+import { SameKind } from './SameKind.js';
 
 export class Draft {
   /** Return whether a value should be wrapped in a nested draft proxy. */
@@ -20,10 +21,10 @@ export class Draft {
   }
 
   /** Copy an array or plain object without copying its child references. */
-  protected static shallowCopy<T extends object>(value: T): T;
-  protected static shallowCopy(value: object): object {
+  protected static shallowCopy<T extends object>(value: T): T {
     // `Array.from` densifies holes with `undefined`; `slice` preserves them.
-    const result = Array.isArray(value) ? value.slice() : { ...value };
+    const copied: unknown = Array.isArray(value) ? value.slice() : { ...value };
+    const result = SameKind.assert(copied, value);
     return result;
   }
 

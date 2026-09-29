@@ -158,7 +158,7 @@ export class FetchClientConfiguration {
       signal,
       ...data
     } = options;
-    if (signal !== undefined && !Predicates.isAbortSignal(signal)) {
+    if (signal !== undefined && !(signal instanceof AbortSignal)) {
       throw new ConfigurationError('signal must be an AbortSignal instance');
     }
 

@@ -1,4 +1,4 @@
-import { ExampleSmokeRunner } from '@studnicky/example-smoke-kit/node';
+import { ExampleSmokeRunner } from '../../src/index.js';
 
 import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
 

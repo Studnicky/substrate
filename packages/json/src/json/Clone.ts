@@ -2,6 +2,8 @@
 
 import { JsonObject, Predicates } from '@studnicky/types/browser';
 
+import { SameKind } from './SameKind.js';
+
 export class Clone {
   /** Clone an array element-by-element. */
   protected static cloneArray(value: (PropertyKey | bigint | boolean | object | null | undefined)[]): (PropertyKey | bigint | boolean | object | null | undefined)[] {
@@ -67,14 +69,14 @@ export class Clone {
   }
 
   /** Recursively deep-clone a value. */
-  public static deep<T>(value: T): T;
-  public static deep(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
-    const result = this.clone(value);
+  public static deep<T>(value: T): T {
+    const cloned: unknown = this.clone(value);
+    const result = SameKind.assert(cloned, value);
     return result;
   }
 
   /** Implement `deep` across the full JavaScript value domain. */
-  protected static clone(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
+  protected static clone(value: unknown): unknown {
     if (!Predicates.isObjectLike(value)) {
       return value;
     }

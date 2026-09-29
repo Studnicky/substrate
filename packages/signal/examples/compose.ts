@@ -25,7 +25,7 @@ class ComposeDemo {
     using composed = await signals.compose({ 'signal': controller.signal });
     const signal = composed.signal;
 
-    assert.strictEqual(signal, controller.signal, 'returns the caller signal directly');
+    assert.ok(signal === controller.signal, 'returns the caller signal directly');
     assert.ok(!signal.aborted, 'signal is not aborted');
     console.log(`caseCallerOnly: same reference=${signal === controller.signal}`);
   }

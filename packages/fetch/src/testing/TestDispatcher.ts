@@ -151,7 +151,7 @@ export class TestDispatcher {
   }
 
   static #isHeadersInit(value: unknown): value is ConstructorParameters<typeof Headers>[0] {
-    const result = Predicates.isHeaders(value) || Array.isArray(value) || Predicates.isObject(value);
+    const result = value instanceof Headers || Array.isArray(value) || Predicates.isObject(value);
     return result;
   }
 
@@ -171,7 +171,7 @@ export class TestDispatcher {
       return '';
     }
 
-    if (Predicates.isString(body)) {
+    if (typeof body === 'string') {
       return body;
     }
 
@@ -185,7 +185,7 @@ export class TestDispatcher {
       return result;
     }
 
-    if (Predicates.isArrayBufferView(body)) {
+    if (ArrayBuffer.isView(body)) {
       const result = new TextDecoder().decode(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
       return result;
     }
@@ -540,7 +540,7 @@ export class TestDispatcher {
       'origin': parsedUrl.origin,
       'path': parsedUrl.pathname,
       'searchParameters': parsedUrl.searchParams,
-      'signal': Predicates.isAbortSignal(init.signal) ? init.signal : undefined,
+      'signal': init.signal instanceof AbortSignal ? init.signal : undefined,
       'url': url
     });
   }

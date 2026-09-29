@@ -2,6 +2,7 @@ import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
+import { SameKind } from './SameKind.js';
 
 /**
  * Frozen — cycle-safe recursive deep freeze.
@@ -162,15 +163,17 @@ export class Frozen {
    * Safe against circular references via WeakMap tracking. Objects and arrays retain
    * their identity; Map and Set references are detached, mutation-guarded proxies.
    */
-  public static deepFreeze<T>(value: T): T;
-  public static deepFreeze(value: unknown): unknown {
+  public static deepFreeze<T>(value: T): T {
     const frozenValues = new WeakMap<object, object>();
+    const source: T = value;
     if (value instanceof Map) {
-      const result = this.freezeMap(value, frozenValues);
+      const frozenMap: unknown = this.freezeMap(value, frozenValues);
+      const result = SameKind.assert(frozenMap, source);
       return result;
     }
     if (value instanceof Set) {
-      const result = this.freezeSet(value, frozenValues);
+      const frozenSet: unknown = this.freezeSet(value, frozenValues);
+      const result = SameKind.assert(frozenSet, source);
       return result;
     }
 

@@ -50,7 +50,8 @@ interface FileLockDisposableInterface {
 class FileLockInstance {
 
   static hasDispose(value: object): value is FileLockDisposableInterface {
-    const result = Predicates.isFunction(Reflect.get(value, Symbol.dispose));
+    const member: unknown = Reflect.get(value, Symbol.dispose);
+    const result = Predicates.isFunction(member);
     return result;
   }
 }

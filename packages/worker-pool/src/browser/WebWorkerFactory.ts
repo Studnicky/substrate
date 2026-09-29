@@ -1,38 +1,20 @@
 import { Predicates } from '@studnicky/types/browser';
 
-import type { WorkerFactoryInterface, WorkerObservationInterface } from '../interfaces/index.js';
+import type {
+  WorkerFactoryInterface, WorkerObservationInterface
+} from '../interfaces/index.js';
 import type { WebWorkerFactoryOptionsInterface } from './WebWorkerFactoryOptionsInterface.js';
 import type { WebWorkerInterface } from './WebWorkerInterface.js';
 
 import { WorkerPoolError } from '../errors/index.js';
-
-class WebWorkerObservation implements WorkerObservationInterface {
-  readonly #onError: () => void;
-  readonly #worker: WebWorkerInterface;
-  #alive = true;
-
-  public constructor(worker: WebWorkerInterface) {
-    this.#worker = worker;
-    this.#onError = (): void => {
-      this.#alive = false;
-    };
-    this.#worker.addEventListener('error', this.#onError);
-  }
-
-  public close(): void {
-    this.#worker.removeEventListener('error', this.#onError);
-  }
-
-  public isAlive(): boolean {
-    const result = this.#alive;
-    return result;
-  }
-}
+import { WebWorkerObservation } from './WebWorkerObservation.js';
 
 /** Native browser Worker factory for `WebWorkerPool`. */
 export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterface> {
   readonly #options: WebWorkerFactoryOptionsInterface['options'];
+
   readonly #script: string | URL;
+
   readonly #workers = new Set<WebWorkerInterface>();
 
   private constructor(options: WebWorkerFactoryOptionsInterface) {
@@ -48,7 +30,9 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
       });
     }
 
-    return new WebWorkerFactory(options);
+    const result = new WebWorkerFactory(options);
+
+    return result;
   }
 
   static #isWorkerConstructor(value: unknown): value is typeof Worker {
@@ -57,39 +41,49 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
     }
 
     try {
-      Reflect.construct(Function, [], value);
-      return true;
+      const probe: unknown = Reflect.construct(Function, [], value);
+
+      const result = typeof probe === 'function';
+
+      return result;
     } catch {
       return false;
     }
   }
 
-  public create(): Promise<WebWorkerInterface> {
+  public async create(): Promise<WebWorkerInterface> {
     const candidate: unknown = Reflect.get(globalThis, 'Worker');
+
     if (!WebWorkerFactory.#isWorkerConstructor(candidate)) {
       const result = Promise.reject(new WorkerPoolError({
         'code': 'webWorkerFactory.unavailable',
         'message': 'Web Workers are unavailable in this browser context'
       }));
-      return result;
+
+      return await result;
     }
-    const workerConstructor = candidate;
+    const WorkerConstructor = candidate;
 
     const result = Promise.resolve().then((): WebWorkerInterface => {
-      const worker = new workerConstructor(this.#script, this.#options);
+      const worker = new WorkerConstructor(this.#script, this.#options);
+
       this.#workers.add(worker);
+
       return worker;
     });
-    return result;
+
+    return await result;
   }
 
-  public initialize(_worker: WebWorkerInterface): Promise<void> {
-    const result = Promise.resolve();
-    return result;
+  public async initialize(worker: WebWorkerInterface): Promise<void> {
+    this.#assertOwned(worker);
+    await Promise.resolve();
   }
 
   public observe(worker: WebWorkerInterface): WorkerObservationInterface {
+    this.#assertOwned(worker);
     const result = new WebWorkerObservation(worker);
+
     return result;
   }
 
@@ -99,5 +93,15 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
     }
     worker.terminate();
     await Promise.resolve();
+  }
+
+  #assertOwned(worker: WebWorkerInterface): void {
+    if (this.#workers.has(worker)) {
+      return;
+    }
+    throw new WorkerPoolError({
+      'code': 'webWorkerFactory.foreignWorker',
+      'message': 'WebWorkerFactory only manages workers it created'
+    });
   }
 }

@@ -55,8 +55,5 @@
   "dependencies": {
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*"
   }
 }

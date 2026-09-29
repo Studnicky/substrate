@@ -286,7 +286,8 @@ export class DeclaratorName {
       return false;
     }
 
-    const result = properties.some((property) => {
+    const propertyList: readonly unknown[] = properties;
+    const result = propertyList.some((property) => {
       if (!Predicates.isRecord(property) || property.type !== 'Property') {
         return false;
       }

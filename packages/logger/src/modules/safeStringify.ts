@@ -11,7 +11,8 @@ export class SafeStringify {
   public static stringify(object: unknown): string {
     const seen = new WeakSet();
 
-    const result = JSON.stringify(object, (_key, value) => {
+    const result = JSON.stringify(object, (_key, replacerValue: unknown) => {
+      const value: unknown = replacerValue;
       if (Predicates.isObjectLike(value)) {
         if (seen.has(value)) {
           return '[Circular]';

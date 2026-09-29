@@ -147,7 +147,8 @@ export class RequestExecutor {
     const methodCount = methodNames.length;
     for (let index = 0; index < methodCount; index += 1) {
       const methodName = methodNames[index]!;
-      if (!Predicates.isFunction(Reflect.get(value, methodName))) {
+      const member: unknown = Reflect.get(value, methodName);
+      if (!Predicates.isFunction(member)) {
         return false;
       }
     }
@@ -180,9 +181,12 @@ export class RequestExecutor {
   }
 
   static #isAbortSignal(value: object): value is AbortSignal {
-    const result = Predicates.isBoolean(Reflect.get(value, 'aborted'))
-      && Predicates.isFunction(Reflect.get(value, 'addEventListener'))
-      && Predicates.isFunction(Reflect.get(value, 'removeEventListener'));
+    const aborted: unknown = Reflect.get(value, 'aborted');
+    const addListener: unknown = Reflect.get(value, 'addEventListener');
+    const removeListener: unknown = Reflect.get(value, 'removeEventListener');
+    const result = Predicates.isBoolean(aborted)
+      && Predicates.isFunction(addListener)
+      && Predicates.isFunction(removeListener);
     return result;
   }
 

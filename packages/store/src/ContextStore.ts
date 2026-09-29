@@ -22,7 +22,7 @@ class ContextStoreValue {
     return false;
   }
 
-  static isStoreInterface<TState>(value: object): value is StoreInterface<TState> {
+  static isStoreInterface(value: object): value is StoreInterface<unknown> {
     const result = ContextStoreValue.hasFunction(value, 'clear')
       && ContextStoreValue.hasFunction(value, 'getSnapshot')
       && ContextStoreValue.hasFunction(value, 'getSynchronizationIdentity')
@@ -53,6 +53,7 @@ class ContextStoreValue {
  */
 export class ContextStore<TState> implements StoreInterface<TState> {
   readonly #backingStores = new WeakSet<object>();
+  readonly #ownedStores = new WeakMap<object, StoreInterface<TState>>();
   readonly #context: ContextStoreOptionsInterface<TState>['context'];
   readonly #createStore: ContextStoreOptionsInterface<TState>['createStore'];
   readonly #key: string;
@@ -153,12 +154,14 @@ export class ContextStore<TState> implements StoreInterface<TState> {
     }
 
     const lookup = this.#context.tryGet(this.#key);
-    if (lookup.found && lookup.value !== null && typeof lookup.value === 'object'
-      && ContextStoreValue.isStoreInterface<TState>(lookup.value)) {
-      this.#assertSynchronizationIdentity(lookup.value);
-      this.#attachBackingStore(lookup.value);
+    if (lookup.found && lookup.value !== null && typeof lookup.value === 'object') {
+      const owned = this.#ownedStores.get(lookup.value);
+      if (owned !== undefined) {
+        this.#assertSynchronizationIdentity(owned);
+        this.#attachBackingStore(owned);
 
-      return lookup.value;
+        return owned;
+      }
     }
 
     if (lookup.found) {
@@ -166,11 +169,12 @@ export class ContextStore<TState> implements StoreInterface<TState> {
     }
 
     const store = this.#createStore();
-    if (!ContextStoreValue.isStoreInterface<TState>(store)) {
+    if (!ContextStoreValue.isStoreInterface(store)) {
       throw new Error('ContextStore factory must return a StoreInterface');
     }
 
     this.#assertSynchronizationIdentity(store);
+    this.#ownedStores.set(store, store);
     this.#context.set(this.#key, store);
     this.#attachBackingStore(store);
 
