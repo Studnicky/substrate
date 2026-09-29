@@ -21,13 +21,11 @@ Call `ExampleSmokeRunner.registerExampleSmokeSuite` with a scenario file's parse
 
 A package's real `tests/smoke/examples.loop.spec.ts` loads `examples.scenarios.json` instead of declaring cases inline:
 
-```typescript
-import { ExampleSmokeRunner } from '@studnicky/example-smoke-kit/node';
+<<< ../../packages/example-smoke-kit/tests/smoke/examples.loop.spec.ts
 
-import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
+## Try it
 
-ExampleSmokeRunner.registerExampleSmokeSuite(scenarioGroups, { 'packageName': 'cache', 'specUrl': import.meta.url });
-```
+<RunnableExample src="packages/example-smoke-kit/examples/basic-usage" title="Register scenario-based smoke tests" />
 
 ## Scenario shapes
 

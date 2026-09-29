@@ -156,7 +156,7 @@ export default [
 
 ## Configuration rules
 
-29 rules that enforce structural, semantic, and stylistic constraints.
+31 rules that enforce structural, semantic, and stylistic constraints.
 
 | Rule | Fixable | Severity |
 |------|---------|----------|

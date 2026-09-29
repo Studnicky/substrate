@@ -38,7 +38,16 @@ const packageDirectories = (await readdir(packagesRoot, { 'withFileTypes': true 
 
 for (const directoryName of packageDirectories) {
   const packageJsonPath = path.join(packagesRoot, directoryName, 'package.json');
-  const manifest: unknown = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+  let manifestContents: string;
+  try {
+    manifestContents = await readFile(packageJsonPath, 'utf8');
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+      continue;
+    }
+    throw error;
+  }
+  const manifest: unknown = JSON.parse(manifestContents);
 
   if (typeof manifest !== 'object' || manifest === null) {
     continue;

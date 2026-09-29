@@ -40,7 +40,7 @@ The output shows `onExecute` firing for a new key, `onReplay` replaying the cach
 
 `IdempotencyGuard.create({ capacity, ttlMs })` creates and owns its cache and coalescer. Those collaborators are implementation details and have no public getters. Consumers observe the guard through `onReplay`, `onCoalesce`, `onConflict`, and `onExecute`.
 
-Import `IdempotencyGuard`, `IdempotencyConflictError`, and `IdempotencyGuardError` from `@studnicky/idempotency-guard/node`; import schemas from `@studnicky/idempotency-guard/entities` and `IdempotencyGuardEntryInterface` from `@studnicky/idempotency-guard/interfaces`. `IdempotencyGuardEntryInterface<TResult>` composes the schema-derived fingerprint from the metadata entity and retains the caller-owned generic result.
+Import `IdempotencyGuard`, `IdempotencyConflictError`, `IdempotencyGuardConfigError`, and `IdempotencyGuardError` from `@studnicky/idempotency-guard/node`; import schemas from `@studnicky/idempotency-guard/entities` and `IdempotencyGuardEntryInterface` from `@studnicky/idempotency-guard/interfaces`. `IdempotencyGuardEntryInterface<TResult>` composes the schema-derived fingerprint from the metadata entity and retains the caller-owned generic result.
 
 ## Composition order
 
@@ -51,6 +51,7 @@ Import `IdempotencyGuard`, `IdempotencyConflictError`, and `IdempotencyGuardErro
 | Error | Thrown when |
 |-------|-------------|
 | `IdempotencyConflictError` | `run()` is called with a key whose cached entry has a different payload fingerprint |
+| `IdempotencyGuardConfigError` | `IdempotencyGuard.create()` receives invalid capacity or TTL options |
 | `IdempotencyGuardError` | Base domain error for idempotency-guard failures |
 
 ## Documentation
@@ -81,6 +82,7 @@ import type { IdempotencyGuardEntryInterface } from '@studnicky/idempotency-guar
 |---|---|---|
 | `IdempotencyGuard` | Deduplicates work, replays matching cached results, and rejects conflicts. | `@studnicky/idempotency-guard/node` |
 | `IdempotencyConflictError` | Represents reuse of an idempotency key with a different payload. | `@studnicky/idempotency-guard/node` |
+| `IdempotencyGuardConfigError` | Represents invalid idempotency-guard configuration. | `@studnicky/idempotency-guard/node` |
 | `IdempotencyGuardError` | Base error for idempotency-guard failures. | `@studnicky/idempotency-guard/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/idempotency-guard)
