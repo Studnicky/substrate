@@ -63,7 +63,6 @@ p__studnicky_boundary_kit --> p__studnicky_errors
 p__studnicky_boundary_kit --> p__studnicky_resilience
 p__studnicky_boundary_kit --> p__studnicky_retry
 p__studnicky_boundary_kit --> p__studnicky_throttle
-p__studnicky_boundary_kit --> p__studnicky_types
 p__studnicky_bounded_dispatcher --> p__studnicky_concurrency
 p__studnicky_bounded_dispatcher --> p__studnicky_entity
 p__studnicky_bounded_dispatcher --> p__studnicky_errors
@@ -80,20 +79,17 @@ p__studnicky_circular_buffer --> p__studnicky_errors
 p__studnicky_circular_buffer --> p__studnicky_types
 p__studnicky_clock --> p__studnicky_entity
 p__studnicky_clock --> p__studnicky_errors
-p__studnicky_clock --> p__studnicky_types
 p__studnicky_concurrency --> p__studnicky_circular_buffer
 p__studnicky_concurrency --> p__studnicky_entity
 p__studnicky_concurrency --> p__studnicky_errors
 p__studnicky_concurrency --> p__studnicky_fsm
 p__studnicky_concurrency --> p__studnicky_signal
-p__studnicky_concurrency --> p__studnicky_types
 p__studnicky_config --> p__studnicky_entity
 p__studnicky_config --> p__studnicky_errors
 p__studnicky_config --> p__studnicky_types
 p__studnicky_context --> p__studnicky_entity
 p__studnicky_context --> p__studnicky_errors
 p__studnicky_context --> p__studnicky_fsm
-p__studnicky_context --> p__studnicky_types
 p__studnicky_drilldown --> p__studnicky_cache
 p__studnicky_drilldown --> p__studnicky_entity
 p__studnicky_drilldown --> p__studnicky_types
@@ -136,12 +132,10 @@ p__studnicky_fsm --> p__studnicky_types
 p__studnicky_health_registry --> p__studnicky_entity
 p__studnicky_health_registry --> p__studnicky_errors
 p__studnicky_health_registry --> p__studnicky_signal
-p__studnicky_health_registry --> p__studnicky_types
 p__studnicky_idempotency_guard --> p__studnicky_cache
 p__studnicky_idempotency_guard --> p__studnicky_concurrency
 p__studnicky_idempotency_guard --> p__studnicky_entity
 p__studnicky_idempotency_guard --> p__studnicky_errors
-p__studnicky_idempotency_guard --> p__studnicky_types
 p__studnicky_json --> p__studnicky_entity
 p__studnicky_json --> p__studnicky_errors
 p__studnicky_json --> p__studnicky_types
@@ -208,7 +202,6 @@ p__studnicky_retry --> p__studnicky_signal
 p__studnicky_retry --> p__studnicky_types
 p__studnicky_sample_buffer --> p__studnicky_entity
 p__studnicky_sample_buffer --> p__studnicky_errors
-p__studnicky_sample_buffer --> p__studnicky_types
 p__studnicky_scenario_kit --> p__studnicky_entity
 p__studnicky_scenario_kit --> p__studnicky_errors
 p__studnicky_scenario_kit --> p__studnicky_types
@@ -242,7 +235,6 @@ p__studnicky_topic_router_models --> p__studnicky_topic_router
 p__studnicky_virtual_fs --> p__studnicky_clock
 p__studnicky_virtual_fs --> p__studnicky_entity
 p__studnicky_virtual_fs --> p__studnicky_errors
-p__studnicky_virtual_fs --> p__studnicky_types
 p__studnicky_visible_range --> p__studnicky_entity
 p__studnicky_visible_range --> p__studnicky_errors
 p__studnicky_visible_range --> p__studnicky_types

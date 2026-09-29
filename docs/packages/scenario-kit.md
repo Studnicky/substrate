@@ -19,6 +19,10 @@ pnpm add -D @studnicky/scenario-kit
 
 <<< ../../packages/scenario-kit/examples/basic-usage.ts#usage
 
+## Try it
+
+<RunnableExample src="packages/scenario-kit/examples/basic-usage" title="Compile a table-driven scenario intake" />
+
 ## Node/Schema agreement
 
 Every entity in this codebase declares both a hand-written `Schema` (the raw JSON Schema, used to compile the validator) and a `SchemaNode`-built `Node` (the typed structure `NodeStaticType` derives `Type` from). `compileIntake` calls `NodeSchemaAgreement` internally before compiling either side, and rejects a `Schema`/`Node` pair that disagree:

@@ -76,7 +76,7 @@ const ESLINT_CONFIG_RULES = [
   'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'entity-file-shape',
   'explicit-return-binding', 'export-shape', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract',
   'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'no-double-assertion', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-threaded-vocabulary', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
+  'lexical-this-only', 'no-caller-chosen-guard-type', 'no-circular-imports', 'no-double-assertion', 'no-function-registries', 'no-mixed-callable-shapes', 'no-redefined-external-types', 'no-reflect-argument-laundering', 'no-threaded-vocabulary', 'no-unchecked-overload-implementation', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
   'static-method-verbs', 'type-alias-invariants'
 ] as const;
 
@@ -207,6 +207,7 @@ export default withMermaid(defineConfig({
             { 'link': '/', 'text': 'Overview' },
             { 'link': '/getting-started', 'text': 'Getting Started' },
             { 'link': '/architecture', 'text': 'Architecture' },
+            { 'link': '/dependency-graph', 'text': 'Dependency Graph' },
             { 'link': '/concepts/composition-contract', 'text': 'Composition Contract' },
             { 'link': '/concepts/package-registry', 'text': 'Package Registry' }
           ],
@@ -246,6 +247,15 @@ export default withMermaid(defineConfig({
               'collapsed': true,
               'items': ESLINT_V8_RULES.map(r => {return { 'link': `/eslint/rules/v8/${r}`, 'text': `@studnicky/v8/${r}` };}),
               'text': 'V8 performance rules'
+            },
+            {
+              'collapsed': true,
+              'items': [
+                { 'link': '/eslint/known-issues/type-alias-invariants-prefer-function-type', 'text': 'Callable contract interfaces' },
+                { 'link': '/eslint/known-issues/type-alias-invariants-primitive-brands', 'text': 'Branded primitives' },
+                { 'link': '/eslint/known-issues/type-alias-invariants-v9.0.0', 'text': 'Consumer constraints' }
+              ],
+              'text': 'Known issues'
             }
           ],
           'text': 'ESLint Plugins'
