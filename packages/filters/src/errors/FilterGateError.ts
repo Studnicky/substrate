@@ -21,6 +21,7 @@ export interface FilterGateErrorDetailsInterface {
  * Error thrown when a logical gate is invalid or not supported
  */
 export class FilterGateError extends FilterError {
+  public override readonly name: string = 'FilterGateError';
   public readonly details: FilterGateErrorDetailsInterface;
   public readonly gate: unknown;
   public readonly validGates: readonly string[] | null;
@@ -34,9 +35,6 @@ export class FilterGateError extends FilterError {
     const code = ErrorCodes.CORE.INVALID_LOGICAL_GATE;
 
     super(message, { 'cause': details.cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterGateError';
 
     // Initialize all properties in consistent order for V8 hidden class optimization
     // Always create the same shape regardless of input

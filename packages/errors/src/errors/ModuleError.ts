@@ -20,6 +20,8 @@
  * import { ErrorDefaults } from '@studnicky/errors';
  *
  * export class GraphStoreError extends ModuleError {
+ *   public override readonly name: string = 'GraphStoreError';
+ *
  *   static override create(
  *     message: string,
  *     options?: Omit<ModuleErrorCreateOptionsInterface, 'scenario'>
@@ -55,6 +57,8 @@ import { ValidationError } from './ValidationError.js';
  * typing from the original implementation.
  */
 export class ModuleError extends BaseError implements ModuleErrorInterface {
+  public override readonly name: string = 'ModuleError';
+
   /**
    * Create a new ModuleError with scenario defaults.
    *

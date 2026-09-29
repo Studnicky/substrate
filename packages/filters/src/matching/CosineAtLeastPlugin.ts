@@ -5,6 +5,8 @@ import { StringNumberMapPredicate } from './predicates/StringNumberMapPredicate.
 import { VectorThresholdFilterValuePredicate } from './predicates/VectorThresholdFilterValuePredicate.js';
 
 export class CosineAtLeastPlugin extends Plugin {
+  protected override readonly namespace: string = 'CosineAtLeastPlugin';
+
   public override operators = {
     'COSINE_AT_LEAST': (value: unknown, filterValue: unknown): boolean => {
       if (!StringNumberMapPredicate(value) || !VectorThresholdFilterValuePredicate(filterValue)) {

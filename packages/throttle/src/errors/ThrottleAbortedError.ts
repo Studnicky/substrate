@@ -7,6 +7,8 @@ import { BaseError } from '@studnicky/errors/browser';
  * or when the throttle is forcefully aborted via the abort() method.
  */
 export class ThrottleAbortedError extends BaseError {
+  public override readonly name: string = 'ThrottleAbortedError';
+
   /**
    * The abort timeout value in milliseconds
    */

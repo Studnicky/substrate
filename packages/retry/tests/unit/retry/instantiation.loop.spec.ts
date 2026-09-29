@@ -104,6 +104,8 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     const { input } = scenario;
 
     class EmptyErrorsNonRetryableError extends NonRetryableError {
+      public override readonly name: string = 'EmptyErrorsNonRetryableError';
+
       override get errors(): readonly Error[] {
         return [];
       }
@@ -121,7 +123,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'retry-error-preserves-error-name': (scenario) => {
     const { expected, input } = scenario;
-    const source = RuntimeError.create(String(input.sourceMessage));
+    const source = new Error(String(input.sourceMessage));
     source.name = String(input.errorName);
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': source });
@@ -133,7 +135,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'retry-error-preserves-history-error-name': (scenario) => {
     const { expected, input } = scenario;
-    const source = RuntimeError.create(String(input.sourceMessage));
+    const source = new Error(String(input.sourceMessage));
     source.name = String(input.errorName);
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'errors': [source] });

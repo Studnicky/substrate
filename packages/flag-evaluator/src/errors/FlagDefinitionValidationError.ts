@@ -5,6 +5,8 @@ import { FlagEvaluatorError } from './FlagEvaluatorError.js';
  * (e.g. missing defaultValue, or rolloutPercent outside [0,100]).
  */
 export class FlagDefinitionValidationError extends FlagEvaluatorError {
+  public override readonly name: string = 'FlagDefinitionValidationError';
+
   constructor(message: string) {
     super({ 'code': 'flagEvaluator.invalidDefinition', 'message': message, 'retryable': false });
   }

@@ -7,6 +7,8 @@ import { ConcurrencyError } from './ConcurrencyError.js';
 
 /** Thrown when `Coalesce` is constructed with invalid options. */
 export class CoalesceConfigError extends ConcurrencyError {
+  public override readonly name: string = 'CoalesceConfigError';
+
   public constructor(message: string, cause?: Error) {
     super({ 'cause': cause, 'code': 'concurrency.invalidConfig', 'message': message, 'retryable': false });
   }

@@ -48,6 +48,8 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
 }
 
 class TestError extends BaseError {
+  public override readonly name: string = 'TestError';
+
   public constructor(message: string, options?: Partial<{
     cause: unknown;
     code: string;
@@ -67,6 +69,8 @@ class TestError extends BaseError {
 }
 
 class OmittedOptionalArgsError extends BaseError {
+  public override readonly name: string = 'OmittedOptionalArgsError';
+
   public constructor(message: string) {
     super({
       'code': 'test.omittedOptionalArgs',
@@ -76,6 +80,8 @@ class OmittedOptionalArgsError extends BaseError {
 }
 
 class CustomMessageError extends BaseError {
+  public override readonly name: string = 'CustomMessageError';
+
   public constructor(message: string) {
     super({
       'code': 'test.custom',
@@ -195,19 +201,25 @@ const runnerMap = {
     assert.ok(observed <= after + timestampWithinMs);
   },
   'find-cause-of-type-hit': (scenario) => {
-    class InnerError extends TestError {}
+    class InnerError extends TestError {
+      public override readonly name: string = 'InnerError';
+    }
     const nested = new TestError('top', { cause: new InnerError(String(scenario.expected.causeMessage)) });
     const cause = BaseError.findCauseOfType(nested, InnerError);
     assert.ok(cause instanceof InnerError);
     assert.strictEqual(cause.message, scenario.expected.causeMessage);
   },
   'find-cause-of-type-miss': (_scenario, error) => {
-    class MissingError extends TestError {}
+    class MissingError extends TestError {
+      public override readonly name: string = 'MissingError';
+    }
     const cause = BaseError.findCauseOfType(error, MissingError);
     assert.strictEqual(cause, undefined);
   },
   'find-cause-of-type-primitive': () => {
-    class MissingError extends TestError {}
+    class MissingError extends TestError {
+      public override readonly name: string = 'MissingError';
+    }
     const primitiveError = createError({ 'message': 'top', 'cause': 'primitive cause' });
     const cause = BaseError.findCauseOfType(primitiveError, MissingError);
     assert.strictEqual(cause, undefined);
@@ -220,7 +232,9 @@ const runnerMap = {
     assert.strictEqual(BaseError.hasCauseOfType(error, Error), scenario.expected.value);
   },
   'has-cause-of-type-miss': (scenario, error) => {
-    class MissingError extends TestError {}
+    class MissingError extends TestError {
+      public override readonly name: string = 'MissingError';
+    }
     assert.strictEqual(BaseError.hasCauseOfType(error, MissingError), scenario.expected.value);
   },
   'json-code-message': (scenario, error) => {

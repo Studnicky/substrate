@@ -56,6 +56,8 @@ class ObservedBreaker extends CircuitBreaker {
 }
 
 class TransientError extends BaseError {
+  public override readonly name: string = 'TransientError';
+
   public constructor(message: string) {
     super({
       'code': 'resilience.transient',
@@ -66,6 +68,8 @@ class TransientError extends BaseError {
 }
 
 class RealError extends BaseError {
+  public override readonly name: string = 'RealError';
+
   public constructor(message: string) {
     super({
       'code': 'resilience.real',

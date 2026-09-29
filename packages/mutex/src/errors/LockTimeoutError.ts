@@ -7,6 +7,8 @@
 import { MutexError } from './MutexError.js';
 
 export class LockTimeoutError<K extends PropertyKey> extends MutexError {
+  public override readonly name: string = 'LockTimeoutError';
+
   public readonly key: K;
   public readonly timeoutMs: number;
 

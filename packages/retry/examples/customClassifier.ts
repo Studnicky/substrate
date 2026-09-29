@@ -12,6 +12,8 @@ import { Retry } from '../src/index.js';
 import { CustomClassifierFixtures } from './fixtures/customClassifierFixtures.js';
 
 class DatabaseError extends BaseError {
+  public override readonly name: string = 'DatabaseError';
+
   constructor(
     message: string,
     readonly isDeadlock: boolean

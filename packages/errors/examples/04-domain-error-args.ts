@@ -14,6 +14,8 @@ abstract class RateLimitError extends BaseError {
 }
 
 class RateLimitExceededError extends RateLimitError {
+  public override readonly name: string = 'RateLimitExceededError';
+
   readonly limit!: number;
   readonly route!: string;
 

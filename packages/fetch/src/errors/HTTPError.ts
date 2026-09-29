@@ -32,6 +32,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class HTTPError extends FetchBaseError {
+  public override readonly name: string = 'HTTPError';
+
   /**
    * The Response object for accessing headers and body
    */

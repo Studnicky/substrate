@@ -8,6 +8,8 @@ import { BaseError } from '@studnicky/errors/browser';
  * allowing in-flight operations to complete.
  */
 export class ThrottleDrainingError extends BaseError {
+  public override readonly name: string = 'ThrottleDrainingError';
+
   /**
    * Create a ThrottleDrainingError
    *

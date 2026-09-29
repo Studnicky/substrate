@@ -39,6 +39,7 @@ export abstract class Plugin implements BasePluginInterface {
   public arrayLogic?: Record<string, ContextualArrayLogicFunctionInterface>;
   public comparators?: Record<string, ContextualComparatorFunctionInterface>;
   protected defaultConfig: Record<string, unknown>;
+  protected abstract readonly namespace: string;
   public gates?: Record<string, ContextualLogicGateFunctionInterface>;
 
   public operators?: Record<string, ContextualOperatorFunctionInterface>;
@@ -58,11 +59,11 @@ export abstract class Plugin implements BasePluginInterface {
   }
 
   /**
-   * Get the plugin namespace (class name)
-   * Used internally by FilterEngine for registration
+   * Get the plugin namespace declared by the concrete plugin class
+   * Used internally by FilterEngine as the registration key
    */
   getNamespace(): string {
-    const result = this.constructor.name;
+    const result = this.namespace;
 
     return result;
   }

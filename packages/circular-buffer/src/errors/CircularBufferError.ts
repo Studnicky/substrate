@@ -5,6 +5,8 @@ import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
 /** Optional construction arguments for {@link CircularBufferError}; the class supplies its own code and message. */
 /** Thrown when circular buffer configuration is invalid. */
 export class CircularBufferError extends BaseError {
+  public override readonly name: string = 'CircularBufferError';
+
   public constructor(message: string, argumentList?: ErrorConstructorOptionsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgumentList.build(fields, {

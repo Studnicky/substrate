@@ -8,6 +8,8 @@ import { IdempotencyGuardError } from './IdempotencyGuardError.js';
  * would silently return the wrong answer, so `run()` rejects instead.
  */
 export class IdempotencyConflictError extends IdempotencyGuardError {
+  public override readonly name: string = 'IdempotencyConflictError';
+
   public readonly key: string;
 
   public constructor(key: string) {

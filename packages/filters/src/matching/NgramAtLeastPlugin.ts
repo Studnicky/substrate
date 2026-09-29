@@ -5,6 +5,8 @@ import { Plugin } from '../plugins/Plugin.js';
 import { NgramThresholdFilterValuePredicate } from './predicates/NgramThresholdFilterValuePredicate.js';
 
 export class NgramAtLeastPlugin extends Plugin {
+  protected override readonly namespace: string = 'NgramAtLeastPlugin';
+
   public override operators = {
     'NGRAM_AT_LEAST': (value: unknown, filterValue: unknown): boolean => {
       if (!Predicates.isString(value) || !NgramThresholdFilterValuePredicate(filterValue)) {

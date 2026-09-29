@@ -2,6 +2,8 @@ import { JsonError } from './JsonError.js';
 
 /** Thrown when a value cannot be detached into an immutable snapshot. */
 export class ImmutableSnapshotError extends JsonError {
+  public override readonly name: string = 'ImmutableSnapshotError';
+
   public constructor(cause: unknown) {
     super({
       'cause': cause,

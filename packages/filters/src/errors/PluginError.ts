@@ -20,6 +20,7 @@ export interface PluginErrorDetailsInterface {
  * Error thrown when plugin operations fail
  */
 export class PluginError extends FilterError {
+  public override readonly name: string = 'PluginError';
   public readonly availableItems: readonly string[] | null;
   public readonly context: PluginErrorDetailsInterface;
   public readonly details: PluginErrorDetailsInterface;
@@ -32,9 +33,6 @@ export class PluginError extends FilterError {
    */
   constructor(message: string, code: string, details: PluginErrorDetailsInterface = {}) {
     super(message, { 'cause': details.cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'PluginError';
 
     // Store context (alias for details) - use the passed object directly
     this.context = details;

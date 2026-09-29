@@ -74,9 +74,10 @@ class TestRequest {
 }
 
 class NetworkFailure extends FetchBaseError {
+  public override readonly name: string = 'Error';
+
   public constructor(code: string, message: string) {
     super({ 'code': code, 'message': message, 'retryable': true });
-    this.name = 'Error';
   }
 }
 

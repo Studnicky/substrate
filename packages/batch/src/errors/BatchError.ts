@@ -5,6 +5,8 @@ import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
 /** Optional construction arguments for {@link BatchError}; the class supplies its own code and message. */
 /** Thrown when batch configuration is invalid. */
 export class BatchError extends BaseError {
+  public override readonly name: string = 'BatchError';
+
   public constructor(message: string, argumentList?: ErrorConstructorOptionsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgumentList.build(fields, {

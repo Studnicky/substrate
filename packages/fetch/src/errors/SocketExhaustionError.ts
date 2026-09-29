@@ -26,6 +26,8 @@ import { FetchBaseError } from './FetchBaseError.js';
  * ```
  */
 export class SocketExhaustionError extends FetchBaseError {
+  public override readonly name: string = 'SocketExhaustionError';
+
   /**
    * Complete dispatcher statistics at the time of error (undefined if unavailable)
    * Always present for V8 optimization

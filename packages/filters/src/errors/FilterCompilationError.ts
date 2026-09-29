@@ -22,6 +22,7 @@ export interface FilterCompilationErrorDetailsInterface {
  * Used for errors during the compilation/optimization phase
  */
 export class FilterCompilationError extends FilterError {
+  public override readonly name: string = 'FilterCompilationError';
   public readonly details: FilterCompilationErrorDetailsInterface;
   public readonly input: FilterConditionInterface | null;
   public readonly phase: string | null;
@@ -35,9 +36,6 @@ export class FilterCompilationError extends FilterError {
     const code = ErrorCodes.CORE.FILTER_COMPILATION_ERROR;
 
     super(message, { 'cause': details.cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterCompilationError';
 
     // Initialize all properties in consistent order for V8 hidden class optimization
     // Always create the same shape regardless of input

@@ -14,6 +14,8 @@ import { ConcurrencyError } from './ConcurrencyError.js';
  * waiting on it.
  */
 export class CoalesceTimeoutError extends ConcurrencyError {
+  public override readonly name: string = 'CoalesceTimeoutError';
+
   public readonly key!: string;
   public readonly timeoutMs!: number;
 

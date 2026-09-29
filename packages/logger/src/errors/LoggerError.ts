@@ -13,6 +13,8 @@ import { BaseError } from '@studnicky/errors/browser';
  * ```
  */
 export class LoggerError<TCause = unknown> extends BaseError {
+  public override readonly name: string = 'LoggerError';
+
   /**
    * Creates a new LoggerError
    *

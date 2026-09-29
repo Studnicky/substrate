@@ -17,6 +17,8 @@ import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/b
  * ```
  */
 export class TimingBuildError extends BaseError {
+  public override readonly name: string = 'TimingBuildError';
+
   /** Fixed error code for timing event configuration failures. */
   public static readonly errorCode = 'timing.buildFailed';
 

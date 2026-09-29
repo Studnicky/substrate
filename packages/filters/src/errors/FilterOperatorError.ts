@@ -20,6 +20,7 @@ export interface FilterOperatorErrorDetailsInterface {
  * Error thrown when an operator is unknown or not registered
  */
 export class FilterOperatorError extends FilterError {
+  public override readonly name: string = 'FilterOperatorError';
   public readonly availableOperators: readonly string[] | null;
   public readonly details: FilterOperatorErrorDetailsInterface;
   public readonly index: number | null;
@@ -34,9 +35,6 @@ export class FilterOperatorError extends FilterError {
     const code = ErrorCodes.CORE.UNKNOWN_OPERATOR;
 
     super(message, { 'cause': details.cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterOperatorError';
 
     // Initialize all properties in consistent order for V8 hidden class optimization
     // Always create the same shape regardless of input

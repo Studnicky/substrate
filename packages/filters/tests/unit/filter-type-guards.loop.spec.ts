@@ -9,6 +9,8 @@ const optionalMode = (result = false): boolean => result;
 const restMode = (...results: boolean[]): boolean => results.some(Boolean);
 
 class FixturePlugin extends Plugin {
+  protected override readonly namespace: string = 'FixturePlugin';
+
   public override operators = {
     'MATCH': (): boolean => true
   };

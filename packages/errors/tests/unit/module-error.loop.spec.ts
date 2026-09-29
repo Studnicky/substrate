@@ -51,6 +51,8 @@ function assertScenarioName(value: unknown): asserts value is keyof typeof Error
 }
 
 class TestError extends BaseError {
+  public override readonly name: string = 'TestError';
+
   constructor(message: string) {
     super({
       'code': 'test.error',
@@ -61,6 +63,8 @@ class TestError extends BaseError {
 }
 
 class NetworkError extends ModuleError {
+  public override readonly name: string = 'NetworkError';
+
   static override create(
     message: string,
     options?: Omit<Parameters<typeof ModuleError.create>[1], 'scenario'>
@@ -87,6 +91,8 @@ class ContextCollaborator {
 }
 
 class MinimalOptionsError extends ModuleError {
+  public override readonly name: string = 'MinimalOptionsError';
+
   static build(message: string, code: string): MinimalOptionsError {
     return new MinimalOptionsError(message, {
       code,
@@ -142,6 +148,8 @@ const runnerMap: RunnerMap = {
 
   'factory-reject-empty-code': (scenarioCase) => {
     class EmptyCodeError extends ModuleError {
+      public override readonly name: string = 'EmptyCodeError';
+
       static override create(message: string): EmptyCodeError {
         return new EmptyCodeError(message, {
           'code': '',

@@ -5,6 +5,8 @@ import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
 /** Optional construction arguments for {@link VisibleRangeError}; the class supplies its own code and message. */
 /** Thrown when `VisibleRange.create()`'s config or collaborators are invalid or ambiguous. */
 export class VisibleRangeError extends BaseError {
+  public override readonly name: string = 'VisibleRangeError';
+
   public constructor(message: string, argumentList?: ErrorConstructorOptionsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgumentList.build(fields, {

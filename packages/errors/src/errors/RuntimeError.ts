@@ -17,6 +17,8 @@ interface RuntimeErrorCreateOptionsInterface {
  * have no more specific public error type.
  */
 export class RuntimeError extends BaseError {
+  public override readonly name: string = 'RuntimeError';
+
   public static create(message: string, options?: RuntimeErrorCreateOptionsInterface): RuntimeError {
     const result = new RuntimeError({ 'cause': options?.cause, 'message': message });
     return result;

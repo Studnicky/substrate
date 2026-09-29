@@ -13,6 +13,8 @@ import { FsmError } from './errors/FsmError.js';
  * rejection from an actual reducer bug.
  */
 export class TransitionRejectedError extends FsmError {
+  public override readonly name: string = 'TransitionRejectedError';
+
   readonly eventType: string;
   readonly stateVariant: string;
 

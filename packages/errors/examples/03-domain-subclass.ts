@@ -8,6 +8,8 @@ import type { ModuleErrorOptionsInterface } from '../src/index.js';
 import { BaseError, ModuleError } from '../src/index.js';
 
 class StorageError extends ModuleError {
+  public override readonly name: string = 'StorageError';
+
   static override create(
     message: string,
     options?: { 'cause'?: Error; 'context'?: Record<string, unknown> }

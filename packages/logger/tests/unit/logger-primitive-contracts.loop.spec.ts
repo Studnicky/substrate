@@ -283,8 +283,8 @@ const runnerMap: RunnerMap = {
     }
   },
   'log-fault-from-error-fields': (scenarioCase) => {
-    const sourceError = RuntimeError.create(scenarioCase.input.error.message, {
-      'cause': RuntimeError.create(scenarioCase.input.error.cause)
+    const sourceError = new Error(scenarioCase.input.error.message, {
+      'cause': new Error(scenarioCase.input.error.cause)
     });
     sourceError.name = scenarioCase.input.error.name;
     const sourceCause = sourceError.cause;

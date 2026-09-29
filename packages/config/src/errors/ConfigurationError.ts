@@ -7,6 +7,8 @@ import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/b
  * Use `ConfigurationError.create(message)` to construct an instance.
  */
 export class ConfigurationError extends BaseError {
+  public override readonly name: string = 'ConfigurationError';
+
   /** Fixed error code for all configuration validation failures. */
   public static readonly errorCode = 'config.invalid';
 

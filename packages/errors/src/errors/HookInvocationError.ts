@@ -19,6 +19,8 @@ ErrorCodeRegistry.register({
  * failed and the original thrown value as `cause`.
  */
 export class HookInvocationError extends BaseError {
+  public override readonly name: string = 'HookInvocationError';
+
   /** Name of the lifecycle hook that threw during invocation. */
   public readonly hookName: string;
 

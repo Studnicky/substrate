@@ -2,6 +2,8 @@ import { JsonError } from './JsonError.js';
 
 /** Thrown when a patch operation cannot be applied. */
 export class PatchError extends JsonError {
+  public override readonly name: string = 'PatchError';
+
   public readonly op: string;
   public readonly path: string;
 

@@ -11,6 +11,8 @@ import { RetryError } from './RetryError.js';
  * error history from each attempt.
  */
 export class MaximumRetriesExceededError extends RetryError {
+  public override readonly name: string = 'MaximumRetriesExceededError';
+
   public readonly maximumRetries: number;
 
   /**

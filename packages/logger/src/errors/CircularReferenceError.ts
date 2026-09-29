@@ -14,6 +14,8 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class CircularReferenceError<TCause = unknown> extends LoggerError<TCause> {
+  public override readonly name: string = 'CircularReferenceError';
+
   /**
    * Creates a new CircularReferenceError
    *

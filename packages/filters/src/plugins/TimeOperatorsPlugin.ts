@@ -25,6 +25,8 @@ import { WHOLE_NUMBER_PATTERN } from '../utils/constants/WholeNumberPattern.js';
 import { Plugin } from './Plugin.js';
 
 export class TimeOperatorsPlugin extends Plugin {
+  protected override readonly namespace: string = 'TimeOperatorsPlugin';
+
   /**
    * TIME_AFTER operator - checks if a time/datetime is after another
    */

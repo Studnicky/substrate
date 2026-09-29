@@ -26,6 +26,8 @@ ErrorCodeRegistry.register({
  * passed to `super()` in their own constructor.
  */
 export class CliExitError extends BaseError {
+  public override readonly name: string = 'CliExitError';
+
   /** Process exit code to pass to `process.exit()`. */
   public readonly exitCode: number;
 

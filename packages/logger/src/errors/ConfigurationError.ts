@@ -13,6 +13,8 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class ConfigurationError<TCause = unknown> extends LoggerError<TCause> {
+  public override readonly name: string = 'ConfigurationError';
+
   /**
    * Creates a new ConfigurationError
    *

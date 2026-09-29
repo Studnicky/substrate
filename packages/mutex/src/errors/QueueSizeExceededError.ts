@@ -9,6 +9,8 @@ import { DomainErrorArgumentList } from '@studnicky/errors/browser';
 import { MutexError } from './MutexError.js';
 
 export class QueueSizeExceededError<K extends PropertyKey> extends MutexError {
+  public override readonly name: string = 'QueueSizeExceededError';
+
   public readonly key: K;
   public readonly maximumQueueSize!: number;
 

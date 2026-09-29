@@ -8,6 +8,8 @@ import { BaseError } from '@studnicky/errors/browser';
  * it surfaces the discard as a rejection instead.
  */
 export class BoundaryKitAbortedError extends BaseError {
+  public override readonly name: string = 'BoundaryKitAbortedError';
+
   constructor(message?: string) {
     const resolvedMessage = message ?? 'BoundaryKit call was discarded by an aborted Throttle';
     super({ 'code': 'boundaryKit.aborted', 'message': resolvedMessage, 'retryable': false });

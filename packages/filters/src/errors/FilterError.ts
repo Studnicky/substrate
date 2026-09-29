@@ -17,6 +17,8 @@ export interface FilterErrorOptionsInterface extends Omit<BaseErrorArgumentsInte
  * Extends the workspace error contract while preserving filter-specific codes.
  */
 export class FilterError extends BaseError {
+  public override readonly name: string = 'FilterError';
+
   /** Creates a FilterError. */
   public constructor(message: string, options: FilterErrorOptionsInterface) {
     super({ ...options, 'message': message });

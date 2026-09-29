@@ -58,7 +58,7 @@ class RetryDiagnosticSnapshot {
   }
 
   private static snapshotError(value: Error, seen: WeakMap<object, unknown>): object {
-    const snapshot = RuntimeError.create(value.message, { 'cause': undefined });
+    const snapshot = new Error(value.message);
 
     seen.set(value, snapshot);
     snapshot.name = value.name;
@@ -131,6 +131,8 @@ class RetryDiagnosticSnapshot {
  * Provides common properties for tracking attempt count and error history.
  */
 export class RetryError extends BaseError {
+  public override readonly name: string = 'RetryError';
+
   readonly #causeSnapshot: Error | undefined;
   readonly #errors: readonly Error[];
 

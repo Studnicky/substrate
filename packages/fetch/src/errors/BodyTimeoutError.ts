@@ -19,6 +19,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class BodyTimeoutError extends FetchBaseError {
+  public override readonly name: string = 'BodyTimeoutError';
+
   /**
    * Undici error code
    */

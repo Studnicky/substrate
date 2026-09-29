@@ -17,6 +17,8 @@ abstract class StubFileLockError extends BaseError {
 }
 
 class StubFileLockTimeoutError extends StubFileLockError {
+  public override readonly name: string = 'StubFileLockTimeoutError';
+
   readonly path!: string;
   readonly timeoutMs!: number;
 

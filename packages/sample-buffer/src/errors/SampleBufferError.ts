@@ -5,6 +5,8 @@ import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
 /** Optional construction arguments for {@link SampleBufferError}; the class supplies its own code and message. */
 /** Thrown when sample buffer configuration is invalid. */
 export class SampleBufferError extends BaseError {
+  public override readonly name: string = 'SampleBufferError';
+
   public constructor(message: string, argumentList?: ErrorConstructorOptionsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgumentList.build(fields, {

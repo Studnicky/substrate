@@ -6,6 +6,8 @@ import { FsmError } from './errors/FsmError.js';
  * in this case — the machine short-circuits before the reducer runs.
  */
 export class MachineTerminatedError extends FsmError {
+  public override readonly name: string = 'MachineTerminatedError';
+
   readonly eventType: string;
   readonly stateVariant: string;
 

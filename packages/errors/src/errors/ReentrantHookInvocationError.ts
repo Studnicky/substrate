@@ -24,6 +24,8 @@ ErrorCodeRegistry.register({
  * reentry — never deferred or silently swallowed.
  */
 export class ReentrantHookInvocationError extends BaseError {
+  public override readonly name: string = 'ReentrantHookInvocationError';
+
   /** Name of the lifecycle hook that was invoked reentrantly. */
   public readonly hookName: string;
 

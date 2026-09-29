@@ -5,6 +5,8 @@ import { StringArrayPredicate } from './predicates/StringArrayPredicate.js';
 import { StringArrayThresholdFilterValuePredicate } from './predicates/StringArrayThresholdFilterValuePredicate.js';
 
 export class SorensenDiceAtLeastPlugin extends Plugin {
+  protected override readonly namespace: string = 'SorensenDiceAtLeastPlugin';
+
   public override operators = {
     'SORENSEN_DICE_AT_LEAST': (value: unknown, filterValue: unknown): boolean => {
       if (!StringArrayPredicate(value) || !StringArrayThresholdFilterValuePredicate(filterValue)) {

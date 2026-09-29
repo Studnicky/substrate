@@ -6,6 +6,8 @@ import { RuntimeError } from '../src/errors/RuntimeError.js';
 import { BaseError } from '../src/index.js';
 
 class AppError extends BaseError {
+  public override readonly name: string = 'AppError';
+
   public constructor(argumentList: { 'cause'?: Error; 'code': string; 'message': string; 'retryable': boolean }) {
     super(argumentList);
   }

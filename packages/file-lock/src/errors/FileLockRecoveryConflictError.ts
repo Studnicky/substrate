@@ -3,6 +3,8 @@ import { DomainErrorArgumentList } from '@studnicky/errors/browser';
 import { FileLockError } from './FileLockError.js';
 
 export class FileLockRecoveryConflictError extends FileLockError {
+  public override readonly name: string = 'FileLockRecoveryConflictError';
+
   public readonly 'path': string;
 
   public constructor(path: string) {

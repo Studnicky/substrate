@@ -48,7 +48,7 @@ Every error serializes to one form: an [RFC 9457](https://www.rfc-editor.org/rfc
 | Member | Source | Why |
 |---|---|---|
 | `type` | `problemType()` — the problem namespace joined with `code` | §3.1.1: the URI reference identifying the problem type. This is the discriminant. |
-| `title` | the error's class name | §3.1.2: a short summary that must NOT change between occurrences. |
+| `title` | the error's declared `name` | §3.1.2: a short summary that must NOT change between occurrences. |
 | `detail` | `message` | §3.1.4: explicitly specific to THIS occurrence. |
 | `status` | `status`, when the error carries one | §3.1.3. |
 | `instance` | `instance`, when the error carries one | §3.1.5. |

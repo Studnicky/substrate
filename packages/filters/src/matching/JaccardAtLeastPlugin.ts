@@ -5,6 +5,8 @@ import { StringArrayPredicate } from './predicates/StringArrayPredicate.js';
 import { StringArrayThresholdFilterValuePredicate } from './predicates/StringArrayThresholdFilterValuePredicate.js';
 
 export class JaccardAtLeastPlugin extends Plugin {
+  protected override readonly namespace: string = 'JaccardAtLeastPlugin';
+
   public override operators = {
     'JACCARD_AT_LEAST': (value: unknown, filterValue: unknown): boolean => {
       if (!StringArrayPredicate(value) || !StringArrayThresholdFilterValuePredicate(filterValue)) {

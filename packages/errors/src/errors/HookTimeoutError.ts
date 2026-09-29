@@ -20,6 +20,8 @@ ErrorCodeRegistry.register({
  * all, so there is no underlying cause to carry.
  */
 export class HookTimeoutError extends BaseError {
+  public override readonly name: string = 'HookTimeoutError';
+
   /** Name of the lifecycle hook that failed to settle in time. */
   public readonly hookName: string;
 

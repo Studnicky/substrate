@@ -11,6 +11,8 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class LogBuildError extends LoggerError {
+  public override readonly name: string = 'LogBuildError';
+
   /**
    * Creates a new LogBuildError
    *

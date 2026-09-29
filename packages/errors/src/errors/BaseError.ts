@@ -18,7 +18,9 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonObject, JsonValue, Predicates } from '@studnicky/types/browser';
+import {
+  JsonObject, JsonValue, Predicates
+} from '@studnicky/types/browser';
 
 import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
 import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
@@ -32,23 +34,140 @@ import { PROBLEM_TYPE_BASE } from '../constants/ProblemConstants.js';
 import { ThrownValueProjection } from '../entities/ThrownValueEntity.js';
 
 /**
+ * Flattens a cause chain into RFC 9457 `causes` extension members, nearest first.
+ *
+ * A `BaseError` cause carries its own code/context/correlationId/timestamp, so it projects
+ * directly. The first non-`BaseError` cause hands the remainder of the chain to
+ * {@link ThrownValueEntity}, which already walks arbitrary thrown values cycle-safely — past
+ * that point the two walks would be identical, so there is only one.
+ */
+class CauseChain {
+  public static from(cause: unknown): CauseNodeEntity.Type[] {
+    const nodes: CauseNodeEntity.Type[] = [];
+    const visited = new WeakSet<object>();
+    let current: unknown = cause;
+
+    while (nodes.length < CAUSE_CHAIN_DEPTH_LIMIT) {
+      if (Predicates.isNullish(current)) {
+        return nodes;
+      }
+
+      if (!(current instanceof BaseError)) {
+        CauseChain.#appendThrownValue(nodes, current);
+
+        return nodes;
+      }
+      if (visited.has(current)) {
+        return nodes;
+      }
+      visited.add(current);
+
+      nodes.push(CauseChain.#fromBaseError(current));
+      current = current.cause;
+    }
+
+    if (!Predicates.isNullish(current)) {
+      nodes.push({
+        'detail': CAUSE_DEPTH_SENTINEL,
+        'title': CAUSE_DEPTH_SENTINEL,
+        'type': `${PROBLEM_TYPE_BASE}cause-chain-truncated`
+      });
+    }
+
+    return nodes;
+  }
+
+  static #fromBaseError(error: BaseError): CauseNodeEntity.Type {
+    let node: CauseNodeEntity.Type = {
+      'code': error.code,
+      'detail': error.message,
+      'name': error.name,
+      'timestamp': error.timestamp,
+      'title': error.name,
+      'type': `${PROBLEM_TYPE_BASE}${error.code}`
+    };
+
+    if (error.correlationId !== undefined) {
+      node = {
+        ...node,
+        'correlationId': error.correlationId
+      };
+    }
+    if (error.metadata !== undefined) {
+      node = {
+        ...node,
+        'context': { ...error.metadata }
+      };
+    }
+
+    return node;
+  }
+
+  static #appendThrownValue(nodes: CauseNodeEntity.Type[], value: unknown): void {
+    const projection = ThrownValueProjection.project(value);
+    const head: CauseNodeEntity.Type = projection.name === undefined
+      ? {
+        'detail': projection.detail,
+        'title': projection.title,
+        'type': projection.type
+      }
+      : {
+        'detail': projection.detail,
+        'name': projection.name,
+        'title': projection.title,
+        'type': projection.type
+      };
+
+    nodes.push(head);
+
+    const remainder = projection.causes ?? [];
+
+    for (let index = 0; index < remainder.length && nodes.length < CAUSE_CHAIN_DEPTH_LIMIT; index += 1) {
+      const node = remainder[index];
+
+      if (node === undefined) {
+        continue;
+      }
+      nodes.push(node);
+    }
+  }
+}
+
+/**
  * Abstract base class for all errors in the system.
- * Subclasses call `super(args)` with their stable error code. Built-in package
+ * Subclasses call `super(args)` with their stable error code and declare their
+ * `name` as a literal member, so names survive minification. Built-in package
  * errors register their codes internally to detect definition collisions.
  */
 export abstract class BaseError extends Error {
+  /** Error class name, declared by every concrete subclass. */
+  public abstract override readonly name: string;
+
+
   /** Registered error code (dotted camelCase, e.g. `'errors.validationFailed'`). */
   public readonly code: string;
+
+
   /** Optional correlation ID for distributed tracing. */
   public readonly correlationId: string | undefined;
+
+
   /** RFC 9457 `instance`: URI reference identifying this specific occurrence. */
   public readonly instance: string | undefined;
+
+
   /** Structured metadata dictionary attached to this error instance. */
   public readonly metadata: Readonly<Record<string, JSONSchema7Type>> | undefined;
+
+
   /** Whether this error represents a transient condition that may succeed on retry. */
   public readonly retryable: boolean;
+
+
   /** RFC 9457 `status`: HTTP status code an origin server would generate for this occurrence. */
   public readonly status: number | undefined;
+
+
   /** Unix millisecond timestamp at time of construction. */
   public readonly timestamp: number;
 
@@ -65,8 +184,6 @@ export abstract class BaseError extends Error {
     // into two maps, which measures free (13.8ms bimorphic vs 15.2ms monomorphic) because
     // inline caches stay polymorphic well past two shapes.
     super(argumentList.message, argumentList.cause !== undefined ? { 'cause': argumentList.cause } : undefined);
-    // Property write order: name first (shadows Error.prototype.name).
-    this.name = new.target.name;
     this.code = argumentList.code;
     const metadataEntries = argumentList.metadata !== undefined ? Object.entries(argumentList.metadata) : [];
     const metadataEntriesLength = metadataEntries.length;
@@ -240,14 +357,27 @@ export abstract class BaseError extends Error {
       'type': this.problemType()
     };
 
-    if (this.status !== undefined) { problem.status = this.status; }
-    if (this.instance !== undefined) { problem.instance = this.instance; }
-    if (this.correlationId !== undefined) { problem.correlationId = this.correlationId; }
-    if (this.metadata !== undefined) { problem.context = { ...this.metadata }; }
-    if (Predicates.isString(this.stack)) { problem.stack = this.stack; }
+    if (this.status !== undefined) {
+      problem.status = this.status;
+    }
+    if (this.instance !== undefined) {
+      problem.instance = this.instance;
+    }
+    if (this.correlationId !== undefined) {
+      problem.correlationId = this.correlationId;
+    }
+    if (this.metadata !== undefined) {
+      problem.context = { ...this.metadata };
+    }
+    if (Predicates.isString(this.stack)) {
+      problem.stack = this.stack;
+    }
 
     const causes = CauseChain.from(this.cause);
-    if (causes.length > 0) { problem.causes = causes; }
+
+    if (causes.length > 0) {
+      problem.causes = causes;
+    }
 
     // Subclass extras are spread FIRST so a registered member can never be silently
     // clobbered by an ad-hoc bag: a subclass changes `status` through the constructor and
@@ -255,7 +385,10 @@ export abstract class BaseError extends Error {
     // absent members itself, the same way this method does.
     const extras = this.serializeExtra();
 
-    const result: ProblemDetailsEntity.Type = { ...extras, ...problem };
+    const result: ProblemDetailsEntity.Type = {
+      ...extras,
+      ...problem
+    };
 
     return result;
   }
@@ -268,74 +401,5 @@ export abstract class BaseError extends Error {
     const result = this.formatUserMessage();
 
     return result;
-  }
-}
-
-/**
- * Flattens a cause chain into RFC 9457 `causes` extension members, nearest first.
- *
- * A `BaseError` cause carries its own code/context/correlationId/timestamp, so it projects
- * directly. The first non-`BaseError` cause hands the remainder of the chain to
- * {@link ThrownValueEntity}, which already walks arbitrary thrown values cycle-safely — past
- * that point the two walks would be identical, so there is only one.
- */
-class CauseChain {
-  public static from(cause: unknown): CauseNodeEntity.Type[] {
-    const nodes: CauseNodeEntity.Type[] = [];
-    const visited = new WeakSet<object>();
-    let current: unknown = cause;
-
-    while (nodes.length < CAUSE_CHAIN_DEPTH_LIMIT) {
-      if (Predicates.isNullish(current)) { return nodes; }
-
-      if (!(current instanceof BaseError)) {
-        CauseChain.#appendThrownValue(nodes, current);
-
-        return nodes;
-      }
-      if (visited.has(current)) { return nodes; }
-      visited.add(current);
-
-      nodes.push(CauseChain.#fromBaseError(current));
-      current = current.cause;
-    }
-
-    if (!Predicates.isNullish(current)) {
-      nodes.push({ 'detail': CAUSE_DEPTH_SENTINEL, 'title': CAUSE_DEPTH_SENTINEL, 'type': `${PROBLEM_TYPE_BASE}cause-chain-truncated` });
-    }
-
-    return nodes;
-  }
-
-  static #fromBaseError(error: BaseError): CauseNodeEntity.Type {
-    let node: CauseNodeEntity.Type = {
-      'code': error.code,
-      'detail': error.message,
-      'name': error.name,
-      'timestamp': error.timestamp,
-      'title': error.name,
-      'type': `${PROBLEM_TYPE_BASE}${error.code}`
-    };
-
-    if (error.correlationId !== undefined) { node = { ...node, 'correlationId': error.correlationId }; }
-    if (error.metadata !== undefined) { node = { ...node, 'context': { ...error.metadata } }; }
-
-    return node;
-  }
-
-  static #appendThrownValue(nodes: CauseNodeEntity.Type[], value: unknown): void {
-    const projection = ThrownValueProjection.project(value);
-    const head: CauseNodeEntity.Type = projection.name === undefined
-      ? { 'detail': projection.detail, 'title': projection.title, 'type': projection.type }
-      : { 'detail': projection.detail, 'name': projection.name, 'title': projection.title, 'type': projection.type };
-
-    nodes.push(head);
-
-    const remainder = projection.causes ?? [];
-    for (let index = 0; index < remainder.length && nodes.length < CAUSE_CHAIN_DEPTH_LIMIT; index += 1) {
-      const node = remainder[index];
-      if (node === undefined) { continue; }
-      nodes.push(node);
-    }
   }
 }

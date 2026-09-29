@@ -10,6 +10,8 @@ import { RetryError } from './RetryError.js';
  * Contains the original error and classification reason.
  */
 export class NonRetryableError extends RetryError {
+  public override readonly name: string = 'NonRetryableError';
+
   /** Returns a detached snapshot of the error rejected by classification. */
   public get originalError(): Error {
     const [originalError] = this.errors;

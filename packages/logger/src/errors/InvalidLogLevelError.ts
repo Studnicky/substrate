@@ -15,6 +15,8 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class InvalidLogLevelError<TCause = unknown> extends LoggerError<TCause> {
+  public override readonly name: string = 'InvalidLogLevelError';
+
   /**
    * Creates a new InvalidLogLevelError
    *

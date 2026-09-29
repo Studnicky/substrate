@@ -315,8 +315,6 @@ export default withMermaid(defineConfig({
 
   'vite': {
     'esbuild': {
-      // Class names are runtime data (`constructor.name` titles errors and names filter plugins).
-      'keepNames': true,
       // VitePress 1.6.4 uses Vite 5/esbuild 0.21 which does not recognise
       // the ES2024 target from tsconfig.base.json. Override via tsconfigRaw
       // to ES2022 for the docs build — the built output still targets modern

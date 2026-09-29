@@ -28,6 +28,8 @@ ErrorCodeRegistry.register({
  * `create()` factory.
  */
 export class ValidationError extends BaseError {
+  public override readonly name: string = 'ValidationError';
+
   /**
    * Creates a new `ValidationError`.
    */

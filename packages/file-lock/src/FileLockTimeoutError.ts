@@ -3,6 +3,8 @@ import { DomainErrorArgumentList } from '@studnicky/errors/browser';
 import { FileLockError } from './errors/FileLockError.js';
 
 export class FileLockTimeoutError extends FileLockError {
+  public override readonly name: string = 'FileLockTimeoutError';
+
   readonly path!: string;
   readonly timeoutMs!: number;
 

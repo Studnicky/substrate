@@ -37,6 +37,8 @@ type AuditErrorArgumentsInterface = NodeStaticType<typeof AuditErrorArgumentsNod
 const intakeAuditErrorArguments = EntityCompiler.compileIntake<AuditErrorArgumentsInterface>(AuditErrorArgumentsSchema);
 
 class AuditError extends BaseError {
+  public override readonly name: string = 'AuditError';
+
   public readonly auditId: string;
   public readonly policy: string;
 
@@ -63,6 +65,8 @@ class AuditError extends BaseError {
 }
 
 class NetworkModuleError extends ModuleError {
+  public override readonly name: string = 'NetworkModuleError';
+
   public static override create(
     message: string,
     options?: Omit<Parameters<typeof ModuleError.create>[1], 'scenario'>
