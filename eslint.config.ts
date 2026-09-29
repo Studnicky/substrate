@@ -7,6 +7,8 @@ import sonarjs from 'eslint-plugin-sonarjs';
 import unusedImports from 'eslint-plugin-unused-imports';
 import tseslint from 'typescript-eslint';
 
+const REPO_ROOT = decodeURIComponent(new URL('.', import.meta.url).pathname);
+
 // Architectural bands, derived from the measured `@studnicky/*` dependency DAG rather than a
 // borrowed hexagonal vocabulary: a package's band is the depth of its longest internal
 // dependency chain. Each band may import its own band and any band below it, never above. That
@@ -50,11 +52,8 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'idempotency-guard' },
         { 'unit': 'package', 'layer': 'foundation', 'pattern': 'entity' },
         { 'unit': 'package', 'layer': 'primitive', 'pattern': 'json' },
-        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-rate-limiter' },
-        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'keyed-work-gate' },
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'logger' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'matching' },
-        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'matching-filters' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'memoize' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'mutex' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'paginator' },
@@ -71,7 +70,6 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'throttle' },
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'timing' },
         { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'topic-router' },
-        { 'unit': 'package', 'layer': 'coordinator', 'pattern': 'topic-router-models' },
         { 'unit': 'package', 'layer': 'foundation', 'pattern': 'types' },
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'virtual-fs' },
         { 'unit': 'package', 'layer': 'capability', 'pattern': 'visible-range' },
@@ -99,11 +97,8 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/idempotency-guard' },
         { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/entity' },
         { 'unit': 'module', 'layer': 'primitive', 'pattern': '@studnicky/json' },
-        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-rate-limiter' },
-        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/keyed-work-gate' },
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/logger' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/matching' },
-        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/matching-filters' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/memoize' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/mutex' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/paginator' },
@@ -120,7 +115,6 @@ const SUBSTRATE_LAYERS = {
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/throttle' },
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/timing' },
         { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/topic-router' },
-        { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/topic-router-models' },
         { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/types' },
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/virtual-fs' },
         { 'unit': 'module', 'layer': 'capability', 'pattern': '@studnicky/visible-range' },
@@ -128,6 +122,23 @@ const SUBSTRATE_LAYERS = {
     ],
     'layers': ['foundation', 'primitive', 'capability', 'coordinator'],
     'sourceRoot': 'packages'
+};
+
+const FILTERS_MATCHING_LAYERS = {
+  'allowedImports': {
+    'foundation': ['foundation'],
+    'primitive': ['foundation', 'primitive'],
+    'capability': ['foundation', 'primitive', 'capability'],
+    'coordinator': ['foundation', 'primitive', 'capability', 'coordinator']
+  },
+  'bindings': [
+    { 'unit': 'folder', 'layer': 'coordinator', 'pattern': 'matching' },
+    { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/errors' },
+    { 'unit': 'module', 'layer': 'coordinator', 'pattern': '@studnicky/matching' },
+    { 'unit': 'module', 'layer': 'foundation', 'pattern': '@studnicky/types' }
+  ],
+  'layers': ['foundation', 'primitive', 'capability', 'coordinator'],
+  'sourceRoot': 'packages/filters/src'
 };
 
 export default [
@@ -171,6 +182,12 @@ export default [
       '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS]
     }
   },
+  {
+    'files': ['packages/filters/src/matching/**/*.ts'],
+    'rules': {
+      '@studnicky/layer-import-boundary': ['error', FILTERS_MATCHING_LAYERS]
+    }
+  },
   { ignores: ['.claude/**'] },
   ...tseslint.config(
     {
@@ -187,7 +204,7 @@ export default [
         'parser': tseslint.parser,
         'parserOptions': {
           'projectService': true,
-          'tsconfigRootDir': import.meta.dirname
+          'tsconfigRootDir': REPO_ROOT
         }
       },
       'linterOptions': {
@@ -420,7 +437,7 @@ export default [
             ],
             'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 40
           },
-          'tsconfigRootDir': import.meta.dirname
+          'tsconfigRootDir': REPO_ROOT
         }
       },
       'linterOptions': {
@@ -612,7 +629,7 @@ export default [
         'parserOptions': {
           'project': ['./tsconfig.eslint.json'],
           'projectService': false,
-          'tsconfigRootDir': import.meta.dirname
+          'tsconfigRootDir': REPO_ROOT
         }
       },
       'rules': {

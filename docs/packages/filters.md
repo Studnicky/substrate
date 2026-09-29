@@ -7,6 +7,12 @@ description: Composable declarative filtering primitives.
 
 `@studnicky/filters` composes declarative conditions from independently reusable comparators, operators, logic gates, modes, value contracts, and plugins. Configuration values use JSON-safe entity contracts. Evaluation operands may retain native `Date`, `Map`, or `Set` values after validation with `RuntimeValue` from `@studnicky/types/node`. It depends on `@studnicky/types` for reusable runtime narrowing and emits structured `BaseError` children for package-owned failures.
 
+## Northstar Books catalogue policy
+
+Northstar Books keeps one declarative sellability rule for its storefront, catalogue exports, and reservation jobs: a title must be published and have available inventory. `FilterEngine` evaluates that shared rule against every catalogue record, so each consumer applies the same admission decision. When a shopper enters an approximate title, matching plugins from `@studnicky/filters/matching` turn a text-similarity threshold into another declared condition rather than a second ad-hoc search path.
+
+The guarantee is explicit: JSON-safe filter configuration is validated at the boundary, and every evaluation uses the same condition tree and registered operators. The matching entrypoint validates its filter values before it delegates scoring to `@studnicky/matching/browser`; it does not make fuzzy matching an implicit global policy.
+
 ## Install
 
 ```bash
@@ -53,5 +59,22 @@ Build an `AND` filter for active products with inventory, then evaluate a matchi
 | `BasePluginInterface` | Defines the base plugin contract. | `@studnicky/filters/interfaces` |
 | `PluginContextInterface` | Defines the context passed to one plugin operation. | `@studnicky/filters/interfaces` |
 | `TimeOperatorsPlugin` | Supplies time-aware filter operators. | `@studnicky/filters/node` |
+
+## Matching plugins
+
+The `@studnicky/filters/matching` entrypoint provides browser-safe adapters that validate untrusted filter values, delegate scoring to `@studnicky/matching/browser`, and register one filter operation per plugin.
+
+<RunnableExample src="packages/filters/examples/fuzzyFilter" title="Fuzzy title filter with a matching plugin" />
+
+| Symbol | Purpose | Import path |
+|---|---|---|
+| `CosineAtLeastPlugin` | `COSINE_AT_LEAST` | `@studnicky/filters/matching` |
+| `DamerauLevenshteinAtLeastPlugin` | `DAMERAU_LEVENSHTEIN_AT_LEAST` | `@studnicky/filters/matching` |
+| `JaccardAtLeastPlugin` | `JACCARD_AT_LEAST` | `@studnicky/filters/matching` |
+| `JaroAtLeastPlugin` | `JARO_AT_LEAST` | `@studnicky/filters/matching` |
+| `JaroWinklerAtLeastPlugin` | `JARO_WINKLER_AT_LEAST` | `@studnicky/filters/matching` |
+| `LevenshteinAtLeastPlugin` | `LEVENSHTEIN_AT_LEAST` | `@studnicky/filters/matching` |
+| `NgramAtLeastPlugin` | `NGRAM_AT_LEAST` | `@studnicky/filters/matching` |
+| `SorensenDiceAtLeastPlugin` | `SORENSEN_DICE_AT_LEAST` | `@studnicky/filters/matching` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/filters)

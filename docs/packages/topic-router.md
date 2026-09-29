@@ -7,6 +7,12 @@ description: Composable pattern-based fan-out routing for topic subscriptions.
 
 `TopicRouter` registers subscriptions and invokes every selected handler. A caller supplies a structural matcher, candidate source, selection policy, or any composition of those toolkit primitives.
 
+## Northstar Books order fan-out
+
+When Northstar Books accepts an `order.created` event, audit, warehouse fulfilment, and analytics each receive the event through their own subscription pattern instead of the checkout service calling them directly. `TopicRouter` resolves the selected subscriptions and gives every selected handler the same immutable envelope. For evidence-led routing, `@studnicky/topic-router/models` defines the provider-neutral inference and selection-mapping contracts without making a scoring provider part of the router.
+
+The guarantee is fan-out to the selected handlers for one publish operation, with structural matching and selection policy supplied explicitly by the application. Delivery is not a durable queue or retry protocol: Northstar pairs the router with a broker or persistent workflow when recipients must survive process failure or be retried.
+
 ## Install
 
 ```bash
@@ -33,8 +39,10 @@ Register two subscription patterns and publish an order-created event. Every mat
 | `TopicRouterOptionsInterface` | Router construction options. | `@studnicky/topic-router/interfaces` |
 | `TopicSelectionInterface` | Selected subscription identifier and evidence contract. | `@studnicky/topic-router/interfaces` |
 | `TopicSubscriptionInterface` | Registered subscription contract. | `@studnicky/topic-router/interfaces` |
+| `TopicInferenceInterface` | Provider-neutral contract for producing scored routing evidence from consumer input. | `@studnicky/topic-router/models` |
+| `TopicSelectionMapperInterface` | Contract for mapping scored evidence into selected subscription identifiers. | `@studnicky/topic-router/models` |
 
-The interface contracts are also available from `@studnicky/topic-router/interfaces`.
+The interface contracts are also available from `@studnicky/topic-router/interfaces`. Model-evidence contracts are available from `@studnicky/topic-router/models`.
 
 ## Observability hooks
 

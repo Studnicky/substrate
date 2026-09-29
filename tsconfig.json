@@ -88,12 +88,6 @@
       "path": "packages/store/tsconfig.tests.json"
     },
     {
-      "path": "packages/strata-store-kit"
-    },
-    {
-      "path": "packages/strata-store-kit/tsconfig.tests.json"
-    },
-    {
       "path": "packages/batch"
     },
     {
@@ -158,18 +152,6 @@
     },
     {
       "path": "packages/json/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/keyed-rate-limiter"
-    },
-    {
-      "path": "packages/keyed-rate-limiter/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/keyed-work-gate"
-    },
-    {
-      "path": "packages/keyed-work-gate/tsconfig.tests.json"
     },
     {
       "path": "packages/logger"
@@ -256,12 +238,6 @@
       "path": "packages/matching/tsconfig.tests.json"
     },
     {
-      "path": "packages/matching-filters"
-    },
-    {
-      "path": "packages/matching-filters/tsconfig.tests.json"
-    },
-    {
       "path": "packages/topic-router"
     },
     {
@@ -272,12 +248,6 @@
     },
     {
       "path": "packages/semantic-matching/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/topic-router-models"
-    },
-    {
-      "path": "packages/topic-router-models/tsconfig.tests.json"
     },
     {
       "path": "packages/system"

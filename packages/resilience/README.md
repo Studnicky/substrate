@@ -110,6 +110,10 @@ bucket.available; // current token count
 // consume() and waitForToken() return { consumedTokens, remainingTokens }.
 ```
 
+### KeyedRateLimiter
+
+KeyedRateLimiter creates one TokenBucket or supplied structural rate-limiting strategy per key. It bounds retained keys with maximumKeys and evicts idle keys with keyIdleTtlMs. Its runtime API is available from @studnicky/resilience/keyed, schemas from @studnicky/resilience/keyed/entities, and contracts from @studnicky/resilience/keyed/interfaces.
+
 ### SlidingWindowLimiter
 
 Use a sliding window when a limit is a fixed number of requests within a rolling interval. Select `log` for exact accounting or `counter` for a constant-space approximation.

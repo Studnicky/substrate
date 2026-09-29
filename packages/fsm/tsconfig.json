@@ -29,6 +29,9 @@
       "path": "../json"
     },
     {
+      "path": "../pipeline"
+    },
+    {
       "path": "../types"
     }
   ]

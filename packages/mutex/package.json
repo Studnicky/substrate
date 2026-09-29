@@ -20,6 +20,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./gate": {
+      "types": "./dist/gate/index.d.ts",
+      "import": "./dist/gate/index.js"
     }
   },
   "files": [
@@ -65,6 +69,7 @@
   },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/config": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
@@ -73,7 +78,7 @@
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
-    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
   }
 }

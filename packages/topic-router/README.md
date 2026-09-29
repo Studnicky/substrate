@@ -39,6 +39,8 @@ await router.publish('api.v1.users', 'created');
 
 Use `publishSelected(topic, payload, selections, { metadata })` when a builder has already selected stable subscription IDs through a filter, scorer, search index, or application policy. The router invokes those IDs without matching their patterns again.
 
+Import `TopicInferenceInterface` and `TopicSelectionMapperInterface` from `@studnicky/topic-router/models` when a provider adapter contributes scored evidence before the application selects subscriptions.
+
 Subclass `TopicRouter` to override `onMatch`, `onNoMatch`, `onPoolExhausted`, or `onSelection` for metrics and tracing. Hook failures are isolated from delivery.
 
 ## Documentation

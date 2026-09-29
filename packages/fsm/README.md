@@ -71,8 +71,7 @@ const handler: EffectHandlerInterface<
   console.log(`Playing tone: ${effect.tone}`);
 };
 
-const interpreter = EffectInterpreter.create({
-  machine,
+const interpreter = EffectInterpreter.create(machine, {
   handler,
   machineId: 'intersection-1'
 });
@@ -90,7 +89,11 @@ const found = registry.get('intersection-1');
 registry.unregister('intersection-1');
 ```
 
-The singular `EffectHandlerInterface` receives every effect and can discriminate on `effect.variant`. Configure it through `EffectInterpreter.create({ machine, handler })`.
+The singular `EffectHandlerInterface` receives every effect and can discriminate on `effect.variant`. Configure it through `EffectInterpreter.create(machine, { handler })`.
+
+## Pipeline effects
+
+A reducer can emit a data-only `PipelineEffectInterface<TEvent>` with `variant: 'pipeline'` and a typed event. `PipelineEffectHandler.create(pipeline)` runs an injected `PipelineInterface<TEvent>` and dispatches its returned event through the interpreter mailbox. The reducer remains the sole authority for accepting that event and selecting the declared next state. Pipeline failures reject the initiating `send()` after the intermediate state commits.
 
 ## Extending
 
@@ -168,7 +171,7 @@ const handler: EffectHandlerInterface<
   }
 };
 
-const interpreter = EffectInterpreter.create({ machine, handler });
+const interpreter = EffectInterpreter.create(machine, { handler });
 ```
 
 ## Recording transition history

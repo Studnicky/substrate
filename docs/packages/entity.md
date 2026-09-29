@@ -63,6 +63,10 @@ const fixture = UserEntity.create({ id: "fixture-1" });
 
 `EntityClone.clone(value, onCycle)` produces a deep independent copy and lets the caller define the cycle error.
 
+## Northstar Books boundary
+
+Northstar intakes a browser or partner request to create a catalogue title, customer profile, or checkout command. Compile each JSON schema once at that admission boundary, then pass the derived entity through the server without repeating raw-field checks. `intake` guarantees that accepted input is JSON-safe, cloned before defaults apply, and structurally valid; invalid input fails as `SchemaIntakeError` before it reaches catalogue or checkout logic.
+
 ## Try it
 
 Run strict entity intake and creation, then check an acyclic and cyclic value graph.

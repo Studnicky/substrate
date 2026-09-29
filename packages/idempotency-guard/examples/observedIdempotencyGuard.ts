@@ -6,11 +6,11 @@ import assert from 'node:assert/strict';
 import { IdempotencyPayloadEntity } from '../src/entities/index.js';
 import { IdempotencyConflictError, IdempotencyGuard } from '../src/index.js';
 
-class ChargeResult {
-  constructor(readonly chargeId: string) {}
+class OrderPlacementResult {
+  constructor(readonly orderId: string) {}
 }
 
-class TelemetryIdempotencyGuard extends IdempotencyGuard<ChargeResult> {
+class TelemetryIdempotencyGuard extends IdempotencyGuard<OrderPlacementResult> {
   readonly events: string[] = [];
 
   static tracked(): TelemetryIdempotencyGuard {
@@ -39,16 +39,16 @@ class TelemetryIdempotencyGuard extends IdempotencyGuard<ChargeResult> {
 }
 
 class Shared {
-  static resolve: (value: ChargeResult) => void = () => {};
+  static resolve: (value: OrderPlacementResult) => void = () => {};
 }
 
 class SharedFactory {
   static factoryCalls = 0;
-  static pending: Promise<ChargeResult> = new Promise<ChargeResult>((resolve) => {
+  static pending: Promise<OrderPlacementResult> = new Promise<OrderPlacementResult>((resolve) => {
     Shared.resolve = resolve;
   });
 
-  static async create(): Promise<ChargeResult> {
+  static async create(): Promise<OrderPlacementResult> {
     SharedFactory.factoryCalls += 1;
     return await SharedFactory.pending;
   }
@@ -57,28 +57,29 @@ class SharedFactory {
 class IdempotencyGuardDemo {
   static async run(): Promise<{
     readonly 'factoryCalls': number;
-    readonly 'first': ChargeResult;
+    readonly 'first': OrderPlacementResult;
     readonly 'guard': TelemetryIdempotencyGuard;
-    readonly 'replayed': ChargeResult;
-    readonly 'resultA': ChargeResult;
-    readonly 'resultB': ChargeResult;
+    readonly 'replayed': OrderPlacementResult;
+    readonly 'resultA': OrderPlacementResult;
+    readonly 'resultB': OrderPlacementResult;
   }> {
     const guard = TelemetryIdempotencyGuard.tracked();
+    console.log('Northstar Books: guarding checkout submissions by idempotency key');
 
     // New key -> onExecute, factory runs
-    const first = await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 500 }), () => {
-      return new ChargeResult('ch_1');
+    const first = await guard.run('checkout-request-1001', IdempotencyPayloadEntity.create({ 'isbn': '978-0132350884', 'quantity': 2 }), () => {
+      return new OrderPlacementResult('northstar-order-1001');
     });
 
     // Same key, same payload -> onReplay, factory does NOT run
-    const replayed = await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 500 }), () => {
-      return new ChargeResult('ch_should_not_run');
+    const replayed = await guard.run('checkout-request-1001', IdempotencyPayloadEntity.create({ 'isbn': '978-0132350884', 'quantity': 2 }), () => {
+      return new OrderPlacementResult('ch_should_not_run');
     });
 
     // Same key, DIFFERENT payload -> onConflict, then throws
     try {
-      await guard.run('order-42', IdempotencyPayloadEntity.create({ 'amount': 999 }), () => {
-        return new ChargeResult('ch_should_not_run');
+      await guard.run('checkout-request-1001', IdempotencyPayloadEntity.create({ 'isbn': '978-0132350884', 'quantity': 3 }), () => {
+        return new OrderPlacementResult('ch_should_not_run');
       });
     } catch (error) {
       if (error instanceof IdempotencyConflictError) {
@@ -89,9 +90,9 @@ class IdempotencyGuardDemo {
     }
 
     // Concurrent calls with the same (new) key share one execution via Coalesce
-    const callA = guard.run('order-99', IdempotencyPayloadEntity.create({ 'region': 'us' }), SharedFactory.create);
-    const callB = guard.run('order-99', IdempotencyPayloadEntity.create({ 'region': 'us' }), SharedFactory.create);
-    Shared.resolve(new ChargeResult('shared-result'));
+    const callA = guard.run('checkout-request-1002', IdempotencyPayloadEntity.create({ 'isbn': '978-0201633610', 'quantity': 1 }), SharedFactory.create);
+    const callB = guard.run('checkout-request-1002', IdempotencyPayloadEntity.create({ 'isbn': '978-0201633610', 'quantity': 1 }), SharedFactory.create);
+    Shared.resolve(new OrderPlacementResult('northstar-order-1002'));
     const [resultA, resultB] = await Promise.all([callA, callB]);
 
     console.log('Events:', guard.events);
@@ -110,18 +111,18 @@ class IdempotencyGuardDemo {
 const results = await IdempotencyGuardDemo.run();
 // #endregion usage
 
-assert.equal(results.first.chargeId, 'ch_1');
-assert.equal(results.replayed.chargeId, 'ch_1');
+assert.equal(results.first.orderId, 'northstar-order-1001');
+assert.equal(results.replayed.orderId, 'northstar-order-1001');
 assert.equal(results.factoryCalls, 1);
-assert.equal(results.resultA.chargeId, 'shared-result');
-assert.equal(results.resultB.chargeId, 'shared-result');
+assert.equal(results.resultA.orderId, 'northstar-order-1002');
+assert.equal(results.resultB.orderId, 'northstar-order-1002');
 
 assert.deepEqual(results.guard.events, [
-  'execute:order-42',
-  'replay:order-42',
-  'conflict:order-42',
-  'execute:order-99',
-  'coalesce:order-99'
+  'execute:checkout-request-1001',
+  'replay:checkout-request-1001',
+  'conflict:checkout-request-1001',
+  'execute:checkout-request-1002',
+  'coalesce:checkout-request-1002'
 ]);
 
 console.log('observedIdempotencyGuard: all assertions passed');

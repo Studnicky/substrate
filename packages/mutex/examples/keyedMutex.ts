@@ -1,4 +1,4 @@
-/** keyedMutex — demonstrates key-based parallelism vs serialization. Run: npx tsx examples/keyedMutex.ts */
+/** keyedMutex — reserve distinct ISBNs in parallel while serializing duplicate checkout clicks for one ISBN. Run: npx tsx examples/keyedMutex.ts */
 
 import assert from 'node:assert/strict';
 
@@ -14,15 +14,15 @@ class KeyedMutexDemo {
   static async runParallelKeys(): Promise<void> {
     // Two concurrent runExclusive calls on DIFFERENT keys should both start immediately
     await Promise.all([
-      mutex.runExclusive('keyA', () => {
-        completionOrder.push('keyA');
+      mutex.runExclusive('978-0-14-118776-1', () => {
+        completionOrder.push('978-0-14-118776-1');
       }),
-      mutex.runExclusive('keyB', () => {
-        completionOrder.push('keyB');
+      mutex.runExclusive('978-0-06-112008-4', () => {
+        completionOrder.push('978-0-06-112008-4');
       })
     ]);
 
-    console.log('Completion order (parallel keys):', completionOrder);
+    console.log('ISBN reservations completed in parallel:', completionOrder);
   }
 
   static async runSerialSameKey(): Promise<void> {
@@ -31,24 +31,24 @@ class KeyedMutexDemo {
     const results: number[] = [];
 
     await Promise.all([
-      mutex.runExclusive('shared', () => {
+      mutex.runExclusive('978-0-679-76489-8', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
       }),
-      mutex.runExclusive('shared', () => {
+      mutex.runExclusive('978-0-679-76489-8', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
       }),
-      mutex.runExclusive('shared', () => {
+      mutex.runExclusive('978-0-679-76489-8', () => {
         const snapshot = counter;
         counter++;
         results.push(snapshot);
       })
     ]);
 
-    console.log('Serialized counter:', counter);
+    console.log('Duplicate checkout clicks serialized:', counter);
     console.log('Serialized results:', results.toSorted((a, b) => { const result = a - b; return result; }));
   }
 
@@ -64,8 +64,8 @@ KeyedMutexDemo.showStats();
 // #endregion usage
 
 assert.equal(completionOrder.length, 2);
-assert.ok(completionOrder.includes('keyA'));
-assert.ok(completionOrder.includes('keyB'));
+assert.ok(completionOrder.includes('978-0-14-118776-1'));
+assert.ok(completionOrder.includes('978-0-06-112008-4'));
 
 const finalStats = mutex.getStats();
 assert.equal(finalStats.activeLocksCount, 0);

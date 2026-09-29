@@ -90,22 +90,28 @@ const ESLINT_V8_RULES = [
   'regexp-in-loops', 'switch-statements', 'try-catch-in-loops', 'with-statement'
 ] as const;
 
-const STATEFUL = [
-  'batch', 'boundary-kit', 'bounded-dispatcher', 'cache', 'circular-buffer', 'clock', 'concurrency', 'context',
-  'entity-store', 'event-bus', 'file-lock', 'flag-evaluator', 'fsm', 'health-registry', 'idempotency-guard',
-  'keyed-rate-limiter', 'keyed-work-gate', 'logger', 'memoize', 'mutex', 'paginator', 'pipeline', 'process-kit',
-  'request-executor', 'resilience', 'retry', 'sample-buffer', 'scheduler',
-  'store', 'strata-store-kit', 'throttle', 'timing', 'virtual-fs', 'visible-range', 'worker-pool'
+const FOUNDATION_PRIMITIVES = [
+  'entity', 'errors', 'json', 'types'
 ] as const;
 
-const STATELESS = [
-  'config', 'drilldown', 'entity', 'errors', 'eslint-config', 'example-smoke-kit', 'fetch', 'json',
-  'scenario-kit', 'signal', 'system', 'types'
+const BACKEND_PRIMITIVES = [
+  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'config', 'context',
+  'drilldown', 'entity-store', 'event-bus', 'fetch', 'file-lock', 'filters', 'flag-evaluator',
+  'fsm', 'health-registry', 'logger', 'matching', 'mutex', 'paginator', 'pipeline', 'resilience',
+  'retry', 'sample-buffer', 'scheduler', 'semantic-matching', 'signal', 'store', 'system', 'throttle',
+  'timing', 'virtual-fs', 'visible-range'
 ] as const;
 
-const MATCHING_AND_ROUTING = [
-  'filters', 'matching', 'matching-filters', 'semantic-matching',
-  'topic-router', 'topic-router-models'
+const TOOLING_PRIMITIVES = [
+  'eslint-config', 'example-smoke-kit', 'scenario-kit'
+] as const;
+
+const COMBINATIONS = [
+  'idempotency-guard', 'memoize', 'topic-router'
+] as const;
+
+const COMPOSITIONS = [
+  'boundary-kit', 'bounded-dispatcher', 'process-kit', 'request-executor', 'worker-pool'
 ] as const;
 
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
@@ -220,19 +226,29 @@ export default withMermaid(defineConfig({
           'text': 'Packages'
         },
         {
-          'collapsed': false,
-          'items': STATEFUL.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
-          'text': 'Stateful primitives'
+          'collapsed': true,
+          'items': FOUNDATION_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Foundation primitives'
+        },
+        {
+          'collapsed': true,
+          'items': BACKEND_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Primitives'
+        },
+        {
+          'collapsed': true,
+          'items': TOOLING_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Tooling primitives'
         },
         {
           'collapsed': false,
-          'items': STATELESS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
-          'text': 'Stateless utilities'
+          'items': COMBINATIONS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Combinations'
         },
         {
           'collapsed': false,
-          'items': MATCHING_AND_ROUTING.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
-          'text': 'Matching & routing'
+          'items': COMPOSITIONS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'text': 'Compositions'
         },
         {
           'collapsed': false,

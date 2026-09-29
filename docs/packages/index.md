@@ -34,8 +34,7 @@ platform-parity status.
 | [@studnicky/idempotency-guard](/packages/idempotency-guard) | Idempotency key guard composing cache, concurrency, and json: replay, coalesce, and conflict detection |
 | [@studnicky/memoize](/packages/memoize) | Pure function memoization composing cache and concurrency: LRU+TTL result caching with in-flight call dedup |
 | [@studnicky/bounded-dispatcher](/packages/bounded-dispatcher) | Bounded work dispatch pattern composing concurrency's Semaphore, event-bus, and scheduler |
-| [@studnicky/keyed-work-gate](/packages/keyed-work-gate) | Keyed single-flight and serialized work gate composing mutex and concurrency's Coalesce |
-| [@studnicky/keyed-rate-limiter](/packages/keyed-rate-limiter) | Per-key rate limiting composing cache and resilience, generic over an injectable rate-limiting strategy |
+| [@studnicky/mutex](/packages/mutex) | Key-based async mutual exclusion, including keyed single-flight and serialized work gates |
 
 ## Time
 
@@ -54,8 +53,7 @@ platform-parity status.
 | [@studnicky/pipeline](/packages/pipeline) | Generic typed async pipeline for sequential context transforms |
 | [@studnicky/paginator](/packages/paginator) | Cursor/page-list state tracker for paginated data sources |
 | [@studnicky/process-kit](/packages/process-kit) | Reducer-with-effects process pattern composing fsm and scheduler |
-| [@studnicky/store](/packages/store) | Observable state container with interchangeable in-memory and browser-native persistence |
-| [@studnicky/strata-store-kit](/packages/strata-store-kit) | Ordered store composition that keeps cache and durable browser state synchronized |
+| [@studnicky/store](/packages/store) | Observable state container with interchangeable in-memory and browser-native persistence plus ordered cache and durable browser-state synchronization |
 | [@studnicky/visible-range](/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list |
 | [@studnicky/flag-evaluator](/packages/flag-evaluator) | Local deterministic feature-flag evaluation with percentage rollout and observability hooks |
 
@@ -68,7 +66,7 @@ platform-parity status.
 | [@studnicky/json](/packages/json) | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort |
 | [@studnicky/types](/packages/types) | Shared runtime type guards, predicate composition, JSON boundaries, and Date/Map/Set operand validation |
 | [@studnicky/drilldown](/packages/drilldown) | Deterministic multi-level grouping, faceting, and sorting over arbitrary record data |
-| [@studnicky/filters](/packages/filters) | Composable declarative filtering primitives |
+| [@studnicky/filters](/packages/filters) | Composable declarative filters with matching-score threshold adapters at the `matching` entrypoint |
 | [@studnicky/config](/packages/config) | Configuration validation and clamping utilities |
 
 ## Matching & Routing
@@ -76,10 +74,8 @@ platform-parity status.
 | Package | Description |
 |---------|-------------|
 | [@studnicky/matching](/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
-| [@studnicky/matching-filters](/packages/matching-filters) | Optional one-operation filter adapters for deterministic matching scores |
 | [@studnicky/semantic-matching](/packages/semantic-matching) | Provider-neutral contracts for vectorization, vector search, reranking, classification, and bounded adjudication |
 | [@studnicky/topic-router](/packages/topic-router) | Pattern-based multi-subscriber event fan-out |
-| [@studnicky/topic-router-models](/packages/topic-router-models) | Model-evidence mapping contracts for builder-selected topic delivery |
 
 ## I/O & Observability
 
@@ -90,7 +86,7 @@ platform-parity status.
 | [@studnicky/logger](/packages/logger) | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata |
 | [@studnicky/errors](/packages/errors) | Standardized error hierarchy serializing to RFC 9457 Problem Details |
 | [@studnicky/request-executor](/packages/request-executor) | Composes fetch, retry, signal, timing, and context into a one-shot request execution pattern |
-| [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket and sliding-window rate limiters, and dead-letter queue primitives |
+| [@studnicky/resilience](/packages/resilience) | Circuit breaker, token bucket, keyed and sliding-window rate limiters, and dead-letter queue primitives |
 | [@studnicky/boundary-kit](/packages/boundary-kit) | Composes throttle, circuit breaker, and retry into a fixed-order boundary call pattern |
 | [@studnicky/health-registry](/packages/health-registry) | Named async health-check registry with worst-status-wins aggregation |
 | [@studnicky/system](/packages/system) | CPU/GPU/memory/platform detection for worker sizing |

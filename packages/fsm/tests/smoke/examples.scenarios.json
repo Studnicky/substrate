@@ -56,7 +56,7 @@
       "shape": "imports-example"
     },
     {
-      "description": "the traffic-light example runs without throwing",
+      "description": "the Northstar Books fulfilment FSM example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
       },

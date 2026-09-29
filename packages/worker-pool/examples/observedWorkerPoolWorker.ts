@@ -1,13 +1,12 @@
 /**
  * Worker entry script for examples/observedWorkerPool.ts.
  *
- * Receives `{ n }`, reports progress at the halfway point, and resolves with the n-th
- * Fibonacci number computed iteratively (deliberately cheap — this fixture exists to
- * demonstrate the envelope contract, not to benchmark CPU-bound work).
+ * Receives a checkout item count, reports quote progress, and resolves with a Northstar Books
+ * fulfilment quote in cents.
  */
 import { parentPort } from 'node:worker_threads';
 
-interface FibonacciRequestInterface {
+interface FulfilmentQuoteRequestInterface {
   readonly 'n': number;
 }
 
@@ -16,17 +15,9 @@ if (parentPort === null) {
 }
 const port = parentPort;
 
-port.once('message', ({ n }: FibonacciRequestInterface) => {
-  port.postMessage({ 'message': `computing fib(${String(n)})`, 'type': 'log' });
-
-  let previous = 0;
-  let current = 1;
-  for (let i = 0; i < n; i += 1) {
-    if (i === Math.floor(n / 2)) {
-      port.postMessage({ 'percent': 50, 'type': 'progress' });
-    }
-    [previous, current] = [current, previous + current];
-  }
-
-  port.postMessage({ 'type': 'result', 'value': previous });
+port.once('message', ({ 'n': itemCount }: FulfilmentQuoteRequestInterface) => {
+  port.postMessage({ 'message': `quoting fulfilment for ${  String(itemCount)  } Northstar Books items`, 'type': 'log' });
+  port.postMessage({ 'percent': 50, 'type': 'progress' });
+  const shippingCents = itemCount * 495;
+  port.postMessage({ 'type': 'result', 'value': shippingCents });
 });

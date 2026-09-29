@@ -1,17 +1,10 @@
-/** keyedWorkGateComposition — hand-composes mutex's Mutex and concurrency's Coalesce into the
- * Coordination Kit's documentation-only KeyedWorkGate recipe (no `@studnicky/keyed-work-gate`
- * package exists; this composition order IS the deliverable). `runSingleFlight` collapses
- * concurrent same-key callers onto one in-flight execution via Coalesce, which itself runs
- * under Mutex-guarded exclusive access; `runSerialized` skips coalescing and goes straight to
- * Mutex for callers that need every call to actually execute. Both primitives' `timeout`
- * options (Mutex's queue-wait ceiling, Coalesce's per-caller wait ceiling) make the
- * composition robust against a stuck caller instead of hanging forever. Run:
- * npx tsx examples/keyedWorkGateComposition.ts */
+/** keyedWorkGateComposition — collapse duplicate Northstar Books checkout clicks while serializing ISBN reservation work. */
 
 // #region usage
 import { Coalesce, CoalesceTimeoutError } from '@studnicky/concurrency/node';
 import assert from 'node:assert/strict';
 
+import { KeyedWorkGate } from '../src/gate/index.js';
 import { LockTimeoutError, Mutex } from '../src/index.js';
 
 // One Mutex/Coalesce pair per keyed resource family. `timeout` on each bounds how long a
@@ -19,14 +12,16 @@ import { LockTimeoutError, Mutex } from '../src/index.js';
 // upstream call cannot pin a key indefinitely.
 const mutex = Mutex.create<string>({ 'timeout': 200 });
 const coalesce = Coalesce.create<string>({ 'timeout': 100 });
+const gate = KeyedWorkGate.create<string>({ 'coalesce': coalesce, 'mutex': mutex });
 
 class ResultValues {
-  static readString(value: unknown): string {
+  static intake(value: unknown): string {
     if (typeof value !== 'string') {
       throw new TypeError('Mutex result must be a string');
     }
 
-    return value;
+    const result = value;
+    return result;
   }
 }
 
@@ -43,26 +38,26 @@ class Scenarios {
       static async create(): Promise<string> {
         factoryCallCount += 1;
         await new Promise<void>((resolve) => { setTimeout(resolve, 10); });
-        return 'resolved-once';
+        return 'checkout-confirmed';
       }
     }
 
     const [singleFlightA, singleFlightB] = await Promise.all([
-      coalesce.run('resource-1', async (): Promise<string> => {
-        const result = await mutex.runExclusive('resource-1', SharedResultFactory.create);
-        const stringResult = ResultValues.readString(result);
+      coalesce.run('checkout:ord-1042', async (): Promise<string> => {
+        const result = await mutex.runExclusive('checkout:ord-1042', SharedResultFactory.create);
+        const stringResult = ResultValues.intake(result);
         return stringResult;
       }),
-      coalesce.run('resource-1', async (): Promise<string> => {
-        const result = await mutex.runExclusive('resource-1', SharedResultFactory.create);
-        const stringResult = ResultValues.readString(result);
+      coalesce.run('checkout:ord-1042', async (): Promise<string> => {
+        const result = await mutex.runExclusive('checkout:ord-1042', SharedResultFactory.create);
+        const stringResult = ResultValues.intake(result);
         return stringResult;
       })
     ]);
 
-    console.log('Single-flight results:', singleFlightA, singleFlightB, 'factory calls:', factoryCallCount);
-    assert.equal(singleFlightA, 'resolved-once');
-    assert.equal(singleFlightB, 'resolved-once');
+    console.log('Duplicate checkout results:', singleFlightA, singleFlightB, 'factory calls:', factoryCallCount);
+    assert.equal(singleFlightA, 'checkout-confirmed');
+    assert.equal(singleFlightB, 'checkout-confirmed');
     assert.equal(factoryCallCount, 1, 'coalescing must collapse concurrent same-key calls into one execution');
   }
 
@@ -73,12 +68,12 @@ class Scenarios {
     let serializedCounter = 0;
 
     await Promise.all([
-      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
-      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
-      mutex.runExclusive('resource-2', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); })
+      mutex.runExclusive('isbn:978-0-679-76489-8', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
+      mutex.runExclusive('isbn:978-0-679-76489-8', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); }),
+      mutex.runExclusive('isbn:978-0-679-76489-8', async () => { await Promise.resolve(); serializedOrder.push(serializedCounter++); })
     ]);
 
-    console.log('Serialized execution order:', serializedOrder);
+    console.log('ISBN reservation execution order:', serializedOrder);
     assert.deepEqual(serializedOrder, [0, 1, 2], 'every runSerialized call must actually execute, in order');
   }
 
@@ -95,9 +90,9 @@ class Scenarios {
 
     let coalesceTimedOut = false;
     const [timeoutOutcome, patientOutcome] = await Promise.allSettled([
-      coalesce.run('resource-3', async (): Promise<string> => {
-        const result = await mutex.runExclusive('resource-3', SlowResultFactory.create);
-        const stringResult = ResultValues.readString(result);
+      coalesce.run('supplier:midnight-books', async (): Promise<string> => {
+        const result = await mutex.runExclusive('supplier:midnight-books', SlowResultFactory.create);
+        const stringResult = ResultValues.intake(result);
         return stringResult;
       }),
       (async (): Promise<string> => {
@@ -107,7 +102,7 @@ class Scenarios {
           async () => { await Promise.resolve(); const markerValue = 'patient-marker'; return markerValue; }
         );
 
-        const stringResult = ResultValues.readString(result);
+        const stringResult = ResultValues.intake(result);
         return stringResult;
       })()
     ]);
@@ -121,17 +116,35 @@ class Scenarios {
     assert.equal(patientOutcome.status, 'fulfilled');
   }
 
+  static async runGateApi(): Promise<void> {
+    let singleFlightRuns = 0;
+    const results = await Promise.all([
+      gate.runSingleFlight('checkout:ord-1043', ResultValues, async () => { singleFlightRuns += 1; await Promise.resolve(); return 'shared'; }),
+      gate.runSingleFlight('checkout:ord-1043', ResultValues, async () => { singleFlightRuns += 1; await Promise.resolve(); return 'shared'; })
+    ]);
+    assert.deepEqual(results, ['shared', 'shared']);
+    assert.equal(singleFlightRuns, 1, 'KeyedWorkGate must coalesce concurrent same-key calls');
+
+    const serializedResults = await Promise.all([
+      gate.runSerialized('isbn:978-0-06-112008-4', async () => { await Promise.resolve(); return 'first'; }),
+      gate.runSerialized('isbn:978-0-06-112008-4', async () => { await Promise.resolve(); return 'second'; })
+    ]);
+    assert.deepEqual(serializedResults, ['first', 'second']);
+  }
+
   // Mutex's timeout makes a queued waiter fail fast when the current holder never
   // releases (e.g. a caller bug), instead of hanging forever.
+
+
   static async runMutexTimeout(): Promise<void> {
     const stuckHolderMutex = Mutex.create<string>({ 'timeout': 50 });
-    const releaseHolder = await stuckHolderMutex.acquire('resource-4');
+    const releaseHolder = await stuckHolderMutex.acquire('isbn:978-0-14-118776-1');
     // Deliberately never call releaseHolder() before the waiter's timeout — simulates a stuck
     // holder. releaseHolder() is invoked afterward purely to leave the mutex clean.
 
     let mutexTimedOut = false;
     try {
-      await stuckHolderMutex.runExclusive('resource-4', async () => { await Promise.resolve(); const result = 'unreachable'; return result; });
+      await stuckHolderMutex.runExclusive('isbn:978-0-14-118776-1', async () => { await Promise.resolve(); const result = 'unreachable'; return result; });
     } catch (error) {
       mutexTimedOut = error instanceof LockTimeoutError;
     }
@@ -158,5 +171,6 @@ await Scenarios.runCoalesceTimeout();
 // --- Scenario D: Mutex's timeout makes a queued waiter fail fast when the current holder
 // never releases (e.g. a caller bug), instead of hanging forever. ---
 await Scenarios.runMutexTimeout();
+await Scenarios.runGateApi();
 
 console.log('keyedWorkGateComposition: all assertions passed');

@@ -15,7 +15,13 @@ pnpm add @studnicky/store
 
 ## Runtime imports
 
-Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import entities and contracts from the neutral `@studnicky/store/entities` and `@studnicky/store/interfaces` paths.
+Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import entities and contracts from the neutral `@studnicky/store/entities` and `@studnicky/store/interfaces` paths. Import the layered Node composition from `@studnicky/store/strata`, its browser runtime from `@studnicky/store/strata/browser`, and its contract from `@studnicky/store/strata/interfaces`.
+
+## Northstar Books checkout state
+
+Northstar Books gives a shopper an immediate cart and checkout-progress view while keeping a durable recovery point. A `StrataStore` from `@studnicky/store/strata` places the fast working store before the durable browser store: a committed write propagates source-to-target, and `hydrate()` restores the durable checkout snapshot back through the layers after a reload.
+
+The guarantee is that subscribers receive committed, detached snapshots only after persistence succeeds, while matching store keys serialize local writes. The composition does not make browser storage a shared transaction coordinator; multiple tabs or server instances require a durable persistence implementation with the coordination semantics the application needs.
 
 ## Core store
 
@@ -39,6 +45,18 @@ const second = Store.create({ initialState: 0, key: "cart", mutex, persistence }
 ```
 
 A layered composition uses a distinct mutex and key pair from every layer. `StoreInterface` implementations provide `getSynchronizationIdentity()` for this composition contract.
+
+## Strata
+
+`StrataStore<TState>` composes stores from source to target. Consumer writes enter the source and propagate through every layer before they resolve. Reads and subscriptions observe the target.
+
+`hydrate()` restores the target, then seeds the source so the value propagates across the chain. `clear()` clears every layer, and `dispose()` releases the propagation subscriptions.
+
+Pass a shared `MutexInterface<string>` and matching `mutexKey` to coordinate independent strata. The pair differs from every layer synchronization identity; construction rejects a layer that would reacquire the composition lock.
+
+<RunnableExample src="packages/store/examples/layered-browser-store" title="Memory cache → localStorage → consumer" />
+
+<<< ../../packages/store/examples/layered-browser-store.ts#usage
 
 ## Entity-backed persistence
 
@@ -126,6 +144,8 @@ The same runtime symbols are available from `@studnicky/store/browser`; select t
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Store` | Observable state container with serialized writes. | `@studnicky/store/node` |
+| `StrataStore` | Ordered source-to-target store composition. | `@studnicky/store/strata` |
+| `StrataStoreOptionsInterface` | Source-to-target layers and optional composition coordination. | `@studnicky/store/strata/interfaces` |
 | `MemoryPersistence` | In-memory persistence adapter. | `@studnicky/store/node` |
 | `JsonStateCodec` | JSON serialization with direct entity intake or a caller-provided typed decoder. | `@studnicky/store/node` |
 | `ContextStore` | Resolves one backing store per active Context scope. | `@studnicky/store/node` |
@@ -137,9 +157,5 @@ The same runtime symbols are available from `@studnicky/store/browser`; select t
 | `BrowserPersistenceOptionsEntity` | Validates browser persistence target configuration. | `@studnicky/store/entities` |
 | `BrowserPersistence` | Browser-native persistence adapter. | `@studnicky/store/browser` |
 | `StorageTarget` | Browser persistence target selector. | `@studnicky/store/browser` |
-
-## Layered state
-
-Use [@studnicky/strata-store-kit](/packages/strata-store-kit) to connect a fast in-memory store to a durable browser store while retaining the `StoreInterface<TState>` API.
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/store)

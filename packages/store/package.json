@@ -20,6 +20,18 @@
     "./entities": {
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
+    },
+    "./strata": {
+      "types": "./dist/strata/index.d.ts",
+      "import": "./dist/strata/index.js"
+    },
+    "./strata/browser": {
+      "types": "./dist/strata/browser/index.d.ts",
+      "import": "./dist/strata/browser/index.js"
+    },
+    "./strata/interfaces": {
+      "types": "./dist/strata/interfaces/index.d.ts",
+      "import": "./dist/strata/interfaces/index.js"
     }
   },
   "files": [

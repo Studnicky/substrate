@@ -9,6 +9,10 @@ description: Pure index/offset arithmetic for computing the visible item range o
 
 Zero DOM dependency — this package never references `window`, `document`, or `ResizeObserver`. The caller wires actual scroll-event listeners and `ResizeObserver` themselves, and feeds the results in via `setScrollOffset()` / `setViewportSize()`.
 
+## Northstar Books catalogue viewport
+
+Northstar's browser catalogue may contain thousands of titles, but the page only needs the cards inside and just beyond the reader's viewport. Feed browser measurements into `VisibleRange`, then render and fetch only the returned inclusive range. The package guarantees deterministic range arithmetic for fixed or measured variable item sizes; the browser integration remains responsible for observing scroll, viewport, and item measurements.
+
 ## Install
 
 ```bash

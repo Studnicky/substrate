@@ -20,6 +20,9 @@
       "path": "../json"
     },
     {
+      "path": "../matching"
+    },
+    {
       "path": "../errors"
     },
     {

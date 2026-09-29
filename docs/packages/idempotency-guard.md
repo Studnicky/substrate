@@ -7,6 +7,10 @@ description: Idempotency key guard composing cache and concurrency — replay, c
 
 > Idempotency key guard composing `@studnicky/cache` and `@studnicky/concurrency`.
 
+## Northstar Books checkout
+
+A browser can retry the same checkout request after a timeout while the first request still runs. Northstar supplies the same idempotency key and checkout payload to `run`, so matching retries receive one result instead of creating duplicate orders or fulfilment work. The guard guarantees replay for matching completed requests, coalescing for matching in-flight requests, and an explicit conflict when a key is reused for a different payload.
+
 ## Install
 
 ```bash

@@ -39,6 +39,16 @@
         "entrypoint": "observedMutex.ts"
       },
       "name": "runs observedMutex without throwing"
+    },
+    {
+      "description": "runs observedKeyedWorkGate without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "observedKeyedWorkGate.ts"
+      },
+      "name": "runs observedKeyedWorkGate without throwing"
     }
   ]
 }

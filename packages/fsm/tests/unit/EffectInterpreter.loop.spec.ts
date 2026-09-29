@@ -1,3 +1,4 @@
+import { Pipeline } from '@studnicky/pipeline/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
@@ -8,8 +9,11 @@ import {
 import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { StateMachine } from '../../src/StateMachine.js';
+import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
+import { PipelineEffectHandler } from '../../src/PipelineEffectHandler.js';
 import type { EffectInterpreterConstructorOptionsInterface } from '../../src/interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import type { PipelineEffectInterface } from '../../src/interfaces/PipelineEffectInterface.js';
 import { EffectInterpreterScenarioCaseEntity } from './entities/EffectInterpreterScenarioCaseEntity.js';
 import scenarioGroups from './EffectInterpreter.scenarios.json' with { type: 'json' };
 
@@ -386,4 +390,130 @@ void describe('EffectInterpreter', () => {
       await runCase(scenario);
     });
   }
+});
+
+
+type PipelineState =
+  | { readonly 'variant': 'idle' }
+  | { readonly 'variant': 'processing' }
+  | { readonly 'variant': 'completed' };
+type PipelineEvent =
+  | { readonly 'type': 'begin' }
+  | { readonly 'sequence': readonly string[]; readonly 'type': 'complete' }
+  | { readonly 'sequence': readonly string[]; readonly 'type': 'invalid' };
+type PipelineEffect = PipelineEffectInterface<PipelineEvent>;
+
+class PipelineWorkflowMachine extends StateMachine<PipelineState, PipelineEvent, PipelineEffect> {
+  readonly rejectedEvents: PipelineEvent[] = [];
+
+  public constructor() { super(); }
+
+  override getInitialState(): PipelineState { return { variant: 'idle' }; }
+
+  override reduce(state: PipelineState, event: PipelineEvent): FsmStepInterface<PipelineState, PipelineEffect> {
+    if (state.variant === 'idle' && event.type === 'begin') {
+      return {
+        effects: [{ event: { sequence: [], type: 'complete' }, variant: 'pipeline' }],
+        state: { variant: 'processing' }
+      };
+    }
+    if (state.variant === 'processing' && event.type === 'complete') {
+      if (event.sequence.join(',') !== 'normalise,authorise') {
+        throw RuntimeError.create('pipeline stages did not preserve the declared order');
+      }
+      return { effects: [], state: { variant: 'completed' } };
+    }
+    if (state.variant === 'processing' && event.type === 'invalid') {
+      this.rejectedEvents.push(event);
+      throw RuntimeError.create('pipeline mapped an event that is invalid while processing');
+    }
+    return { effects: [], state };
+  }
+
+  protected override isTerminated(state: PipelineState): boolean {
+    return state.variant === 'completed';
+  }
+}
+
+function createPipelineWorkflowMachine(): PipelineWorkflowMachine {
+  return new PipelineWorkflowMachine();
+}
+
+void describe('EffectInterpreter pipeline effects', () => {
+  void it('runs ordered pipeline stages before its mapped event reaches the reducer', async () => {
+    const stages: string[] = [];
+    const pipeline = Pipeline.create<PipelineEvent>([
+      (event) => {
+        stages.push('normalise');
+        if (event.type !== 'complete') { return event; }
+        return { sequence: [...event.sequence, 'normalise'], type: 'complete' };
+      },
+      (event) => {
+        stages.push('authorise');
+        if (event.type !== 'complete') { return event; }
+        return { sequence: [...event.sequence, 'authorise'], type: 'complete' };
+      }
+    ]);
+    const interpreter = EffectInterpreter.create(createPipelineWorkflowMachine(), {
+      handler: PipelineEffectHandler.create(pipeline),
+      machineId: 'pipeline-ordered'
+    });
+
+    interpreter.start();
+    await interpreter.send({ type: 'begin' });
+
+    assert.deepEqual(stages, ['normalise', 'authorise']);
+    assert.deepEqual(interpreter.getState(), { variant: 'completed' });
+  });
+
+  void it('keeps the intermediate state when the reducer rejects the pipeline-mapped event', async () => {
+    const pipeline = Pipeline.create<PipelineEvent>([
+      () => ({ sequence: [], type: 'invalid' })
+    ]);
+    const machine = createPipelineWorkflowMachine();
+    const interpreter = EffectInterpreter.create(machine, {
+      handler: PipelineEffectHandler.create(pipeline),
+      machineId: 'pipeline-invalid-event'
+    });
+
+    interpreter.start();
+    await interpreter.send({ type: 'begin' });
+
+    assert.deepEqual(machine.rejectedEvents, [{ sequence: [], type: 'invalid' }]);
+    assert.deepEqual(interpreter.getState(), { variant: 'processing' });
+  });
+
+  void it('rejects new events after a pipeline-mapped event reaches a terminal state', async () => {
+    const pipeline = Pipeline.create<PipelineEvent>([
+      (event) => event,
+      (event) => event.type === 'complete'
+        ? { sequence: ['normalise', 'authorise'], type: 'complete' }
+        : event
+    ]);
+    const interpreter = EffectInterpreter.create(createPipelineWorkflowMachine(), {
+      handler: PipelineEffectHandler.create(pipeline),
+      machineId: 'pipeline-terminal'
+    });
+
+    interpreter.start();
+    await interpreter.send({ type: 'begin' });
+
+    assert.deepEqual(interpreter.getState(), { variant: 'completed' });
+    await assert.rejects(() => interpreter.send({ type: 'begin' }), MachineTerminatedError);
+  });
+
+  void it('propagates pipeline rejection after committing the intermediate state', async () => {
+    const pipeline = Pipeline.create<PipelineEvent>([
+      () => { throw RuntimeError.create('pipeline failed'); }
+    ]);
+    const interpreter = EffectInterpreter.create(createPipelineWorkflowMachine(), {
+      handler: PipelineEffectHandler.create(pipeline),
+      machineId: 'pipeline-rejection'
+    });
+
+    interpreter.start();
+
+    await assert.rejects(() => interpreter.send({ type: 'begin' }), /pipeline failed/);
+    assert.deepEqual(interpreter.getState(), { variant: 'processing' });
+  });
 });

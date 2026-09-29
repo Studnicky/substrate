@@ -17,6 +17,9 @@
       "path": "../circular-buffer"
     },
     {
+      "path": "../cache"
+    },
+    {
       "path": "../entity"
     },
     {

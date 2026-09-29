@@ -1,7 +1,7 @@
 {
   "cases": [
     {
-      "description": "Runs the basic pipeline example",
+      "description": "Runs the Northstar Books order pipeline example",
       "expected": {
         "importsWithoutThrow": true
       },

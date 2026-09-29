@@ -17,6 +17,10 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 `@studnicky/cache/node` exports runtime cache operations; schemas remain available from `@studnicky/cache/entities`.
 
+## Northstar Books catalogue reads
+
+Northstar serves a frequently viewed title catalogue without treating an in-process cache as the source of truth. Cache a read model by stable catalogue query or title identifier, choose capacity and freshness bounds for that response, and refill it from the authoritative store after a miss. `LruCache` guarantees bounded memory, least-recently-used eviction, and lazy TTL removal; callers retain invalidation and cross-process coherence policy.
+
 ## Usage
 
 Create an `LruCache` instance with a capacity, then use `set`, `get`, `has`, `delete`, and `clear`:

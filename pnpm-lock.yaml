@@ -603,6 +603,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/matching':
+        specifier: workspace:*
+        version: link:../matching
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -650,6 +653,9 @@ importers:
       '@studnicky/json':
         specifier: workspace:*
         version: link:../json
+      '@studnicky/pipeline':
+        specifier: workspace:*
+        version: link:../pipeline
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
@@ -736,56 +742,6 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
 
-  packages/keyed-rate-limiter:
-    dependencies:
-      '@studnicky/cache':
-        specifier: workspace:*
-        version: link:../cache
-      '@studnicky/entity':
-        specifier: workspace:*
-        version: link:../entity
-      '@studnicky/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@studnicky/json':
-        specifier: workspace:*
-        version: link:../json
-      '@studnicky/resilience':
-        specifier: workspace:*
-        version: link:../resilience
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@studnicky/example-smoke-kit':
-        specifier: workspace:*
-        version: link:../example-smoke-kit
-
-  packages/keyed-work-gate:
-    dependencies:
-      '@studnicky/concurrency':
-        specifier: workspace:*
-        version: link:../concurrency
-      '@studnicky/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@studnicky/mutex':
-        specifier: workspace:*
-        version: link:../mutex
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@studnicky/entity':
-        specifier: workspace:*
-        version: link:../entity
-      '@studnicky/example-smoke-kit':
-        specifier: workspace:*
-        version: link:../example-smoke-kit
-      '@studnicky/scenario-kit':
-        specifier: workspace:*
-        version: link:../scenario-kit
-
   packages/logger:
     dependencies:
       '@studnicky/clock':
@@ -836,25 +792,6 @@ importers:
         specifier: 4.0.3
         version: 4.0.3
 
-  packages/matching-filters:
-    dependencies:
-      '@studnicky/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@studnicky/filters':
-        specifier: workspace:*
-        version: link:../filters
-      '@studnicky/matching':
-        specifier: workspace:*
-        version: link:../matching
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@studnicky/example-smoke-kit':
-        specifier: workspace:*
-        version: link:../example-smoke-kit
-
   packages/memoize:
     dependencies:
       '@studnicky/cache':
@@ -888,6 +825,9 @@ importers:
       '@studnicky/clock':
         specifier: workspace:*
         version: link:../clock
+      '@studnicky/concurrency':
+        specifier: workspace:*
+        version: link:../concurrency
       '@studnicky/config':
         specifier: workspace:*
         version: link:../config
@@ -907,9 +847,9 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
-      '@studnicky/concurrency':
+      '@studnicky/example-smoke-kit':
         specifier: workspace:*
-        version: link:../concurrency
+        version: link:../example-smoke-kit
       '@studnicky/scenario-kit':
         specifier: workspace:*
         version: link:../scenario-kit
@@ -1019,6 +959,9 @@ importers:
 
   packages/resilience:
     dependencies:
+      '@studnicky/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@studnicky/circular-buffer':
         specifier: workspace:*
         version: link:../circular-buffer
@@ -1214,22 +1157,6 @@ importers:
         specifier: ^6.2.5
         version: 6.2.5
 
-  packages/strata-store-kit:
-    dependencies:
-      '@studnicky/mutex':
-        specifier: workspace:*
-        version: link:../mutex
-      '@studnicky/store':
-        specifier: workspace:*
-        version: link:../store
-    devDependencies:
-      '@studnicky/context':
-        specifier: workspace:*
-        version: link:../context
-      '@studnicky/example-smoke-kit':
-        specifier: workspace:*
-        version: link:../example-smoke-kit
-
   packages/system:
     dependencies:
       '@studnicky/entity':
@@ -1331,25 +1258,6 @@ importers:
       '@studnicky/matching':
         specifier: workspace:*
         version: link:../matching
-      '@studnicky/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@studnicky/example-smoke-kit':
-        specifier: workspace:*
-        version: link:../example-smoke-kit
-
-  packages/topic-router-models:
-    dependencies:
-      '@studnicky/errors':
-        specifier: workspace:*
-        version: link:../errors
-      '@studnicky/matching':
-        specifier: workspace:*
-        version: link:../matching
-      '@studnicky/topic-router':
-        specifier: workspace:*
-        version: link:../topic-router
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types

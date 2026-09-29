@@ -18,6 +18,9 @@ pnpm add @studnicky/store
 | Browser | `@studnicky/store/browser` |
 | Shared entities | `@studnicky/store/entities` |
 | Shared contracts | `@studnicky/store/interfaces` |
+| Strata on Node | `@studnicky/store/strata` |
+| Strata in browsers | `@studnicky/store/strata/browser` |
+| Strata contract | `@studnicky/store/strata/interfaces` |
 
 <details>
 <summary>Store</summary>
@@ -29,7 +32,7 @@ pnpm add @studnicky/store
 <details>
 <summary>ContextStore</summary>
 
-`ContextStore<TState>` is available from both runtime entry points. It resolves a backing store for each active `Context` scope and requires a stable `synchronizationIdentity` that every backing store uses. This lets one `StrataStore` relay updates from every scope to a durable target.
+`ContextStore<TState>` is available from both runtime entry points. It resolves a backing store for each active `Context` scope and requires a stable `synchronizationIdentity` that every backing store uses. `StrataStore` relays updates from every scope to a durable target.
 
 </details>
 

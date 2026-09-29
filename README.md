@@ -149,24 +149,6 @@ Use it to send work through a bounded execution path with scheduling and event d
 
 </details>
 
-<details>
-<summary><strong>@studnicky/keyed-work-gate</strong> — run one operation per key</summary>
-
-Use it to serialize or single-flight work independently for each key.
-
-[Read the keyed-work-gate guide →](https://studnicky.github.io/substrate/packages/keyed-work-gate)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/keyed-rate-limiter</strong> — apply rate limits per key</summary>
-
-Use it when each customer, route, or other key needs its own rate-limiting strategy.
-
-[Read the keyed-rate-limiter guide →](https://studnicky.github.io/substrate/packages/keyed-rate-limiter)
-
-</details>
-
 ### Time
 
 <details>
@@ -246,18 +228,9 @@ Use it when a stateful process needs explicit state updates and scheduled effect
 <details>
 <summary><strong>@studnicky/store</strong> — keep observable application state</summary>
 
-Use it for observable state with in-memory or browser-native persistence.
+Use it for observable state with in-memory or browser-native persistence, including ordered cache and durable browser-state synchronization through its strata entrypoints.
 
 [Read the store guide →](https://studnicky.github.io/substrate/packages/store)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/strata-store-kit</strong> — synchronize cache and browser state</summary>
-
-Use it to keep ordered cache and durable browser state aligned.
-
-[Read the strata-store-kit guide →](https://studnicky.github.io/substrate/packages/strata-store-kit)
 
 </details>
 
@@ -327,9 +300,9 @@ Use it to explore arbitrary record data through deterministic multi-level drilld
 </details>
 
 <details>
-<summary><strong>@studnicky/filters</strong> — compose declarative filters</summary>
+<summary><strong>@studnicky/filters</strong> — compose declarative filters and deterministic matching-score thresholds</summary>
 
-Use it to express reusable filtering rules over application data.
+Use it to express reusable filtering rules over application data and apply focused matching-score thresholds through its matching entrypoint.
 
 [Read the filters guide →](https://studnicky.github.io/substrate/packages/filters)
 
@@ -356,15 +329,6 @@ Use it to build deterministic matching and ranking flows over application data.
 </details>
 
 <details>
-<summary><strong>@studnicky/matching-filters</strong> — filter matching scores</summary>
-
-Use it to add focused filters to a deterministic matching result.
-
-[Read the matching-filters guide →](https://studnicky.github.io/substrate/packages/matching-filters)
-
-</details>
-
-<details>
 <summary><strong>@studnicky/semantic-matching</strong> — define semantic matching integrations</summary>
 
 Use it when your application supplies vectorization, search, reranking, or classification providers.
@@ -379,15 +343,6 @@ Use it when your application supplies vectorization, search, reranking, or class
 Use it to deliver one published topic to every matching subscriber.
 
 [Read the topic-router guide →](https://studnicky.github.io/substrate/packages/topic-router)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/topic-router-models</strong> — describe model-backed topic delivery</summary>
-
-Use it to map model evidence into a topic-delivery flow.
-
-[Read the topic-router-models guide →](https://studnicky.github.io/substrate/packages/topic-router-models)
 
 </details>
 
@@ -441,7 +396,7 @@ Use it to combine a request, retry policy, cancellation, timing, and request con
 <details>
 <summary><strong>@studnicky/resilience</strong> — protect unreliable dependencies</summary>
 
-Use it for circuit breaking, token buckets, sliding-window limits, and dead-letter queues.
+Use it for circuit breaking, token buckets, keyed and sliding-window limits, and dead-letter queues.
 
 [Read the resilience guide →](https://studnicky.github.io/substrate/packages/resilience)
 

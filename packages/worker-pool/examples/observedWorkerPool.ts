@@ -41,17 +41,17 @@ class TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {
   }
 }
 
-const pool = TelemetryWorkerPool.create({
+const pool = TelemetryWorkerPool.create<ItemEntity.Type, number, TelemetryWorkerPool>({
   'concurrency': 2,
   'workerPath': fileURLToPath(new URL('./observedWorkerPoolWorker.ts', import.meta.url))
 });
 
-const results = await pool.run([{ 'n': 5 }, { 'n': 10 }, { 'n': 15 }]);
+const results = await pool.run([{ 'n': 1 }, { 'n': 2 }, { 'n': 3 }]);
 
-console.log('Fibonacci results:', results);
+console.log('Northstar Books fulfilment quotes (cents):', results);
 // #endregion usage
 
-assert.deepEqual(results, [5, 55, 610]);
+assert.deepEqual(results, [495, 990, 1485]);
 assert.equal(pool.logs.length, 3);
 assert.equal(pool.progressEvents.length, 3);
 assert.equal(pool.errors.length, 0);

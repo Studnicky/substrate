@@ -59,6 +59,17 @@ const user = await mutex.runExclusive(
 
 Acquisitions for a given key are granted in the order they were requested. Waiters queued behind a held lock form a FIFO — `acquire()`/`runExclusive()` calls that arrive first are released first once the lock frees up. This extends to timeouts: if a burst of queued waiters for the same key all time out, they reject in that same request order.
 
+## Keyed work gates
+
+`@studnicky/mutex/gate` exports `KeyedWorkGate` for keyed work coordination. `runSingleFlight` lets concurrent callers for one key share one `Coalesce` execution; `runSerialized` runs each operation while preserving per-key mutex exclusion. The single-flight leader acquires the mutex after coalescing joins duplicate callers.
+
+```typescript
+import { KeyedWorkGate } from "@studnicky/mutex/gate";
+
+const gate = KeyedWorkGate.create<string>();
+const profile = await gate.runSingleFlight("user:1", () => fetchUser("user:1"));
+```
+
 ## Extending
 
 Subclass `Mutex` and override any of the protected lifecycle hooks to add telemetry without coupling the base class to a metrics library. The hooks fire around every acquire and release cycle.

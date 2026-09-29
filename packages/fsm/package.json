@@ -65,6 +65,7 @@
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/pipeline": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {

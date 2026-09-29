@@ -10,6 +10,17 @@
       },
       "name": "filterProducts",
       "shape": "imports-example"
+    },
+    {
+      "description": "the fuzzyFilter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/fuzzyFilter.ts"
+      },
+      "name": "fuzzyFilter",
+      "shape": "imports-example"
     }
   ]
 }

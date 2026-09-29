@@ -19,6 +19,10 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 Import `EventBus` and `BusQueue` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import event contracts from `@studnicky/event-bus/interfaces` and schema declarations from `@studnicky/event-bus/entities`.
 
+## Northstar Books fulfilment events
+
+When Northstar accepts an order, audit capture, fulfilment dispatch, and analytics each need the order event without one consumer slowing another. Publish a typed order event to the bus and give each concern its own subscription. `EventBus` guarantees typed topic payloads and independent bounded subscriber queues; a slow analytics subscriber applies backpressure only to its own queue, not to audit or fulfilment delivery.
+
 ## Usage
 
 Subscribe to a topic, publish a payload, and drain the queue. The subscriber receives every published item:

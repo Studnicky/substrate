@@ -7,33 +7,32 @@ import { LruCache } from '../src/index.js';
 
 const cache = LruCache.create<string, string>({ 'capacity': 2 });
 
-// Fill to capacity
-cache.set('a', 'alpha');
-cache.set('b', 'beta');
+// Northstar Books keeps its hottest catalogue records in a bounded cache.
+cache.set('978-0132350884', 'Clean Code');
+cache.set('978-0201633610', 'Design Patterns');
 
-// Access 'a' — promotes it to MRU; 'b' becomes LRU
-const aBeforeEviction = cache.get('a');
-console.log('get a (promotes to MRU):', aBeforeEviction);
+// A checkout lookup for Clean Code promotes that catalogue record to MRU.
+const cleanCodeBeforeEviction = cache.get('978-0132350884');
+console.log('catalogue hit for Clean Code:', cleanCodeBeforeEviction);
 
-// Adding 'c' evicts 'b' (least recently used)
-cache.set('c', 'gamma');
+// Reading a third title evicts the least recently used catalogue record.
+cache.set('978-0321125217', 'Domain-Driven Design');
 
-const aAfter = cache.get('a');
-const cAfter = cache.get('c');
-const bAfter = cache.get('b');
+const cleanCodeAfter = cache.get('978-0132350884');
+const domainDrivenDesignAfter = cache.get('978-0321125217');
+const designPatternsAfter = cache.get('978-0201633610');
 
-console.log('get a after eviction:', aAfter);
-console.log('get c after eviction:', cAfter);
-console.log('get b after eviction (evicted):', bAfter);
-console.log('has b:', cache.has('b'));
-console.log('size:', cache.size);
+console.log('cached Clean Code:', cleanCodeAfter);
+console.log('cached Domain-Driven Design:', domainDrivenDesignAfter);
+console.log('evicted Design Patterns:', designPatternsAfter);
+console.log('catalogue size:', cache.size);
 // #endregion usage
 
-assert.equal(aBeforeEviction, 'alpha');
-assert.equal(aAfter, 'alpha');
-assert.equal(cAfter, 'gamma');
-assert.equal(bAfter, undefined);
-assert.equal(cache.has('b'), false);
+assert.equal(cleanCodeBeforeEviction, 'Clean Code');
+assert.equal(cleanCodeAfter, 'Clean Code');
+assert.equal(domainDrivenDesignAfter, 'Domain-Driven Design');
+assert.equal(designPatternsAfter, undefined);
+assert.equal(cache.has('978-0201633610'), false);
 assert.equal(cache.size, 2);
 
 console.log('lruEviction: all assertions passed');

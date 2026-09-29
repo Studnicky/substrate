@@ -9,6 +9,10 @@ description: Deterministic matching, scoring, encoding, extraction, and candidat
 
 `GlobMatcher` supports standard `*`, `**`, `?`, character-class, and brace-alternative glob syntax through a browser-compatible implementation. `TrieMatcher` compiles one segment pattern for repeated evaluation, while `TreeMatcher` and the candidate-index classes own mutable registration and candidate materialization.
 
+## Northstar Books catalogue matching
+
+A reader who searches for a title by a misspelled name, partial ISBN, or alternate spelling still needs a catalogue result that the server can explain and reproduce. Northstar normalizes the query, materializes candidates, then chooses its scoring policy with these primitives. The package guarantees deterministic normalization, candidate materialization, matching, and score evidence; the application retains control of thresholds, ranking policy, and the surrounding search workflow.
+
 ## Install
 
 ```bash

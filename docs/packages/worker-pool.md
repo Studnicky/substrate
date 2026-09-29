@@ -17,6 +17,10 @@ pnpm add @studnicky/worker-pool
 
 Use `@studnicky/worker-pool/node` for `WorkerPool` and worker-thread leases. Use `@studnicky/worker-pool/browser` for `WebWorkerPool` and native Web Workers. Shared contracts live at `@studnicky/worker-pool/interfaces`.
 
+## Northstar Books quote and fulfilment work
+
+Northstar can compute a batch of delivery quotes or fulfilment labels without allowing one CPU-heavy task to saturate the web server. Submit the independent inputs to a bounded worker pool and choose the worker limit and timeout for the deployment. The pool guarantees bounded concurrent execution and input-order results; a task error rejects the batch, and an unexpected worker exit gets one replacement attempt.
+
 ## Run work
 
 Configure `workerPath`, `concurrency`, and optional `timeoutMs`, then call `run(items)`. Results retain input order. A task error rejects `run`; an unexpected worker exit receives one replacement attempt.

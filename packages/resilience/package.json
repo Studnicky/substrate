@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/resilience",
   "version": "14.0.0",
-  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, SlidingWindowLimiter, DeadLetterQueue",
+  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, KeyedRateLimiter, SlidingWindowLimiter, DeadLetterQueue",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -20,6 +20,18 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./keyed": {
+      "types": "./dist/keyed/index.d.ts",
+      "import": "./dist/keyed/index.js"
+    },
+    "./keyed/entities": {
+      "types": "./dist/keyed/entities/index.d.ts",
+      "import": "./dist/keyed/entities/index.js"
+    },
+    "./keyed/interfaces": {
+      "types": "./dist/keyed/interfaces/index.d.ts",
+      "import": "./dist/keyed/interfaces/index.js"
     }
   },
   "files": [
@@ -60,6 +72,7 @@
   },
   "dependencies": {
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/cache": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",

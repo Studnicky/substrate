@@ -19,6 +19,10 @@ Runtime helpers publish from both `@studnicky/types/node` and `@studnicky/types/
 
 `Predicates` is the package's single unified static class for type narrowing, value comparison, and JSON Schema-style validation. `Predicate` composes atomic type guards while preserving their narrowed types: use `and`, `or`, `not`, `field`, `arrayItems`, and `mapEntries` to parse an untrusted value once into a canonical structural shape. `Empty` produces fresh empty collection instances. `JsonObject` and `JsonValue` implement runtime JSON boundaries. `RuntimeValue` validates recursive operands that retain native Date, Map, and Set values.
 
+## Northstar Books boundary
+
+Northstar receives catalogue filters, cart payloads, and supplier records as `unknown` at HTTP and message boundaries. `Predicate`, `JsonObject`, and `JsonValue` turn those inputs into a checked structural shape once, while `RuntimeValue` admits internal jobs that legitimately carry `Date`, `Map`, or `Set`. The guarantee is explicit: downstream catalogue and checkout code receives a normalized value or the boundary rejects it; it does not keep reinterpreting untrusted fields.
+
 <<< ../../packages/types/examples/predicates-accessors.ts#usage
 
 ## Try it

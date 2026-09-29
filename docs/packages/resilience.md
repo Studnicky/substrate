@@ -1,6 +1,6 @@
 ---
 title: '@studnicky/resilience'
-description: "Composable resilience primitives: circuit breaker, token bucket, sliding-window limiter, and dead-letter queue."
+description: "Composable resilience primitives: circuit breaker, token bucket, keyed limiter, sliding-window limiter, and dead-letter queue."
 ---
 
 # @studnicky/resilience
@@ -17,6 +17,12 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 Construct runtime primitives through `@studnicky/resilience/node` in Node or `@studnicky/resilience/browser` in browsers. Schema-backed data declarations live at `@studnicky/resilience/entities`, and type-only contracts live at `@studnicky/resilience/interfaces`.
 
+## Northstar Books supplier boundary
+
+Northstar Books protects catalogue and inventory-supplier calls at three different failure boundaries. A circuit breaker stops repeated requests to an unhealthy supplier; a token bucket limits the process-wide demand budget; and a dead-letter queue retains a rejected replenishment task for deliberate recovery. `KeyedRateLimiter` from `@studnicky/resilience/keyed` gives each supplier account or tenant an independent budget while bounded key retention prevents an unbounded registry.
+
+Each primitive makes one guarantee only: breakers reject while their circuit is open, limiters admit only available local capacity, and queues retain only their bounded in-memory entries. These controls do not replace a supplier-wide or durable distributed rate limit; Northstar applies those at the supplier or persistence boundary.
+
 ## Usage
 
 ### CircuitBreaker
@@ -30,6 +36,12 @@ Tracks failures and opens the circuit after a threshold, then probes with limite
 Token-bucket rate limiter; `consume` throws immediately when exhausted, `waitForToken` blocks until tokens refill. Both operations accept positive finite token counts, including fractional units. An optional `clock` supplies finite, nondecreasing millisecond readings for deterministic tests.
 
 <<< ../../packages/resilience/examples/token-bucket.ts#usage
+
+### KeyedRateLimiter
+
+`KeyedRateLimiter` creates one rate-limiting strategy per key, using `TokenBucket` by default. `maximumKeys` bounds the key registry and `keyIdleTtlMs` evicts idle strategies.
+
+<<< ../../packages/resilience/examples/observedKeyedRateLimiter.ts#usage
 
 ### SlidingWindowLimiter
 
@@ -126,6 +138,8 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 
 <RunnableExample src="packages/resilience/examples/observedSlidingWindowLimiter" title="Sliding-window rate limiting" />
 
+<RunnableExample src="packages/resilience/examples/observedKeyedRateLimiter" title="Per-key token buckets with LRU eviction" />
+
 ## Exports
 
 | Symbol | Purpose | Import path |
@@ -152,6 +166,11 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 | `SlidingWindowLimiterConfigError` | Signals invalid sliding-window limiter configuration. | `@studnicky/resilience/node` |
 | `SlidingWindowLimiterError` | Base error for sliding-window limiter failures. | `@studnicky/resilience/node` |
 | `SlidingWindowLimiterOptionsInterface` | Caller-supplied sliding-window limiter options, including algorithm and clock. | `@studnicky/resilience/interfaces` |
+| `KeyedRateLimiter` | Per-key rate limiter with an injectable strategy. | `@studnicky/resilience/keyed` |
+| `KeyedRateLimiterBoundaryError` | Signals invalid request, strategy, or strategy result boundaries. | `@studnicky/resilience/keyed` |
+| `KeyedRateLimiterConfigError` | Signals invalid keyed limiter configuration. | `@studnicky/resilience/keyed` |
+| `KeyedRateLimiterError` | Base error for keyed limiter failures. | `@studnicky/resilience/keyed` |
+| `RateLimiterStrategyInterface` | Structural strategy contract. | `@studnicky/resilience/keyed/interfaces` |
 | `RateLimitConsumptionEntity` | Schema-derived admission result with `consumedTokens` and `remainingTokens`. | `@studnicky/resilience/entities` |
 | `SlidingWindowLimiterOptionsEntity` | Schema-derived sliding-window limiter options. | `@studnicky/resilience/entities` |
 

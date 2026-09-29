@@ -16,8 +16,8 @@ class TelemetryVisibleRange extends VisibleRange {
   }
 }
 
-// Fixed mode: every row is 40px tall, no DOM — the caller supplies scroll
-// offset and viewport size from its own scroll-event/ResizeObserver wiring.
+// Northstar Books renders a virtual catalogue: every compact title row is 40px tall.
+// The catalogue view supplies scroll offset and viewport size from its event wiring.
 const rows = TelemetryVisibleRange.create({ 'count': 10_000, 'itemSize': 40, 'overscan': 2 });
 
 rows.setViewportSize(400);
@@ -30,10 +30,9 @@ rows.getRange(); // no fire — identical range
 rows.setScrollOffset(2000);
 rows.getRange(); // fires — scrolled past the previous window
 
-console.log('Fixed-mode ranges:', fixedModeChanges);
+console.log('Northstar Books catalogue viewport ranges:', fixedModeChanges);
 
-// Variable mode: rows have an estimated size, corrected as real
-// measurements arrive (e.g. after a row renders and reports its height).
+// Search-result cards use estimated heights, corrected after catalogue cards render.
 const list = VisibleRange.create(
   { 'count': 500, 'overscan': 1 },
   {
@@ -56,8 +55,8 @@ for (let i = 0; i < 10; i++) {
 
 const corrected = list.getRange();
 
-console.log('Variable-mode range (estimated):', estimated);
-console.log('Variable-mode range (after measureItem corrections):', corrected);
+console.log('Catalogue card range (estimated):', estimated);
+console.log('Catalogue card range (after measurement):', corrected);
 // #endregion usage
 
 assert.equal(fixedModeChanges.length, 2);

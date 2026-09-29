@@ -28,6 +28,12 @@ composition is a different `Pipeline.create()` call with a different array:
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
+## Northstar Books order preparation
+
+A Northstar Books checkout endpoint prepares an accepted order before any fulfilment state changes. A fixed pipeline validates the submitted cart, calculates current prices, and selects warehouse routing from the transformed order context. Each stage receives the preceding result, so server code has one typed path for the request data rather than parallel validation, pricing, and routing branches.
+
+The pipeline resolves with the prepared order or rejects at the stage that cannot proceed. It does not decide whether an order is legally preparing, allocated, or shipped; an FSM reducer owns those state transitions. This is a web/server integration pattern, not a claim about output from the runnable demos below.
+
 ## Try it
 
 The basic demo constructs a `Pipeline` directly with `Pipeline.create<RequestCtx>([...stages])`. Each stage receives the transformed context from the previous one.

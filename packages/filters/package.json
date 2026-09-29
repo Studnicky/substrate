@@ -17,6 +17,10 @@
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
     },
+    "./matching": {
+      "types": "./dist/matching/index.d.ts",
+      "import": "./dist/matching/index.js"
+    },
     "./entities": {
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
@@ -64,6 +68,7 @@
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/matching": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
   },

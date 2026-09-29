@@ -1,74 +1,153 @@
-/** traffic-light — basic state transitions with an EffectInterpreter. Run: npx tsx examples/traffic-light.ts */
+/**
+ * traffic-light — progress a Northstar Books order through legal fulfilment
+ * states. A pipeline effect validates, prices, and routes the submitted order.
+ *
+ * Run: npx tsx examples/traffic-light.ts
+ */
 
+import type { EntityCreateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Pipeline } from '@studnicky/pipeline/node';
 import assert from 'node:assert/strict';
 
+import type { FsmStepInterface, PipelineEffectInterface } from '../src/index.js';
+
+import { EffectInterpreter, PipelineEffectHandler, StateMachine } from '../src/index.js';
+
 // #region usage
-import type { EffectHandlerInterface, FsmStepInterface } from '../src/index.js';
-import type { TrafficEffectEntity } from './entities/TrafficEffectEntity.js';
-import type { TrafficEventEntity } from './entities/TrafficEventEntity.js';
-import type { TrafficStateEntity } from './entities/TrafficStateEntity.js';
+namespace NorthstarFulfilmentStateEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'variant': { 'enum': ['draft', 'processing', 'ready-to-ship', 'shipped'], 'type': 'string' }
+    },
+    'required': ['variant'],
+    'type': 'object'
+  } as const;
 
-import { EffectInterpreter, StateMachine } from '../src/index.js';
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['draft', 'processing', 'ready-to-ship', 'shipped'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
-class TrafficLight extends StateMachine<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> {
-  static make(): TrafficLight { return new TrafficLight(); }
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
+}
 
-  getInitialState(): TrafficStateEntity.Type {
-    return { 'variant': 'red' };
+namespace NorthstarFulfilmentEventEntity {
+  export const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'stages': { 'items': { 'type': 'string' }, 'type': 'array' },
+      'type': { 'enum': ['ship', 'submit', 'validated'], 'type': 'string' }
+    },
+    'required': ['stages', 'type'],
+    'type': 'object'
+  } as const;
+
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'stages': SchemaNode.defineArray({}, SchemaNode.defineString({}), undefined), 'type': SchemaNode.defineEnum({}, ['ship', 'submit', 'validated'] as const) }, ['stages', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
+
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
+}
+
+interface NorthstarFulfilmentEffectInterface extends PipelineEffectInterface<NorthstarFulfilmentEventEntity.Type> {}
+
+class NorthstarFulfilmentMachine extends StateMachine<
+  NorthstarFulfilmentStateEntity.Type,
+  NorthstarFulfilmentEventEntity.Type,
+  NorthstarFulfilmentEffectInterface
+> {
+  static make(): NorthstarFulfilmentMachine { return new NorthstarFulfilmentMachine(); }
+
+  getInitialState(): NorthstarFulfilmentStateEntity.Type {
+    const state = NorthstarFulfilmentStateEntity.create({ 'variant': 'draft' });
+    return state;
   }
 
   reduce(
-    state: TrafficStateEntity.Type,
-    event: TrafficEventEntity.Type
-  ): FsmStepInterface<TrafficStateEntity.Type, TrafficEffectEntity.Type> {
-    if (event.type === 'advance') {
-      if (state.variant === 'red')   {return { 'effects': [], 'state': { 'variant': 'green' } };}
-      if (state.variant === 'green') {return { 'effects': [{ 'tone': 'chime', 'variant': 'playSound' }], 'state': { 'variant': 'amber' } };}
-      if (state.variant === 'amber') {return { 'effects': [], 'state': { 'variant': 'red' } };}
+    state: NorthstarFulfilmentStateEntity.Type,
+    event: NorthstarFulfilmentEventEntity.Type
+  ): FsmStepInterface<NorthstarFulfilmentStateEntity.Type, NorthstarFulfilmentEffectInterface> {
+    if (state.variant === 'draft' && event.type === 'submit') {
+      const step: FsmStepInterface<NorthstarFulfilmentStateEntity.Type, NorthstarFulfilmentEffectInterface> = {
+        'effects': [{ 'event': NorthstarFulfilmentEventEntity.create({ 'stages': [], 'type': 'validated' }), 'variant': 'pipeline' }],
+        'state': NorthstarFulfilmentStateEntity.create({ 'variant': 'processing' })
+      };
+      return step;
     }
-    return { 'effects': [], 'state': state };
+    if (state.variant === 'processing' && event.type === 'validated') {
+      if (event.stages.join(',') !== 'validate,price,route') {
+        throw new Error('Northstar Books order pipeline did not finish every fulfilment stage');
+      }
+      const step: FsmStepInterface<NorthstarFulfilmentStateEntity.Type, NorthstarFulfilmentEffectInterface> = {
+        'effects': [],
+        'state': NorthstarFulfilmentStateEntity.create({ 'variant': 'ready-to-ship' })
+      };
+      return step;
+    }
+    if (state.variant === 'ready-to-ship' && event.type === 'ship') {
+      const step: FsmStepInterface<NorthstarFulfilmentStateEntity.Type, NorthstarFulfilmentEffectInterface> = {
+        'effects': [],
+        'state': NorthstarFulfilmentStateEntity.create({ 'variant': 'shipped' })
+      };
+      return step;
+    }
+    const step: FsmStepInterface<NorthstarFulfilmentStateEntity.Type, NorthstarFulfilmentEffectInterface> = {
+      'effects': [],
+      'state': state
+    };
+    return step;
+  }
+
+  protected override isTerminated(state: NorthstarFulfilmentStateEntity.Type): boolean {
+    const terminated = state.variant === 'shipped';
+    return terminated;
   }
 }
 
-class TrafficLightDemo {
-  static readonly soundsPlayed: string[] = [];
-  static readonly history: string[] = [];
-
-  static readonly handler: EffectHandlerInterface<TrafficEffectEntity.Type> = (effect) => {
-    TrafficLightDemo.soundsPlayed.push(effect.tone);
-  };
-
-  static async run(): Promise<{ readonly 'finalVariant': TrafficStateEntity.Type['variant']; readonly 'history': string[]; readonly 'soundsPlayed': string[] }> {
-    const machine: TrafficLight = TrafficLight.make();
-    const interpreter: EffectInterpreter<TrafficStateEntity.Type, TrafficEventEntity.Type, TrafficEffectEntity.Type> = EffectInterpreter.create(machine, {
-      'handler': TrafficLightDemo.handler,
-      'machineId': 'test-light'
-    });
-
-    const unsubscribe = interpreter.subscribe((state) => { TrafficLightDemo.history.push(state.variant); });
-
-    interpreter.start();
-
-    await interpreter.send({ 'type': 'advance' });
-    await interpreter.send({ 'type': 'advance' });
-    await interpreter.send({ 'type': 'advance' });
-
-    console.log('State after 3 advances:', interpreter.getState().variant);
-    console.log('Sound history:', TrafficLightDemo.soundsPlayed);
-    console.log('State history:', TrafficLightDemo.history);
-
-    unsubscribe();
-    interpreter.stop();
-
-    return { 'finalVariant': interpreter.getState().variant, 'history': TrafficLightDemo.history, 'soundsPlayed': TrafficLightDemo.soundsPlayed };
+const fulfilmentPipeline = Pipeline.create<NorthstarFulfilmentEventEntity.Type>([
+  (event) => {
+    const result: NorthstarFulfilmentEventEntity.Type = event.type === 'validated'
+      ? NorthstarFulfilmentEventEntity.create({ 'stages': [...event.stages, 'validate'], 'type': 'validated' })
+      : event;
+    return result;
+  },
+  (event) => {
+    const result: NorthstarFulfilmentEventEntity.Type = event.type === 'validated'
+      ? NorthstarFulfilmentEventEntity.create({ 'stages': [...event.stages, 'price'], 'type': 'validated' })
+      : event;
+    return result;
+  },
+  (event) => {
+    const result: NorthstarFulfilmentEventEntity.Type = event.type === 'validated'
+      ? NorthstarFulfilmentEventEntity.create({ 'stages': [...event.stages, 'route'], 'type': 'validated' })
+      : event;
+    return result;
   }
-}
+]);
 
-const results = await TrafficLightDemo.run();
+const machine = NorthstarFulfilmentMachine.make();
+const interpreter = EffectInterpreter.create(machine, {
+  'handler': PipelineEffectHandler.create(fulfilmentPipeline),
+  'machineId': 'northstar-order-9780132350884'
+});
+
+interpreter.start();
+await interpreter.send(NorthstarFulfilmentEventEntity.create({ 'stages': [], 'type': 'ship' }));
+assert.equal(interpreter.getState().variant, 'draft');
+
+await interpreter.send(NorthstarFulfilmentEventEntity.create({ 'stages': [], 'type': 'submit' }));
+assert.equal(interpreter.getState().variant, 'ready-to-ship');
+
+await interpreter.send(NorthstarFulfilmentEventEntity.create({ 'stages': [], 'type': 'ship' }));
+const status = interpreter.getState().variant;
+console.log(`Northstar Books order 9780132350884 is ${status}`);
+interpreter.stop();
 // #endregion usage
 
-assert.equal(results.finalVariant, 'red');
-assert.deepEqual(results.soundsPlayed, ['chime']);
-assert.deepEqual(results.history, ['red', 'green', 'amber', 'red']);
+assert.equal(interpreter.getState().variant, 'shipped');
 
 console.log('traffic-light: all assertions passed');

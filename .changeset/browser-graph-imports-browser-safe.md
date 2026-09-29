@@ -26,7 +26,6 @@
 "@studnicky/keyed-work-gate": major
 "@studnicky/logger": major
 "@studnicky/matching": major
-"@studnicky/matching-filters": major
 "@studnicky/memoize": major
 "@studnicky/mutex": major
 "@studnicky/paginator": major
