@@ -9,7 +9,7 @@
       },
       "expected": {
         "acquireEvents": 1,
-        "waitTimeMsMax": 10
+        "waitTimeMs": 0
       }
     },
     {

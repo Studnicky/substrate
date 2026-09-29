@@ -71,7 +71,7 @@ export namespace ObservabilityScenarioCaseEntity {
           'secondWaitTimeMsMin': { 'type': 'number' },
           'timeoutMs': { 'type': 'number' },
           'unhandledRejections': { 'type': 'number' },
-          'waitTimeMsMax': { 'type': 'number' }
+          'waitTimeMs': { 'type': 'number' }
         },
         'required': [],
         'type': 'object'
@@ -134,7 +134,7 @@ export namespace ObservabilityScenarioCaseEntity {
           'secondWaitTimeMsMin': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
           'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'waitTimeMsMax': SchemaNode.defineNumber({ 'type': 'number' } as const)
+          'waitTimeMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
         }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
           'batch': SchemaNode.defineObject({ 'type': 'object' } as const, { 'pendingCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),

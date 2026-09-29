@@ -1,3 +1,4 @@
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
@@ -391,13 +392,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
   },
   'afterAcquire-immediate': async (scenarioCase) => {
     const key = readStringKey(scenarioCase.input);
-    const mutex = AcquireTrackingMutex.build();
+    const mutex = AcquireTrackingMutex.build({ 'clock': VirtualClockProvider.create(VirtualTimeCounter.create()) });
     const release = await mutex.acquire(key);
     assert.strictEqual(mutex.acquireEvents.length, scenarioCase.expected.acquireEvents);
     const ev = readArrayItem(mutex.acquireEvents, 0, 'Acquire events');
     assert.strictEqual(ev.key, key);
-    assert.ok(ev.waitTimeMs >= 0);
-    assert.ok(ev.waitTimeMs < readNumber(scenarioCase.expected.waitTimeMsMax, 'Scenario expected.waitTimeMsMax'));
+    assert.strictEqual(ev.waitTimeMs, readNumber(scenarioCase.expected.waitTimeMs, 'Scenario expected.waitTimeMs'));
     release();
   },
   'afterAcquire-separate-keys': async (scenarioCase) => {
