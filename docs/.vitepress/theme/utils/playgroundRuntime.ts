@@ -81,13 +81,13 @@ function assert(value: unknown, message?: string | Error): void {
   throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
 }
 
-const deepEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
+function deepEqual(a: unknown, b: unknown, msg?: string | Error): void {
   const as = JSON.stringify(a);
   const bs = JSON.stringify(b);
   if (as !== bs) {
     throw new Error(msg instanceof Error ? msg.message : (msg ?? `Deep equal failed:\n  ${as}\n  ${bs}`));
   }
-};
+}
 
 function makeAssertShim(): unknown {
   assert.ok = assert;
