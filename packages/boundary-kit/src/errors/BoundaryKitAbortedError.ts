@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /**
  * Thrown by `BoundaryKit#execute()` when the composed `Throttle` discards the call via

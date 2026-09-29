@@ -1,6 +1,6 @@
 /** Thrown when a scheduler operation fails. */
 
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 export class SchedulerError extends BaseError {
   public override readonly name: string = 'SchedulerError';

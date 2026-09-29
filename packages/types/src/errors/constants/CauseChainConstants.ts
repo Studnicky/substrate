@@ -9,4 +9,3 @@ export const CAUSE_CHAIN_DEPTH_LIMIT = 32;
 
 /** String sentinel emitted when a cause chain exceeds the depth limit. */
 export const CAUSE_DEPTH_SENTINEL = '[cause chain depth limit reached]';
-

@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /**
  * Error thrown when a throttled operation is aborted

@@ -1,11 +1,12 @@
 /** 03-domain-subclass — Domain-specific error subclass extending ModuleError. Run: npx tsx packages/errors/examples/03-domain-subclass.ts */
 
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 
 // #region usage
 import type { ModuleErrorOptionsInterface } from '../src/index.js';
 
-import { BaseError, ModuleError } from '../src/index.js';
+import { ModuleError } from '../src/index.js';
 
 class StorageError extends ModuleError {
   public override readonly name: string = 'StorageError';

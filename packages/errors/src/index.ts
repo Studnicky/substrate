@@ -27,7 +27,6 @@ export {
   HttpStatus
 } from './constants/index.js';
 export {
-  BaseError,
   CliExitError,
   DomainErrorArgumentList,
   HookInvocationError,
@@ -40,7 +39,6 @@ export {
   ValidationErrors
 } from './errors/index.js';
 export type {
-  BaseErrorArgumentsInterface,
   DomainErrorOptionsInterface,
   ErrorClassifierFunctionInterface,
   ErrorClassifierInterface,

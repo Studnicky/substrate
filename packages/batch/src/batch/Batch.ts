@@ -1,7 +1,5 @@
-import {
-  BaseError, HookInvoker
-} from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { BaseError, Predicates } from '@studnicky/types/browser';
 
 import {
   DEFAULT_BATCH_MAXIMUM_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX

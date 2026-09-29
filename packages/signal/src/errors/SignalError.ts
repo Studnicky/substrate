@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /** Thrown when `Signal#compose()` receives invalid configuration (e.g. negative `deadlineMs`). */
 export class SignalError extends BaseError {

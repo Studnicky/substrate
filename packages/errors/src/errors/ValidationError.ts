@@ -5,11 +5,12 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
+import { BaseError } from '@studnicky/types/browser';
+
 import type { ValidationErrorArgumentsEntity } from '../entities/ValidationErrorArgumentsEntity.js';
 import type { ValidationViolationDetailEntity } from '../entities/ValidationViolationDetailEntity.js';
 
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
-import { BaseError } from './BaseError.js';
 import { ErrorCodeRegistry } from './ErrorCodeRegistry.js';
 
 // Register the error code at module load.

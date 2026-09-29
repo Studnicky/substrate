@@ -1,4 +1,4 @@
-import { BaseError } from './BaseError.js';
+import { BaseError } from '@studnicky/types/browser';
 
 interface RuntimeErrorOptionsInterface {
   readonly 'cause'?: unknown;

@@ -2,10 +2,9 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-
 import {
   PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TYPE_THROWN_NULLISH
-} from '../constants/ProblemConstants.js';
+} from '@studnicky/types/browser';
 
 /**
  * One node of a cause chain, shaped as RFC 9457 members.

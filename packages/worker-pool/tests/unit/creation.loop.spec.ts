@@ -1,9 +1,9 @@
+import { BaseError } from '@studnicky/types/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '@studnicky/errors/node';
 import { Signal } from '@studnicky/signal/node';
 
 import { WorkerPool, WorkerPoolError } from '../../src/node/index.js';

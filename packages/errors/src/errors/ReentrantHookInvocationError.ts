@@ -1,4 +1,5 @@
-import { BaseError } from './BaseError.js';
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Error thrown when a lifecycle hook is invoked reentrantly from within its own call stack.
  *

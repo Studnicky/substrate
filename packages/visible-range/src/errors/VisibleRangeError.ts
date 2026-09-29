@@ -1,6 +1,7 @@
 import type { ErrorConstructorOptionsInterface } from '@studnicky/errors/interfaces';
 
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
+import { DomainErrorArgumentList } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /** Optional construction arguments for {@link VisibleRangeError}; the class supplies its own code and message. */
 /** Thrown when `VisibleRange.create()`'s config or collaborators are invalid or ambiguous. */

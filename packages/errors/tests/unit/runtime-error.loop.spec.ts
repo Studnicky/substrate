@@ -1,8 +1,9 @@
+import { BaseError } from '@studnicky/types/browser';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError, RuntimeError } from '../../src/index.js';
+import { RuntimeError } from '../../src/index.js';
 import { RuntimeErrorScenarioCaseEntity } from './entities/RuntimeErrorScenarioCaseEntity.js';
 import scenarioGroups from './runtime-error.scenarios.json' with { type: 'json' };
 

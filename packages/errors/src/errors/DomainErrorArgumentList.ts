@@ -6,7 +6,8 @@
  * @module
  */
 
-import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
+import { type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
+
 import type { DomainErrorOptionsInterface } from '../interfaces/DomainErrorOptionsInterface.js';
 
 /** Builds `BaseErrorArgumentsInterface` values for domain error `super()` calls. */

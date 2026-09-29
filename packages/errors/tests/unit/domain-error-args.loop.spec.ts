@@ -1,11 +1,10 @@
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { BaseError } from '../../src/errors/BaseError.js';
 import { DomainErrorArgumentList } from '../../src/errors/DomainErrorArgumentList.js';
-import type { BaseErrorArgumentsInterface } from '../../src/interfaces/BaseErrorArgumentsInterface.js';
 import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
 import { DomainErrorArgsScenarioCaseEntity } from './entities/DomainErrorArgsScenarioCaseEntity.js';
 import scenarioGroups from './domain-error-args.scenarios.json' with { type: 'json' };

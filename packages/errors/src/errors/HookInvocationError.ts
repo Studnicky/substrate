@@ -1,4 +1,5 @@
-import { BaseError } from './BaseError.js';
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Error thrown when a lifecycle hook implementation throws during invocation.
  *

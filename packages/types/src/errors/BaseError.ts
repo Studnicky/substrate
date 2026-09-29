@@ -18,32 +18,31 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import {
-  JsonObject, JsonValue, Predicates
-} from '@studnicky/types/browser';
-
-import type { CauseNodeEntity } from '../entities/CauseNodeEntity.js';
-import type { ProblemDetailsEntity } from '../entities/ProblemDetailsEntity.js';
 import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
+import type { CauseNodeInterface } from '../interfaces/CauseNodeInterface.js';
+import type { ProblemDetailsInterface } from '../interfaces/ProblemDetailsInterface.js';
 
+import { JsonObject } from '../guards/JsonObject.js';
+import { JsonValue } from '../guards/JsonValue.js';
+import { Predicates } from '../predicates/Predicates.js';
 import {
   CAUSE_CHAIN_DEPTH_LIMIT,
   CAUSE_DEPTH_SENTINEL
-} from '../constants/CauseChainConstants.js';
-import { PROBLEM_TYPE_BASE } from '../constants/ProblemConstants.js';
-import { ThrownValueProjection } from '../entities/ThrownValueEntity.js';
+} from './constants/CauseChainConstants.js';
+import { PROBLEM_TYPE_BASE } from './constants/ProblemConstants.js';
+import { ThrownValueProjection } from './ThrownValueProjection.js';
 
 /**
  * Flattens a cause chain into RFC 9457 `causes` extension members, nearest first.
  *
  * A `BaseError` cause carries its own code/context/correlationId/timestamp, so it projects
  * directly. The first non-`BaseError` cause hands the remainder of the chain to
- * {@link ThrownValueEntity}, which already walks arbitrary thrown values cycle-safely — past
+ * {@link ThrownValueProjection}, which already walks arbitrary thrown values cycle-safely — past
  * that point the two walks would be identical, so there is only one.
  */
 class CauseChain {
-  public static from(cause: unknown): CauseNodeEntity.Type[] {
-    const nodes: CauseNodeEntity.Type[] = [];
+  public static from(cause: unknown): CauseNodeInterface[] {
+    const nodes: CauseNodeInterface[] = [];
     const visited = new WeakSet<object>();
     let current: unknown = cause;
 
@@ -77,8 +76,8 @@ class CauseChain {
     return nodes;
   }
 
-  static #fromBaseError(error: BaseError): CauseNodeEntity.Type {
-    let node: CauseNodeEntity.Type = {
+  static #fromBaseError(error: BaseError): CauseNodeInterface {
+    let node: CauseNodeInterface = {
       'code': error.code,
       'detail': error.message,
       'name': error.name,
@@ -103,9 +102,9 @@ class CauseChain {
     return node;
   }
 
-  static #appendThrownValue(nodes: CauseNodeEntity.Type[], value: unknown): void {
+  static #appendThrownValue(nodes: CauseNodeInterface[], value: unknown): void {
     const projection = ThrownValueProjection.project(value);
-    const head: CauseNodeEntity.Type = projection.name === undefined
+    const head: CauseNodeInterface = projection.name === undefined
       ? {
         'detail': projection.detail,
         'title': projection.title,
@@ -347,7 +346,7 @@ export abstract class BaseError extends Error {
    * `retryable`, `context`, `stack`, and the flattened `causes` chain. Absent values are
    * omitted rather than emitted as `null`, so a consumer testing member presence is right.
    */
-  public toJSON(): ProblemDetailsEntity.Type {
+  public toJSON(): ProblemDetailsInterface {
     const problem: Record<string, unknown> = {
       'code': this.code,
       'detail': this.message,
@@ -385,7 +384,7 @@ export abstract class BaseError extends Error {
     // absent members itself, the same way this method does.
     const extras = this.serializeExtra();
 
-    const result: ProblemDetailsEntity.Type = {
+    const result: ProblemDetailsInterface = {
       ...extras,
       ...problem
     };

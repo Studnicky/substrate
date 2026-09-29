@@ -1,4 +1,4 @@
-import { PROBLEM_TYPE_BASE } from '../../src/constants/ProblemConstants.js';
+import { BaseError, PROBLEM_TYPE_BASE, CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '@studnicky/types/browser';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
@@ -9,9 +9,7 @@ import {
 
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
-import { CAUSE_CHAIN_DEPTH_LIMIT, CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
 import { ErrorDefaults } from '../../src/constants/index.js';
-import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 import { ErrorScenarioGuard } from '../../src/validation/ErrorScenarioGuard.js';
 import { ModuleErrorScenarioCaseEntity } from './entities/ModuleErrorScenarioCaseEntity.js';

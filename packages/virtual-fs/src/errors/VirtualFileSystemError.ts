@@ -1,6 +1,7 @@
 import type { ErrorConstructorOptionsInterface } from '@studnicky/errors/interfaces';
 
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/browser';
+import { DomainErrorArgumentList } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /** Optional construction arguments for {@link VirtualFileSystemError}; the class supplies its own code and message. */
 export class VirtualFileSystemError extends BaseError {

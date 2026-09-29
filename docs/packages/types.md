@@ -110,6 +110,27 @@ if (RuntimeValue.is(candidate)) {
 }
 ```
 
+## `BaseError`
+
+`BaseError` is the abstract root of every error class in the workspace. It lives in `@studnicky/types`, the dependency-free root package, so `@studnicky/entity` and `@studnicky/types` themselves throw `BaseError` subclasses. `@studnicky/errors` builds its hierarchy (`ModuleError`, `RuntimeError`, `ValidationError`, ...) on top of it.
+
+A subclass declares its `name` as a literal member and passes `BaseErrorArgumentsInterface` to `super`. Every instance carries `code`, `metadata`, `timestamp`, `correlationId`, `retryable`, `status`, and `instance`. `BaseError.findCauseOfType`, `hasCauseOfType`, `getCauseChain`, and `toMessage` walk or describe cause chains, bounded at `CAUSE_CHAIN_DEPTH_LIMIT` hops.
+
+`toJSON()` returns an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object typed as `ProblemDetailsInterface`, so `JSON.stringify(error)` produces it too. The flattened `causes` extension holds `CauseNodeInterface` nodes, nearest first. `ThrownValueProjection.project` is the total, never-throwing, cycle-safe projection of any caught value (an `Error`, `AggregateError`, string, primitive, `null`, or foreign object) into `ThrownValueInterface`; the `PROBLEM_TYPE_*` and `PROBLEM_TITLE_*` constants name the problem types it mints.
+
+<!-- inline-ts-ok: conceptual subclass example -->
+```typescript
+import { BaseError } from '@studnicky/types/node';
+
+class PaymentDeclinedError extends BaseError {
+  public override readonly name: string = 'PaymentDeclinedError';
+
+  public constructor(reason: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'payments.declined', 'message': reason, 'status': 402 });
+  }
+}
+```
+
 ## Exports
 
 | Symbol | Purpose | Import path |
@@ -128,6 +149,27 @@ if (RuntimeValue.is(candidate)) {
 | `RuntimeValueRecordInterface` | Native plain-record operand contract. | `@studnicky/types/interfaces` |
 | `Hash` | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values. | `@studnicky/types/node` |
 | `StructuralHash` | Schema hash with metadata-key stripping. | `@studnicky/types/node` |
+| `BaseError` | Abstract root of the error hierarchy; serializes as RFC 9457 Problem Details. | `@studnicky/types/node` |
+| `BaseErrorArgumentsInterface` | Construction arguments passed to `BaseError` subclasses. | `@studnicky/types/interfaces` |
+| `ProblemDetailsInterface` | RFC 9457 Problem Details object returned by `BaseError.toJSON()`. | `@studnicky/types/interfaces` |
+| `CauseNodeInterface` | One node of the flattened `causes` chain. | `@studnicky/types/interfaces` |
+| `ThrownValueInterface` | Projection of an arbitrary caught value into RFC 9457 members. | `@studnicky/types/interfaces` |
+| `ThrownValueProjection` | Total, cycle-safe projection of any caught value (`ThrownValueProjection.project`). | `@studnicky/types/node` |
+| `CAUSE_CHAIN_DEPTH_LIMIT` | Maximum cause-chain depth walked or serialized. | `@studnicky/types/node` |
+| `CAUSE_DEPTH_SENTINEL` | Detail emitted when a cause chain exceeds the depth limit. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_BASE` | Namespace root of every problem type URI minted by the workspace. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_THROWN_NULLISH` | Problem type for a thrown `null` or `undefined`. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_THROWN_STRING` | Problem type for a thrown string. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_THROWN_PRIMITIVE` | Problem type for a thrown non-string primitive. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_THROWN_OBJECT` | Problem type for a thrown non-`Error` object. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_ERROR` | Problem type for a thrown native `Error`. | `@studnicky/types/node` |
+| `PROBLEM_TYPE_AGGREGATE_ERROR` | Problem type for a thrown `AggregateError`. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_THROWN_NULLISH` | Stable title paired with the thrown-nullish problem type. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_THROWN_STRING` | Stable title paired with the thrown-string problem type. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_THROWN_PRIMITIVE` | Stable title paired with the thrown-primitive problem type. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_THROWN_OBJECT` | Stable title paired with the thrown-object problem type. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_ERROR` | Stable title paired with the native-error problem type. | `@studnicky/types/node` |
+| `PROBLEM_TITLE_AGGREGATE_ERROR` | Stable title paired with the aggregate-error problem type. | `@studnicky/types/node` |
 | `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types/node` |
 
 ### Selected `Predicates` static methods

@@ -1,3 +1,5 @@
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Base error class for all modules in the monorepo.
  *
@@ -48,7 +50,6 @@ import type {
 import { ErrorDefaults } from '../constants/index.js';
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
 import { ErrorScenarioGuard } from '../validation/ErrorScenarioGuard.js';
-import { BaseError } from './BaseError.js';
 import { ValidationError } from './ValidationError.js';
 
 /**

@@ -3,9 +3,7 @@
  * @description Base class for all FilterEngine errors
  */
 
-import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
-
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /**
  * Options for constructing a FilterError

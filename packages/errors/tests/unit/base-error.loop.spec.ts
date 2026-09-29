@@ -1,3 +1,4 @@
+import { BaseError, CAUSE_DEPTH_SENTINEL, PROBLEM_TYPE_BASE, PROBLEM_TYPE_THROWN_STRING } from '@studnicky/types/browser';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
@@ -7,13 +8,7 @@ import type { JSONSchema7Type } from 'json-schema';
 
 import { Predicates } from '@studnicky/types/node';
 
-import { CAUSE_DEPTH_SENTINEL } from '../../src/constants/CauseChainConstants.js';
-import {
-  PROBLEM_TYPE_BASE,
-  PROBLEM_TYPE_THROWN_STRING
-} from '../../src/constants/ProblemConstants.js';
 import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
-import { BaseError } from '../../src/errors/BaseError.js';
 import { BaseErrorScenarioCaseEntity } from './entities/BaseErrorScenarioCaseEntity.js';
 import scenarioGroups from './base-error.scenarios.json' with { type: 'json' };
 

@@ -3,6 +3,7 @@ import {
   describe, it
 } from 'node:test';
 
+import { PROBLEM_TITLE_ERROR, PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TYPE_ERROR, PROBLEM_TYPE_THROWN_NULLISH } from '@studnicky/types/browser';
 import { CauseNodeEntity } from '../../src/entities/CauseNodeEntity.js';
 import { ErrorClassificationEntity } from '../../src/entities/ErrorClassificationEntity.js';
 import { ErrorCodeDescriptorEntity } from '../../src/entities/ErrorCodeDescriptorEntity.js';
@@ -23,9 +24,6 @@ import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js
 import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
 import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
 import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
-import {
-  PROBLEM_TITLE_ERROR, PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TYPE_ERROR, PROBLEM_TYPE_THROWN_NULLISH
-} from '../../src/constants/ProblemConstants.js';
 import { SchemaIntakeError } from '@studnicky/entity/node';
 
 void describe('errors entity intake boundaries', () => {

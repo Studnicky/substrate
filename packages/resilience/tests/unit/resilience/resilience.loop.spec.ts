@@ -1,4 +1,5 @@
-import { BaseError, RuntimeError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 

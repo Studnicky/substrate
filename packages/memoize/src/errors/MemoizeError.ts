@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /** Abstract base for all `@studnicky/memoize` errors. */
 export abstract class MemoizeError extends BaseError {

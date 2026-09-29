@@ -1,3 +1,4 @@
+import { BaseError } from '@studnicky/types/browser';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
@@ -12,7 +13,6 @@ import { SchemaNode } from '@studnicky/entity/types';
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
 import { ErrorDefaults } from '../../src/constants/index.js';
-import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 import { SubclassExtensionScenarioCaseEntity } from './entities/SubclassExtensionScenarioCaseEntity.js';
 import scenarioGroups from './subclass-extension.scenarios.json' with { type: 'json' };

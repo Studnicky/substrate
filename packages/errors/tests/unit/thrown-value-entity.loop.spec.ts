@@ -3,20 +3,9 @@ import {
   describe, it
 } from 'node:test';
 
-import {
-  PROBLEM_TITLE_ERROR,
-  PROBLEM_TITLE_THROWN_NULLISH,
-  PROBLEM_TITLE_THROWN_OBJECT,
-  PROBLEM_TITLE_THROWN_PRIMITIVE,
-  PROBLEM_TITLE_THROWN_STRING,
-  PROBLEM_TYPE_ERROR,
-  PROBLEM_TYPE_THROWN_NULLISH,
-  PROBLEM_TYPE_THROWN_OBJECT,
-  PROBLEM_TYPE_THROWN_PRIMITIVE,
-  PROBLEM_TYPE_THROWN_STRING
-} from '../../src/constants/ProblemConstants.js';
+import { PROBLEM_TITLE_ERROR, PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TITLE_THROWN_OBJECT, PROBLEM_TITLE_THROWN_PRIMITIVE, PROBLEM_TITLE_THROWN_STRING, PROBLEM_TYPE_ERROR, PROBLEM_TYPE_THROWN_NULLISH, PROBLEM_TYPE_THROWN_OBJECT, PROBLEM_TYPE_THROWN_PRIMITIVE, PROBLEM_TYPE_THROWN_STRING, ThrownValueProjection } from '@studnicky/types/browser';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ThrownValueEntity, ThrownValueProjection } from '../../src/entities/ThrownValueEntity.js';
+import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
 void describe('ThrownValueEntity', () => {
   void it('is total: never throws for cyclic objects, functions, symbols, and caught-value shapes', () => {
     const cyclic: Record<string, unknown> = {};

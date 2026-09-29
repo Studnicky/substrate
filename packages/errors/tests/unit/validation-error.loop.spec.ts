@@ -1,3 +1,4 @@
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -5,7 +6,6 @@ import { Predicates } from '@studnicky/types/node';
 
 import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
-import { BaseError } from '../../src/errors/BaseError.js';
 import { ValidationError } from '../../src/errors/ValidationError.js';
 import scenarioGroups from './validation-error.scenarios.json' with { type: 'json' };
 

@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /**
  * Error thrown when timing event configuration fails validation.

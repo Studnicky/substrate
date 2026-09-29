@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /**
  * Abstract package-level error ancestor for all FSM errors.

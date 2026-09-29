@@ -11,7 +11,7 @@
  *
  * Every concrete subclass declares its `name` explicitly as a literal class member.
  */
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/browser';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 export abstract class FetchBaseError extends BaseError {
   protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {

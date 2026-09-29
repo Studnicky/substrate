@@ -1,6 +1,4 @@
-import type { BaseErrorArgumentsInterface } from '@studnicky/errors/interfaces';
-
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 export interface WorkerPoolErrorOptionsInterface extends Omit<BaseErrorArgumentsInterface, 'retryable'> {}
 

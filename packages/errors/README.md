@@ -21,6 +21,7 @@ pnpm add @studnicky/errors
 ## Usage
 
 ```typescript
+import { type BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/node';
 import { ModuleError, ErrorDefaults } from '@studnicky/errors/node';
 
 // Quick error with scenario defaults
@@ -113,11 +114,7 @@ Construction contracts import from `@studnicky/errors/interfaces`. JSON value ty
 ```typescript
 import type { JSONSchema7Object, JSONSchema7Type } from 'json-schema';
 
-import type { BaseError } from '@studnicky/errors/node';
-import type {
-  BaseErrorArgumentsInterface,
-  DomainErrorOptionsInterface
-} from '@studnicky/errors/interfaces';
+import type { DomainErrorOptionsInterface } from '@studnicky/errors/interfaces';
 
 const metadata: Readonly<Record<string, JSONSchema7Type>> = {
   requestId: 'req-123'

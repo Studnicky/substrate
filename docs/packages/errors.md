@@ -19,7 +19,7 @@ pnpm add @studnicky/errors
 
 <<< ../../packages/errors/examples/02-module-error.ts#usage
 
-Extend `BaseError` or `ModuleError` for a domain-specific error, and use `DomainErrorArgumentList` when a leaf error carries typed fields.
+Extend `BaseError` (exported by [`@studnicky/types`](./types.md#baseerror)) or `ModuleError` for a domain-specific error, and use `DomainErrorArgumentList` when a leaf error carries typed fields.
 
 <<< ../../packages/errors/examples/01-base-error.ts#usage
 
@@ -41,7 +41,7 @@ The output shows `ModuleError.create()` resolving `code`/`status`/`retryable` fr
 
 ## RFC 9457 Problem Details
 
-Every error serializes to one form: an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object. `toJSON()` returns it, so `JSON.stringify(error)` produces it too. There is no second serialized shape.
+Every `BaseError` serializes to one form: an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object. `toJSON()` returns it, so `JSON.stringify(error)` produces it too. There is no second serialized shape.
 
 ### Member mapping
 
@@ -102,13 +102,12 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 ```
 
-`BaseErrorArgumentsInterface`, `DomainErrorOptionsInterface`, `ErrorClassifierFunctionInterface`, `ErrorClassifierInterface`, `ModuleErrorCreateOptionsInterface`, and `ModuleErrorOptionsInterface` are imported from `/errors/interfaces` because callers pass or implement them when using the public API.
+`DomainErrorOptionsInterface`, `ErrorClassifierFunctionInterface`, `ErrorClassifierInterface`, `ModuleErrorCreateOptionsInterface`, and `ModuleErrorOptionsInterface` are imported from `/errors/interfaces` because callers pass or implement them when using the public API.
 
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BaseError` | Base class for structured application errors. | `@studnicky/errors/node` |
 | `CliExitError` | Represents a command-line exit failure. | `@studnicky/errors/node` |
 | `DomainErrorArgumentList` | Builds typed constructor arguments for domain errors. | `@studnicky/errors/node` |
 | `HookInvocationError` | Represents a lifecycle-hook failure. | `@studnicky/errors/node` |
@@ -137,7 +136,6 @@ import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 | `HTTP_REQUEST_TIMEOUT` | Provides the HTTP request-timeout status code. | `@studnicky/errors/node` |
 | `HTTP_SERVER_ERROR_START` | Marks the lower bound of server-error HTTP responses. | `@studnicky/errors/node` |
 | `HTTP_SERVER_ERROR_END` | Marks the upper bound of server-error HTTP responses. | `@studnicky/errors/node` |
-| `BaseErrorArgumentsInterface` | Defines arguments passed to `BaseError` subclasses. | `@studnicky/errors/interfaces` |
 | `DomainErrorOptionsInterface` | Defines options passed to `DomainErrorArgumentList.build()`. | `@studnicky/errors/interfaces` |
 | `ErrorClassifierFunctionInterface` | Defines a callable custom error classifier. | `@studnicky/errors/interfaces` |
 | `ErrorClassifierInterface` | Defines a class-based custom error classifier. | `@studnicky/errors/interfaces` |

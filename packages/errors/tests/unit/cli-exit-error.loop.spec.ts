@@ -1,9 +1,9 @@
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
-import { BaseError } from '../../src/errors/BaseError.js';
 import { CliExitError } from '../../src/errors/CliExitError.js';
 import { CliExitErrorScenarioCaseEntity } from './entities/CliExitErrorScenarioCaseEntity.js';
 import scenarioGroups from './cli-exit-error.scenarios.json' with { type: 'json' };

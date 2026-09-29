@@ -1,11 +1,10 @@
 /** 04-domain-error-args — Leaf error class built with DomainErrorArgumentList.build(). Run: npx tsx packages/errors/examples/04-domain-error-args.ts */
 
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 
-import type { BaseErrorArgumentsInterface } from '../src/index.js';
-
 // #region usage
-import { BaseError, DomainErrorArgumentList } from '../src/index.js';
+import { DomainErrorArgumentList } from '../src/index.js';
 
 abstract class RateLimitError extends BaseError {
   protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {

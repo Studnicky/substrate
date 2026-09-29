@@ -4,7 +4,6 @@
  * @packageDocumentation
  */
 
-export type { BaseErrorArgumentsInterface } from './BaseErrorArgumentsInterface.js';
 export type { DomainErrorOptionsInterface } from './DomainErrorOptionsInterface.js';
 export type { ErrorClassifierFunctionInterface } from './ErrorClassifierFunctionInterface.js';
 export type { ErrorClassifierInterface } from './ErrorClassifierInterface.js';
