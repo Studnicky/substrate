@@ -9,37 +9,54 @@
 //      CommonJS evaluator, memoized so only modules an example actually imports
 //      are evaluated, and side-effectful module bodies run at most once.
 //
-// `runExample` transpiles the example's editor text with sucrase and executes
-// it with a `require` shim bound to the example's path.
+// `runExample` transpiles the example's editor text with the TypeScript compiler
+// (loaded on first Execute) and executes it with a `require` shim bound to the
+// example's path.
 
 /// <reference types="vite/client" />
 
-import { transform } from 'sucrase';
+import type * as TypeScriptNamespace from 'typescript';
 
 import { ExampleSources } from './ExampleSources';
+import { isDeepStrictEqual } from './NodeUtilShim';
 
 interface SourceModuleLoaderInterface {
   (): Promise<Record<string, unknown>>;
 }
 
-// Lazy glob of browser-safe entrypoints. Vite compiles a module only when an example imports it.
-// Keys are relative to this file (docs/.vitepress/theme/utils/), e.g.:
+// Lazy glob of every browser-safe package source module. Vite compiles a module only
+// when an example imports it. Keys are relative to this file, e.g.:
 //   '../../../../packages/retry/src/browser/index.ts'
 //
-// Browser entrypoints that share the package implementation resolve the root source; packages with a browser adapter resolve `src/browser`.
-// Entities, interfaces, and types remain runtime-neutral.
+// Modules bound to Node built-ins (`node:test`, `node:worker_threads`, async_hooks, fs, the
+// eslint host) are excluded; a `node` entrypoint that is excluded resolves to its `browser`
+// counterpart (see `resolveSourceCanonical`). Entities, interfaces, and types are
+// runtime-neutral.
 const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
   [
-    '../../../../packages/*/src/index.ts',
-    '../../../../packages/*/src/browser/index.ts',
-    '../../../../packages/*/src/entities/index.ts',
-    '../../../../packages/*/src/interfaces/index.ts',
-    '../../../../packages/*/src/types/index.ts',
+    '../../../../packages/*/src/**/*.ts',
+    '!../../../../packages/*/src/**/*.d.ts',
     '!../../../../packages/context/src/index.ts',
+    '!../../../../packages/context/src/node/**',
+    '!../../../../packages/eslint-config/src/node/**',
+    '!../../../../packages/virtual-fs/src/node/**',
     '!../../../../packages/eslint-config/src/index.ts',
     '!../../../../packages/example-smoke-kit/src/index.ts',
-    '!../../../../packages/scenario-kit/src/index.ts'
+    '!../../../../packages/example-smoke-kit/src/ExampleSmokeRunner.ts',
+    '!../../../../packages/worker-pool/src/WorkerPool.ts',
+    '!../../../../packages/worker-pool/src/node/**'
   ]
+);
+
+interface PackageManifestInterface {
+  'exports'?: Record<string, { 'import'?: string }>;
+  'name': string;
+}
+
+// Each package's `package.json` "exports" map is the authority for subpath specifiers.
+const PACKAGE_MANIFESTS = import.meta.glob<PackageManifestInterface>(
+  '../../../../packages/*/package.json',
+  { 'eager': true, 'import': 'default' }
 );
 
 const SOURCE_LOADERS: Record<string, SourceModuleLoaderInterface> = {};
@@ -49,6 +66,36 @@ const PENDING_MODULES = new Map<string, Promise<Record<string, unknown>>>();
 for (const [key, loader] of Object.entries(SOURCE_GLOB)) {
   const canonical = key.replace(/^(?:\.\.\/)+/u, '').replace(/\.ts$/u, '');
   SOURCE_LOADERS[canonical] = loader;
+}
+
+// Specifier ("@studnicky/store/strata/browser") -> canonical source path
+// ("packages/store/src/strata/browser/index"), derived from the exports maps. A `./node`
+// subpath resolves to its declared `./browser` sibling: the playground is a browser.
+const EXPORT_TARGETS = buildExportTargets();
+
+function buildExportTargets(): Map<string, string> {
+  const targets = new Map<string, string>();
+
+  for (const [manifestKey, manifest] of Object.entries(PACKAGE_MANIFESTS)) {
+    const directory = manifestKey.replace(/^(?:\.\.\/)+/u, '').replace(/\/package\.json$/u, '');
+
+    for (const [subpath, target] of Object.entries(manifest.exports ?? {})) {
+      const built = target.import;
+      if (typeof built === 'string') {
+        const canonical = built.replace(/^\.\/dist\//u, `${directory}/src/`).replace(/\.js$/u, '');
+        targets.set(`${manifest.name}${subpath.slice(1)}`, canonical);
+      }
+    }
+  }
+
+  for (const specifier of targets.keys()) {
+    const browserTarget = targets.get(specifier.replace(/\/node$/u, '/browser'));
+    if (specifier.endsWith('/node') && typeof browserTarget === 'string') {
+      targets.set(specifier, browserTarget);
+    }
+  }
+
+  return targets;
 }
 
 interface TimerOptionsInterface {
@@ -73,80 +120,163 @@ function makeTimersShim(): Record<string, unknown> {
   };
 }
 
+function describeValue(value: unknown): string {
+  try {
+    return typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function failure(message: string | Error | undefined, fallback: string): Error {
+  return message instanceof Error ? message : new Error(message ?? fallback);
+}
+
+function matchesExpectation(error: unknown, expected: unknown): boolean {
+  if (expected === undefined) {
+    return true;
+  }
+  if (expected instanceof RegExp) {
+    return expected.test(String(error));
+  }
+  if (typeof expected === 'function') {
+    if (expected.prototype !== undefined && error instanceof expected) {
+      return true;
+    }
+    return (expected === Error || expected.prototype instanceof Error) === false && Reflect.apply(expected, undefined, [error]) === true;
+  }
+  if (typeof expected === 'object' && expected !== null) {
+    return Object.entries(expected).every(([key, value]) => {
+      const actual: unknown = Reflect.get(Object(error), key);
+      return value instanceof RegExp && typeof actual === 'string' ? value.test(actual) : isDeepStrictEqual(actual, value);
+    });
+  }
+  return true;
+}
+
 function assert(value: unknown, message?: string | Error): void {
-  const holds = Boolean(value);
-  if (holds) {
+  const passed = Boolean(value);
+  if (passed) {
     return;
   }
-  throw new Error(message instanceof Error ? message.message : (message ?? 'Assertion failed'));
+  throw failure(message, 'Assertion failed');
 }
 
-function deepEqual(a: unknown, b: unknown, msg?: string | Error): void {
-  const as = JSON.stringify(a);
-  const bs = JSON.stringify(b);
-  if (as !== bs) {
-    throw new Error(msg instanceof Error ? msg.message : (msg ?? `Deep equal failed:\n  ${as}\n  ${bs}`));
+interface AssertShimInterface {
+  (value: unknown, message?: string | Error): void;
+  'deepEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'deepStrictEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'doesNotMatch': (value: string, pattern: RegExp, message?: string | Error) => void;
+  'doesNotReject': (input: (() => Promise<unknown>) | Promise<unknown>) => Promise<void>;
+  'doesNotThrow': (fn: () => unknown) => void;
+  'equal': (a: unknown, b: unknown, message?: string | Error) => void;
+  'fail': (message?: string | Error) => never;
+  'ifError': (value: unknown) => void;
+  'match': (value: string, pattern: RegExp, message?: string | Error) => void;
+  'notDeepEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'notDeepStrictEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'notEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'notStrictEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'ok': (value: unknown, message?: string | Error) => void;
+  'rejects': (input: (() => Promise<unknown>) | Promise<unknown>, expected?: unknown, message?: string | Error) => Promise<void>;
+  'strictEqual': (a: unknown, b: unknown, message?: string | Error) => void;
+  'throws': (fn: () => unknown, expected?: unknown, message?: string | Error) => void;
+}
+
+async function settle(input: (() => Promise<unknown>) | Promise<unknown>): Promise<unknown> {
+  try {
+    await (typeof input === 'function' ? input() : input);
+  } catch (error: unknown) {
+    return error;
   }
+  return undefined;
 }
 
-function makeAssertShim(): unknown {
-  assert.ok = assert;
-
-  assert.equal = (a: unknown, b: unknown, msg?: string | Error): void => {
-    if (a !== b) {
-      throw new Error(msg instanceof Error ? msg.message : (msg ?? `Expected ${String(a)} === ${String(b)}`));
+function makeAssertShim(): AssertShimInterface {
+  const equal = (a: unknown, b: unknown, message?: string | Error): void => {
+    if (Object.is(a, b) === false) {
+      throw failure(message, `Expected values to be strictly equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
     }
   };
-
-  assert.strictEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
-    if (a !== b) {
-      throw new Error(msg instanceof Error ? msg.message : (msg ?? `Expected ${String(a)} === ${String(b)}`));
+  const notEqual = (a: unknown, b: unknown, message?: string | Error): void => {
+    if (Object.is(a, b)) {
+      throw failure(message, `Expected "actual" to be strictly unequal to: ${describeValue(b)}`);
     }
   };
-
-  assert.notEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
-    if (a === b) {
-      throw new Error(msg instanceof Error ? msg.message : (msg ?? `Expected ${String(a)} !== ${String(b)}`));
+  const deepEqual = (a: unknown, b: unknown, message?: string | Error): void => {
+    if (isDeepStrictEqual(a, b) === false) {
+      throw failure(message, `Expected values to be strictly deep-equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
     }
   };
-
-  assert.notStrictEqual = (a: unknown, b: unknown, msg?: string | Error): void => {
-    if (a === b) {
-      throw new Error(msg instanceof Error ? msg.message : (msg ?? `${String(a)} should not strictly equal ${String(b)}`));
+  const notDeepEqual = (a: unknown, b: unknown, message?: string | Error): void => {
+    if (isDeepStrictEqual(a, b)) {
+      throw failure(message, `Expected "actual" not to be strictly deep-equal to: ${describeValue(b)}`);
     }
   };
-
-
-  assert.deepEqual = deepEqual;
-  assert.deepStrictEqual = deepEqual;
-
-  assert.throws = (fn: () => unknown, _expected?: unknown, msg?: string): void => {
+  const throws = (fn: () => unknown, expected?: unknown, message?: string | Error): void => {
+    let thrown: unknown;
+    let didThrow = false;
     try {
       fn();
-    } catch {
-      return;
+    } catch (error: unknown) {
+      thrown = error;
+      didThrow = true;
     }
-    throw new Error(typeof msg === 'string' ? msg : 'Missing expected exception');
-  };
-
-  assert.doesNotThrow = (fn: () => unknown): void => {
-    fn();
-  };
-
-  assert.rejects = async (input: (() => Promise<unknown>) | Promise<unknown>, _expected?: unknown, msg?: string): Promise<void> => {
-    try {
-      await (typeof input === 'function' ? input() : input);
-    } catch {
-      return;
+    if (didThrow === false) {
+      throw failure(typeof expected === 'string' ? expected : message, 'Missing expected exception.');
     }
-    throw new Error(typeof msg === 'string' ? msg : 'Missing expected rejection');
+    if (matchesExpectation(thrown, typeof expected === 'string' ? undefined : expected) === false) {
+      throw failure(message, `The thrown error does not satisfy the expectation: ${describeValue(thrown)}`);
+    }
+  };
+  const rejects = async (input: (() => Promise<unknown>) | Promise<unknown>, expected?: unknown, message?: string | Error): Promise<void> => {
+    const rejection = await settle(input);
+    if (rejection === undefined) {
+      throw failure(typeof expected === 'string' ? expected : message, 'Missing expected rejection.');
+    }
+    if (matchesExpectation(rejection, typeof expected === 'string' ? undefined : expected) === false) {
+      throw failure(message, `The rejection does not satisfy the expectation: ${describeValue(rejection)}`);
+    }
+  };
+  const match = (value: string, pattern: RegExp, message?: string | Error): void => {
+    if (pattern.test(value) === false) {
+      throw failure(message, `The input did not match the regular expression ${String(pattern)}: ${describeValue(value)}`);
+    }
+  };
+  const doesNotMatch = (value: string, pattern: RegExp, message?: string | Error): void => {
+    if (pattern.test(value)) {
+      throw failure(message, `The input was expected to not match ${String(pattern)}: ${describeValue(value)}`);
+    }
   };
 
-  assert.doesNotReject = async (input: (() => Promise<unknown>) | Promise<unknown>): Promise<void> => {
-    await (typeof input === 'function' ? input() : input);
-  };
-
-  return assert;
+  return Object.assign((value: unknown, message?: string | Error): void => { assert(value, message); }, {
+    'deepEqual': deepEqual,
+    'deepStrictEqual': deepEqual,
+    'doesNotMatch': doesNotMatch,
+    'doesNotReject': async (input: (() => Promise<unknown>) | Promise<unknown>): Promise<void> => {
+      const rejection = await settle(input);
+      if (rejection !== undefined) {
+        throw failure(undefined, `Got unwanted rejection: ${describeValue(rejection)}`);
+      }
+    },
+    'doesNotThrow': (fn: () => unknown): void => { fn(); },
+    'equal': equal,
+    'fail': (message?: string | Error): never => { throw failure(message, 'Failed'); },
+    'ifError': (value: unknown): void => {
+      if (value !== undefined && value !== null) {
+        throw value instanceof Error ? value : new Error(`ifError got unwanted exception: ${describeValue(value)}`);
+      }
+    },
+    'match': match,
+    'notDeepEqual': notDeepEqual,
+    'notDeepStrictEqual': notDeepEqual,
+    'notEqual': notEqual,
+    'notStrictEqual': notEqual,
+    'ok': assert,
+    'rejects': rejects,
+    'strictEqual': equal,
+    'throws': throws
+  });
 }
 
 function buildStaticModules(): Record<string, unknown> {
@@ -156,6 +286,7 @@ function buildStaticModules(): Record<string, unknown> {
   const assertShim = makeAssertShim();
   out['node:assert'] = assertShim;
   out['node:assert/strict'] = assertShim;
+  out['node:util'] = { 'isDeepStrictEqual': isDeepStrictEqual };
   out['node:timers/promises'] = makeTimersShim();
   out['node:crypto'] = { 'randomUUID': () => { return globalThis.crypto.randomUUID(); } };
 
@@ -199,13 +330,7 @@ function resolveRelative(spec: string, fromCanonical: string): string {
 
 function resolveModuleSpecifier(specifier: string, fromCanonical: string): string {
   if (specifier.startsWith('@studnicky/')) {
-    const packageParts = specifier.slice('@studnicky/'.length).split('/');
-    const packageName = packageParts[0];
-    const subpath = packageParts.slice(1).join('/');
-    const browserSubpath = subpath === 'node' ? 'browser' : subpath;
-    return browserSubpath === ''
-      ? `packages/${packageName}/src/index`
-      : `packages/${packageName}/src/${browserSubpath}/index`;
+    return EXPORT_TARGETS.get(specifier) ?? specifier;
   }
 
   return specifier.startsWith('.')
@@ -215,7 +340,7 @@ function resolveModuleSpecifier(specifier: string, fromCanonical: string): strin
 
 function resolveSourceCanonical(canonical: string): string | undefined {
   const browserCanonical = canonical.replace(
-    /^(packages\/[^/]+\/src)\/index/,
+    /^(packages\/[^/]+\/src)\/index$/,
     (_match: string, prefix: string): string => { return `${prefix  }/browser/index`; }
   );
 
@@ -237,7 +362,13 @@ function resolveSourceCanonical(canonical: string): string | undefined {
   }
 
   const indexCanonical = `${canonical}/index`;
-  return indexCanonical in SOURCE_LOADERS ? indexCanonical : undefined;
+
+  if (indexCanonical in SOURCE_LOADERS) {
+    return indexCanonical;
+  }
+
+  const nodeToBrowser = canonical.replace(/\/node\/index$/u, '/browser/index');
+  return nodeToBrowser in SOURCE_LOADERS ? nodeToBrowser : undefined;
 }
 
 async function loadSourceModule(canonical: string): Promise<boolean> {
@@ -271,6 +402,59 @@ async function loadSourceModule(canonical: string): Promise<boolean> {
   }
 }
 
+let typescriptCompiler: typeof TypeScriptNamespace | undefined;
+
+/** The compiler loads on the first Execute; transpilation is synchronous afterwards. */
+async function ensureTypescriptLoaded(): Promise<typeof TypeScriptNamespace> {
+  typescriptCompiler ??= await import('typescript');
+  return typescriptCompiler;
+}
+
+/** `import.meta` has no meaning inside a CommonJS function body; it becomes the injected `__importMeta`. */
+function importMetaTransformer(compiler: typeof TypeScriptNamespace): TypeScriptNamespace.TransformerFactory<TypeScriptNamespace.SourceFile> {
+  return (context) => {
+    const visit = (node: TypeScriptNamespace.Node): TypeScriptNamespace.Node => {
+      return compiler.isMetaProperty(node) && node.keywordToken === compiler.SyntaxKind.ImportKeyword
+        ? compiler.factory.createIdentifier('__importMeta')
+        : compiler.visitEachChild(node, visit, context);
+    };
+    return (file) => { return compiler.visitNode(file, visit, compiler.isSourceFile) ?? file; };
+  };
+}
+
+/** Single transpile path for the example under test and every example-tree module it imports. */
+function transpile(source: string, canonical: string): string {
+  if (typescriptCompiler === undefined) {
+    throw new Error('The TypeScript compiler is not loaded');
+  }
+  const compiler = typescriptCompiler;
+  return compiler.transpileModule(source, {
+    'compilerOptions': {
+      'esModuleInterop': true,
+      'module': compiler.ModuleKind.CommonJS,
+      'target': compiler.ScriptTarget.ES2022
+    },
+    'fileName': `${canonical}.ts`,
+    'transformers': { 'before': [importMetaTransformer(compiler)] }
+  }).outputText;
+}
+
+function makeImportMeta(canonical: string): { 'dirname': string; 'filename': string; 'url': string } {
+  const filename = `/${canonical}.ts`;
+  return { 'dirname': filename.split('/').slice(0, -1).join('/'), 'filename': filename, 'url': `file://${filename}` };
+}
+
+/** Macrotask scheduling: the browser equivalent of Node's setImmediate. */
+function setImmediateShim(callback: (...args: unknown[]) => void, ...args: unknown[]): number {
+  return globalThis.setTimeout(callback, 0, ...args);
+}
+
+function clearImmediateShim(handle: number): void {
+  globalThis.clearTimeout(handle);
+}
+
+const FACTORY_PARAMETERS = ['require', 'exports', 'module', 'console', 'process', 'setImmediate', 'clearImmediate', '__importMeta'] as const;
+
 function collectRequireSpecifiers(code: string): string[] {
   const specifiers = new Set<string>();
   const requirePattern = /require\(["']([^"']+)["']\)/g;
@@ -303,11 +487,7 @@ async function preloadDependencies(code: string, fromCanonical: string, visited:
     const rawSource = await ExampleSources.get(canonical);
 
     if (rawSource !== undefined) {
-      const transformed = transform(rawSource, {
-        'filePath': `${canonical}.ts`,
-        'transforms': ['imports', 'typescript']
-      });
-      await preloadDependencies(transformed.code, canonical, visited);
+      await preloadDependencies(transpile(rawSource, canonical), canonical, visited);
     }
   }));
 }
@@ -323,19 +503,16 @@ const processEnvironment: Record<string, string> = {};
 const processShim = { 'cwd': () => { return '/'; }, 'env': processEnvironment, 'platform': 'browser' };
 
 function evaluate(source: string, canonical: string, runtimeConsole: Console): Record<string, unknown> {
-  const { code } = transform(source, { 'filePath': `${canonical}.ts`, 'transforms': ['imports', 'typescript'] });
+  const code = transpile(source, canonical);
   const moduleObject: LoadedModuleInterface = { 'exports': {} };
   const requireShim = makeRequire(canonical);
 
-  // new Function is the playground's mechanism for evaluating sucrase-transpiled
-  // CJS source with an injected require shim. This is the runner's entire purpose
+  // new Function is the playground's mechanism for evaluating transpiled CJS source
+  // with an injected require shim. This is the runner's entire purpose
   // and cannot be replaced with a static import.
-  const factory = new Function(
-    'require', 'exports', 'module', 'console', 'process',
-    code
-  );
+  const factory = new Function(...FACTORY_PARAMETERS, code);
 
-  factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim);
+  factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim, setImmediateShim, clearImmediateShim, makeImportMeta(canonical));
 
   return moduleObject.exports;
 }
@@ -383,7 +560,8 @@ function makeRequire(fromCanonical: string): (specifier: string) => unknown {
  * `runtimeConsole` captures the example's output.
  */
 export async function runExample(source: string, path: string, runtimeConsole: Console): Promise<void> {
-  const { code } = transform(source, { 'filePath': `${path}.ts`, 'transforms': ['imports', 'typescript'] });
+  await ensureTypescriptLoaded();
+  const code = transpile(source, path);
 
   if (collectRequireSpecifiers(code).includes('@faker-js/faker')) {
     await ensureFakerLoaded();
@@ -393,12 +571,9 @@ export async function runExample(source: string, path: string, runtimeConsole: C
   const requireShim = makeRequire(path);
   const moduleObject: LoadedModuleInterface = { 'exports': {} };
 
-  // new Function executes user-edited example source (CJS from sucrase) with an
+  // new Function executes user-edited example source (transpiled CJS) with an
   // injected require shim. Running arbitrary TS examples is the playground's purpose.
-  const factory = new Function(
-    'require', 'exports', 'module', 'console', 'process',
-    `return (async () => {\n${code}\n})();`
-  );
+  const factory = new Function(...FACTORY_PARAMETERS, `return (async () => {\n${code}\n})();`);
 
-  await factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim);
+  await factory(requireShim, moduleObject.exports, moduleObject, runtimeConsole, processShim, setImmediateShim, clearImmediateShim, makeImportMeta(path));
 }

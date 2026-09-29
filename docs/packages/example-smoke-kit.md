@@ -25,7 +25,11 @@ A package's real `tests/smoke/examples.loop.spec.ts` loads `examples.scenarios.j
 
 ## Try it
 
-<RunnableExample src="packages/example-smoke-kit/examples/basic-usage" title="Register scenario-based smoke tests" />
+`ExampleSmokeRunner` binds to `node:test`, so the runnable demo exercises the browser-safe half of the package: `ExampleScenarioFileEntity.intake` validates a scenario file and returns the typed cases the runner would register.
+
+<<< ../../packages/example-smoke-kit/examples/scenario-intake.ts#usage
+
+<RunnableExample src="packages/example-smoke-kit/examples/scenario-intake" title="Intake a scenario file and read each case's shape" />
 
 ## Scenario shapes
 

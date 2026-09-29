@@ -57,7 +57,7 @@ class VfsLockScenario {
       'fileSystem': vfs,
       'path': lockPath,
       'pollMs': 5,
-      'timeoutMs': 500
+      'timeoutMs': 5000
     });
 
     console.log('holder acquired — scheduling release in 20ms');
@@ -68,7 +68,7 @@ class VfsLockScenario {
       'fileSystem': vfs,
       'path': lockPath,
       'pollMs': 5,
-      'timeoutMs': 500
+      'timeoutMs': 5000
     });
 
     console.log('waiter acquired after holder released');

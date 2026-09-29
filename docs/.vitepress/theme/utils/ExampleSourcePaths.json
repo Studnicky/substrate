@@ -63,6 +63,7 @@
   "packages/event-bus/examples/pubSub",
   "packages/example-smoke-kit/examples/basic-usage",
   "packages/example-smoke-kit/examples/fixtures/trivial-example",
+  "packages/example-smoke-kit/examples/scenario-intake",
   "packages/fetch/examples/01-client-config",
   "packages/fetch/examples/02-override-hooks",
   "packages/fetch/examples/03-telemetry-hooks",

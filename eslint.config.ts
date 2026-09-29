@@ -660,7 +660,7 @@ export default [
       'no-console': 'off'
     }
   },
-  // The playground evaluator's entire purpose is running sucrase-transpiled example source
+  // The playground evaluator's entire purpose is running transpiled example source
   // with an injected require shim — `new Function` is the mechanism, not a workaround.
   {
     'files': ['docs/.vitepress/theme/utils/playgroundRuntime.ts'],

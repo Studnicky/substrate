@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
@@ -25,6 +26,14 @@ interface PluginContextInterface {
   ): Promise<ResolvedIdInterface | null>;
 }
 
+// Workspace packages resolve to their built `dist` through node_modules. The playground
+// evaluates package sources, so every `@studnicky/*` import maps to the matching `src`
+// module; a single module graph keeps `instanceof` checks and class identity intact.
+function workspaceSourceId(id: string): string {
+  const source = id.replace(/\/packages\/([^/]+)\/dist\/(.+)\.js$/u, '/packages/$1/src/$2.ts');
+  return source !== id && existsSync(source) ? source : id;
+}
+
 const substrateBrowserSwap = (): {
   'enforce': 'pre';
   'name': string;
@@ -43,13 +52,13 @@ const substrateBrowserSwap = (): {
       if (resolved === null) {
         return null;
       }
-      const id = resolved.id.replace(/\\/g, '/');
+      const id = workspaceSourceId(resolved.id.replace(/\\/g, '/'));
       for (const [from, to] of BROWSER_SWAPS) {
         if (id.endsWith(`/${from}.ts`) || id.endsWith(`/${from}.js`)) {
           return `${REPO_ROOT}${to}.ts`;
         }
       }
-      return null;
+      return id === resolved.id ? null : id;
     }
   };
 };
@@ -306,6 +315,8 @@ export default withMermaid(defineConfig({
 
   'vite': {
     'esbuild': {
+      // Class names are runtime data (`constructor.name` titles errors and names filter plugins).
+      'keepNames': true,
       // VitePress 1.6.4 uses Vite 5/esbuild 0.21 which does not recognise
       // the ES2024 target from tsconfig.base.json. Override via tsconfigRaw
       // to ES2022 for the docs build — the built output still targets modern
@@ -319,12 +330,15 @@ export default withMermaid(defineConfig({
     },
     'plugins': [substrateBrowserSwap()],
     'resolve': {
-      'alias': {
+      'alias': [
         // Browser shim for packages/retry and packages/throttle which import
         // named exports from node:timers/promises. Without this alias Rollup
         // fails to resolve the named export `setTimeout` from the externalized stub.
-        'node:timers/promises': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url))
-      }
+        { 'find': 'node:timers/promises', 'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url)) },
+        // Browser shim for packages/scenario-kit, which imports isDeepStrictEqual from node:util.
+        // Exact match only: dependencies also import the node:util/types subpath.
+        { 'find': /^node:util$/u, 'replacement': fileURLToPath(new URL('./theme/utils/NodeUtilShim.ts', import.meta.url)) }
+      ]
     },
     'ssr': {
       'noExternal': [
@@ -334,7 +348,6 @@ export default withMermaid(defineConfig({
         '@codemirror/state',
         '@codemirror/view',
         '@lezer/highlight',
-        'sucrase',
         // Bundle all workspace primitives so the playground links their source.
         /^@studnicky\//
       ]
