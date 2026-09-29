@@ -1,0 +1,565 @@
+{
+  "valid": [
+    {
+      "code": "class Error { public readonly code = 'x'; } export const value = new Error();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a locally declared Error class is not reported"
+    },
+    {
+      "code": "class TypeError {} export class Local extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a locally declared TypeError superclass is not reported"
+    },
+    {
+      "code": "export function build(Error: new () => object): object { return new Error(); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a parameter shadowing Error is not reported"
+    },
+    {
+      "code": "import { Error } from './Error.js'; export const value = new Error();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an imported Error binding is not reported"
+    },
+    {
+      "code": "export class BaseError extends Object {} export class Local extends BaseError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a class extending BaseError is not reported"
+    },
+    {
+      "code": "declare class BaseError { constructor(message: string); } export class NotFoundError extends BaseError {} export const value = new NotFoundError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "constructing a BaseError subclass is not reported"
+    },
+    {
+      "code": "declare const controller: AbortController; controller.abort('reason');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort(reason) on an AbortController is not reported"
+    },
+    {
+      "code": "declare const registry: { abort(): void }; registry.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort() on a non-AbortController receiver is not reported"
+    },
+    {
+      "code": "class Job { public abort(): void {} } export const job = new Job(); job.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort() on a class instance is not reported"
+    },
+    {
+      "code": "export type Failure = Error; export interface Shape { readonly error: TypeError; } export function fail(error: Error): Error { return error; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "native error names in type-only positions are not reported"
+    },
+    {
+      "code": "export class Local implements Error { public readonly name = 'Local'; public readonly message = 'x'; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "implementing the Error interface is not reported"
+    },
+    {
+      "code": "export const kind = Error.name; export const check = (value: unknown): boolean => value instanceof Error;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "referencing Error without constructing it is not reported"
+    },
+    {
+      "code": "export abstract class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an abstract BaseError declaration extending Error is not reported"
+    },
+    {
+      "code": "export abstract class OtherRoot extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "OtherRoot"
+          ]
+        }
+      ],
+      "name": "an abstract declaration named in baseClassNames is not reported"
+    },
+    {
+      "code": "export abstract class BaseError extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "BaseError",
+            "OtherRoot"
+          ]
+        }
+      ],
+      "name": "an abstract root extending any native constructor is not reported"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "export const value = new Error('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "new Error is invalid"
+    },
+    {
+      "code": "export const value = Error('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "Error called without new is invalid"
+    },
+    {
+      "code": "export class Local extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "class declaration extending Error is invalid"
+    },
+    {
+      "code": "export const value = new TypeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "new TypeError is invalid"
+    },
+    {
+      "code": "export const value = TypeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "TypeError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "class declaration extending TypeError is invalid"
+    },
+    {
+      "code": "export const value = new RangeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "new RangeError is invalid"
+    },
+    {
+      "code": "export const value = RangeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "RangeError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends RangeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "class declaration extending RangeError is invalid"
+    },
+    {
+      "code": "export const value = new SyntaxError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "new SyntaxError is invalid"
+    },
+    {
+      "code": "export const value = SyntaxError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "SyntaxError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends SyntaxError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "class declaration extending SyntaxError is invalid"
+    },
+    {
+      "code": "export const value = new ReferenceError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "new ReferenceError is invalid"
+    },
+    {
+      "code": "export const value = ReferenceError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "ReferenceError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends ReferenceError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "class declaration extending ReferenceError is invalid"
+    },
+    {
+      "code": "export const value = new EvalError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "new EvalError is invalid"
+    },
+    {
+      "code": "export const value = EvalError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "EvalError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends EvalError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "class declaration extending EvalError is invalid"
+    },
+    {
+      "code": "export const value = new URIError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "new URIError is invalid"
+    },
+    {
+      "code": "export const value = URIError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "URIError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends URIError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "class declaration extending URIError is invalid"
+    },
+    {
+      "code": "export const value = new AggregateError([], 'x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "new AggregateError is invalid"
+    },
+    {
+      "code": "export const value = AggregateError([], 'x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "AggregateError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends AggregateError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "class declaration extending AggregateError is invalid"
+    },
+    {
+      "code": "export const value = new DOMException('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "new DOMException is invalid"
+    },
+    {
+      "code": "export const value = DOMException('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "DOMException called without new is invalid"
+    },
+    {
+      "code": "export class Local extends DOMException {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "class declaration extending DOMException is invalid"
+    },
+    {
+      "code": "export const Local = class extends TypeError {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "class expression extending TypeError is invalid"
+    },
+    {
+      "code": "export const rejected = Promise.reject(new Error('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "Promise.reject of a native error construction reports the construction once"
+    },
+    {
+      "code": "declare const controller: AbortController; controller.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "abortWithoutReason"
+        }
+      ],
+      "name": "abort() with no reason on an AbortController is invalid"
+    },
+    {
+      "code": "export const controller = new AbortController(); controller.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "abortWithoutReason"
+        }
+      ],
+      "name": "abort() on a constructed AbortController is invalid"
+    },
+    {
+      "code": "export class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a non-abstract BaseError extending Error is reported"
+    },
+    {
+      "code": "export abstract class OtherRoot extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "an abstract class outside the default baseClassNames is reported"
+    },
+    {
+      "code": "export abstract class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "OtherRoot"
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "an abstract BaseError is reported when baseClassNames omits it"
+    },
+    {
+      "code": "export const BaseError = class extends Error {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a class expression named BaseError extending Error is reported"
+    },
+    {
+      "code": "export const Root = class BaseError extends Error {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a class expression with a base class name extending Error is reported"
+    }
+  ]
+}

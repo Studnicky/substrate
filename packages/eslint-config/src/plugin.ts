@@ -26,6 +26,7 @@ import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
 import { noFunctionRegistries } from './rules/noFunctionRegistries.js';
 import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
+import { noNativeError } from './rules/noNativeError.js';
 import { noRedefinedExternalTypes } from './rules/noRedefinedExternalTypes.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
@@ -56,6 +57,7 @@ export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
     'no-double-assertion': noDoubleAssertion,
     'no-function-registries': noFunctionRegistries,
     'no-mixed-callable-shapes': noMixedCallableShapes,
+    'no-native-error': noNativeError,
     'no-redefined-external-types': noRedefinedExternalTypes,
     'no-reflect-argument-laundering': noReflectArgumentLaundering,
     'no-threaded-vocabulary': noThreadedVocabulary,
