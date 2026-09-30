@@ -11,6 +11,7 @@ import type { PaginatorExhaustedStateInterface } from './interfaces/PaginatorExh
 import type { PaginatorHasMoreStateInterface } from './interfaces/PaginatorHasMoreStateInterface.js';
 import type { PaginatorPageReceivedEventInterface } from './interfaces/PaginatorPageReceivedEventInterface.js';
 
+import { PaginatorCloneError } from './errors/PaginatorCloneError.js';
 import { PaginatorMachine } from './PaginatorMachine.js';
 
 interface PaginatorConstructorInterface<TPage, TCursor, TInstance extends Paginator<TPage, TCursor>> extends Function {
@@ -183,7 +184,7 @@ export class Paginator<TPage, TCursor> {
 
   /** All pages received so far, in receipt order. Empty before the first page arrives. */
   get pages(): readonly TPage[] {
-    const result: readonly TPage[] = this.state.variant === 'idle' ? [] : structuredClone(this.state.pages);
+    const result: readonly TPage[] = this.state.variant === 'idle' ? [] : Paginator.#retain(this.state.pages, 'pages');
 
     return result;
   }
@@ -204,8 +205,8 @@ export class Paginator<TPage, TCursor> {
     nextCursor: PaginatorAvailableCursorInterface<TCursor> | PaginatorExhaustedCursorEntity.Type
   ): void {
     const priorState = this.state;
-    const retainedPage = structuredClone(page);
-    const retainedCursor = structuredClone(nextCursor);
+    const retainedPage = Paginator.#retain(page, 'page');
+    const retainedCursor = Paginator.#retain(nextCursor, 'cursor');
     const step = this.machine.transition(priorState, {
       'nextCursor': retainedCursor,
       'page': retainedPage,
@@ -214,6 +215,17 @@ export class Paginator<TPage, TCursor> {
 
     this.#commitUnlessSuperseded(priorState, step.state);
     this.#throwPendingHookPropagation();
+  }
+
+  /** Detached-clones `value` for retention; a value the platform cannot clone surfaces as `PaginatorCloneError`. */
+  static #retain<TValue>(value: TValue, label: string): TValue {
+    try {
+      const result = structuredClone(value);
+
+      return result;
+    } catch (error) {
+      throw new PaginatorCloneError(`Paginator ${label} is not structured-cloneable`, error);
+    }
   }
 
   /** Returns to the initial `idle` state, discarding all received pages and the cursor. */

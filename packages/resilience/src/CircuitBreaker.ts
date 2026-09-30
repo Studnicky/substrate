@@ -5,7 +5,7 @@ import { SchemaIntakeError } from '@studnicky/entity/browser';
 import {
   type ErrorClassifierFunctionInterface, type ErrorClassifierInterface, HookInvoker, RuntimeError
 } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';
@@ -84,10 +84,7 @@ export class CircuitBreaker {
     try {
       options = CircuitBreakerOptionsEntity.intake(config);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ResilienceConfigError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new ResilienceConfigError(error instanceof SchemaIntakeError ? RuntimeError.toMessage(error) : 'CircuitBreaker options intake failed', error);
     }
 
     this.#resetTimeoutMs = options.resetTimeoutMs;
@@ -128,7 +125,8 @@ export class CircuitBreaker {
         }
         this.#dispatch({ 'at': this.#clock(), 'error': error, 'type': 'callFailed' });
       }
-      throw error;
+      const failure: never = CallerFault.propagate(error);
+      return failure;
     }
   }
 

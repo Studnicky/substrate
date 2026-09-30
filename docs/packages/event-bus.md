@@ -158,7 +158,9 @@ import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
 | `BusQueueCreateOptionsInterface` | Defines the bus queue create options contract. | `@studnicky/event-bus/interfaces` |
 | `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus/node` |
 | `EventBus` | Provides event bus functionality. | `@studnicky/event-bus/node` |
+| `EventBusClosedError` | Abort reason for every subscriber queue when the bus closes. | `@studnicky/event-bus/node` |
 | `EventBusError` | Represents event bus failures. | `@studnicky/event-bus/node` |
+| `EventBusUnsubscribedError` | Abort reason for a subscriber queue when its subscription is removed. | `@studnicky/event-bus/node` |
 | `EventSinkInterface` | Defines the minimal typed event publishing contract. | `@studnicky/event-bus/interfaces` |
 | `EventHandlerInterface` | Defines the event handler contract. | `@studnicky/event-bus/interfaces` |
 | `UnsubscribeInterface` | Defines the unsubscribe contract. | `@studnicky/event-bus/interfaces` |

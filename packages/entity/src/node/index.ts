@@ -13,5 +13,12 @@ export class EntityCompiler extends EntityCompilerModule.EntityCompiler {
   }
 }
 
+export { CodePointError } from '../CodePointError.js';
 export { EntityClone } from '../EntityClone.js';
+export { EntityCloneError } from '../EntityCloneError.js';
+export { EntityCompilerConfigurationError } from '../EntityCompilerConfigurationError.js';
+export { SchemaDefaultError } from '../SchemaDefaultError.js';
 export { SchemaIntakeError } from '../SchemaIntakeError.js';
+export { SchemaNodeDefinitionError } from '../SchemaNodeDefinitionError.js';
+export { SchemaPatternError } from '../SchemaPatternError.js';
+export { SchemaReferenceError } from '../SchemaReferenceError.js';

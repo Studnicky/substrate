@@ -1,6 +1,7 @@
 import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 
 import { Signal } from '@studnicky/signal/browser';
+import { type BaseError, CallerFault } from '@studnicky/types/browser';
 
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
 import type { QueryParametersEntity } from '../../entities/QueryParametersEntity.js';
@@ -8,23 +9,19 @@ import type { BodyRequestOptionsInterface } from '../../interfaces/BodyRequestOp
 import type { ClientConfigInterface } from '../../interfaces/ClientConfigInterface.js';
 import type { FetchClientInterface } from '../../interfaces/FetchClientInterface.js';
 import type { FetchOptionsInterface } from '../../interfaces/FetchOptionsInterface.js';
+import type { RequestFailureSignalsInterface } from '../../interfaces/RequestFailureSignalsInterface.js';
 import type { ResolvedClientConfigInterface } from '../../interfaces/ResolvedClientConfigInterface.js';
 
-import { ConfigurationError, TimeoutError } from '../../errors/index.js';
+import { ConfigurationError } from '../../errors/index.js';
 import { BodySerializer } from '../BodySerializer.js';
 import { FetchClientConfiguration } from '../FetchClientConfiguration.js';
+import { RequestErrorClassifier } from '../RequestErrorClassifier.js';
 import { RequestInitEncoder } from '../RequestInitEncoder.js';
 import { UrlQueryString } from '../UrlQueryString.js';
 import { FetchTransport } from './FetchTransport.js';
 
 interface ComposeBrowserRequestSignalOptionsInterface {
   readonly 'normalizedSignal': AbortSignal | undefined;
-  readonly 'timeout': number | undefined;
-}
-
-interface RequestErrorClassificationOptionsInterface {
-  readonly 'externalSignal': AbortSignal | null | undefined;
-  readonly 'requestSignal': AbortSignal | undefined;
   readonly 'timeout': number | undefined;
 }
 
@@ -161,10 +158,21 @@ export class BrowserFetchClient implements FetchClientInterface {
     try {
       return await FetchTransport.fetch(url, init);
     } catch (error) {
-      throw this.#classifyRequestError(error, url, { 'externalSignal': externalSignal, 'requestSignal': requestSignal, 'timeout': timeout });
+      throw BrowserFetchClient.#toRequestFailure(error, url, { 'externalSignal': externalSignal, 'requestSignal': requestSignal, 'timeoutMs': timeout });
     } finally {
       composedSignal?.dispose();
     }
+  }
+
+  /** Abort/timeout reclassification, then a caller-owned abort reason; anything else is wrapped as a named platform failure. */
+  static #toRequestFailure(error: unknown, url: string, signals: RequestFailureSignalsInterface): BaseError {
+    const classified = RequestErrorClassifier.classifyAbortOrTimeout(RequestErrorClassifier.platformCause(error), url, signals);
+    if (RequestErrorClassifier.isCallerAbortReason(classified, signals.externalSignal)) {
+      // The caller aborted the request's own signal with this value; it belongs to the caller.
+      CallerFault.propagate(classified);
+    }
+    const result = RequestErrorClassifier.toNamed(classified, url);
+    return result;
   }
 
   /** Composes the deadline/abort signal and writes it onto `init` in place, matching undici's fetch(url, init) contract. */
@@ -186,13 +194,5 @@ export class BrowserFetchClient implements FetchClientInterface {
     const composed = await this.#signal.compose(composeOptions);
     init.signal = composed.signal;
     return composed;
-  }
-
-  #classifyRequestError(error: unknown, url: string, options: RequestErrorClassificationOptionsInterface): unknown {
-    if (options.requestSignal?.aborted === true && options.timeout !== undefined && options.externalSignal?.aborted !== true) {
-      const result = new TimeoutError(url, options.timeout);
-      return result;
-    }
-    return error;
   }
 }

@@ -1041,7 +1041,7 @@
         "messageIncludes": [
           "circular"
         ],
-        "name": "TypeError"
+        "name": "BodySerializationError"
       }
     },
     {
@@ -1106,7 +1106,7 @@
         "messageIncludes": [
           "BigInt"
         ],
-        "name": "TypeError"
+        "name": "BodySerializationError"
       }
     },
     {

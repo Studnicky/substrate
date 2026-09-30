@@ -1,4 +1,3 @@
-import { RuntimeError } from '@studnicky/errors/node';
 import { RaceTimeout } from '@studnicky/signal/node';
 import { JsonObject, Predicates } from '@studnicky/types/node';
 
@@ -10,7 +9,11 @@ import {
   HTTP_STATUS_NOT_FOUND, HTTP_STATUS_OK
 } from '../constants/index.js';
 import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
+import { BodySerializationError } from '../errors/BodySerializationError.js';
+import { ConfigurationError } from '../errors/ConfigurationError.js';
+import { ConstructionError } from '../errors/ConstructionError.js';
 import { FetchBaseError } from '../errors/FetchBaseError.js';
+import { InvalidUrlError } from '../errors/InvalidUrlError.js';
 
 class OriginState {
   public 'active' = 0;
@@ -73,11 +76,30 @@ class TestRequest {
   }
 }
 
+/**
+ * Stands in for the platform socket failure a real `fetch` rejects with. The platform failure is a
+ * `TypeError`/`Error` whose `code` (ECONNREFUSED, ENOTFOUND, ...) carries the reason and whose
+ * `name` is the generic 'Error'; this class mirrors that name so a consumer that inspects
+ * `error.name` sees the same value it sees from the real transport.
+ */
 class NetworkFailure extends FetchBaseError {
   public override readonly name: string = 'Error';
 
   public constructor(code: string, message: string) {
     super({ 'code': code, 'message': message, 'retryable': true });
+  }
+}
+
+/**
+ * Stands in for the abort rejection a real `fetch` produces. The platform rejection is a
+ * `DOMException` named 'AbortError'; this class mirrors that name so abort classification, which
+ * keys on `error.name`, treats the simulated and the real rejection identically.
+ */
+class SimulatedAbort extends FetchBaseError {
+  public override readonly name: string = 'AbortError';
+
+  public constructor() {
+    super({ 'code': 'fetch.aborted', 'message': 'The operation was aborted.', 'retryable': false });
   }
 }
 
@@ -105,14 +127,22 @@ export class TestDispatcher {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isInstanceOf(result, this)) {
-      throw RuntimeError.create('TestDispatcher.create() did not construct the requested subclass.');
+      throw new ConstructionError('TestDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;
   }
 
-  static #abortError(): DOMException {
-    return new DOMException('The operation was aborted.', 'AbortError');
+  static #abortError(): SimulatedAbort {
+    return new SimulatedAbort();
+  }
+
+  static #parseUrl(value: string): URL {
+    try {
+      return new URL(value);
+    } catch (cause) {
+      throw new InvalidUrlError(value, cause);
+    }
   }
 
   static async #delay(ms: number, signal: AbortSignal | undefined): Promise<void> {
@@ -167,6 +197,15 @@ export class TestDispatcher {
     return result;
   }
 
+  static #decodeBytes(bytes: Uint8Array): string {
+    try {
+      const decoded = new TextDecoder().decode(bytes);
+      return decoded;
+    } catch (cause) {
+      throw new ConfigurationError(`Request body could not be decoded: ${FetchBaseError.toMessage(cause)}`, cause);
+    }
+  }
+
   static #readBodyValue(body: ArrayBuffer | ArrayBufferView | Blob | null | string | undefined): string {
     if (body === undefined || body === null) {
       return '';
@@ -177,22 +216,22 @@ export class TestDispatcher {
     }
 
     if (body instanceof Uint8Array) {
-      const result = new TextDecoder().decode(body);
+      const result = TestDispatcher.#decodeBytes(body);
       return result;
     }
 
     if (body instanceof ArrayBuffer) {
-      const result = new TextDecoder().decode(new Uint8Array(body));
+      const result = TestDispatcher.#decodeBytes(new Uint8Array(body));
       return result;
     }
 
     if (ArrayBuffer.isView(body)) {
-      const result = new TextDecoder().decode(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
+      const result = TestDispatcher.#decodeBytes(new Uint8Array(body.buffer, body.byteOffset, body.byteLength));
       return result;
     }
 
     if (body instanceof Blob) {
-      throw RuntimeError.create('Blob request bodies are not supported in the fetch test dispatcher');
+      throw new ConfigurationError('Blob request bodies are not supported in the fetch test dispatcher');
     }
 
     const result = String(body);
@@ -200,13 +239,18 @@ export class TestDispatcher {
   }
 
   static #jsonResponse(status: number, value: object, headers: Record<string, string> = {}): Response {
-    return new Response(JSON.stringify(value), {
-      'headers': {
-        'Content-Type': 'application/json',
-        ...headers
-      },
-      'status': status
-    });
+    try {
+      const serialized = JSON.stringify(value);
+      return new Response(serialized, {
+        'headers': {
+          'Content-Type': 'application/json',
+          ...headers
+        },
+        'status': status
+      });
+    } catch (cause) {
+      throw new BodySerializationError(cause);
+    }
   }
 
   static #textResponse(status: number, value: string, headers: Record<string, string> = {}): Response {
@@ -267,7 +311,7 @@ export class TestDispatcher {
 
   /** Throws the network failure a real socket would raise before any route is dispatched. */
   static #assertReachable(request: TestRequest): void {
-    const originUrl = new URL(request.origin);
+    const originUrl = TestDispatcher.#parseUrl(request.origin);
 
     if (originUrl.protocol !== 'http:' && originUrl.protocol !== 'https:') {
       throw TestDispatcher.#networkError('ERR_INVALID_PROTOCOL', `unsupported protocol ${originUrl.protocol}`);
@@ -525,7 +569,7 @@ export class TestDispatcher {
   }
 
   #normalizeRequest(url: string, init: Record<string, unknown>): TestRequest {
-    const parsedUrl = new URL(url);
+    const parsedUrl = TestDispatcher.#parseUrl(url);
     const rawBody = init.body;
     const body = rawBody === null
       || Predicates.isString(rawBody)

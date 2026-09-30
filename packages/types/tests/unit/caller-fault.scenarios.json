@@ -1,0 +1,10 @@
+{
+  "cases": [
+    { "name": "error-instance", "description": "propagate rethrows an Error instance by identity", "input": { "shape": "error" } },
+    { "name": "type-error-instance", "description": "propagate rethrows a TypeError instance by identity", "input": { "shape": "type-error" } },
+    { "name": "string", "description": "propagate rethrows a string unchanged", "input": { "shape": "string" } },
+    { "name": "plain-object", "description": "propagate rethrows a plain object by identity", "input": { "shape": "object" } },
+    { "name": "undefined", "description": "propagate rethrows undefined unchanged", "input": { "shape": "undefined" } },
+    { "name": "null", "description": "propagate rethrows null unchanged", "input": { "shape": "null" } }
+  ]
+}

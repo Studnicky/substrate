@@ -4,7 +4,7 @@ import { IdempotencyGuardError } from './IdempotencyGuardError.js';
 export class IdempotencyGuardConfigError extends IdempotencyGuardError {
   public override readonly name: string = 'IdempotencyGuardConfigError';
 
-  public constructor(message: string) {
-    super({ 'code': 'idempotencyGuard.invalidConfig', 'message': message });
+  public constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'idempotencyGuard.invalidConfig', 'message': message });
   }
 }

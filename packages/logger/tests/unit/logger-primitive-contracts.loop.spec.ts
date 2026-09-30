@@ -5,6 +5,8 @@ import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { LogSerializationError } from '../../src/errors/LogSerializationError.js';
+import { SafeStringify } from '../../src/modules/safeStringify.js';
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { LOG_LEVEL_MAP } from '../../src/constants/LOG_LEVEL_MAP.js';
 import {
@@ -29,7 +31,6 @@ import {
 import { LogBuildErrorMessage } from '../../src/modules/LogBuildErrorMessage.js';
 import { ParseLogLevel } from '../../src/modules/parseLogLevel.js';
 import { ResolveMinimumLevel } from '../../src/modules/ResolveMinimumLevel.js';
-import { SafeStringify } from '../../src/modules/safeStringify.js';
 import { LoggerPrimitiveContractsScenarioCaseEntity } from './entities/LoggerPrimitiveContractsScenarioCaseEntity.js';
 import scenarioGroups from './logger-primitive-contracts.scenarios.json' with { type: 'json' };
 
@@ -400,5 +401,11 @@ void describe('ImmutableSnapshot', () => {
     assert.ok(members instanceof Set);
     assert.throws(() => snapshot.collection.set('other', new Set()), FrozenMutationError);
     assert.throws(() => members.add('lin'), FrozenMutationError);
+  });
+
+  void it('surfaces a value the JSON serializer rejects as a LogSerializationError carrying the platform error', () => {
+    assert.throws(() => SafeStringify.stringify({ 'count': 1n }), (error: unknown) => {
+      return error instanceof LogSerializationError && error.cause instanceof TypeError;
+    });
   });
 });

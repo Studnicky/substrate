@@ -7,6 +7,7 @@ import { JsonObject, Predicates } from '@studnicky/types/browser';
 import type { QueryParametersInterface } from '../interfaces/QueryParametersInterface.js';
 
 import { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
+import { QueryEncodingError } from '../errors/QueryEncodingError.js';
 
 /**
  * URL and query string utilities
@@ -26,25 +27,29 @@ export class UrlQueryString {
 
   static buildQueryStringFromEntity(parameters: QueryParametersEntity.Type): string {
     const pairs: string[] = [];
-    const parameterNames = Object.keys(parameters);
-    const parameterNameLength = parameterNames.length;
-    for (let index = 0; index < parameterNameLength; index += 1) {
-      const key = parameterNames[index];
-      if (key === undefined) {
-        continue;
-      }
-      const value: unknown = Reflect.get(parameters, key);
-      const encodedKey = encodeURIComponent(key);
-
-      if (Predicates.isArray(value)) {
-        const valueLength = value.length;
-        for (let valueIndex = 0; valueIndex < valueLength; valueIndex += 1) {
-          const item: unknown = Reflect.get(value, valueIndex);
-          pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
+    try {
+      const parameterNames = Object.keys(parameters);
+      const parameterNameLength = parameterNames.length;
+      for (let index = 0; index < parameterNameLength; index += 1) {
+        const key = parameterNames[index];
+        if (key === undefined) {
+          continue;
         }
-      } else {
-        pairs.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
+        const value: unknown = Reflect.get(parameters, key);
+        const encodedKey = encodeURIComponent(key);
+
+        if (Predicates.isArray(value)) {
+          const valueLength = value.length;
+          for (let valueIndex = 0; valueIndex < valueLength; valueIndex += 1) {
+            const item: unknown = Reflect.get(value, valueIndex);
+            pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
+          }
+        } else {
+          pairs.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
+        }
       }
+    } catch (cause) {
+      throw new QueryEncodingError(cause);
     }
 
     const result = pairs.join('&');

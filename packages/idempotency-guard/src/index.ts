@@ -1,2 +1,2 @@
-export { IdempotencyConflictError, IdempotencyGuardConfigError, IdempotencyGuardError } from './errors/index.js';
+export { IdempotencyConflictError, IdempotencyGuardConfigError, IdempotencyGuardError, IdempotencyPayloadError } from './errors/index.js';
 export { IdempotencyGuard } from './IdempotencyGuard.js';

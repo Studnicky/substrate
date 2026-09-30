@@ -26,6 +26,8 @@ import type { InferTupleStaticType } from './InferTupleStaticType.js';
 import type { InferUnionOfInputType } from './InferUnionOfInputType.js';
 import type { InferUnionOfStaticType } from './InferUnionOfStaticType.js';
 
+import { SchemaNodeDefinitionError } from '../../SchemaNodeDefinitionError.js';
+
 /**
  * TypeBox-style node constructors: each builds a schema literal and its own
  * `static`/`input` types from already-built child nodes, one level at a time.
@@ -303,7 +305,7 @@ export class SchemaNode {
       get 'schema'(): TSchema {
         const resolved = resolution.schema;
         if (resolved === undefined) {
-          throw new Error('recursive schema node read before its own build() resolved it');
+          throw new SchemaNodeDefinitionError('recursive schema node read before its own build() resolved it');
         }
         return resolved;
       }

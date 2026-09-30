@@ -66,7 +66,7 @@ class OverrideStorage implements ContextStorageInterface {
 
 describe('Context runtime entrypoints', () => {
   it('exports the same runtime symbols from node and browser', () => {
-    assert.deepStrictEqual(Object.keys(nodeExports).toSorted(), ['Context', 'ContextAsyncRuntime', 'ContextConfigError', 'ContextError']);
+    assert.deepStrictEqual(Object.keys(nodeExports).toSorted(), ['Context', 'ContextAsyncRuntime', 'ContextConfigError', 'ContextError', 'UnsupportedSourceExtensionError']);
     assert.deepStrictEqual(Object.keys(browserExports).toSorted(), Object.keys(nodeExports).toSorted());
   });
 

@@ -1,3 +1,5 @@
+import { ScorerAllocator } from './ScorerAllocator.js';
+
 export class DamerauLevenshteinScorer {
   static score(left: string, right: string): number {
     if (left === right) {
@@ -14,9 +16,9 @@ export class DamerauLevenshteinScorer {
   }
 
   private static createMatrix(leftLength: number, rightLength: number): number[][] {
-    const matrix = Array.from<number[]>({ 'length': leftLength + 1 });
+    const matrix = ScorerAllocator.filled<number[]>(leftLength + 1, []);
     for (let leftIndex = 0; leftIndex <= leftLength; leftIndex += 1) {
-      matrix[leftIndex] = Array.from<number>({ 'length': rightLength + 1 }).fill(0);
+      matrix[leftIndex] = ScorerAllocator.filled(rightLength + 1, 0);
     }
     for (let index = 0; index <= leftLength; index += 1) { matrix[index]![0] = index; }
     for (let index = 0; index <= rightLength; index += 1) { matrix[0]![index] = index; }

@@ -3,7 +3,7 @@ import { ConfigurationError } from '@studnicky/config/browser';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { SampleBuffer } from '@studnicky/sample-buffer/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';
@@ -49,7 +49,9 @@ import { ValidatedAdaptiveConfigEntity } from '../entities/ValidatedAdaptiveConf
 import { ValidatedThrottleConfigEntity } from '../entities/ValidatedThrottleConfigEntity.js';
 import {
   ThrottleAbortedError,
-  ThrottleDrainingError
+  ThrottleAcquisitionError,
+  ThrottleDrainingError,
+  ThrottleGracePeriodEndedError
 } from '../errors/index.js';
 import { Delay } from './Delay.js';
 import { OperationLifecycleMachine } from './OperationLifecycleMachine.js';
@@ -490,7 +492,7 @@ export class Throttle implements ThrottleInterface {
 
     const cancelledCount = this.activeOperations.size;
 
-    this.abortController.abort();
+    this.abortController.abort(new ThrottleAbortedError('Throttle has been aborted', INITIAL_COUNTER));
     await this.cancelActiveOperations();
     this.drainWaiter?.resolve();
     this.drainWaiter = undefined;
@@ -504,7 +506,7 @@ export class Throttle implements ThrottleInterface {
     }
 
     if (abortHookError !== undefined) {
-      throw abortHookError;
+      CallerFault.propagate(abortHookError);
     }
 
     return {
@@ -520,7 +522,7 @@ export class Throttle implements ThrottleInterface {
   private async acquireSlot(operation: ActiveOperationInterface): Promise<void> {
     const waited = this.semaphore.available <= INITIAL_COUNTER || this.semaphore.queuedCount > INITIAL_COUNTER;
     let acquisition: Promise<(() => Promise<void>) | undefined>;
-    let acquisitionError: unknown;
+    let acquisitionError: BaseError | undefined;
 
     if (waited) {
       this.fireLifecycleEffect({
@@ -531,7 +533,7 @@ export class Throttle implements ThrottleInterface {
 
       const admission = new AbortController();
       acquisition = this.semaphore.acquire({ 'signal': AbortSignal.any([this.abortController.signal, admission.signal]) }).catch((error: unknown) => {
-        acquisitionError = error;
+        acquisitionError = Throttle.toAcquisitionError(error);
         return undefined;
       });
       try {
@@ -540,9 +542,9 @@ export class Throttle implements ThrottleInterface {
           'type': 'Queued'
         });
       } catch (error) {
-        admission.abort();
+        admission.abort(new ThrottleAbortedError('Throttle admission cancelled after a lifecycle hook failure', INITIAL_COUNTER));
         await acquisition;
-        throw error;
+        CallerFault.propagate(error);
       }
     } else {
       if (this.#state === 'idle') {
@@ -551,11 +553,18 @@ export class Throttle implements ThrottleInterface {
       acquisition = this.semaphore.acquire({ 'signal': this.abortController.signal });
     }
 
+    let release: (() => Promise<void>) | undefined;
     try {
-      const release = await acquisition;
-      if (release === undefined) {
-        throw acquisitionError ?? RuntimeError.create('Semaphore acquisition failed without an error.');
-      }
+      release = await acquisition;
+    } catch (error) {
+      acquisitionError = Throttle.toAcquisitionError(error);
+    }
+    if (release === undefined) {
+      await this.settleWithoutPermit(operation);
+      throw acquisitionError ?? RuntimeError.create('Semaphore acquisition failed without an error.');
+    }
+
+    try {
       this.bindPermit(operation, release);
       if (waited) {
         this.fireLifecycleEffect({
@@ -571,12 +580,28 @@ export class Throttle implements ThrottleInterface {
         });
       }
     } catch (error) {
-      if (operation.release !== undefined) {
-        await operation.release();
-      } else {
-        this.completeIfIdle();
-      }
-      throw error;
+      await this.settleWithoutPermit(operation);
+      CallerFault.propagate(error);
+    }
+  }
+
+  /**
+   * Returns a semaphore acquisition failure as a `BaseError`. The semaphore rejects with
+   * `BaseError` instances; any other value is wrapped with the original as `cause`.
+   */
+  private static toAcquisitionError(error: unknown): BaseError {
+    const result = error instanceof BaseError ? error : new ThrottleAcquisitionError('Semaphore acquisition failed with a non-BaseError value.', error);
+    return result;
+  }
+
+  /**
+   * Releases the permit an operation already holds, or completes an idle throttle when it holds none.
+   */
+  private async settleWithoutPermit(operation: ActiveOperationInterface): Promise<void> {
+    if (operation.release !== undefined) {
+      await operation.release();
+    } else {
+      this.completeIfIdle();
     }
   }
 
@@ -679,14 +704,16 @@ export class Throttle implements ThrottleInterface {
   async execute<T>(callback: () => Promise<T>): Promise<T | undefined> {
     this.validateExecuteState();
 
-    return await new Promise<T | undefined>((resolve, reject) => {
+    return await new Promise<T | undefined>((resolve) => {
       const operation: ActiveOperationInterface = {
         'completed': false,
         'release': undefined,
         'resolve': (): void => { resolve(undefined); }
       };
       this.activeOperations.add(operation);
-      this.startOperation(operation, callback, resolve, reject).catch(reject);
+      this.startOperation(operation, callback, resolve).catch((error: unknown) => {
+        resolve(CallerFault.rejection(error));
+      });
     });
   }
 
@@ -696,8 +723,7 @@ export class Throttle implements ThrottleInterface {
   private async startOperation<T>(
     operation: ActiveOperationInterface,
     callback: () => Promise<T>,
-    resolve: (value: T | undefined) => void,
-    reject: (reason?: unknown) => void
+    resolve: (value: PromiseLike<T | undefined> | T | undefined) => void
   ): Promise<void> {
     try {
       await this.acquireSlot(operation);
@@ -705,7 +731,7 @@ export class Throttle implements ThrottleInterface {
       if (!operation.completed) {
         operation.completed = true;
         this.activeOperations.delete(operation);
-        reject(error);
+        resolve(CallerFault.rejection(error));
       }
       return;
     }
@@ -714,7 +740,7 @@ export class Throttle implements ThrottleInterface {
       return;
     }
 
-    await this.runOperation(operation, callback, resolve, reject);
+    await this.runOperation(operation, callback, resolve);
   }
 
   /**
@@ -793,8 +819,7 @@ export class Throttle implements ThrottleInterface {
   private async runOperation<T>(
     operation: ActiveOperationInterface,
     callback: () => Promise<T>,
-    resolve: (value: T | undefined) => void,
-    reject: (reason?: unknown) => void
+    resolve: (value: PromiseLike<T | undefined> | T | undefined) => void
   ): Promise<void> {
     const releasePermit = operation.release;
     if (releasePermit === undefined) {
@@ -820,7 +845,7 @@ export class Throttle implements ThrottleInterface {
       try {
         await releasePermit();
       } catch (releaseError) {
-        reject(releaseError);
+        resolve(CallerFault.rejection(releaseError));
         return;
       }
       resolve(result);
@@ -847,7 +872,7 @@ export class Throttle implements ThrottleInterface {
         outcome = releaseError;
       }
 
-      reject(outcome);
+      resolve(CallerFault.rejection(outcome));
     }
   }
 
@@ -1056,7 +1081,7 @@ export class Throttle implements ThrottleInterface {
     }
 
     const controller = new AbortController();
-    const complete = this.semaphore.waitForIdle().then(() => { controller.abort(); });
+    const complete = this.semaphore.waitForIdle().then(() => { controller.abort(new ThrottleGracePeriodEndedError(timeout)); });
 
     try {
       await Delay.for(timeout, controller.signal);
@@ -1146,18 +1171,22 @@ export class Throttle implements ThrottleInterface {
     return result;
   }
 
+  private static intakeConfig(config?: unknown): ThrottleConfigEntity.Type {
+    try {
+      const result = ThrottleConfigEntity.intake(config === undefined ? {} : config);
+      return result;
+    } catch (error) {
+      throw ConfigurationError.create(
+        error instanceof SchemaIntakeError ? error.message : 'Throttle configuration intake failed',
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
   private static validateConfig(
     config?: unknown
   ): ValidatedThrottleConfigEntity.Type {
-    let parsedConfiguration: ThrottleConfigEntity.Type;
-    try {
-      parsedConfiguration = ThrottleConfigEntity.intake(config === undefined ? {} : config);
-    } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw ConfigurationError.create(error.message);
-      }
-      throw error;
-    }
+    const parsedConfiguration = Throttle.intakeConfig(config);
     const adaptive = Throttle.validateAdaptiveConfig(parsedConfiguration.adaptive);
     const concurrencyLimit = parsedConfiguration.concurrencyLimit ?? DEFAULT_THROTTLE_CONCURRENCY;
 

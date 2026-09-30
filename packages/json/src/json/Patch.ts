@@ -45,7 +45,16 @@ export class Patch {
       const candidate: unknown = candidates[index];
       parsedOperations.push(PatchOperationEntity.intake(candidate));
     }
-    this.#operations = structuredClone(parsedOperations);
+    this.#operations = Patch.detach(parsedOperations);
+  }
+
+  private static detach<T>(value: T): T {
+    try {
+      const result = structuredClone(value);
+      return result;
+    } catch (cause) {
+      throw new PatchError('Patch operations cannot be cloned', 'clone', '', cause);
+    }
   }
 
   private static diffArray(base: unknown[], next: unknown[], path: string, operations: PatchOperationEntity.Type[]): void {
@@ -98,7 +107,7 @@ export class Patch {
 
   /** Return a deeply isolated projection of the patch operations. */
   public get operations(): readonly PatchOperationEntity.Type[] {
-    const result = structuredClone(this.#operations);
+    const result = Patch.detach(this.#operations);
     return result;
   }
 
@@ -108,7 +117,7 @@ export class Patch {
     for (let index = 0; index < operationLength; index += 1) {
       const operation = this.#operations[index];
       if (operation !== undefined) {
-        this.applyOperation(target, structuredClone(operation));
+        this.applyOperation(target, Patch.detach(operation));
       }
     }
     const result = target;
@@ -293,7 +302,12 @@ export class Patch {
   /** Produce a human-readable description of a single operation. */
   protected describeOp(operation: PatchOperationEntity.Type): string {
     if (operation.op === 'add' || operation.op === 'replace' || operation.op === 'test') {
-      return `${operation.op.toUpperCase()} ${operation.path} = ${JSON.stringify(this.requireValue(operation))}`;
+      const value = this.requireValue(operation);
+      try {
+        return `${operation.op.toUpperCase()} ${operation.path} = ${JSON.stringify(value)}`;
+      } catch (error) {
+        throw new PatchError(`${operation.op} operation value is not JSON-serializable`, operation.op, operation.path, error);
+      }
     }
     if (operation.op === 'copy' || operation.op === 'move') {
       return `${operation.op.toUpperCase()} ${this.requireFrom(operation)} → ${operation.path}`;

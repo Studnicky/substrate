@@ -17,6 +17,7 @@ import { SequentialRangeEntity } from '../entities/SequentialRangeEntity.js';
 import { SortDirectionEntity } from '../entities/SortDirectionEntity.js';
 import { SortRuleEntity } from '../entities/SortRuleEntity.js';
 import { ValueFilterRuleEntity } from '../entities/ValueFilterRuleEntity.js';
+import { DrilldownRulesBuildError } from '../errors/DrilldownRulesBuildError.js';
 
 /** Builds every group-value variant plus `groupRule`/`groupValue` against `self`, so the root `Node` and every flat variant entity share one construction, never two. */
 class DrilldownGroupValuePieceBuilder {
@@ -150,7 +151,7 @@ class DrilldownRulesNodeBuilder {
     });
 
     if (capturedGroupValuePieces === undefined) {
-      throw new Error('defineRecursive did not synchronously build the group-value pieces');
+      throw new DrilldownRulesBuildError('defineRecursive did not synchronously build the group-value pieces');
     }
 
     return {

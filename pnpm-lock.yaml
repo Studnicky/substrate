@@ -522,6 +522,9 @@ importers:
       '@studnicky/errors':
         specifier: workspace:*
         version: link:../errors
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/fetch:
     dependencies:
@@ -1142,6 +1145,9 @@ importers:
       '@studnicky/mutex':
         specifier: workspace:*
         version: link:../mutex
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
     devDependencies:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*

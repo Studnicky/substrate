@@ -1,5 +1,5 @@
 ---
-"@studnicky/keyed-rate-limiter": major
+"@studnicky/resilience": major
 ---
 
 `KeyedRateLimiterRegistryOptionsEntity`/`KeyedRateLimiterDefaultOptionsEntity` gain `InputType`, threaded through `create`'s second type parameter — neither previously did. `KeyedRateLimiterStrategyConfigInterface`'s/`KeyedRateLimiterCreateConfigInterface`'s `keyIdleTtlMs`/`maximumKeys` fields reference `KeyedRateLimiterRegistryOptionsEntity.InputType[...]` instead of the branded `.Type[...]`.

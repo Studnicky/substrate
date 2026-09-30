@@ -11,7 +11,7 @@ import { FilterError } from './FilterError.js';
  */
 export interface FilterOperatorErrorDetailsInterface {
   'availableOperators'?: readonly string[];
-  'cause'?: Error | undefined;
+  'cause'?: unknown;
   'index'?: number;
   'operator'?: string;
 }

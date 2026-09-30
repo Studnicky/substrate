@@ -12,6 +12,7 @@
     { "path": "../context" },
     { "path": "../json" },
     { "path": "../mutex" },
-    { "path": "../entity" }
+    { "path": "../entity" },
+    { "path": "../types" }
   ]
 }

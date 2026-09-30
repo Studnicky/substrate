@@ -21,7 +21,7 @@ Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hr
 
 ## Public API
 
-Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, and `ClockError` from `@studnicky/clock/node`; import `ClockProviderInterface` from `@studnicky/clock/interfaces`. Provider and counter option entities use `@studnicky/clock/entities`. Construct each stateful primitive through its `create(...)` method.
+Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCounter`, `ClockConversionError`, and `ClockError` from `@studnicky/clock/node`; import `ClockProviderInterface` from `@studnicky/clock/interfaces`. Provider and counter option entities use `@studnicky/clock/entities`. Construct each stateful primitive through its `create(...)` method.
 
 ## Virtual time control
 
@@ -110,6 +110,7 @@ import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Clock` | Provides clock functionality. | `@studnicky/clock/node` |
+| `ClockConversionError` | Represents host timer conversion failures. | `@studnicky/clock/node` |
 | `ClockError` | Represents clock failures. | `@studnicky/clock/node` |
 | `ClockProviderInterface` | Defines the clock provider contract. | `@studnicky/clock/interfaces` |
 | `RealTimeClockProvider` | Provides real time clock provider functionality. | `@studnicky/clock/node` |

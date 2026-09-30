@@ -2,7 +2,9 @@ import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 
 import type { AsyncFileSystemInterface } from '../interfaces/AsyncFileSystemInterface.js';
 
-/** Async Node filesystem adapter. */
+import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
+
+/** Async Node filesystem adapter. Every platform failure surfaces as a `VirtualFileSystemError` carrying the `fs` error as `cause`. */
 export class NodeFileSystem implements AsyncFileSystemInterface {
   public async exists(path: string): Promise<boolean> {
     try {
@@ -14,22 +16,44 @@ export class NodeFileSystem implements AsyncFileSystemInterface {
   }
 
   public async mkdir(path: string): Promise<void> {
-    await mkdir(path, { 'recursive': true });
+    try {
+      await mkdir(path, { 'recursive': true });
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
   }
 
   public async readdir(path: string): Promise<string[]> {
-    return await readdir(path);
+    try {
+      const entries = await readdir(path);
+      return entries;
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
   }
 
   public async readFile(path: string): Promise<string> {
-    return await readFile(path, 'utf8');
+    try {
+      const content = await readFile(path, 'utf8');
+      return content;
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
   }
 
   public async remove(path: string): Promise<void> {
-    await rm(path, { 'force': false, 'recursive': true });
+    try {
+      await rm(path, { 'force': false, 'recursive': true });
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
   }
 
   public async writeFile(path: string, data: string): Promise<void> {
-    await writeFile(path, data, 'utf8');
+    try {
+      await writeFile(path, data, 'utf8');
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
   }
 }

@@ -17,7 +17,7 @@ import type {
   PaginatorPageReceivedEventInterface
 } from '../../../src/interfaces/index.js';
 
-import { Paginator } from '../../../src/index.js';
+import { Paginator, PaginatorCloneError } from '../../../src/index.js';
 import { PaginatorScenarioCaseEntity } from '../entities/PaginatorScenarioCaseEntity.js';
 
 type ScenarioCase = PaginatorScenarioCaseEntity.Type;
@@ -716,4 +716,12 @@ void describe('Paginator', () => {
       await runCase(scenarioCase);
     });
   }
+
+  void it('surfaces an uncloneable page as a PaginatorCloneError carrying the platform error', () => {
+    const paginator = Paginator.create<unknown, string>();
+
+    assert.throws(() => { paginator.next(() => undefined, { 'cursor': 'c', 'exhausted': false }); }, (error: unknown) => {
+      return error instanceof PaginatorCloneError && error.code === 'paginator.valueNotCloneable' && error.cause instanceof Error;
+    });
+  });
 });

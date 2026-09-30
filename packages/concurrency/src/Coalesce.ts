@@ -3,6 +3,7 @@
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
 
@@ -10,6 +11,7 @@ import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
 import { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 import { CoalesceConfigError } from './errors/CoalesceConfigError.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
+import { CoalesceWaitCompletedError } from './errors/CoalesceWaitCompletedError.js';
 
 export class Coalesce<T> {
   static create<T>(
@@ -20,10 +22,7 @@ export class Coalesce<T> {
     try {
       validated = CoalesceOptionsEntity.intake(options ?? {});
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new CoalesceConfigError(error.message);
-      }
-      throw error;
+      throw new CoalesceConfigError(error instanceof SchemaIntakeError ? error.message : 'Coalesce options intake failed', error);
     }
 
     return new this(validated);
@@ -67,7 +66,7 @@ export class Coalesce<T> {
       await this.hooks.invokeAsync('onCoalesceStart', () => { const result = this.onCoalesceStart(key); return result; });
       completion.resolve(factory());
     } catch (error) {
-      completion.reject(error);
+      completion.resolve(CallerFault.rejection(error));
     }
 
     return await this.#awaitWithTimeout(key, started);
@@ -100,7 +99,7 @@ export class Coalesce<T> {
     try {
       return await Promise.race([inFlight, timeout]);
     } finally {
-      completionController.abort();
+      completionController.abort(new CoalesceWaitCompletedError(key));
     }
   }
 

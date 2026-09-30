@@ -1,0 +1,15 @@
+export { BrowserStorageError } from './BrowserStorageError.js';
+export { ContextScopeInactiveError } from './ContextScopeInactiveError.js';
+export { ContextStoreFactoryError } from './ContextStoreFactoryError.js';
+export { ContextStoreKeyConflictError } from './ContextStoreKeyConflictError.js';
+export { ContextStoreOptionsError } from './ContextStoreOptionsError.js';
+export { IndexedDbEntryError } from './IndexedDbEntryError.js';
+export { IndexedDbError } from './IndexedDbError.js';
+export { IndexedDbUnavailableError } from './IndexedDbUnavailableError.js';
+export { StateDecodeError } from './StateDecodeError.js';
+export { StateEncodeError } from './StateEncodeError.js';
+export { StoreError } from './StoreError.js';
+export { StoreListenerMutationError } from './StoreListenerMutationError.js';
+export { StrataLayerUnavailableError } from './StrataLayerUnavailableError.js';
+export { StrataStoreOptionsError } from './StrataStoreOptionsError.js';
+export { SynchronizationIdentityMismatchError } from './SynchronizationIdentityMismatchError.js';

@@ -1,12 +1,15 @@
 import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 
 import { Batch } from '@studnicky/batch/node';
-/** Bounded node:worker_threads pool that fans work items across workers via a typed message envelope */
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import {
+  type HookInvocationError, HookInvoker
+} from '@studnicky/errors/node';
 import { MachineTerminatedError } from '@studnicky/fsm/node';
 import { Signal } from '@studnicky/signal/node';
 import { System } from '@studnicky/system/node';
-import { Predicates } from '@studnicky/types/node';
+import {
+  type BaseError, Predicates
+} from '@studnicky/types/node';
 import { Worker } from 'node:worker_threads';
 
 import type { RetryGuardStateEntity } from './entities/RetryGuardStateEntity.js';
@@ -30,15 +33,37 @@ import { WorkerFailureMachine } from './WorkerFailureMachine.js';
 import { WorkerLifecycleMachine } from './WorkerLifecycleMachine.js';
 
 
-interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
-  'abortSignal': AbortSignal | undefined;
-  'batchConcurrency': Required<WorkerPoolConfigEntity.Type>['batchConcurrency'];
-  'concurrency': Required<WorkerPoolConfigEntity.Type>['concurrency'];
-  'signal': Signal;
+interface IndexedItemInterface<TMessage> extends WorkerTaskIndexEntity.Type {
+  readonly 'item': TMessage;
 }
 
-/** Tracks whether a worker has finished starting — `ready` flips true on `'online'`, letting a reused idle worker skip the boot wait entirely. */
+interface PendingEntryInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
+  'item': TMessage;
+  'reject': (error: BaseError) => void;
+  'resolve': (value: TResult) => void;
+  'retryState'?: RetryGuardStateEntity.Type;
+}
+
+interface TaskCancellationBindingInterface {
+  readonly 'controller': AbortController;
+  readonly 'release': () => void;
+}
+
+interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
+  'item': TMessage;
+  'reject': (error: BaseError) => void;
+  'resolve': (value: TResult) => void;
+  'retryState': RetryGuardStateEntity.Type;
+  'settlementState': TaskSettlementStateEntity.Type;
+  'unregisterTimeout': () => void;
+}
+
+/**
+ * Tracks whether a worker has finished starting — `ready` flips true on `'online'`, letting a reused idle worker skip the boot wait entirely.
+ * `failure` holds the first error or exit that ended the worker, so a task assigned after the worker died rejects with it instead of waiting on a dead thread.
+ */
 interface WorkerBootRecordInterface {
+  'failure'?: BaseError;
   'promise': Promise<void>;
   'ready': boolean;
 }
@@ -47,35 +72,17 @@ interface WorkerPoolConstructorInterface<TMessage, TResult, TInstance extends Wo
   readonly 'prototype': TInstance;
 }
 
-interface IndexedItemInterface<TMessage> extends WorkerTaskIndexEntity.Type {
-  readonly 'item': TMessage;
+interface WorkerPoolDepsInterface extends WorkerPoolConfigEntity.Type {
+  'abortSignal': AbortSignal | undefined;
+  'batchConcurrency': Required<WorkerPoolConfigEntity.Type>['batchConcurrency'];
+  'concurrency': Required<WorkerPoolConfigEntity.Type>['concurrency'];
+  'signal': Signal;
 }
 
 /** One worker's `@studnicky/fsm`-driven lifecycle state plus the index of the task it last ran. */
 interface WorkerRecordInterface {
   'lastIndex': WorkerTaskIndexEntity.Type['index'];
   'lifecycleState': WorkerLifecycleStateEntity.Type;
-}
-
-interface PendingEntryInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
-  'item': TMessage;
-  'reject': (error: Error) => void;
-  'resolve': (value: TResult) => void;
-  'retryState'?: RetryGuardStateEntity.Type;
-}
-
-interface TaskContextInterface<TMessage, TResult> extends WorkerTaskIndexEntity.Type {
-  'item': TMessage;
-  'reject': (error: Error) => void;
-  'resolve': (value: TResult) => void;
-  'retryState': RetryGuardStateEntity.Type;
-  'settlementState': TaskSettlementStateEntity.Type;
-  'unregisterTimeout': () => void;
-}
-
-interface TaskCancellationBindingInterface {
-  readonly 'controller': AbortController;
-  readonly 'release': () => void;
 }
 
 /**
@@ -86,17 +93,31 @@ interface TaskCancellationBindingInterface {
  */
 class WorkerPoolRunState<TMessage, TResult> {
   public readonly 'allDispatchedPromises': Promise<TResult>[] = [];
+
   public readonly 'currentTaskByWorker' = new Map<Worker, TaskContextInterface<TMessage, TResult>>();
+
   public readonly 'idleWorkers': Worker[] = [];
+
   public readonly 'pendingQueue': PendingEntryInterface<TMessage, TResult>[] = [];
+
   public readonly 'retryGuardMachine' = new RetryGuardMachine();
+
   public 'shuttingDown' = false;
+
+
+  /** Count of live workers: incremented when a worker is created, decremented when it is killed. */
   public 'spawnedCount' = 0;
+
   public readonly 'taskSettlementMachine' = new TaskSettlementMachine();
+
   public readonly 'workerBoot' = new Map<Worker, WorkerBootRecordInterface>();
+
   public readonly 'workerFailureMachine' = new WorkerFailureMachine();
+
   public 'workerFailureState': WorkerFailureStateEntity.Type;
+
   public readonly 'workerLifecycleMachine' = new WorkerLifecycleMachine();
+
   public readonly 'workerRecords' = new Map<Worker, WorkerRecordInterface>();
 
   public constructor() {
@@ -200,6 +221,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       ...serializableConfig
     } = config;
     let parsedConfig: WorkerPoolConfigEntity.Type;
+
     try {
       parsedConfig = WorkerPoolConfigEntity.intake(serializableConfig);
     } catch (cause) {
@@ -220,57 +242,80 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       'timeoutMs': parsedConfig.timeoutMs,
       'workerPath': parsedConfig.workerPath
     }]);
+
     if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw new WorkerPoolError({
         'code': 'workerPool.invalidConstruction',
         'message': 'WorkerPool.create() must construct a WorkerPool instance'
       });
     }
+
     return result;
   }
 
   readonly #workerPath: string;
+
   readonly #concurrency: number;
+
   readonly #batchConcurrency: number;
+
   readonly #timeoutMs: number | undefined;
+
   readonly #startupTimeoutMs: number | undefined;
+
   readonly #abortSignal: AbortSignal | undefined;
+
   readonly #signal: Signal;
+
   #closed = false;
 
   protected readonly hooks: HookInvoker;
 
-  private static errorWithReason(message: string, reason: Error): Error {
-    const result = reason === undefined ? RuntimeError.create(message) : RuntimeError.create(message, { 'cause': reason });
+  private static errorWithReason(code: string, message: string, reason: unknown): WorkerPoolError {
+    const result = new WorkerPoolError({
+      'cause': reason,
+      'code': code,
+      'message': message
+    });
+
     return result;
   }
 
   /** An array position or worker id earns its brand via a positive guard before entering task/worker state. */
   private static validateIndex(index: number): WorkerTaskIndexEntity.Type['index'] {
     const candidate = { 'index': index };
+
     if (!WorkerTaskIndexEntity.validate(candidate)) {
-      throw RuntimeError.create('internal error: invalid task index');
+      throw new WorkerPoolError({
+        'code': 'workerPool.invalidTaskIndex',
+        'message': 'internal error: invalid task index'
+      });
     }
+
     return candidate.index;
   }
 
   /** True only for the reason `AbortSignal.timeout()` itself produces — a genuinely elapsed deadline, never a caller abort or a pre-aborted signal. */
   private static isTimeoutReason(reason: Error): boolean {
     const result = reason instanceof DOMException && reason.name === 'TimeoutError';
+
     return result;
   }
 
   /** Builds the distinct, programmatically-identifiable error a worker's startup phase rejects with — never the task-timeout message. */
-  private static startupError(index: number, reason: Error, abortSignal: AbortSignal | undefined): Error {
+  private static startupError(index: number, reason: Error, abortSignal: AbortSignal | undefined): WorkerPoolError {
     if (abortSignal?.aborted === true) {
-      const result = WorkerPool.errorWithReason(`WorkerPool: task at index ${String(index)} was cancelled before its worker finished starting`, reason);
+      const result = WorkerPool.errorWithReason('workerPool.cancelled', `WorkerPool: task at index ${String(index)} was cancelled before its worker finished starting`, reason);
+
       return result;
     }
     if (WorkerPool.isTimeoutReason(reason)) {
-      const result = WorkerPool.errorWithReason(`WorkerPool: worker for task at index ${String(index)} did not finish starting within its startup timeout`, reason);
+      const result = WorkerPool.errorWithReason('workerPool.startupTimedOut', `WorkerPool: worker for task at index ${String(index)} did not finish starting within its startup timeout`, reason);
+
       return result;
     }
-    const result = WorkerPool.errorWithReason(`WorkerPool: task at index ${String(index)} was not dispatched because its signal was already aborted`, reason);
+    const result = WorkerPool.errorWithReason('workerPool.startupAborted', `WorkerPool: task at index ${String(index)} was not dispatched because its signal was already aborted`, reason);
+
     return result;
   }
 
@@ -301,13 +346,17 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     const state = new WorkerPoolRunState<TMessage, TResult>();
     const batch = Batch.create<TResult>(this.#batchConcurrency);
     const indexed: IndexedItemInterface<TMessage>[] = items.map((item, index) => {
-      return { 'index': WorkerPool.validateIndex(index), 'item': item };
+      return {
+        'index': WorkerPool.validateIndex(index),
+        'item': item
+      };
     });
     const results: TResult[] = [];
 
     try {
       for await (const chunk of batch.process(indexed, (entry) => {
         const result = this.#dispatchAndTrack(state, entry);
+
         return result;
       })) {
         results.push(...chunk);
@@ -331,54 +380,78 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   #invokeWorkerErrorHook(effect: FireOnWorkerErrorEffectInterface): void {
     this.hooks.invoke('onWorkerError', () => {
       const result = this.onWorkerError(effect.error, effect.index);
+
       return result;
     });
   }
 
   /** The single place `onWorkerError` fires — see the class doc. Every failure path constructs the error as data and calls this. */
-  #reportWorkerError(state: WorkerPoolRunState<TMessage, TResult>, error: Error, index: number): void {
+  #reportWorkerError(state: WorkerPoolRunState<TMessage, TResult>, error: BaseError, index: number): void {
     const step = state.workerFailureMachine.transition(state.workerFailureState, {
       'error': error,
       'index': WorkerPool.validateIndex(index),
       'type': 'workerFailure'
     });
+
     state.workerFailureState = step.state;
     const effectsLength = step.effects.length;
+
     for (let effectIndex = 0; effectIndex < effectsLength; effectIndex++) {
       const effect = step.effects.at(effectIndex);
-      if (effect === undefined) { continue; }
+
+      if (effect === undefined) {
+        continue;
+      }
       this.#invokeWorkerErrorHook(effect);
     }
   }
 
-  #reportOperationFailure(state: WorkerPoolRunState<TMessage, TResult>, cause: Error, index: number): void {
-    const error = Predicates.isError(cause)
-      ? cause
-      : RuntimeError.create('WorkerPool: asynchronous worker operation failed', { 'cause': cause });
+  #reportOperationFailure(state: WorkerPoolRunState<TMessage, TResult>, cause: unknown, index: number): void {
+    const error = WorkerPoolError.from(cause, 'workerPool.operationFailed', 'WorkerPool: asynchronous worker operation failed');
+
     this.#reportWorkerError(state, error, index);
   }
 
   #reportTerminationFailure(state: WorkerPoolRunState<TMessage, TResult>, cause: unknown, index: number): void {
-    const terminationError = Predicates.isError(cause)
-      ? cause
-      : RuntimeError.create('WorkerPool: worker termination failed', { 'cause': cause });
+    const terminationError = WorkerPoolError.from(cause, 'workerPool.terminationFailed', 'WorkerPool: worker termination failed');
+
     this.#reportWorkerError(state, terminationError, index);
+  }
+
+  /** Keeps the first failure of a worker so an assignment that lands after the worker died rejects with it. */
+  #recordWorkerFailure(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, failure: BaseError): void {
+    const boot = state.workerBoot.get(worker);
+
+    if (boot !== undefined) {
+      boot.failure ??= failure;
+    }
   }
 
   /** Idempotent: a no-op if `worker` is already dead — `WorkerLifecycleMachine` makes that structural rather than a re-checked boolean. */
   #killWorker(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker): void {
     const record = state.workerRecords.get(worker);
-    if (record === undefined) { return; }
+
+    if (record === undefined) {
+      return;
+    }
     try {
       const step = state.workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'kill' });
+
       record.lifecycleState = step.state;
     } catch (cause) {
-      if (!(cause instanceof MachineTerminatedError)) { throw cause; }
+      if (cause instanceof MachineTerminatedError) {
+        // The worker is already dead; the kill is idempotent.
+      } else {
+        throw WorkerPoolError.from(cause, 'workerPool.lifecycleFailed', 'WorkerPool: worker lifecycle transition failed');
+      }
     }
     state.workerRecords.delete(worker);
-    state.workerBoot.delete(worker);
+    state.spawnedCount -= 1;
     const idleIndex = state.idleWorkers.indexOf(worker);
-    if (idleIndex !== -1) { state.idleWorkers.splice(idleIndex, 1); }
+
+    if (idleIndex !== -1) {
+      state.idleWorkers.splice(idleIndex, 1);
+    }
   }
 
   /**
@@ -392,11 +465,27 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     taskCancelSignal: AbortSignal
   ): Promise<void> {
     const boot = state.workerBoot.get(worker);
-    if (boot === undefined || boot.ready) { return; }
+
+    if (boot === undefined) {
+      throw new WorkerPoolError({
+        'code': 'workerPool.workerUnregistered',
+        'message': `WorkerPool: worker for task at index ${String(index)} is not registered with this run`
+      });
+    }
+    if (boot.failure !== undefined) {
+      throw boot.failure;
+    }
+    if (boot.ready) {
+      return;
+    }
 
     const startupSignal = this.#startupTimeoutMs !== undefined
-      ? AbortSignal.any([taskCancelSignal, AbortSignal.timeout(this.#startupTimeoutMs)])
+      ? AbortSignal.any([
+        taskCancelSignal,
+        AbortSignal.timeout(this.#startupTimeoutMs)
+      ])
       : taskCancelSignal;
+
     if (startupSignal.aborted) {
       throw WorkerPool.startupError(index, startupSignal.reason, this.#abortSignal);
     }
@@ -405,11 +494,20 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     const onStartupAbort = (): void => {
       startupAborted.reject(WorkerPool.startupError(index, startupSignal.reason, this.#abortSignal));
     };
+
     startupSignal.addEventListener('abort', onStartupAbort, { 'once': true });
     try {
-      await Promise.race([boot.promise, startupAborted.promise]);
+      await Promise.race([
+        boot.promise,
+        startupAborted.promise
+      ]);
     } finally {
       startupSignal.removeEventListener('abort', onStartupAbort);
+    }
+    // 'online', 'error', and 'exit' can all be delivered before this continuation runs; the boot wait
+    // resolved on 'online', so a later death is only visible on the boot record.
+    if (boot.failure !== undefined) {
+      throw boot.failure;
     }
   }
 
@@ -419,30 +517,43 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     callback: (context: TaskContextInterface<TMessage, TResult>) => void
   ): boolean {
     const context = state.currentTaskByWorker.get(worker);
-    if (context === undefined) { return false; }
+
+    if (context === undefined) {
+      return false;
+    }
     try {
       const step = state.taskSettlementMachine.transition(context.settlementState, { 'type': 'settle' });
+
       context.settlementState = step.state;
     } catch (cause) {
-      if (cause instanceof MachineTerminatedError) { return false; }
-      throw cause;
+      if (cause instanceof MachineTerminatedError) {
+        return false;
+      }
+      throw WorkerPoolError.from(cause, 'workerPool.settlementFailed', 'WorkerPool: task settlement transition failed');
     }
     context.unregisterTimeout();
     state.currentTaskByWorker.delete(worker);
     callback(context);
+
     return true;
   }
 
   async #freeWorker(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker): Promise<void> {
     const next = state.pendingQueue.shift();
+
     if (next !== undefined) {
       await this.#assignTask(state, worker, next);
+
       return;
     }
     const record = state.workerRecords.get(worker);
-    if (record === undefined) { return; }
+
+    if (record === undefined) {
+      return;
+    }
     if (record.lifecycleState.variant === 'busy') {
       const step = state.workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'free' });
+
       record.lifecycleState = step.state;
     }
     state.idleWorkers.push(worker);
@@ -453,30 +564,47 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     state: WorkerPoolRunState<TMessage, TResult>,
     worker: Worker,
     entry: PendingEntryInterface<TMessage, TResult>,
-    error: Error
+    error: BaseError
   ): Promise<void> {
     this.#reportWorkerError(state, error, entry.index);
     entry.reject(error);
     this.#killWorker(state, worker);
-    worker.terminate().catch((cause: Error) => {
+    worker.terminate().catch((cause: unknown) => {
       this.#reportTerminationFailure(state, cause, entry.index);
     });
-    if (state.shuttingDown || state.pendingQueue.length === 0) { return; }
+    if (state.shuttingDown || state.pendingQueue.length === 0) {
+      return;
+    }
     const replacement = this.#createWorker(state, entry.index);
+
     await this.#freeWorker(state, replacement);
   }
 
-  /** No worker record — hand off to an idle worker if one exists, otherwise queue for later dispatch. */
-  async #assignToIdleReplacementOrQueue(
+  /**
+   * Hands `entry` to an idle worker, or to a newly spawned worker while the pool is below its concurrency,
+   * and reports whether a worker took it. A false result leaves the entry for the caller to queue: every
+   * live worker is busy and will free itself onto the queue.
+   */
+  async #placeOnWorker(
     state: WorkerPoolRunState<TMessage, TResult>,
     entry: PendingEntryInterface<TMessage, TResult>
-  ): Promise<void> {
-    const replacement = state.idleWorkers.pop();
-    if (replacement === undefined) {
-      state.pendingQueue.unshift(entry);
-      return;
+  ): Promise<boolean> {
+    const idleWorker = state.idleWorkers.pop();
+
+    if (idleWorker !== undefined) {
+      await this.#assignTask(state, idleWorker, entry);
+
+      return true;
     }
-    await this.#assignTask(state, replacement, entry);
+    if (state.spawnedCount < this.#concurrency) {
+      const worker = this.#createWorker(state, entry.index);
+
+      await this.#assignTask(state, worker, entry);
+
+      return true;
+    }
+
+    return false;
   }
 
   /** Composes the caller's cancellation source once per task; on failure the entry is rejected and the worker freed. */
@@ -485,19 +613,21 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     worker: Worker,
     entry: PendingEntryInterface<TMessage, TResult>
   ): Promise<ComposedSignalInterface | undefined> {
-    const composeOptions: { 'signal'?: AbortSignal; } = {};
+    const composeOptions: { 'signal'?: AbortSignal } = {};
+
     if (this.#abortSignal !== undefined) {
       composeOptions.signal = this.#abortSignal;
     }
     try {
       const result = await this.#signal.compose(composeOptions);
+
       return result;
     } catch (cause) {
-      const error = Predicates.isError(cause)
-        ? cause
-        : RuntimeError.create('WorkerPool: task cancellation signal composition failed', { 'cause': cause });
+      const error = WorkerPoolError.from(cause, 'workerPool.signalCompositionFailed', 'WorkerPool: task cancellation signal composition failed');
+
       entry.reject(error);
       await this.#freeWorker(state, worker);
+
       return undefined;
     }
   }
@@ -507,8 +637,9 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     const cancellationSignal = composed.signal;
     const controller = new AbortController();
     const onCancellationAbort = (): void => {
-      controller.abort(cancellationSignal.reason);
+      controller.abort(WorkerPoolError.from(cancellationSignal.reason, 'workerPool.cancelled', 'WorkerPool: task cancellation signal aborted'));
     };
+
     if (cancellationSignal.aborted) {
       onCancellationAbort();
     } else {
@@ -518,14 +649,22 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       cancellationSignal.removeEventListener('abort', onCancellationAbort);
       composed.dispose();
     };
-    return { 'controller': controller, 'release': release };
+
+    return {
+      'controller': controller,
+      'release': release
+    };
   }
 
   /** `timeoutMs` bounds task execution only: the clock starts after boot, before the post. */
   #buildTaskTimeoutSignal(taskCancelSignal: AbortSignal): AbortSignal {
     const result = this.#timeoutMs !== undefined
-      ? AbortSignal.any([taskCancelSignal, AbortSignal.timeout(this.#timeoutMs)])
+      ? AbortSignal.any([
+        taskCancelSignal,
+        AbortSignal.timeout(this.#timeoutMs)
+      ])
       : taskCancelSignal;
+
     return result;
   }
 
@@ -549,7 +688,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     worker: Worker,
     taskContext: TaskContextInterface<TMessage, TResult>
   ): void {
-    worker.terminate().catch((cause: Error) => {
+    worker.terminate().catch((cause: unknown) => {
       this.#reportTerminationFailure(state, cause, taskContext.index);
     });
   }
@@ -559,19 +698,24 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     this.#settleTask(state, worker, (taskContext) => {
       if (this.#abortSignal?.aborted === true) {
         const error = WorkerPool.errorWithReason(
+          'workerPool.cancelled',
           `WorkerPool: task at index ${String(taskContext.index)} was cancelled`,
           timeoutSignal.reason
         );
+
         this.#reportWorkerError(state, error, taskContext.index);
         taskContext.reject(error);
         this.#terminateAfterAbort(state, worker, taskContext);
+
         return;
       }
       this.hooks.invoke('onWorkerTimeout', () => {
         const result = this.onWorkerTimeout(taskContext.index);
+
         return result;
       });
       taskContext.reject(WorkerPool.errorWithReason(
+        'workerPool.timedOut',
         `WorkerPool: task at index ${String(taskContext.index)} exceeded its timeout`,
         timeoutSignal.reason
       ));
@@ -583,9 +727,11 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   #handlePreDispatchAbort(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, timeoutSignal: AbortSignal): void {
     this.#settleTask(state, worker, (taskContext) => {
       const error = WorkerPool.errorWithReason(
+        'workerPool.startupAborted',
         `WorkerPool: task at index ${String(taskContext.index)} was not dispatched because its signal was already aborted`,
         timeoutSignal.reason
       );
+
       this.#reportWorkerError(state, error, taskContext.index);
       taskContext.reject(error);
       this.#terminateAfterAbort(state, worker, taskContext);
@@ -598,19 +744,27 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     entry: PendingEntryInterface<TMessage, TResult>
   ): Promise<void> {
     const record = state.workerRecords.get(worker);
+
     if (record === undefined) {
-      await this.#assignToIdleReplacementOrQueue(state, entry);
+      const placed = await this.#placeOnWorker(state, entry);
+
+      if (!placed) {
+        state.pendingQueue.unshift(entry);
+      }
+
       return;
     }
 
     // A freeWorker() hand-off arrives already busy; only a from-idle worker performs a real transition.
     if (record.lifecycleState.variant === 'idle') {
       const step = state.workerLifecycleMachine.transition(record.lifecycleState, { 'type': 'assign' });
+
       record.lifecycleState = step.state;
     }
     record.lastIndex = entry.index;
 
     const cancellationSignal = await this.#composeTaskCancellationSignal(state, worker, entry);
+
     if (cancellationSignal === undefined) {
       return;
     }
@@ -621,17 +775,33 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       await this.#ensureWorkerBooted(state, worker, entry.index, cancellation.controller.signal);
     } catch (cause) {
       cancellation.release();
-      const error = Predicates.isError(cause)
-        ? cause
-        : RuntimeError.create('WorkerPool: worker startup failed', { 'cause': cause });
+      const error = WorkerPoolError.from(cause, 'workerPool.startupFailed', 'WorkerPool: worker startup failed');
+
       await this.#abandonUnbootedWorker(state, worker, entry, error);
+
+      return;
+    }
+
+    // A worker that exited cleanly while this assignment awaited its signal and boot never received the
+    // task; the entry moves to a live or newly spawned worker instead of waiting on a dead thread.
+    if (!state.workerRecords.has(worker)) {
+      cancellation.release();
+      const placed = await this.#placeOnWorker(state, entry);
+
+      if (!placed) {
+        state.pendingQueue.unshift(entry);
+      }
+
       return;
     }
 
     const timeoutSignal = this.#buildTaskTimeoutSignal(cancellation.controller.signal);
     const context = this.#buildTaskContext(state, entry);
 
-    const onAbort = (): void => { this.#handleTaskAbort(state, worker, timeoutSignal); };
+    const onAbort = (): void => {
+      this.#handleTaskAbort(state, worker, timeoutSignal);
+    };
+
     context.unregisterTimeout = () => {
       timeoutSignal.removeEventListener('abort', onAbort);
       cancellation.release();
@@ -641,17 +811,27 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
     if (timeoutSignal.aborted) {
       this.#handlePreDispatchAbort(state, worker, timeoutSignal);
+
       return;
     }
 
     timeoutSignal.addEventListener('abort', onAbort, { 'once': true });
-    worker.postMessage(entry.item);
+    try {
+      worker.postMessage(entry.item);
+    } catch (cause) {
+      throw new WorkerPoolError({
+        'cause': cause,
+        'code': 'workerPool.postFailed',
+        'message': `WorkerPool: task at index ${String(entry.index)} could not be posted to its worker`
+      });
+    }
   }
 
   async #handleResultEnvelope(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, value: TResult): Promise<void> {
     const settled = this.#settleTask(state, worker, (context) => {
       context.resolve(value);
     });
+
     if (settled) {
       await this.#freeWorker(state, worker);
     }
@@ -659,10 +839,15 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
   async #handleErrorEnvelope(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, message: string): Promise<void> {
     const settled = this.#settleTask(state, worker, (context) => {
-      const error = RuntimeError.create(message);
+      const error = new WorkerPoolError({
+        'code': 'workerPool.taskFailed',
+        'message': message
+      });
+
       this.#reportWorkerError(state, error, context.index);
       context.reject(error);
     });
+
     if (settled) {
       await this.#freeWorker(state, worker);
     }
@@ -674,6 +859,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     envelope: WorkerErrorEnvelopeEntity.Type | WorkerLogEnvelopeEntity.Type | WorkerProgressEnvelopeEntity.Type | WorkerResultEnvelopeInterface<TResult>
   ): void {
     const context = state.currentTaskByWorker.get(worker);
+
     if (context === undefined) {
       // Stray envelope for a worker with no assigned task — ignore safely.
       return;
@@ -681,12 +867,13 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
     this.hooks.invoke('onMessage', () => {
       const result = this.onMessage(envelope, context.index);
+
       return result;
     });
 
     switch (envelope.type) {
       case 'error':
-        this.#handleErrorEnvelope(state, worker, envelope.error).catch((cause: Error) => {
+        this.#handleErrorEnvelope(state, worker, envelope.error).catch((cause: unknown) => {
           this.#reportOperationFailure(state, cause, context.index);
         });
         break;
@@ -694,7 +881,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       case 'progress':
         break;
       case 'result':
-        this.#handleResultEnvelope(state, worker, envelope.value).catch((cause: Error) => {
+        this.#handleResultEnvelope(state, worker, envelope.value).catch((cause: unknown) => {
           this.#reportOperationFailure(state, cause, context.index);
         });
         break;
@@ -706,29 +893,43 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   #handleWorkerError(
     state: WorkerPoolRunState<TMessage, TResult>,
     worker: Worker,
-    error: Error,
-    rejectUnbootedFailure: (error: Error) => void
+    cause: Error,
+    rejectUnbootedFailure: (error: BaseError) => void
   ): void {
     const record = state.workerRecords.get(worker);
     const workerIndex = record?.lastIndex ?? -1;
+    const error = new WorkerPoolError({
+      'cause': cause,
+      'code': 'workerPool.workerFailed',
+      'message': cause.message
+    });
+
+    this.#recordWorkerFailure(state, worker, error);
     // An errored worker must never be handed a later task: without this, a worker that errors
     // while idle stays listed as assignable until its 'exit' event lands.
     this.#killWorker(state, worker);
-    rejectUnbootedFailure(RuntimeError.create(`WorkerPool: worker at index ${String(workerIndex)} emitted an error before finishing startup`, { 'cause': error }));
+    rejectUnbootedFailure(new WorkerPoolError({
+      'cause': cause,
+      'code': 'workerPool.startupWorkerFailed',
+      'message': `WorkerPool: worker at index ${String(workerIndex)} emitted an error before finishing startup`
+    }));
     this.#settleTask(state, worker, (context) => {
       this.#reportWorkerError(state, error, context.index);
       context.reject(error);
     });
-    worker.terminate().catch((cause: Error) => {
-      this.#reportTerminationFailure(state, cause, workerIndex);
+    worker.terminate().catch((terminationCause: unknown) => {
+      this.#reportTerminationFailure(state, terminationCause, workerIndex);
     });
   }
 
   /** Only replace when work is queued — an idle replacement just adds a stray terminate() call. */
   #spawnReplacementIfQueued(state: WorkerPoolRunState<TMessage, TResult>, index: number): void {
-    if (state.shuttingDown || state.pendingQueue.length === 0) { return; }
+    if (state.shuttingDown || state.pendingQueue.length === 0) {
+      return;
+    }
     const replacement = this.#createWorker(state, index);
-    this.#freeWorker(state, replacement).catch((cause: Error) => {
+
+    this.#freeWorker(state, replacement).catch((cause: unknown) => {
       this.#reportOperationFailure(state, cause, index);
     });
   }
@@ -738,13 +939,18 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     state: WorkerPoolRunState<TMessage, TResult>,
     context: TaskContextInterface<TMessage, TResult>
   ): RetryGuardStateEntity.Type | undefined {
-    if (state.shuttingDown) { return undefined; }
+    if (state.shuttingDown) {
+      return undefined;
+    }
     try {
       const step = state.retryGuardMachine.transition(context.retryState, { 'type': 'requestRetry' });
+
       return step.state;
     } catch (cause) {
-      if (!(cause instanceof MachineTerminatedError)) { throw cause; }
-      return undefined;
+      if (cause instanceof MachineTerminatedError) {
+        return undefined;
+      }
+      throw WorkerPoolError.from(cause, 'workerPool.retryFailed', 'WorkerPool: task retry transition failed');
     }
   }
 
@@ -754,13 +960,14 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     retriedState: RetryGuardStateEntity.Type
   ): void {
     const replacement = this.#createWorker(state, context.index);
+
     this.#assignTask(state, replacement, {
       'index': context.index,
       'item': context.item,
       'reject': context.reject,
       'resolve': context.resolve,
       'retryState': retriedState
-    }).catch((cause: Error) => {
+    }).catch((cause: unknown) => {
       this.#reportOperationFailure(state, cause, context.index);
     });
   }
@@ -773,17 +980,28 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     state: WorkerPoolRunState<TMessage, TResult>,
     worker: Worker,
     code: number,
-    rejectUnbootedFailure: (error: Error) => void
+    rejectUnbootedFailure: (error: BaseError) => void
   ): void {
     const record = state.workerRecords.get(worker);
     const workerIndex = record?.lastIndex ?? -1;
-    rejectUnbootedFailure(RuntimeError.create(`WorkerPool: worker at index ${String(workerIndex)} exited with code ${String(code)} before finishing startup`));
+
+    if (code !== 0) {
+      this.#recordWorkerFailure(state, worker, new WorkerPoolError({
+        'code': 'workerPool.workerExited',
+        'message': `WorkerPool: worker at index ${String(workerIndex)} exited with code ${String(code)} before its task was dispatched`
+      }));
+    }
+    rejectUnbootedFailure(new WorkerPoolError({
+      'code': 'workerPool.startupWorkerExited',
+      'message': `WorkerPool: worker at index ${String(workerIndex)} exited with code ${String(code)} before finishing startup`
+    }));
     this.#killWorker(state, worker);
 
     const context = state.currentTaskByWorker.get(worker);
 
     if (context === undefined || context.settlementState.variant === 'settled') {
       this.#spawnReplacementIfQueued(state, workerIndex);
+
       return;
     }
 
@@ -793,27 +1011,54 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
     if (retriedState !== undefined) {
       this.#retryTaskOnReplacement(state, context, retriedState);
+
       return;
     }
 
-    context.reject(RuntimeError.create(`WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`));
+    context.reject(new WorkerPoolError({
+      'code': 'workerPool.workerExited',
+      'message': `WorkerPool: worker at index ${String(context.index)} exited with code ${String(code)} before returning a result`
+    }));
     this.#spawnReplacementIfQueued(state, context.index);
   }
 
+  static #spawnWorker(workerPath: string): Worker {
+    try {
+      return new Worker(workerPath);
+    } catch (cause) {
+      throw new WorkerPoolError({
+        'cause': cause,
+        'code': 'workerPool.workerCreateFailed',
+        'message': 'WorkerPool: worker could not be created'
+      });
+    }
+  }
+
   #createWorker(state: WorkerPoolRunState<TMessage, TResult>, workerIndex: number): Worker {
-    const worker = new Worker(this.#workerPath);
-    state.workerRecords.set(worker, { 'lastIndex': WorkerPool.validateIndex(workerIndex), 'lifecycleState': state.workerLifecycleMachine.getInitialState() });
+    const worker = WorkerPool.#spawnWorker(this.#workerPath);
+
+    state.spawnedCount += 1;
+    state.workerRecords.set(worker, {
+      'lastIndex': WorkerPool.validateIndex(workerIndex),
+      'lifecycleState': state.workerLifecycleMachine.getInitialState()
+    });
     this.hooks.invoke('onWorkerCreated', () => {
       const result = this.onWorkerCreated(worker.threadId);
+
       return result;
     });
 
     const bootResolvers = Promise.withResolvers<void>();
+
     // A worker that dies before assignment has no `ensureWorkerBooted` caller to observe
     // this rejection, so it is swallowed here.
     bootResolvers.promise.catch(() => {});
-    const bootRecord: WorkerBootRecordInterface = { 'promise': bootResolvers.promise, 'ready': false };
+    const bootRecord: WorkerBootRecordInterface = {
+      'promise': bootResolvers.promise,
+      'ready': false
+    };
     let bootSettled = false;
+
     state.workerBoot.set(worker, bootRecord);
     worker.once('online', () => {
       bootSettled = true;
@@ -821,8 +1066,10 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       bootResolvers.resolve();
     });
     // A worker dying before online rejects `ensureWorkerBooted`'s wait directly.
-    const rejectUnbootedFailure = (error: Error): void => {
-      if (bootSettled) { return; }
+    const rejectUnbootedFailure = (error: BaseError): void => {
+      if (bootSettled) {
+        return;
+      }
       bootSettled = true;
       bootResolvers.reject(error);
     };
@@ -855,62 +1102,67 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       'resolve': completion.resolve
     };
 
-    const idleWorker = state.idleWorkers.pop();
-    if (idleWorker !== undefined) {
-      await this.#assignTask(state, idleWorker, entry);
-    } else if (state.spawnedCount < this.#concurrency) {
-      state.spawnedCount += 1;
-      const worker = this.#createWorker(state, entry.index);
-      await this.#assignTask(state, worker, entry);
-    } else {
+    const placed = await this.#placeOnWorker(state, entry);
+
+    if (!placed) {
       state.pendingQueue.push(entry);
     }
 
     return await completion.promise;
   }
 
-  #dispatchAndTrack(state: WorkerPoolRunState<TMessage, TResult>, entry: IndexedItemInterface<TMessage>): Promise<TResult> {
+  async #dispatchAndTrack(state: WorkerPoolRunState<TMessage, TResult>, entry: IndexedItemInterface<TMessage>): Promise<TResult> {
     const result = this.#dispatch(state, entry.item, entry.index);
+
     state.allDispatchedPromises.push(result);
-    return result;
+
+    return await result;
   }
 
   /** Waits for every dispatched item to settle, then terminates every worker spawned this run. */
   async #shutdownRun(state: WorkerPoolRunState<TMessage, TResult>): Promise<void> {
     state.shuttingDown = true;
     await Promise.allSettled(state.allDispatchedPromises);
-    const workersToTerminate = [...state.workerRecords.entries()].map(
-      ([worker, record]) => { return [worker, record.lastIndex] as const; }
-    );
-    const terminationResults = await Promise.allSettled(
-      workersToTerminate.map(([worker]) => { const result = worker.terminate(); return result; })
-    );
-    terminationResults.forEach((outcome, index) => {
-      if (outcome.status === 'fulfilled') { return; }
-      const workerEntry = workersToTerminate.at(index);
-      if (workerEntry === undefined) { return; }
-      const [, workerIndex] = workerEntry;
-      this.#reportTerminationFailure(state, outcome.reason, workerIndex);
+    const terminations = [...state.workerRecords.entries()].map(async ([
+      worker,
+      record
+    ]) => {
+      const result = this.#terminateAtShutdown(state, worker, record.lastIndex);
+
+      await result;
     });
+
+    await Promise.all(terminations);
   }
 
+  /** Terminates one worker at run shutdown; a platform termination failure is reported through `onWorkerError`. */
+  async #terminateAtShutdown(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, index: number): Promise<void> {
+    try {
+      await worker.terminate();
+    } catch (cause) {
+      this.#reportTerminationFailure(state, cause, index);
+    }
+  }
 
   /** Prevents future runs. Workers are scoped to each completed run and are already terminated. */
-  public close(): Promise<void> {
+  public async close(): Promise<void> {
     this.#closed = true;
     const result = Promise.resolve();
-    return result;
+
+    await result;
   }
 
   /** Count of hook failures recorded by `onHookError` since construction. */
   getHookErrorCount(): number {
     const result = this.hooks.hookErrorCount;
+
     return result;
   }
 
   /** Returns detached diagnostics for every hook failure recorded since construction. */
   getHookErrors(): readonly HookInvocationError[] {
     const result = [...this.hooks.getHookErrors()];
+
     return result;
   }
 
@@ -938,7 +1190,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   protected onWorkerTimeout(_index: number): void {}
 
   /** Fires when a task rejects or worker termination fails. */
-  protected onWorkerError(_error: Error, _index: number): void {}
+  protected onWorkerError(_error: BaseError, _index: number): void {}
 
   /** Fires whenever the pool constructs a Worker — the initial per-run spin-up and any crash-triggered replacement alike. */
   protected onWorkerCreated(_threadId: number): void {}

@@ -15,10 +15,9 @@ export class LogBody {
     try {
       LogBodyConfigEntity.create(config);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new LogBuildError(LogBuildErrorMessage.resolve('LogBody', error));
-      }
-      throw error;
+      const message = error instanceof SchemaIntakeError ? LogBuildErrorMessage.resolve('LogBody', error) : LogBuildError.toMessage(error);
+
+      throw new LogBuildError(message, error);
     }
     const result: LogBodyDataEntity.Type = {
       'context': config.context,

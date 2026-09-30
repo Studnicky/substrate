@@ -24,6 +24,10 @@ void describe('HostnameFormatValidator', () => {
     assert.equal(HostnameFormatValidator.test('xn--9n2bp8q.xn--9t4b11yi5a'), true);
   });
 
+  void it('rejects an A-label whose Punycode decodes above U+10FFFF instead of throwing', () => {
+    assert.equal(HostnameFormatValidator.test('xn--9278ma1y.com'), false);
+  });
+
   void it('rejects an A-label with invalid Punycode', () => {
     assert.equal(HostnameFormatValidator.test('xn--X'), false);
   });

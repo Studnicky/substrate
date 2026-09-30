@@ -80,6 +80,8 @@ import type { RetryConfigInterface, RetryEventTopicMapInterface } from "@studnic
 | `MaximumRetriesExceededError` | Represents an exhausted retry budget. | `@studnicky/retry/node` |
 | `NonRetryableError` | Represents a non-retryable failure. | `@studnicky/retry/node` |
 | `RetryError` | Represents a retry failure. | `@studnicky/retry/node` |
+| `RetryErrorSnapshot` | Detached diagnostic copy of a captured error, carrying its `name` and `message` (`retry.errorSnapshot`). | `@studnicky/retry/node` |
+| `RetryEventPayloadError` | Thrown when a lifecycle event payload cannot be structured-cloned; the platform error is the `cause` (`retry.eventPayloadNotCloneable`). | `@studnicky/retry/node` |
 | `RetryAttemptEventEntity` | Validates attempt-event snapshots. | `@studnicky/retry/entities` |
 | `RetrySuccessEventEntity` | Validates success-event snapshots. | `@studnicky/retry/entities` |
 | `RetryConfigInterface` | Defines retry settings, including eventSink. | `@studnicky/retry/interfaces` |

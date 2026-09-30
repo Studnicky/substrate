@@ -3,6 +3,7 @@
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker } from '@studnicky/errors/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
@@ -46,10 +47,7 @@ export class Channel<T> {
     try {
       validated = ChannelOptionsEntity.intake(options ?? {});
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ChannelConfigError(error.message);
-      }
-      throw error;
+      throw new ChannelConfigError(error instanceof SchemaIntakeError ? error.message : 'Channel options intake failed', error);
     }
 
     return new this(validated);
@@ -100,7 +98,7 @@ export class Channel<T> {
       }
     } catch (error) {
       entry.cancelled = true;
-      throw error;
+      CallerFault.propagate(error);
     } finally {
       entry.settle();
       if (ch.notify !== null) {

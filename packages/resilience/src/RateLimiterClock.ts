@@ -17,8 +17,8 @@ export class RateLimiterClock {
       let reading: unknown;
       try {
         reading = candidate();
-      } catch {
-        throw new ResilienceConfigError('clock must not throw');
+      } catch (error) {
+        throw new ResilienceConfigError('clock must not throw', error);
       }
 
       if (!Predicates.isFiniteNumber(reading)) {

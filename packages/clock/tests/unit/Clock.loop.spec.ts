@@ -984,4 +984,14 @@ void describe('Clock', () => {
       await runCase(scenario);
     });
   }
+
+  void it('surfaces a non-integer virtual time from hrtime as a ClockError carrying the platform error', () => {
+    const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+    const provider = VirtualClockProvider.create(counter);
+
+    counter.advance(0.5);
+    assert.throws(() => provider.hrtime(), (error: unknown) => {
+      return error instanceof ClockError && error.code === 'clock.invalidConfig' && error.cause instanceof RangeError;
+    });
+  });
 });

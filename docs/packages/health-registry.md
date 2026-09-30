@@ -83,5 +83,7 @@ import type { HealthCheckResultInterface } from '@studnicky/health-registry/inte
 
 | Symbol | Purpose | Import path |
 |---|---|---|
+| `HealthCheckSettledError` | Abort reason for a health check's timeout timer once the check settles. | `@studnicky/health-registry/node` |
 | `HealthRegistry` | Provides health registry functionality. | `@studnicky/health-registry/node` |
+| `HealthRegistryError` | Abstract root of the package's error family. | `@studnicky/health-registry/node` |
 | `HealthCheckInterface` | Defines the health check contract. | `@studnicky/health-registry/interfaces` |

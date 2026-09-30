@@ -102,5 +102,6 @@ import type { MutexInterface } from '@studnicky/mutex/interfaces';
 | `KeyedWorkGate` | Coordinates single-flight and serialized work for each key. | `@studnicky/mutex/gate` |
 | `MutexCreateOptionsInterface` | Accepts mutex settings and the optional Clock provider. | `@studnicky/mutex/interfaces` |
 | `LockTimeoutError` | Represents lock timeout failures. | `@studnicky/mutex/node` |
+| `MutexAcquisitionSettledError` | Abort reason for a queued acquisition's timeout watcher once the acquisition settles. | `@studnicky/mutex/node` |
 | `MutexError` | Represents mutex failures. | `@studnicky/mutex/node` |
 | `QueueSizeExceededError` | Represents queue size exceeded failures. | `@studnicky/mutex/node` |

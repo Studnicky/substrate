@@ -27,7 +27,7 @@ The output shows the native browser client retrying two temporary failures and r
 
 ## Lifecycle hooks
 
-`RequestExecutor` exposes three protected lifecycle hooks, no-ops by default: `onExecuteStart()` fires before the retry loop begins, `onExecuteComplete<T>(result)` fires after it resolves, and `onExecuteError(error)` fires once retries are exhausted. All three run through an internal `HookInvoker` that records a throwing override without replacing `execute()`'s resolved result or thrown error. Fetch, retry, and signal are caller-owned runtime ports:
+`RequestExecutor` exposes three protected lifecycle hooks, no-ops by default: `onExecuteStart()` fires before the retry loop begins, `onExecuteComplete<T>(result)` fires after it resolves, and `onExecuteError(error)` fires once retries are exhausted with a `BaseError`; a failure raised by the caller's callback that is not a `BaseError` reaches the hook wrapped in a `RequestExecutorError` and reaches the caller unchanged. All three run through an internal `HookInvoker` that records a throwing override without replacing `execute()`'s resolved result or thrown error. Fetch, retry, and signal are caller-owned runtime ports:
 
 | Config key | Accepts | Requirement |
 |------------|---------|---------|
@@ -100,6 +100,7 @@ import type { RequestExecutorConfigInterface } from '@studnicky/request-executor
 |---|---|---|
 | `RequestExecutor` | Composes request dependencies for a retried one-shot call in Node. | `@studnicky/request-executor/node` |
 | `RequestExecutor` | Composes request dependencies for a retried one-shot call in browsers. | `@studnicky/request-executor/browser` |
+| `RequestExecutorError` | Represents invalid `create()` or `execute()` inputs (`requestExecutor.invalidInput`) and wraps a caller-callback failure for the `onExecuteError` hook (`requestExecutor.executionFailed`). | `@studnicky/request-executor/node` |
 | `RequestExecutorOperationContextInterface` | Context passed to execution policies. | `@studnicky/request-executor/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/request-executor)

@@ -2,6 +2,7 @@
 
 import type { JSONSchema7Type } from 'json-schema';
 
+import { StructuralHashInputError } from '../errors/StructuralHashInputError.js';
 import { JsonObject } from '../guards/JsonObject.js';
 import { JsonValue } from '../guards/JsonValue.js';
 import { Predicates } from '../predicates/Predicates.js';
@@ -50,7 +51,7 @@ export class StructuralHash {
   /** Validate `schema` as finite, acyclic JSON data, or throw. */
   protected static intake(schema: object): JSONSchema7Type {
     if (!JsonValue.is(schema)) {
-      throw new TypeError('Schema must be finite, acyclic JSON data.');
+      throw new StructuralHashInputError('Schema must be finite, acyclic JSON data.');
     }
     return schema;
   }

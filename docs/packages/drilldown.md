@@ -48,6 +48,7 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 | `DrillDown` | Builds a hierarchical grouping tree from records, via explicit rules or auto-discovered properties. | `@studnicky/drilldown/node` |
 | `DataAnalyzer` | Discovers groupable properties across a dataset and recommends a grouping order. | `@studnicky/drilldown/node` |
 | `FacetedDiscovery` | Narrows a record set by concurrently-selectable, mutually-consistent facet dimensions. | `@studnicky/drilldown/node` |
+| `DrilldownRulesBuildError` | Reports failure to assemble the recursive rules schema node. | `@studnicky/drilldown/node` |
 | `ruleValidator` | Validates a `DrilldownRulesEntity.Type` tree, reporting structural errors by path. | `@studnicky/drilldown/node` |
 | `DrillDownConfigEntity` | Top-level schema-derived entity binding filter, group, and sort rules for one `DrillDown.group` call. | `@studnicky/drilldown/entities` |
 | `DrilldownRulesEntity` | Self-referential, schema-validated rule tree (filter/group/sort), nestable per group value to unbounded depth. Its named group-value and group-rule entities define the accepted configuration variants. | `@studnicky/drilldown/entities` |

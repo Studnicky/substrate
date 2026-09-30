@@ -5,6 +5,9 @@ import type {
 
 import type { StrataStoreOptionsInterface } from '../interfaces/StrataStoreOptionsInterface.js';
 
+import { StrataLayerUnavailableError } from '../../errors/StrataLayerUnavailableError.js';
+import { StrataStoreOptionsError } from '../../errors/StrataStoreOptionsError.js';
+
 export class StrataStoreCore<TState> implements StoreInterface<TState> {
   readonly #mutex: MutexInterface<string>;
   readonly #mutexKey: string;
@@ -13,10 +16,10 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
 
   protected constructor(options: StrataStoreOptionsInterface<TState>, mutex: MutexInterface<string>) {
     if (options.layers.length === 0) {
-      throw new Error('StrataStore requires at least one store');
+      throw new StrataStoreOptionsError('StrataStore requires at least one store');
     }
     if (new Set(options.layers).size !== options.layers.length) {
-      throw new Error('StrataStore requires unique store layers');
+      throw new StrataStoreOptionsError('StrataStore requires unique store layers');
     }
 
     this.#mutex = mutex;
@@ -37,13 +40,13 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
       const store = stores[index];
 
       if (store === undefined) {
-        throw new Error('StrataStore cannot inspect an undefined store');
+        throw new StrataLayerUnavailableError('StrataStore cannot inspect an undefined store');
       }
 
       const identity = store.getSynchronizationIdentity();
 
       if (identity.mutex === mutex && identity.key === mutexKey) {
-        throw new Error('StrataStore layers must not reuse its mutex and mutexKey');
+        throw new StrataStoreOptionsError('StrataStore layers must not reuse its mutex and mutexKey');
       }
     }
   }
@@ -57,7 +60,7 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
       const target = stores[index + 1];
 
       if (source === undefined || target === undefined) {
-        throw new Error('StrataStore cannot connect an undefined store');
+        throw new StrataLayerUnavailableError('StrataStore cannot connect an undefined store');
       }
 
       const unsubscribe = source.subscribe(async (snapshot): Promise<void> => {
@@ -80,7 +83,7 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
         const store = this.#stores[index];
 
         if (store === undefined) {
-          throw new Error('StrataStore cannot clear an undefined store');
+          throw new StrataLayerUnavailableError('StrataStore cannot clear an undefined store');
         }
 
         await store.clear();
@@ -151,7 +154,7 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
     const [source] = this.#stores;
 
     if (source === undefined) {
-      throw new Error('StrataStore source is unavailable');
+      throw new StrataLayerUnavailableError('StrataStore source is unavailable');
     }
 
     return source;
@@ -161,7 +164,7 @@ export class StrataStoreCore<TState> implements StoreInterface<TState> {
     const target = this.#stores.at(-1);
 
     if (target === undefined) {
-      throw new Error('StrataStore target is unavailable');
+      throw new StrataLayerUnavailableError('StrataStore target is unavailable');
     }
 
     return target;

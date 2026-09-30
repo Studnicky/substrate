@@ -9,7 +9,7 @@ import { Semaphore } from '@studnicky/concurrency/browser';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { EventBus } from '@studnicky/event-bus/browser';
 import { RealTimeScheduler } from '@studnicky/scheduler/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { BoundedDispatcherConfigInterface } from './interfaces/BoundedDispatcherConfigInterface.js';
 import type { BoundedDispatcherOperationContextInterface } from './interfaces/BoundedDispatcherOperationContextInterface.js';
@@ -159,7 +159,8 @@ export class BoundedDispatcher<
               return publication;
             }
           );
-          throw error;
+          const failure: never = CallerFault.propagate(error);
+          return failure;
         }
       }, currentContext.semaphoreOptions);
       return result;

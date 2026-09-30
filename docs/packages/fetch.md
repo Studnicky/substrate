@@ -68,12 +68,18 @@ import type { RequestIdGeneratorInterface } from '@studnicky/fetch/interfaces';
 | `UrlQueryString` | Builds and parses URL query strings. | `@studnicky/fetch/node` |
 | `DEFAULT_DISPATCHER_CONFIG` | Provides default connection-pool settings. | `@studnicky/fetch/node` |
 | `AbortError` | Represents caller-aborted requests. | `@studnicky/fetch/node` |
+| `BodySerializationError` | Represents a request body that cannot be serialized to JSON. | `@studnicky/fetch/node` |
 | `BodyTimeoutError` | Represents response-body timeout failures. | `@studnicky/fetch/node` |
 | `ConfigurationError` | Represents invalid fetch configuration. | `@studnicky/fetch/node` |
 | `ConnectTimeoutError` | Represents connection timeout failures. | `@studnicky/fetch/node` |
+| `ConstructionError` | Represents a `create()` that did not construct the requested subclass. | `@studnicky/fetch/node` |
+| `DispatcherShutdownError` | Represents a failed undici Agent `close()` or `destroy()`. | `@studnicky/fetch/node` |
 | `FetchBaseError` | Base error for fetch failures. | `@studnicky/fetch/node` |
 | `HeadersTimeoutError` | Represents response-header timeout failures. | `@studnicky/fetch/node` |
 | `HTTPError` | Represents non-success HTTP responses. | `@studnicky/fetch/node` |
+| `InvalidUrlError` | Represents a URL that fails to parse in the fetch test dispatcher. | `@studnicky/fetch/node` |
+| `QueryEncodingError` | Represents query parameters that cannot be percent-encoded. | `@studnicky/fetch/node` |
+| `RequestFailedError` | Wraps a platform `fetch` failure (network `TypeError`, undici error) with the original as `cause`. | `@studnicky/fetch/node` |
 | `SocketError` | Represents socket failures. | `@studnicky/fetch/node` |
 | `SocketExhaustionError` | Represents exhausted connection pools. | `@studnicky/fetch/node` |
 | `TimeoutError` | Represents request timeout failures. | `@studnicky/fetch/node` |

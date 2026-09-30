@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
-    "@studnicky/errors": "workspace:*"
+    "@studnicky/errors": "workspace:*",
+    "@studnicky/types": "workspace:*"
   }
 }

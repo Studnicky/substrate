@@ -103,7 +103,7 @@ p__studnicky_event_bus --> p__studnicky_errors
 p__studnicky_event_bus --> p__studnicky_fsm
 p__studnicky_event_bus --> p__studnicky_types
 p__studnicky_example_smoke_kit --> p__studnicky_entity
-p__studnicky_example_smoke_kit --> p__studnicky_errors
+p__studnicky_example_smoke_kit --> p__studnicky_types
 p__studnicky_fetch --> p__studnicky_clock
 p__studnicky_fetch --> p__studnicky_entity
 p__studnicky_fetch --> p__studnicky_signal
@@ -131,6 +131,7 @@ p__studnicky_fsm --> p__studnicky_types
 p__studnicky_health_registry --> p__studnicky_entity
 p__studnicky_health_registry --> p__studnicky_errors
 p__studnicky_health_registry --> p__studnicky_signal
+p__studnicky_health_registry --> p__studnicky_types
 p__studnicky_idempotency_guard --> p__studnicky_cache
 p__studnicky_idempotency_guard --> p__studnicky_concurrency
 p__studnicky_idempotency_guard --> p__studnicky_entity
@@ -164,6 +165,7 @@ p__studnicky_paginator --> p__studnicky_errors
 p__studnicky_paginator --> p__studnicky_fsm
 p__studnicky_paginator --> p__studnicky_types
 p__studnicky_pipeline --> p__studnicky_json
+p__studnicky_pipeline --> p__studnicky_types
 p__studnicky_process_kit --> p__studnicky_fsm
 p__studnicky_process_kit --> p__studnicky_scheduler
 p__studnicky_request_executor --> p__studnicky_entity
@@ -203,7 +205,6 @@ p__studnicky_semantic_matching --> p__studnicky_entity
 p__studnicky_signal --> p__studnicky_errors
 p__studnicky_signal --> p__studnicky_types
 p__studnicky_system --> p__studnicky_entity
-p__studnicky_system --> p__studnicky_errors
 p__studnicky_throttle --> p__studnicky_concurrency
 p__studnicky_throttle --> p__studnicky_config
 p__studnicky_throttle --> p__studnicky_entity

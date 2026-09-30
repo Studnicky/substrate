@@ -142,6 +142,7 @@ The async-iter demo uses native `async function*` generators as sources — no N
 | `ChannelError` | Base error for channel operations. | `@studnicky/concurrency/node` |
 | `Coalesce` | Deduplicates concurrent calls by key. | `@studnicky/concurrency/node` |
 | `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency/node` |
+| `CoalesceWaitCompletedError` | Abort reason for a caller's cancelled timeout timer once its wait on the shared in-flight promise finishes. | `@studnicky/concurrency/node` |
 | `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency/node` |
 | `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency/node` |
 | `KeyedSemaphore` | Independent per-key permit gates. | `@studnicky/concurrency/node` |

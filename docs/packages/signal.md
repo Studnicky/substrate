@@ -41,6 +41,7 @@ The output confirms each composition case: caller+deadline composite, caller-onl
 |---|---|---|
 | `Signal` | Composes caller and deadline abort signals. | `@studnicky/signal/node` |
 | `SignalError` | Represents invalid signal-composition configuration. | `@studnicky/signal/node` |
+| `SignalTimeoutError` | The `AbortSignal.reason` of a composed signal whose deadline elapsed. | `@studnicky/signal/node` |
 | `RaceTimeout` | Races a value against an abort-aware timeout. | `@studnicky/signal/node` |
 
 ### `Signal`

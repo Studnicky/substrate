@@ -5,6 +5,9 @@ import { Clone } from '@studnicky/json/browser';
 import type { JsonStateCodecOptionsInterface } from './interfaces/JsonStateCodecOptionsInterface.js';
 import type { StateCodecInterface } from './interfaces/StateCodecInterface.js';
 
+import { StateDecodeError } from './errors/StateDecodeError.js';
+import { StateEncodeError } from './errors/StateEncodeError.js';
+
 export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   readonly #decodeValue: (value: unknown) => TState;
 
@@ -31,7 +34,7 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   }
 
   public decode(serialized: string): TState {
-    const parsed: unknown = JSON.parse(serialized);
+    const parsed = JsonStateCodec.#parse(serialized);
 
     const result = Clone.deep(this.#decodeValue(parsed));
 
@@ -41,12 +44,34 @@ export class JsonStateCodec<TState> implements StateCodecInterface<TState> {
   public encode(state: TState): string {
     const detached = Clone.deep(state);
     const normalized = this.#entityIntake === undefined ? detached : this.#entityIntake(detached);
-    const result = JSON.stringify(normalized);
-
-    if (typeof result !== 'string') {
-      throw new TypeError('JSON state serialization must produce a string');
-    }
+    const result = JsonStateCodec.#stringify(normalized);
 
     return result;
+  }
+
+  static #parse(serialized: string): unknown {
+    try {
+      const result: unknown = JSON.parse(serialized);
+
+      return result;
+    } catch (cause) {
+      throw new StateDecodeError(cause);
+    }
+  }
+
+  static #stringify(value: unknown): string {
+    let serialized: string | undefined;
+
+    try {
+      serialized = JSON.stringify(value);
+    } catch (cause) {
+      throw new StateEncodeError('JSON state serialization failed', cause);
+    }
+
+    if (typeof serialized === 'string') {
+      return serialized;
+    }
+
+    throw new StateEncodeError('JSON state serialization must produce a string');
   }
 }

@@ -2,6 +2,7 @@ import {
   ARABIC_INDIC_DIGIT_PATTERN, ARABIC_SCRIPT_PATTERN, EXTENDED_ARABIC_INDIC_DIGIT_PATTERN,
   HEBREW_SCRIPT_PATTERN, NONSPACING_MARK_PATTERN
 } from '../../constants/format/NetworkFormatPatterns.js';
+import { CodePointString } from './CodePointString.js';
 
 /** Approximates RFC 5893 Bidi_Class for the code point classes the JSON-Schema-suite exercises. */
 export class BidiClassifier {
@@ -16,7 +17,7 @@ export class BidiClassifier {
     if (BidiClassifier.BOUNDARY_NEUTRAL_CODE_POINTS.has(codePoint)) {
       return 'NSM';
     }
-    const char = String.fromCodePoint(codePoint);
+    const char = CodePointString.from(codePoint);
     if (ARABIC_INDIC_DIGIT_PATTERN.test(char)) {
       return 'AN';
     }

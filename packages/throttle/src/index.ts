@@ -5,7 +5,9 @@
 
 export {
   ThrottleAbortedError,
-  ThrottleDrainingError
+  ThrottleAcquisitionError,
+  ThrottleDrainingError,
+  ThrottleGracePeriodEndedError
 } from './errors/index.js';
 export type { ThrottleInterface } from './interfaces/ThrottleInterface.js';
 export { Throttle } from './throttle/Throttle.js';

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { afterEach, describe, it } from 'node:test';
 
-import { FetchClient } from '../../../src/node/index.js';
+import { BodySerializationError, FetchClient } from '../../../src/node/index.js';
 
 import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
 
@@ -40,7 +40,7 @@ type RequestDefinition = {
 
 type RejectExpectation = {
   messageIncludes: readonly string[];
-  name: 'TypeError';
+  name: 'BodySerializationError';
 };
 
 type SuccessExpectation = {
@@ -90,7 +90,7 @@ function isScenarioExpectation(value: unknown): value is RejectExpectation | Suc
     return false;
   }
   if ('messageIncludes' in value) {
-    return value.name === 'TypeError' && isMessageIncludes(value.messageIncludes);
+    return value.name === 'BodySerializationError' && isMessageIncludes(value.messageIncludes);
   }
   return typeof value.status === 'number' && (value.json === undefined || runtimeValueGuard.isRuntimeValue(value.json));
 }
@@ -280,7 +280,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     await assert.rejects(async () => {
       await invokeRequest(scenarioCase.input.request);
     }, (error: Error) => {
-      assert.ok(error instanceof TypeError);
+      assert.ok(error instanceof BodySerializationError);
+      assert.ok(error.cause instanceof TypeError);
       assert.strictEqual(error.name, expected.name);
       for (const expectedMessagePart of expected.messageIncludes) {
         assert.ok(error.message.includes(expectedMessagePart));

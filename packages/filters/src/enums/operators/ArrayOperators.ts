@@ -114,6 +114,16 @@ export class ArrayOperators {
     return result;
   }
 
+  private static serializeItem(item: unknown): string | undefined {
+    try {
+      const result: string | undefined = JSON.stringify(item);
+
+      return result;
+    } catch (error) {
+      throw new FilterOperatorError('Array item is not JSON-serializable', { 'cause': error });
+    }
+  }
+
   // Array similarity using Jaccard index
   static calculateArraySimilarity(value1: unknown[], value2: unknown[]): number {
     if (value1.length === 0 && value2.length === 0) {
@@ -124,12 +134,12 @@ export class ArrayOperators {
     }
 
     const setA = new Set(value1.map((item) => {
-      const serialized = JSON.stringify(item);
+      const serialized = ArrayOperators.serializeItem(item);
 
       return serialized;
     }));
     const setB = new Set(value2.map((item) => {
-      const serialized = JSON.stringify(item);
+      const serialized = ArrayOperators.serializeItem(item);
 
       return serialized;
     }));

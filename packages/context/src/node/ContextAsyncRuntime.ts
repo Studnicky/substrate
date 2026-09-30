@@ -1,3 +1,4 @@
+import { CallerFault } from '@studnicky/types/browser';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 export class ContextAsyncRuntime {
@@ -9,7 +10,7 @@ export class ContextAsyncRuntime {
         return restoredResult;
       },
       (error: unknown) => {
-        const rejectedResult = runInContext(() => { throw error; });
+        const rejectedResult = runInContext(() => { CallerFault.propagate(error); });
         return rejectedResult;
       }
     );

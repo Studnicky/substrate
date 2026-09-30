@@ -2,6 +2,8 @@ import { Predicates } from '@studnicky/types/node';
 
 import type { OwnerLivenessInterface } from './interfaces/OwnerLivenessInterface.js';
 
+import { FileLockLivenessError } from './errors/FileLockLivenessError.js';
+
 export class NodeOwnerLiveness implements OwnerLivenessInterface {
   /** A reused PID is treated as live, conservatively requiring explicit recovery review. */
   public isAlive(ownerToken: string): boolean {
@@ -19,7 +21,7 @@ export class NodeOwnerLiveness implements OwnerLivenessInterface {
       if (Predicates.isObject(error) && error.code === 'EPERM') {
         return true;
       }
-      throw error;
+      throw new FileLockLivenessError(ownerToken, error);
     }
   }
 }

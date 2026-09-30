@@ -94,7 +94,7 @@ Import `JSONSchema7Type` directly from `json-schema` when a public signature or 
 
 ### `RuntimeValue`
 
-`RuntimeValue` validates a runtime operand that combines JSON data and `undefined` with native `Date`, `Map`, `Set`, array, and plain-record values. `RuntimeValue.is` is a typed predicate for composition with `Predicate`. `RuntimeValue.intake` returns the same value after validation and throws `TypeError` for unsupported values.
+`RuntimeValue` validates a runtime operand that combines JSON data and `undefined` with native `Date`, `Map`, `Set`, array, and plain-record values. `RuntimeValue.is` is a typed predicate for composition with `Predicate`. `RuntimeValue.intake` returns the same value after validation and throws `RuntimeValueError` (`types.runtimeValueInvalid`) for unsupported values.
 
 Map keys and values both follow the contract without conversion. The boundary rejects functions, symbols, bigints, non-finite numbers, non-plain class instances, invalid nested values, and cycles. Use `JsonValue` when the boundary is JSON-only.
 
@@ -131,6 +131,23 @@ class PaymentDeclinedError extends BaseError {
 }
 ```
 
+## `CallerFault`
+
+`CallerFault.propagate(value)` throws `value` unchanged, and `CallerFault.rejection(value)` returns a promise rejected with `value` unchanged. It is the sanctioned channel for an error raised by caller-supplied code (a task, hook, or reducer the consumer passes in), which reaches the caller as thrown. Library-originated and platform errors never pass through it: they are named `BaseError` subclasses, and a platform error is wrapped with the original as `cause`. The `@studnicky/no-native-error` rule exempts the bodies of `CallerFault.propagate` and `CallerFault.rejection` and reports every other throw, executor `reject`, `PromiseWithResolvers` `reject`, and `Promise.reject` of a non-`BaseError` value. `CallerFault.propagate` returns `never`, so it is written as a bare statement.
+
+<!-- inline-ts-ok: conceptual pass-through example -->
+```typescript
+import { CallerFault } from '@studnicky/types/node';
+
+export async function run(task: () => Promise<string>): Promise<string> {
+  try {
+    return await task();
+  } catch (error: unknown) {
+    CallerFault.propagate(error);
+  }
+}
+```
+
 ## Exports
 
 | Symbol | Purpose | Import path |
@@ -150,6 +167,9 @@ class PaymentDeclinedError extends BaseError {
 | `Hash` | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values. | `@studnicky/types/node` |
 | `StructuralHash` | Schema hash with metadata-key stripping. | `@studnicky/types/node` |
 | `BaseError` | Abstract root of the error hierarchy; serializes as RFC 9457 Problem Details. | `@studnicky/types/node` |
+| `CallerFault` | Pass-through channel that rethrows an error raised by caller-supplied code unchanged (`CallerFault.propagate`) or rejects a promise with it (`CallerFault.rejection`). | `@studnicky/types/node` |
+| `RuntimeValueError` | Thrown by `RuntimeValue.intake` for a value outside the runtime operand contract (`types.runtimeValueInvalid`). | `@studnicky/types/node` |
+| `StructuralHashInputError` | Thrown by `StructuralHash.of` for a schema that is not finite, acyclic JSON (`types.structuralHashInputInvalid`). | `@studnicky/types/node` |
 | `BaseErrorArgumentsInterface` | Construction arguments passed to `BaseError` subclasses. | `@studnicky/types/interfaces` |
 | `ProblemDetailsInterface` | RFC 9457 Problem Details object returned by `BaseError.toJSON()`. | `@studnicky/types/interfaces` |
 | `CauseNodeInterface` | One node of the flattened `causes` chain. | `@studnicky/types/interfaces` |

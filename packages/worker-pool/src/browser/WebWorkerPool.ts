@@ -1,5 +1,5 @@
 import { Signal } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type {
   WorkerLeaseInterface,
@@ -26,7 +26,7 @@ interface TaskCancellationBindingInterface {
 }
 
 interface TaskFailureClassificationInterface {
-  readonly 'error': Error;
+  readonly 'error': BaseError;
   readonly 'terminate': boolean;
 }
 
@@ -135,17 +135,13 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
   #closePool(): Promise<void> {
     if (this.#poolClose === undefined) {
       this.#poolClose = this.#pool.close().catch((cause: unknown): never => {
-        const error = WebWorkerPool.#toWorkerPoolError(cause);
+        const error = WorkerPoolError.from(cause, 'workerPool.closeFailed', 'WebWorkerPool close failed');
         this.onWorkerError(error);
         throw error;
       });
     }
-    try {
-      const result = this.#poolClose;
-      return result;
-    } catch (cause) {
-      throw WebWorkerPool.#toWorkerPoolError(cause);
-    }
+    const result = this.#poolClose;
+    return result;
   }
 
   static #throwIfAborted(signal: AbortSignal): void {
@@ -155,17 +151,6 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
         'message': 'WebWorkerPool request was cancelled'
       });
     }
-  }
-
-  static #toWorkerPoolError(cause: unknown): Error {
-    const result = Predicates.isError(cause)
-      ? cause
-      : new WorkerPoolError({
-        'cause': cause,
-        'code': 'workerPool.requestFailed',
-        'message': 'WebWorkerPool request failed'
-      });
-    return result;
   }
 
   /**
@@ -196,10 +181,10 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
       // lease (and the permit it holds) once it eventually settles, instead of leaking it.
       acquisition.then((lease) => {
         lease.terminate().catch((terminationCause: unknown) => {
-          this.onWorkerError(WebWorkerPool.#toWorkerPoolError(terminationCause));
+          this.onWorkerError(WorkerPoolError.from(terminationCause, 'workerPool.terminationFailed', 'WebWorkerPool lease termination failed'));
         });
       }).catch(() => {});
-      throw cause;
+      throw WorkerPoolError.from(cause, 'workerPool.acquireFailed', 'WebWorkerPool worker acquisition failed');
     } finally {
       if (onAbort !== undefined) {
         startupSignal.removeEventListener('abort', onAbort);
@@ -213,12 +198,12 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
     return result;
   }
 
-  static #startupError(startupSignal: AbortSignal, abortSignal: AbortSignal | undefined): Error {
+  static #startupError(startupSignal: AbortSignal, abortSignal: AbortSignal | undefined): WorkerPoolError {
     const result = WebWorkerPool.#buildStartupError(startupSignal.reason, abortSignal);
     return result;
   }
 
-  static #buildStartupError(reason: Error, abortSignal: AbortSignal | undefined): Error {
+  static #buildStartupError(reason: Error, abortSignal: AbortSignal | undefined): WorkerPoolError {
     if (abortSignal?.aborted === true) {
       return new WorkerPoolError({
         'cause': reason,
@@ -288,7 +273,7 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
 
     const controller = new AbortController();
     const onCancellationAbort = (): void => {
-      controller.abort(cancellationSignal.reason);
+      controller.abort(WorkerPoolError.from(cancellationSignal.reason, 'workerPool.cancelled', 'WebWorkerPool request cancellation signal aborted'));
     };
     if (cancellationSignal.aborted) {
       onCancellationAbort();
@@ -304,13 +289,13 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
   }
 
   #classifyRequestFailure(cause: unknown): TaskFailureClassificationInterface {
-    const error = WebWorkerPool.#toWorkerPoolError(cause);
+    const error = WorkerPoolError.from(cause, 'workerPool.requestFailed', 'WebWorkerPool request failed');
     const terminate = error instanceof WorkerPoolError
       && (error.code === 'workerPool.cancelled' || error.code === 'workerPool.timedOut' || error.code === 'workerPool.startupTimedOut' || error.code === 'workerPool.startupAborted');
     return { 'error': error, 'terminate': terminate };
   }
 
-  #reportRequestFailure(error: Error): void {
+  #reportRequestFailure(error: BaseError): void {
     if (error instanceof WorkerPoolError && error.code === 'workerPool.timedOut') {
       this.onWorkerTimeout();
     } else {
@@ -343,7 +328,13 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
       const classification = this.#classifyRequestFailure(cause);
       terminate = classification.terminate;
       this.#reportRequestFailure(classification.error);
-      throw classification.error;
+      if (cause instanceof BaseError) {
+        throw cause;
+      }
+      // A non-BaseError here is raised by caller-supplied code (the transport or an
+      // `onWorkerCreated` override): the lease pool and factory wrap every platform failure.
+      const propagated: never = CallerFault.propagate(cause);
+      return propagated;
     } finally {
       cancellation.release();
       await this.#releaseLease(lease, terminate);
@@ -357,5 +348,5 @@ export class WebWorkerPool<TInput, TOutput> implements WorkerPoolInterface<TInpu
   protected onWorkerTimeout(): void {}
 
   /** Fires when worker creation, a request, or resource cleanup fails. */
-  protected onWorkerError(_error: Error): void {}
+  protected onWorkerError(_error: BaseError): void {}
 }

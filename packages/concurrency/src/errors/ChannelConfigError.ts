@@ -9,7 +9,7 @@ import { ConcurrencyError } from './ConcurrencyError.js';
 export class ChannelConfigError extends ConcurrencyError {
   public override readonly name: string = 'ChannelConfigError';
 
-  public constructor(message: string, cause?: Error) {
+  public constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'concurrency.invalidConfig', 'message': message, 'retryable': false });
   }
 }

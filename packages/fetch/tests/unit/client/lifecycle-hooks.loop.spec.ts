@@ -7,6 +7,7 @@ import {
 
 import {
   FetchClient,
+  RequestFailedError,
 } from '../../../src/node/index.js';
 
 import { LifecycleHooksScenarioCaseEntity } from './entities/LifecycleHooksScenarioCaseEntity.js';
@@ -511,7 +512,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
         await assert.rejects(
           () => client.get(requireString(caseData.input.path, 'input.path')),
           (error) => {
-            assert.strictEqual(error, caseData.expected.message);
+            assert.ok(error instanceof RequestFailedError);
+            assert.strictEqual(error.cause, caseData.expected.message);
             assert.equal(client.eventsOf('onRequestError').length, 1);
             return true;
           }

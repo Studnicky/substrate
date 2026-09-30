@@ -2,6 +2,8 @@ import * as TypeScript from 'typescript';
 
 import type { ContextAsyncTransformPluginInterface } from '../interfaces/ContextAsyncTransformPluginInterface.js';
 
+import { UnsupportedSourceExtensionError } from '../errors/UnsupportedSourceExtensionError.js';
+
 export class ContextAsyncTransform {
   static readonly #supportedExtensions = new Set(['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx']);
 
@@ -51,7 +53,7 @@ export class ContextAsyncTransform {
     const result = kindByExtension.get(extension);
 
     if (result === undefined) {
-      throw new Error(`Unsupported source extension: ${extension}`);
+      throw new UnsupportedSourceExtensionError(extension);
     }
 
     return result;

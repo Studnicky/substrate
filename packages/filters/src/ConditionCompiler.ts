@@ -18,6 +18,7 @@ import { WILDCARD_SEGMENT_PATTERN } from './constants/WildcardSegmentPattern.js'
 import { WILDCARD_STAR_PATTERN } from './constants/WildcardStarPattern.js';
 import { ConditionType } from './enums/ConditionType.js';
 import { FilterConfigurationError } from './errors/FilterConfigurationError.js';
+import { RegexError } from './errors/RegexError.js';
 import { NumericOperators } from './operators/NumericOperators.js';
 import { ValidatePath } from './utils/validatePath.js';
 
@@ -277,10 +278,14 @@ class ConditionCompiler {
     const needsUnicodeFlag = ConditionCompiler.needsUnicodeFlag(regexSource);
     const flags = (compiled.caseSensitive === true ? '' : 'i') + (needsUnicodeFlag ? 'u' : '');
 
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- compiling a caller-authored .MATCHES/.REGEX filter condition is this engine's contracted feature, not attacker-supplied input
-    const result = new RegExp(regexSource, flags);
+    try {
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- compiling a caller-authored .MATCHES/.REGEX filter condition is this engine's contracted feature, not attacker-supplied input
+      const result = new RegExp(regexSource, flags);
 
-    return result;
+      return result;
+    } catch (error) {
+      throw new RegexError('Invalid regular expression pattern', { 'cause': error, 'pattern': regexSource });
+    }
   }
 
   /**

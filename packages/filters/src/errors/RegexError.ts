@@ -12,7 +12,7 @@ import { FilterError } from './FilterError.js';
  * Context for RegexError
  */
 export interface RegexErrorContextInterface extends ErrorDetailsInterface {
-  'cause'?: Error | undefined;
+  'cause'?: unknown;
   'errorCode'?: string;
 }
 

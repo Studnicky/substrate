@@ -9,7 +9,7 @@ import { BaseError } from '@studnicky/types/browser';
 export class ContextError extends BaseError {
   public override readonly name: string = 'ContextError';
 
-  constructor(message: string, cause?: Error) {
+  constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'context.error', 'message': message, 'retryable': false });
   }
 }
@@ -23,7 +23,7 @@ export class ContextError extends BaseError {
 export class ContextConfigError extends BaseError {
   public override readonly name: string = 'ContextConfigError';
 
-  constructor(message: string, cause?: Error) {
+  constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'context.invalidConfig', 'message': message, 'retryable': false });
   }
 }

@@ -72,9 +72,18 @@ export class VirtualClockProvider implements ClockProviderInterface {
    */
   protected onHrtime(_value: bigint): void {}
 
+  static #toNanoseconds(milliseconds: number): bigint {
+    try {
+      const result = BigInt(milliseconds) * NS_PER_MS;
+      return result;
+    } catch (error) {
+      throw new ClockError(`virtual time ${String(milliseconds)}ms is not a whole number of milliseconds`, error);
+    }
+  }
+
   /** Returns the virtual time in nanoseconds (epoch-ms * 1,000,000). */
   public hrtime(): bigint {
-    const result = BigInt(this.#counter.nowMs()) * NS_PER_MS;
+    const result = VirtualClockProvider.#toNanoseconds(this.#counter.nowMs());
 
     this.hooks.invoke('onHrtime', () => {
       const hookResult = this.onHrtime(result);

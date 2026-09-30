@@ -85,8 +85,8 @@ export class DoesValueMatchPattern {
         'pattern': pattern,
         'source': patternString
       };
-    } catch {
-      throw new RegexError('Invalid regular expression pattern', { 'pattern': patternString });
+    } catch (error) {
+      throw new RegexError('Invalid regular expression pattern', { 'cause': error, 'pattern': patternString });
     }
   }
 

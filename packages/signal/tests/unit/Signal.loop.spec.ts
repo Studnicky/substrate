@@ -12,7 +12,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import type { DeadlineTimerInterface } from '../../src/interfaces/DeadlineTimerInterface.js';
 
 import { RaceTimeout } from '../../src/RaceTimeout.js';
-import { Signal, SignalError } from '../../src/index.js';
+import { Signal, SignalError, SignalTimeoutError } from '../../src/index.js';
 import { SignalScenarioCaseEntity } from './entities/SignalScenarioCaseEntity.js';
 import scenarioGroups from './Signal.scenarios.json' with { type: 'json' };
 
@@ -165,6 +165,11 @@ const runnerMap: RunnerMap = {
     assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
     scheduler.advance(scenarioCase.input.waitMs);
     assert.equal(sig.aborted, scenarioCase.expected.abortedAfterWait);
+    if (scenarioCase.expected.abortedAfterWait) {
+      assert.ok(sig.reason instanceof SignalTimeoutError);
+      assert.equal(sig.reason.code, 'signal.timeout');
+      assert.equal(sig.reason.deadlineMs, scenarioCase.input.composeOptions.deadlineMs);
+    }
   },
 
   'compose-invalid-deadline': async (scenarioCase) => {

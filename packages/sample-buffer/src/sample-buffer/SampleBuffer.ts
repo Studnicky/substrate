@@ -89,7 +89,17 @@ export class SampleBuffer implements SampleBufferInterface {
   protected constructor(options: SampleBufferOptionsEntity.InputType) {
     SampleBuffer.#validate(options);
     this.capacity = options.capacity;
-    this.#samples = Array.from<number>({ 'length': options.capacity });
+    this.#samples = SampleBuffer.#allocate(options.capacity);
+  }
+
+  /** Allocates the sample store; a capacity the platform cannot allocate surfaces as `SampleBufferError`. */
+  static #allocate(capacity: number): number[] {
+    try {
+      const result = Array.from<number>({ 'length': capacity });
+      return result;
+    } catch (error) {
+      throw new SampleBufferError(`Capacity ${String(capacity)} cannot be allocated`, { 'cause': error });
+    }
   }
 
   /**
@@ -121,7 +131,7 @@ export class SampleBuffer implements SampleBufferInterface {
     const capacity = this.capacity;
     const head = this.head;
     const samples = this.#samples;
-    const result: number[] = Array.from<number>({ 'length': length });
+    const result: number[] = SampleBuffer.#allocate(length);
 
     for (let i = FIRST_ARRAY_INDEX; i < length; i++) {
       const index = length < capacity ? i : (head + i) % capacity;

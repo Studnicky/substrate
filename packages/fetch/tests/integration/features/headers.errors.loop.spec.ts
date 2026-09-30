@@ -5,7 +5,7 @@ import {
   after, before, describe, it
 } from 'node:test';
 
-import { FetchClient } from '../../../src/node/index.js';
+import { FetchClient, RequestFailedError } from '../../../src/node/index.js';
 import {
   startTestServer, stopTestServer
 } from '../../helpers/test-server/index.js';
@@ -153,7 +153,8 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
       }
     }, (error: Error) => {
       if (expected.errorType === 'TypeError') {
-        assert.ok(error instanceof TypeError);
+        assert.ok(error instanceof RequestFailedError);
+        assert.ok(error.cause instanceof TypeError);
       }
       for (const expectedMessagePart of expected.messageIncludes ?? []) {
         assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));

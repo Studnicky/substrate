@@ -7,6 +7,7 @@ import type { DeadlineTimerInterface } from './interfaces/DeadlineTimerInterface
 import type { SignalComposeOptionsInterface } from './interfaces/SignalComposeOptionsInterface.js';
 
 import { SignalError } from './errors/SignalError.js';
+import { SignalTimeoutError } from './errors/SignalTimeoutError.js';
 import { RealDeadlineTimer } from './RealDeadlineTimer.js';
 
 interface SignalResolveOptionsInterface {
@@ -74,15 +75,19 @@ export class Signal {
     });
     const composed = new ComposedSignal(result, timeoutResult?.dispose);
 
+    let hookFailed = true;
+
     try {
       await this.hooks.invokeAsync('onCompose', async () => {
         const hookResult = this.onCompose(options, composed.signal);
 
         await hookResult;
       });
-    } catch (error) {
-      composed.dispose();
-      throw error;
+      hookFailed = false;
+    } finally {
+      if (hookFailed) {
+        composed.dispose();
+      }
     }
 
     return composed;
@@ -100,7 +105,7 @@ export class Signal {
     let fired = false;
     const handle = timer.scheduleAt(timer.now() + deadlineMs, () => {
       fired = true;
-      controller.abort(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+      controller.abort(new SignalTimeoutError(deadlineMs));
     });
     return {
       'dispose': () => {

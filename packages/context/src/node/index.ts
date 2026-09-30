@@ -4,6 +4,7 @@ import type { ContextStorageInterface } from '../interfaces/ContextStorageInterf
 import * as ContextModule from '../context/Context.js';
 import { ContextConfigEntity } from '../entities/ContextConfigEntity.js';
 import { ContextConfigError, ContextError } from '../errors/ContextError.js';
+import { UnsupportedSourceExtensionError } from '../errors/UnsupportedSourceExtensionError.js';
 import { ContextAsyncRuntime } from './ContextAsyncRuntime.js';
 import { NodeContextStorage } from './NodeContextStorage.js';
 
@@ -16,4 +17,4 @@ export class Context extends ContextModule.Context {
   }
 }
 
-export { ContextAsyncRuntime, ContextConfigError, ContextError };
+export { ContextAsyncRuntime, ContextConfigError, ContextError, UnsupportedSourceExtensionError };

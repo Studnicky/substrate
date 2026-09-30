@@ -22,7 +22,7 @@ import { FetchBaseError } from './FetchBaseError.js';
 export class ConfigurationError extends FetchBaseError {
   public override readonly name: string = 'ConfigurationError';
 
-  constructor(message: string) {
-    super({ 'code': 'fetch.configurationInvalid', 'message': message, 'retryable': false });
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'fetch.configurationInvalid', 'message': message, 'retryable': false });
   }
 }

@@ -6,6 +6,10 @@ import type { BrowserPersistenceOptionsInterface } from './BrowserPersistenceOpt
 import type { BrowserStorageInterface } from './BrowserStorageInterface.js';
 
 import { BrowserPersistenceOptionsEntity } from '../entities/BrowserPersistenceOptionsEntity.js';
+import { BrowserStorageError } from '../errors/BrowserStorageError.js';
+import { IndexedDbEntryError } from '../errors/IndexedDbEntryError.js';
+import { IndexedDbError } from '../errors/IndexedDbError.js';
+import { IndexedDbUnavailableError } from '../errors/IndexedDbUnavailableError.js';
 import { StorageTarget } from './StorageTarget.js';
 
 class IndexedDbTransactionCompletion {
@@ -18,13 +22,13 @@ class IndexedDbTransactionCompletion {
   public async wait(): Promise<void> {
     await new Promise<void>((resolve, reject): void => {
       this.#transaction.addEventListener('abort', (): void => {
-        reject(this.#transaction.error ?? new Error('IndexedDB transaction aborted'));
+        reject(new IndexedDbError('IndexedDB transaction aborted', this.#transaction.error ?? undefined));
       }, { 'once': true });
       this.#transaction.addEventListener('complete', (): void => {
         resolve();
       }, { 'once': true });
       this.#transaction.addEventListener('error', (): void => {
-        reject(this.#transaction.error ?? new Error('IndexedDB transaction failed'));
+        reject(new IndexedDbError('IndexedDB transaction failed', this.#transaction.error ?? undefined));
       }, { 'once': true });
     });
   }
@@ -63,7 +67,7 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
     }
 
     if (this.#storageTarget !== StorageTarget.IndexedDb) {
-      this.#getStorage().removeItem(key);
+      this.#removeStoredItem(key);
 
       return;
     }
@@ -95,7 +99,7 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
     }
 
     if (this.#storageTarget !== StorageTarget.IndexedDb) {
-      this.#getStorage().setItem(key, serialized);
+      this.#setStoredItem(key, serialized);
 
       return;
     }
@@ -106,9 +110,15 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
   }
 
   async #deleteFromDatabase(database: IDBDatabase, key: string): Promise<void> {
-    const transaction = database.transaction(this.#storeName, 'readwrite');
+    let transaction: IDBTransaction;
 
-    transaction.objectStore(this.#storeName).delete(key);
+    try {
+      transaction = database.transaction(this.#storeName, 'readwrite');
+      transaction.objectStore(this.#storeName).delete(key);
+    } catch (cause) {
+      throw new IndexedDbError('IndexedDB delete failed', cause);
+    }
+
     await new IndexedDbTransactionCompletion(transaction).wait();
   }
 
@@ -127,20 +137,56 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
       return this.#storage;
     }
 
-    const storage = this.#storageTarget === StorageTarget.LocalStorage
-      ? globalThis.localStorage
-      : globalThis.sessionStorage;
-    const result: BrowserStorageInterface = storage;
+    const name = this.#storageTarget === StorageTarget.LocalStorage ? 'localStorage' : 'sessionStorage';
+    let resolved: BrowserStorageInterface | undefined;
 
-    return result;
+    try {
+      resolved = name === 'localStorage' ? globalThis.localStorage : globalThis.sessionStorage;
+    } catch (cause) {
+      throw new BrowserStorageError(`${name} access failed`, cause);
+    }
+
+    if (resolved !== undefined) {
+      return resolved;
+    }
+
+    throw new BrowserStorageError(`${name} is unavailable in this runtime`);
+  }
+
+  #removeStoredItem(key: string): void {
+    const storage = this.#getStorage();
+
+    try {
+      storage.removeItem(key);
+    } catch (cause) {
+      throw new BrowserStorageError('Web Storage removeItem failed', cause);
+    }
+  }
+
+  #setStoredItem(key: string, serialized: string): void {
+    const storage = this.#getStorage();
+
+    try {
+      storage.setItem(key, serialized);
+    } catch (cause) {
+      throw new BrowserStorageError('Web Storage setItem failed', cause);
+    }
   }
 
   async #loadFromDatabase(database: IDBDatabase, key: string): Promise<string | undefined> {
-    const transaction = database.transaction(this.#storeName, 'readonly');
-    const request = transaction.objectStore(this.#storeName).get(key);
+    let request: IDBRequest;
+    let transaction: IDBTransaction;
+
+    try {
+      transaction = database.transaction(this.#storeName, 'readonly');
+      request = transaction.objectStore(this.#storeName).get(key);
+    } catch (cause) {
+      throw new IndexedDbError('IndexedDB read failed', cause);
+    }
+
     const result = await new Promise<string | undefined>((resolve, reject): void => {
       request.addEventListener('error', (): void => {
-        reject(request.error ?? new Error('IndexedDB read failed'));
+        reject(new IndexedDbError('IndexedDB read failed', request.error ?? undefined));
       }, { 'once': true });
       request.addEventListener('success', (): void => {
         const value: unknown = request.result;
@@ -151,7 +197,7 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
           return;
         }
         if (typeof value !== 'string') {
-          reject(new Error('IndexedDB state entries must be serialized strings'));
+          reject(new IndexedDbEntryError());
 
           return;
         }
@@ -172,7 +218,15 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
     }
 
     if (this.#storageTarget !== StorageTarget.IndexedDb) {
-      const serialized = this.#getStorage().getItem(key);
+      const storage = this.#getStorage();
+      let serialized: string | null;
+
+      try {
+        serialized = storage.getItem(key);
+      } catch (cause) {
+        throw new BrowserStorageError('Web Storage getItem failed', cause);
+      }
+
       const result = serialized ?? undefined;
 
       return result;
@@ -186,14 +240,22 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
 
   async #openDatabase(): Promise<IDBDatabase> {
     if (typeof indexedDB === 'undefined') {
-      throw new Error('IndexedDB is unavailable in this runtime');
+      throw new IndexedDbUnavailableError();
     }
 
     const result = await new Promise<IDBDatabase>((resolve, reject): void => {
-      const request = indexedDB.open(this.#databaseName);
+      let request: IDBOpenDBRequest;
+
+      try {
+        request = indexedDB.open(this.#databaseName);
+      } catch (cause) {
+        reject(new IndexedDbError('IndexedDB open failed', cause));
+
+        return;
+      }
 
       request.addEventListener('error', (): void => {
-        reject(request.error ?? new Error('IndexedDB open failed'));
+        reject(new IndexedDbError('IndexedDB open failed', request.error ?? undefined));
       }, { 'once': true });
       request.addEventListener('success', (): void => {
         resolve(request.result);
@@ -201,8 +263,12 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
       request.addEventListener('upgradeneeded', (): void => {
         const database = request.result;
 
-        if (!database.objectStoreNames.contains(this.#storeName)) {
-          database.createObjectStore(this.#storeName);
+        try {
+          if (!database.objectStoreNames.contains(this.#storeName)) {
+            database.createObjectStore(this.#storeName);
+          }
+        } catch (cause) {
+          reject(new IndexedDbError('IndexedDB upgrade failed', cause));
         }
       }, { 'once': true });
     });
@@ -215,9 +281,15 @@ export class BrowserPersistence<TState> implements StatePersistenceInterface<TSt
   }
 
   async #saveToDatabase(database: IDBDatabase, key: string, serialized: string): Promise<void> {
-    const transaction = database.transaction(this.#storeName, 'readwrite');
+    let transaction: IDBTransaction;
 
-    transaction.objectStore(this.#storeName).put(serialized, key);
+    try {
+      transaction = database.transaction(this.#storeName, 'readwrite');
+      transaction.objectStore(this.#storeName).put(serialized, key);
+    } catch (cause) {
+      throw new IndexedDbError('IndexedDB write failed', cause);
+    }
+
     await new IndexedDbTransactionCompletion(transaction).wait();
   }
 }

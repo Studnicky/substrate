@@ -36,7 +36,7 @@ import {
 } from '@studnicky/errors/browser';
 import { TransitionRejectedError } from '@studnicky/fsm/browser';
 import { Signal } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
@@ -60,13 +60,14 @@ import {
   LockTimeoutError,
   QueueSizeExceededError
 } from '../errors/index.js';
+import { MutexAcquisitionSettledError } from '../errors/MutexAcquisitionSettledError.js';
 import { configInternal } from './configInternal.js';
 import { MutexKeyMachine } from './MutexKeyMachine.js';
 
 interface QueueEntryInterface {
   'cancellationController': AbortController | undefined;
   'queuedAt': MutexQueueEntryEntity.Type['queuedAt'];
-  'reject': (error: Error) => void;
+  'reject': (error: BaseError) => void;
   'resolve': (release: () => void) => void;
 }
 
@@ -555,7 +556,10 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
       if (error instanceof TransitionRejectedError) {
         return false;
       }
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      throw RuntimeError.create('Mutex key state machine failed with a non-BaseError value', { 'cause': error });
     }
   }
 
@@ -608,7 +612,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * ```
    */
   clear(): void {
-    for (const queue of this.queues.values()) {
+    for (const [key, queue] of this.queues) {
       const entries = queue.values();
       const entriesLength = entries.length;
 
@@ -620,7 +624,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         }
 
         if (entry.cancellationController !== undefined) {
-          entry.cancellationController.abort();
+          entry.cancellationController.abort(new MutexAcquisitionSettledError(key));
         }
         entry.reject(RuntimeError.create('Mutex cleared - all pending operations rejected'));
       }
@@ -773,8 +777,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private async executeCoalescedOperation(
     key: K,
     callback: () => unknown,
-    resolveDeferred: (value: unknown) => void,
-    rejectDeferred: (error: Error) => void
+    resolveDeferred: (value: unknown) => void
   ): Promise<void> {
     let release: (() => void) | undefined;
 
@@ -785,7 +788,8 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
       resolveDeferred(result);
     } catch (error) {
-      rejectDeferred(Predicates.isError(error) ? error : RuntimeError.create(String(error)));
+      const failure = Predicates.isError(error) ? error : RuntimeError.create(String(error));
+      resolveDeferred(CallerFault.rejection(failure));
     } finally {
       this.inFlightOperations.delete(key);
 
@@ -865,7 +869,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
   private handleAcquisitionTimeout(
     key: K,
     cancellationController: AbortController,
-    reject: (error: Error) => void
+    reject: (error: BaseError) => void
   ): void {
     const timeoutQueue = this.queues.get(key);
 
@@ -963,7 +967,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
     if (next !== undefined) {
       if (next.cancellationController !== undefined) {
-        next.cancellationController.abort();
+        next.cancellationController.abort(new MutexAcquisitionSettledError(key));
       }
 
       // FSM: queued → locked (next waiter takes the lock)
@@ -1148,9 +1152,9 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
         release();
         return fulfilledResult;
       },
-      (error) => {
+      (error: unknown) => {
         release();
-        throw error;
+        CallerFault.propagate(error);
       }
     );
     return result;
@@ -1162,7 +1166,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    */
   private setupAcquisitionTimeout(
     key: K,
-    reject: (error: Error) => void
+    reject: (error: BaseError) => void
   ): AbortController | undefined {
     if (this.config.timeout <= INITIAL_COUNTER) {
       return undefined;
@@ -1175,7 +1179,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
 
   private async watchAcquisitionTimeout(
     key: K,
-    reject: (error: Error) => void,
+    reject: (error: BaseError) => void,
     cancellationController: AbortController
   ): Promise<void> {
     const composed = await this.#signal.compose({
@@ -1223,17 +1227,15 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     callback: () => unknown
   ): Promise<unknown> {
     let deferredResolve!: (value: unknown) => void;
-    let deferredReject!: (error: Error) => void;
-    const deferredPromise = new Promise<unknown>((resolve, reject) => {
+    const deferredPromise = new Promise<unknown>((resolve) => {
       deferredResolve = resolve;
-      deferredReject = reject;
     });
 
     this.inFlightOperations.set(key, {
       'promise': deferredPromise
     });
 
-    void this.executeCoalescedOperation(key, callback, deferredResolve, deferredReject);
+    void this.executeCoalescedOperation(key, callback, deferredResolve);
 
     const result = deferredPromise;
     return result;

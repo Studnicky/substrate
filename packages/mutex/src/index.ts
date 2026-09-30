@@ -5,6 +5,7 @@
  */
 
 export { LockTimeoutError } from './errors/LockTimeoutError.js';
+export { MutexAcquisitionSettledError } from './errors/MutexAcquisitionSettledError.js';
 export { MutexError } from './errors/MutexError.js';
 export { QueueSizeExceededError } from './errors/QueueSizeExceededError.js';
 export type { MutexCreateOptionsInterface } from './interfaces/MutexCreateOptionsInterface.js';

@@ -22,8 +22,6 @@
 "@studnicky/health-registry": major
 "@studnicky/idempotency-guard": major
 "@studnicky/json": major
-"@studnicky/keyed-rate-limiter": major
-"@studnicky/keyed-work-gate": major
 "@studnicky/logger": major
 "@studnicky/matching": major
 "@studnicky/memoize": major

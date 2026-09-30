@@ -143,7 +143,13 @@ export class OperationLifecycleMachine extends StateMachine<
   ): ReturnType<OperationLifecycleEventReducerInterface> {
     const reducer = OperationLifecycleMachine.reducerByEventType.get(event.type);
     if (reducer === undefined) {
-      throw RuntimeError.create(`Unhandled OperationLifecycleEvent: ${JSON.stringify(event)}`);
+      let description: string;
+      try {
+        description = JSON.stringify(event);
+      } catch (cause) {
+        throw RuntimeError.create(`Unhandled OperationLifecycleEvent: ${event.type}`, { 'cause': cause });
+      }
+      throw RuntimeError.create(`Unhandled OperationLifecycleEvent: ${description}`);
     }
     const result = reducer(state, event);
     return result;

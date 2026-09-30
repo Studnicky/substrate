@@ -361,6 +361,7 @@ export class WorkerLeasePool<TWorker> {
       acquisition.resolve();
     };
     let permit: LeasePermit | undefined;
+    let abandoned = true;
     try {
       const acquiredPermit = await this.#semaphore.acquire();
       const permitIdentifier = Symbol();
@@ -373,13 +374,12 @@ export class WorkerLeasePool<TWorker> {
       }
       const record = await this.#coordinator.acquire();
       this.#leasePermits.set(permitIdentifier, permit);
+      abandoned = false;
       return new WorkerLease(record, this.#coordinator, permit);
-    } catch (error) {
-      if (permit !== undefined) {
+    } finally {
+      if (abandoned && permit !== undefined) {
         await permit.release();
       }
-      throw error;
-    } finally {
       settleAcquisition();
     }
   }
@@ -401,14 +401,14 @@ export class WorkerLeasePool<TWorker> {
     const coordinatorOutcomes = await coordinatorClose;
     const coordinatorFailure = coordinatorOutcomes.at(0);
     if (coordinatorFailure?.status === 'rejected') {
-      throw coordinatorFailure.reason;
+      throw WorkerPoolError.from(coordinatorFailure.reason, 'workerLeasePool.closeFailed', 'WorkerLeasePool close failed');
     }
     const failedRelease = releaseOutcomes.find((outcome): outcome is PromiseRejectedResult => {
       const result = outcome.status === 'rejected';
       return result;
     });
     if (failedRelease !== undefined) {
-      throw failedRelease.reason;
+      throw WorkerPoolError.from(failedRelease.reason, 'workerLeasePool.releaseFailed', 'WorkerLeasePool permit release failed');
     }
   }
 

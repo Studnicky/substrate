@@ -1,4 +1,3 @@
-import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { RuntimeError } from '@studnicky/errors/browser';
 import { Clone } from '@studnicky/json/browser';
 import { Predicates } from '@studnicky/types/browser';
@@ -125,10 +124,7 @@ export class FetchClientConfiguration {
       const queryParameters = UrlQueryString.intakeParameters(parameters);
       return queryParameters;
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ConfigurationError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new ConfigurationError(RuntimeError.toMessage(error), error);
     }
   }
 
@@ -180,10 +176,7 @@ export class FetchClientConfiguration {
       const entity = ClientConfigDataEntity.intake(data);
       return entity;
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ConfigurationError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new ConfigurationError(RuntimeError.toMessage(error), error);
     }
   }
 

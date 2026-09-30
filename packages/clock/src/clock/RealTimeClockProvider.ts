@@ -10,6 +10,7 @@ import { HookInvoker } from '@studnicky/errors/browser';
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 
 import { RealTimeClockProviderOptionsEntity } from '../entities/RealTimeClockProviderOptionsEntity.js';
+import { ClockConversionError } from '../errors/ClockConversionError.js';
 /** Named constant: nanoseconds per millisecond (as BigInt). */
 const NS_PER_MS = 1_000_000n;
 
@@ -84,7 +85,12 @@ export class RealTimeClockProvider implements ClockProviderInterface {
     // it is multiplied as a float; the whole-ms part is scaled via BigInt.
     const wholeMs = Math.trunc(ms);
     const fractionalMs = ms - wholeMs;
-    const result = BigInt(wholeMs) * NS_PER_MS + BigInt(Math.round(fractionalMs * Number(NS_PER_MS)));
+    let result: bigint;
+    try {
+      result = BigInt(wholeMs) * NS_PER_MS + BigInt(Math.round(fractionalMs * Number(NS_PER_MS)));
+    } catch (error) {
+      throw new ClockConversionError(`performance.now() reading ${String(ms)}ms is not convertible to nanoseconds`, error);
+    }
 
     this.hooks.invoke('onHrtime', () => {
       const hookResult = this.onHrtime(result);

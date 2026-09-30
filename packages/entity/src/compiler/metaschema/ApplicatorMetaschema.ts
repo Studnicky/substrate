@@ -1,5 +1,7 @@
 import { Predicates } from '@studnicky/types/browser';
 
+import { SchemaNodeDefinitionError } from '../../SchemaNodeDefinitionError.js';
+
 /**
  * The official draft 2020-12 'https://json-schema.org/draft/2020-12/meta/applicator' metaschema document, carried
  * verbatim from the specification as a string because its own 'then' key is a thenable an object literal may not carry.
@@ -13,7 +15,7 @@ class ApplicatorDocument {
     if (Predicates.isObject(parsed) && typeof parsed.$id === 'string') {
       return { ...parsed, '$id': parsed.$id };
     }
-    throw new Error('the applicator metaschema document does not carry a string $id');
+    throw new SchemaNodeDefinitionError('the applicator metaschema document does not carry a string $id');
   }
 }
 

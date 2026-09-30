@@ -10,6 +10,7 @@ import {
   ThrownValueProjection
 } from '@studnicky/types/browser';
 
+import { RuntimeError } from '../errors/RuntimeError.js';
 import { CauseNodeEntity } from './CauseNodeEntity.js';
 
 /**
@@ -24,7 +25,7 @@ class ThrownValueIntake {
     if (ThrownValueEntity.validate(projection)) {
       return projection;
     }
-    throw new Error(`thrown value projection violates ThrownValueEntity's own schema: ${EntityCompiler.formatErrors(ThrownValueEntity.validate.errors)}`);
+    throw RuntimeError.create(`thrown value projection violates ThrownValueEntity's own schema: ${EntityCompiler.formatErrors(ThrownValueEntity.validate.errors)}`);
   }
 }
 

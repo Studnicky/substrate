@@ -9,8 +9,9 @@
  * Successful operations return the canonical consumption result.
  */
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { type HookInvocationError, HookInvoker } from '@studnicky/errors/browser';
+import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout, Signal } from '@studnicky/signal/browser';
+import { BaseError, CallerFault } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
@@ -58,10 +59,7 @@ export class SlidingWindowLimiter {
     try {
       schemaOptions = SlidingWindowLimiterOptionsEntity.intake(serializableOptions);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new SlidingWindowLimiterConfigError(error.message);
-      }
-      throw error;
+      throw new SlidingWindowLimiterConfigError(error instanceof SchemaIntakeError ? error.message : 'SlidingWindowLimiter options intake failed', error);
     }
 
     this.#limit = schemaOptions.limit;
@@ -120,7 +118,7 @@ export class SlidingWindowLimiter {
       }
       const waitMs = this.#nextRetryDelayMs();
       const outcome = await RaceTimeout.wait(waitMs, signal);
-      if (outcome === 'aborted') { throw signal.reason; }
+      if (outcome === 'aborted') { CallerFault.propagate(signal.reason); }
     }
   }
 
@@ -157,8 +155,9 @@ export class SlidingWindowLimiter {
       const result = this.consume(tokens);
       return result;
     } catch (error) {
-      if (!(error instanceof SlidingWindowExhaustedError)) { throw error; }
-      return undefined;
+      if (error instanceof SlidingWindowExhaustedError) { return undefined; }
+      if (error instanceof BaseError) { throw error; }
+      throw RuntimeError.create('SlidingWindowLimiter.consume failed with a non-BaseError value', { 'cause': error });
     }
   }
 

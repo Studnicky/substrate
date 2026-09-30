@@ -54,6 +54,7 @@ Import `ExampleSmokeRunner` from `@studnicky/example-smoke-kit/node`. Import `Br
 | `BrowserExampleScenarioEntity` | Validates a browser-only scenario case. | `@studnicky/example-smoke-kit/entities` |
 | `ExampleScenarioEntity` | `oneOf` union of the three scenario case shapes. | `@studnicky/example-smoke-kit/entities` |
 | `ExampleScenarioFileEntity` | Validates a whole `examples.scenarios.json` file's `{ cases: [...] }` envelope. | `@studnicky/example-smoke-kit/entities` |
+| `ExampleSmokeError` | Represents unreadable or invalid example files (`exampleSmoke.fileUnreadable`, `exampleSmoke.jsonInvalid`, `exampleSmoke.urlInvalid`) and unknown scenario shapes (`exampleSmoke.unknownShape`); the platform error is the `cause`. | `@studnicky/example-smoke-kit/node` |
 | `ExampleSmokeRunner` | Registers a `node:test` smoke suite from a scenario file. | `@studnicky/example-smoke-kit/node` |
 | `ImportsExampleScenarioEntity` | Validates an imports-and-assert-no-throw scenario case. | `@studnicky/example-smoke-kit/entities` |
 | `WorkerEntryScenarioEntity` | Validates a worker-entry-point scenario case. | `@studnicky/example-smoke-kit/entities` |

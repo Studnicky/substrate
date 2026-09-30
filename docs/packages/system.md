@@ -92,5 +92,6 @@ import type { SystemProviderInterface } from '@studnicky/system/interfaces';
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `System` | Provides Node runtime facts. | `@studnicky/system/node` |
+| `SystemConstructionError` | Represents an attempt to instantiate the static-only `System` class (`system.staticOnly`). | `@studnicky/system/node` |
 | `SystemInterface` | Defines shared Node and browser runtime facts. | `@studnicky/system/interfaces` |
 | `System` | Provides browser runtime facts. | `@studnicky/system/browser` |

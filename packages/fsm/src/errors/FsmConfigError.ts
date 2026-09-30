@@ -6,7 +6,7 @@ import { FsmError } from './FsmError.js';
 export class FsmConfigError extends FsmError {
   public override readonly name: string = 'FsmConfigError';
 
-  constructor(message: string) {
-    super({ 'code': 'fsm.invalidConfig', 'message': message, 'retryable': false });
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'fsm.invalidConfig', 'message': message, 'retryable': false });
   }
 }

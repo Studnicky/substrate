@@ -1,5 +1,6 @@
 import { HookInvoker } from '@studnicky/errors/browser';
 import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { BaseError, CallerFault } from '@studnicky/types/browser';
 
 /**
  * ContextScope - An initialized context ready for execution.
@@ -153,7 +154,10 @@ export class ContextScope implements ContextScopeInterface {
       if (error instanceof TransitionRejectedError) {
         return false;
       }
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      throw new ContextError('Context scope lifecycle machine failed', error);
     }
   }
 
@@ -298,7 +302,7 @@ export class ContextScope implements ContextScopeInterface {
         const hookResult = this.onError(error);
         return hookResult;
       });
-      throw error;
+      CallerFault.propagate(error);
     }
 
     if (result instanceof Promise) {

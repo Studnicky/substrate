@@ -8,6 +8,7 @@ import type {
   RuntimeValueSetInterface
 } from '../interfaces/index.js';
 
+import { RuntimeValueError } from '../errors/RuntimeValueError.js';
 import { Predicates } from '../predicates/Predicates.js';
 import { JsonObject } from './JsonObject.js';
 import { JsonValue } from './JsonValue.js';
@@ -42,7 +43,7 @@ export class RuntimeValue {
     value: unknown
   ): JSONSchema7Type | undefined | RuntimeValueArrayInterface | RuntimeValueDateInterface | RuntimeValueMapInterface | RuntimeValueRecordInterface | RuntimeValueSetInterface {
     if (!RuntimeValue.is(value)) {
-      throw new TypeError('Runtime value must contain only JSON values, undefined, Date, Map, Set, arrays, and plain records.');
+      throw new RuntimeValueError('Runtime value must contain only JSON values, undefined, Date, Map, Set, arrays, and plain records.');
     }
     return value;
   }

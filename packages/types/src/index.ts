@@ -11,6 +11,7 @@
  *
  * Errors:
  *   - `BaseError`        — abstract root of the error hierarchy; serializes as RFC 9457 Problem Details
+ *   - `CallerFault`      — sanctioned pass-through for errors raised by caller-supplied code
  *   - `ThrownValueProjection` — total, cycle-safe projection of any caught value into RFC 9457 members
  *
  * Objects:
@@ -19,6 +20,7 @@
  */
 
 export { BaseError } from './errors/BaseError.js';
+export { CallerFault } from './errors/CallerFault.js';
 export {
   CAUSE_CHAIN_DEPTH_LIMIT,
   CAUSE_DEPTH_SENTINEL
@@ -38,6 +40,8 @@ export {
   PROBLEM_TYPE_THROWN_PRIMITIVE,
   PROBLEM_TYPE_THROWN_STRING
 } from './errors/constants/ProblemConstants.js';
+export { RuntimeValueError } from './errors/RuntimeValueError.js';
+export { StructuralHashInputError } from './errors/StructuralHashInputError.js';
 export { ThrownValueProjection } from './errors/ThrownValueProjection.js';
 export { Empty } from './guards/Empty.js';
 export { JsonObject } from './guards/JsonObject.js';

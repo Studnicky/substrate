@@ -11,7 +11,7 @@ import type { IdempotencyPayloadEntity } from './entities/IdempotencyPayloadEnti
 import type { IdempotencyGuardEntryInterface } from './interfaces/IdempotencyGuardEntryInterface.js';
 
 import { IdempotencyGuardOptionsEntity } from './entities/IdempotencyGuardOptionsEntity.js';
-import { IdempotencyConflictError, IdempotencyGuardConfigError } from './errors/index.js';
+import { IdempotencyConflictError, IdempotencyGuardConfigError, IdempotencyPayloadError } from './errors/index.js';
 
 class IdempotencyGuardHookInvoker extends HookInvoker {
   protected override onHookError(): void {}
@@ -99,6 +99,20 @@ export class IdempotencyGuard<TResult = unknown> {
     return new this(options);
   }
 
+  /** Structural fingerprint of `payload`: its entries sorted by key, serialized as JSON. */
+  static #fingerprintOf(payload: IdempotencyPayloadEntity.Type): string {
+    try {
+      const payloadEntries = Object.entries(payload).toSorted(([leftKey], [rightKey]) => {
+        const result = leftKey.localeCompare(rightKey);
+        return result;
+      });
+      const result = JSON.stringify(payloadEntries) ?? '';
+      return result;
+    } catch (error) {
+      throw new IdempotencyPayloadError('Idempotency payload cannot be fingerprinted.', error);
+    }
+  }
+
   readonly #cache: LruCache<string, IdempotencyGuardEntryInterface<TResult>>;
   readonly #coalesce: Coalesce<IdempotencyGuardEntryInterface<TResult>>;
   readonly #inFlightFingerprints = new Map<string, string>();
@@ -109,10 +123,7 @@ export class IdempotencyGuard<TResult = unknown> {
     try {
       options = IdempotencyGuardOptionsEntity.intake(config);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new IdempotencyGuardConfigError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new IdempotencyGuardConfigError(error instanceof SchemaIntakeError ? RuntimeError.toMessage(error) : 'IdempotencyGuard options intake failed', error);
     }
 
     this.#cache = LruCache.create<string, IdempotencyGuardEntryInterface<TResult>>({
@@ -140,12 +151,7 @@ export class IdempotencyGuard<TResult = unknown> {
     payload: IdempotencyPayloadEntity.Type,
     factory: () => TResult | Promise<TResult>
   ): Promise<TResult> {
-    const payloadEntries = Object.entries(payload).toSorted(([leftKey], [rightKey]) => {
-      const result = leftKey.localeCompare(rightKey);
-      return result;
-    });
-    const payloadFingerprint = JSON.stringify(payloadEntries) ?? '';
-    const fingerprint = payloadFingerprint;
+    const fingerprint = IdempotencyGuard.#fingerprintOf(payload);
     const cached = this.#cache.get(key);
 
     if (cached !== undefined) {

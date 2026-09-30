@@ -3,6 +3,7 @@ import {
   GREEK_SCRIPT_PATTERN, HEBREW_SCRIPT_PATTERN, IDNA_ALLOWED_GENERAL_CATEGORY_PATTERN,
   KATAKANA_HIRAGANA_HAN_PATTERN, LEADING_COMBINING_MARK_PATTERN, VIRAMA_PATTERN
 } from '../../constants/format/NetworkFormatPatterns.js';
+import { CodePointString } from './CodePointString.js';
 
 /** RFC 5892 Appendix A ContextJ/ContextO rules, the ACE-prefix hyphen rule, and digit-mixing rule — per label. */
 export class ContextualRuleValidator {
@@ -32,7 +33,7 @@ export class ContextualRuleValidator {
     if (ContextualRuleValidator.mixesArabicIndicDigits(codePoints)) {
       return false;
     }
-    if (codePoints.length > 0 && LEADING_COMBINING_MARK_PATTERN.test(String.fromCodePoint(codePoints[0]!))) {
+    if (codePoints.length > 0 && LEADING_COMBINING_MARK_PATTERN.test(CodePointString.from(codePoints[0]!))) {
       return false;
     }
     for (let index = 0; index < codePoints.length; index += 1) {
@@ -51,7 +52,7 @@ export class ContextualRuleValidator {
       return true;
     }
     if (!ContextualRuleValidator.CONTEXT_DEPENDENT_CODE_POINTS.has(codePoint)) {
-      const result = IDNA_ALLOWED_GENERAL_CATEGORY_PATTERN.test(String.fromCodePoint(codePoint)) || codePoint === ContextualRuleValidator.HYPHEN;
+      const result = IDNA_ALLOWED_GENERAL_CATEGORY_PATTERN.test(CodePointString.from(codePoint)) || codePoint === ContextualRuleValidator.HYPHEN;
       return result;
     }
     const checker = ContextualRuleValidator.CONTEXT_DEPENDENT_CHECKERS.get(codePoint);
@@ -75,7 +76,7 @@ export class ContextualRuleValidator {
     let sawArabicIndic = false;
     let sawExtendedArabicIndic = false;
     for (let index = 0; index < codePoints.length; index += 1) {
-      const char = String.fromCodePoint(codePoints[index]!);
+      const char = CodePointString.from(codePoints[index]!);
       sawArabicIndic = sawArabicIndic || ARABIC_INDIC_DIGIT_PATTERN.test(char);
       sawExtendedArabicIndic = sawExtendedArabicIndic || EXTENDED_ARABIC_INDIC_DIGIT_PATTERN.test(char);
     }
@@ -90,19 +91,19 @@ export class ContextualRuleValidator {
 
   private static isGreekKeraiaValid(codePoints: readonly number[], index: number): boolean {
     const nextCodePoint = codePoints[index + 1];
-    const result = nextCodePoint !== undefined && GREEK_SCRIPT_PATTERN.test(String.fromCodePoint(nextCodePoint));
+    const result = nextCodePoint !== undefined && GREEK_SCRIPT_PATTERN.test(CodePointString.from(nextCodePoint));
     return result;
   }
 
   private static isHebrewCombiningMarkValid(codePoints: readonly number[], index: number): boolean {
     const previousCodePoint = codePoints[index - 1];
-    const result = previousCodePoint !== undefined && HEBREW_SCRIPT_PATTERN.test(String.fromCodePoint(previousCodePoint));
+    const result = previousCodePoint !== undefined && HEBREW_SCRIPT_PATTERN.test(CodePointString.from(previousCodePoint));
     return result;
   }
 
   private static isKatakanaMiddleDotValid(codePoints: readonly number[], _index: number): boolean {
     for (let index = 0; index < codePoints.length; index += 1) {
-      if (KATAKANA_HIRAGANA_HAN_PATTERN.test(String.fromCodePoint(codePoints[index]!))) {
+      if (KATAKANA_HIRAGANA_HAN_PATTERN.test(CodePointString.from(codePoints[index]!))) {
         return true;
       }
     }
@@ -111,19 +112,19 @@ export class ContextualRuleValidator {
 
   private static isZeroWidthNonJoinerValid(codePoints: readonly number[], index: number): boolean {
     const previousCodePoint = codePoints[index - 1];
-    if (previousCodePoint !== undefined && VIRAMA_PATTERN.test(String.fromCodePoint(previousCodePoint))) {
+    if (previousCodePoint !== undefined && VIRAMA_PATTERN.test(CodePointString.from(previousCodePoint))) {
       return true;
     }
     const nextCodePoint = codePoints[index + 1];
     const result = previousCodePoint !== undefined && nextCodePoint !== undefined
-      && ARABIC_SCRIPT_PATTERN.test(String.fromCodePoint(previousCodePoint))
-      && ARABIC_SCRIPT_PATTERN.test(String.fromCodePoint(nextCodePoint));
+      && ARABIC_SCRIPT_PATTERN.test(CodePointString.from(previousCodePoint))
+      && ARABIC_SCRIPT_PATTERN.test(CodePointString.from(nextCodePoint));
     return result;
   }
 
   private static isZeroWidthJoinerValid(codePoints: readonly number[], index: number): boolean {
     const previousCodePoint = codePoints[index - 1];
-    const result = previousCodePoint !== undefined && VIRAMA_PATTERN.test(String.fromCodePoint(previousCodePoint));
+    const result = previousCodePoint !== undefined && VIRAMA_PATTERN.test(CodePointString.from(previousCodePoint));
     return result;
   }
 }

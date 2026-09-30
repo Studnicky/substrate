@@ -76,7 +76,7 @@ const lock = await FileLock.create({ clock, path: '/var/data/queue.json', schedu
 | `onStaleDetected(path)` | When a stale lock file from a dead process is detected | `path: string` — not fired by the base class; implement in a subclass that adds stale-lock recovery |
 | `onStaleBreak(path)` | After a stale lock file has been broken | `path: string` — not fired by the base class |
 | `onTimeout(path)` | Once, when the acquisition deadline elapses | `path: string` |
-| `onError(path, error)` | When a filesystem error other than contention is caught during acquisition | `path: string`, `error: Error` |
+| `onError(path, error)` | When a filesystem error other than contention is caught during acquisition | `path: string`, `error: BaseError` |
 
 <<< ../../packages/file-lock/examples/observedFileLock.ts#usage
 
@@ -159,12 +159,15 @@ import { FileLockOptionsEntity } from '@studnicky/file-lock/entities';
 | `FileLockContentionError` | Represents an unsuccessful atomic lock acquisition. | `@studnicky/file-lock/node` |
 | `FileLockCreateOptionsInterface` | Defines the filesystem lock create options contract. | `@studnicky/file-lock/interfaces` |
 | `FileLockError` | Represents file lock failures. | `@studnicky/file-lock/node` |
+| `FileLockFileSystemError` | Represents a filesystem operation that failed for a reason other than contention (`fileLock.fileSystemFailed`); carries `operation`, `path`, and the platform error as `cause`. | `@studnicky/file-lock/node` |
 | `FileLockInspection` | Inspects a lock path without changing it. | `@studnicky/file-lock/node` |
 | `FileLockInspectionOptionsInterface` | Defines the lock inspection input contract. | `@studnicky/file-lock/interfaces` |
+| `FileLockLivenessError` | Represents a failed owner-liveness check (`fileLock.livenessCheckFailed`). | `@studnicky/file-lock/node` |
 | `FileLockRecovery` | Recovers an explicitly verified stale lock. | `@studnicky/file-lock/node` |
 | `FileLockRecoveryConflictError` | Represents recovery blocked by a changed lock state. | `@studnicky/file-lock/node` |
 | `FileLockRecoveryOptionsInterface` | Defines the explicit stale-lock recovery contract. | `@studnicky/file-lock/interfaces` |
 | `FileLockTimeoutError` | Represents file lock timeout failures. | `@studnicky/file-lock/node` |
+| `FileLockWebLockError` | Represents a rejected Web Locks request (`fileLock.webLockFailed`). | `@studnicky/file-lock/node`<br>`@studnicky/file-lock/browser` |
 | `FileRenameLock` | Provides atomic rename-based acquire and release. | `@studnicky/file-lock/node` |
 | `FileRenameLockCreateOptionsInterface` | Defines the atomic rename-lock construction contract. | `@studnicky/file-lock/interfaces` |
 | `NodeOwnerLiveness` | Checks Node process liveness for a lock owner. | `@studnicky/file-lock/node` |

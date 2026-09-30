@@ -110,7 +110,9 @@ import type { PatchOperationInterface } from '@studnicky/json/interfaces';
 | `Patch` | Provides patch functionality. | `@studnicky/json/node` |
 | `Path` | Provides path functionality. | `@studnicky/json/node` |
 | `Sort` | Provides sort functionality. | `@studnicky/json/node` |
+| `CloneError` | Represents a value that cannot be deep-cloned. | `@studnicky/json/node` |
 | `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json/node` |
 | `ImmutableSnapshotError` | Represents snapshot isolation failures. | `@studnicky/json/node` |
 | `JsonError` | Represents json failures. | `@studnicky/json/node` |
 | `PatchError` | Represents patch failures. | `@studnicky/json/node` |
+| `SameKindError` | Represents a derived value whose structural kind differs from its source. | `@studnicky/json/node` |

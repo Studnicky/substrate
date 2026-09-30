@@ -71,3 +71,4 @@ import type { PaginatorAvailableCursorInterface } from '@studnicky/paginator/int
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Paginator` | Provides paginator functionality. | `@studnicky/paginator/node` |
+| `PaginatorCloneError` | Thrown when a page or cursor cannot be structured-cloned into retained state; the platform error is the `cause` (`paginator.valueNotCloneable`). | `@studnicky/paginator/node` |

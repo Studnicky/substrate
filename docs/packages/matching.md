@@ -58,6 +58,7 @@ Normalize a user query, retrieve likely candidates from an n-gram index, and ran
 | `LevenshteinScorer` | Edit-distance similarity. | `@studnicky/matching/node` |
 | `NgramScorer` | Character n-gram similarity. | `@studnicky/matching/node` |
 | `SorensenDiceScorer` | Set overlap similarity. | `@studnicky/matching/node` |
+| `MatchingAllocationError` | Thrown when a scorer cannot allocate working memory for an input pair; the platform error is the `cause` (`matching.allocationFailed`). | `@studnicky/matching/node` |
 | `ScoreEvidenceInterface` | Defines a score and its deterministic evidence. | `@studnicky/matching/interfaces` |
 | `SelectionInterface` | Defines a selected candidate and score. | `@studnicky/matching/interfaces` |
 

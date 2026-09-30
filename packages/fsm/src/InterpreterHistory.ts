@@ -57,10 +57,7 @@ export class InterpreterHistory<
     try {
       options = InterpreterHistoryOptionsEntity.intake(rest);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new FsmConfigError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new FsmConfigError(error instanceof SchemaIntakeError ? RuntimeError.toMessage(error) : 'InterpreterHistory options intake failed', error);
     }
 
     return new InterpreterHistory<S, E, Ef>({
@@ -81,10 +78,7 @@ export class InterpreterHistory<
     try {
       this.#records = CircularBuffer.create<InterpreterHistoryRecordInterface<TState, TEvent>>({ 'capacity': options.capacity });
     } catch (error) {
-      if (error instanceof CircularBufferError) {
-        throw new FsmConfigError('capacity must be a positive integer');
-      }
-      throw error;
+      throw new FsmConfigError(error instanceof CircularBufferError ? 'capacity must be a positive integer' : 'history buffer creation failed', error);
     }
   }
 

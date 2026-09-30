@@ -8,6 +8,7 @@
  * @module
  */
 import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
 import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';
@@ -37,7 +38,7 @@ export class Delay {
   public static sleep(ms: number, options: DelayOptionsInterface = {}): Promise<void> {
     const signal = options.signal;
 
-    const result = new Promise<void>((resolve, reject) => {
+    const result = new Promise<void>((resolve) => {
       let abortListenerAttached = false;
       let outcome: 'aborted' | 'complete' | 'pending' = 'pending';
       let task: ScheduledTaskInterface | undefined;
@@ -60,7 +61,7 @@ export class Delay {
         if (!finish('aborted')) {
           return;
         }
-        reject(signal?.reason);
+        resolve(CallerFault.rejection(signal?.reason));
         task?.cancel();
       };
 
@@ -87,7 +88,7 @@ export class Delay {
         }
       } catch (error: unknown) {
         if (finish('complete')) {
-          reject(error);
+          resolve(CallerFault.rejection(error));
         }
       }
     });

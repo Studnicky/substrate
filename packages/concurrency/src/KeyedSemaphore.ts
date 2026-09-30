@@ -1,3 +1,5 @@
+import { BaseError, CallerFault } from '@studnicky/types/browser';
+
 import type { SemaphoreAcquireOptionsInterface } from './interfaces/SemaphoreAcquireOptionsInterface.js';
 
 import { SemaphoreOptionsEntity } from './entities/SemaphoreOptionsEntity.js';
@@ -57,7 +59,11 @@ export class KeyedSemaphore<K extends PropertyKey> {
       return result;
     } catch (error) {
       this.#removeIfIdle(key, semaphore);
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      const failure: never = CallerFault.propagate(error);
+      return failure;
     }
   }
 

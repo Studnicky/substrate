@@ -2,6 +2,8 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
 
+import { BodySerializationError } from '../errors/BodySerializationError.js';
+
 /**
  * Request body serialization utilities
  */
@@ -62,8 +64,12 @@ export class BodySerializer {
       return result;
     }
 
-    const result = JSON.stringify(body);
+    try {
+      const result = JSON.stringify(body);
 
-    return result;
+      return result;
+    } catch (cause) {
+      throw new BodySerializationError(cause);
+    }
   }
 }

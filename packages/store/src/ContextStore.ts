@@ -5,6 +5,12 @@ import type { StoreInterface } from './interfaces/StoreInterface.js';
 import type { StoreListenerInterface } from './interfaces/StoreListenerInterface.js';
 import type { StoreSynchronizationIdentityInterface } from './interfaces/StoreSynchronizationIdentityInterface.js';
 
+import { ContextScopeInactiveError } from './errors/ContextScopeInactiveError.js';
+import { ContextStoreFactoryError } from './errors/ContextStoreFactoryError.js';
+import { ContextStoreKeyConflictError } from './errors/ContextStoreKeyConflictError.js';
+import { ContextStoreOptionsError } from './errors/ContextStoreOptionsError.js';
+import { SynchronizationIdentityMismatchError } from './errors/SynchronizationIdentityMismatchError.js';
+
 class ContextStoreValue {
   static hasFunction(value: object, name: string): boolean {
     let candidate: object | null = value;
@@ -39,7 +45,7 @@ class ContextStoreValue {
     const mutex = identity.mutex;
 
     if (typeof key !== 'string' || mutex === null || typeof mutex !== 'object' || !ContextStoreValue.hasFunction(mutex, 'runExclusive')) {
-      throw new TypeError('ContextStore synchronizationIdentity must contain a string key and MutexInterface');
+      throw new ContextStoreOptionsError('ContextStore synchronizationIdentity must contain a string key and MutexInterface');
     }
 
     const result = { 'key': key, 'mutex': mutex };
@@ -68,10 +74,10 @@ export class ContextStore<TState> implements StoreInterface<TState> {
 
   protected constructor(options: ContextStoreOptionsInterface<TState>) {
     if (typeof options.createStore !== 'function') {
-      throw new TypeError('ContextStore createStore must be a function');
+      throw new ContextStoreOptionsError('ContextStore createStore must be a function');
     }
     if (typeof options.key !== 'string') {
-      throw new TypeError('ContextStore key must be a string');
+      throw new ContextStoreOptionsError('ContextStore key must be a string');
     }
 
     this.#context = options.context;
@@ -144,13 +150,13 @@ export class ContextStore<TState> implements StoreInterface<TState> {
     const identity = store.getSynchronizationIdentity();
 
     if (identity.key !== this.#synchronizationIdentity.key || identity.mutex !== this.#synchronizationIdentity.mutex) {
-      throw new Error('ContextStore backing Store synchronization identity must match its configured synchronizationIdentity');
+      throw new SynchronizationIdentityMismatchError();
     }
   }
 
   #getStore(): StoreInterface<TState> {
     if (!this.#context.isActive()) {
-      throw new Error('ContextStore requires an active Context scope');
+      throw new ContextScopeInactiveError();
     }
 
     const lookup = this.#context.tryGet(this.#key);
@@ -165,12 +171,12 @@ export class ContextStore<TState> implements StoreInterface<TState> {
     }
 
     if (lookup.found) {
-      throw new Error(`ContextStore key ${this.#key} does not contain a StoreInterface`);
+      throw new ContextStoreKeyConflictError(this.#key);
     }
 
     const store = this.#createStore();
     if (!ContextStoreValue.isStoreInterface(store)) {
-      throw new Error('ContextStore factory must return a StoreInterface');
+      throw new ContextStoreFactoryError();
     }
 
     this.#assertSynchronizationIdentity(store);

@@ -5,6 +5,8 @@ import {
   describe, it
 } from 'node:test';
 
+import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
+import { FetchBaseError } from '../../../src/errors/FetchBaseError.js';
 import { TestDispatcher } from '../../../src/testing/TestDispatcher.js';
 
 import { TestDispatcherScenarioCaseEntity } from './entities/TestDispatcherScenarioCaseEntity.js';
@@ -63,7 +65,7 @@ async function runQueuedAbortCase(scenarioCase: ScenarioCase): Promise<void> {
     const controller = new AbortController();
     const queuedRequest = dispatcher.fetch(requireUrl(scenarioCase.input.queuedUrl, 'input.queuedUrl'), { signal: controller.signal });
     const queuedAssertion = assert.rejects(queuedRequest, (error) => {
-      assert.ok(error instanceof DOMException);
+      assert.ok(error instanceof FetchBaseError);
       assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);
       assert.strictEqual(error.message, scenarioCase.expected.queuedErrorMessage);
       return true;
@@ -96,7 +98,7 @@ async function runSignalAbortedCase(scenarioCase: ScenarioCase): Promise<void> {
     await assert.rejects(
       dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), { signal: controller.signal }),
       (error) => {
-        assert.ok(error instanceof DOMException);
+        assert.ok(error instanceof FetchBaseError);
         assert.strictEqual(error.name, scenarioCase.expected.queuedErrorName);
         assert.strictEqual(error.message, scenarioCase.expected.queuedErrorMessage);
         return true;
@@ -163,7 +165,7 @@ async function runBlobCase(scenarioCase: ScenarioCase): Promise<void> {
     await assert.rejects(
       dispatcher.fetch(requireUrl(scenarioCase.input.url, 'input.url'), init),
       (error) => {
-        assert.ok(error instanceof RuntimeError);
+        assert.ok(error instanceof ConfigurationError);
         assert.strictEqual(error.code, scenarioCase.expected.errorCode);
         assert.strictEqual(error.message, scenarioCase.expected.errorMessage);
         return true;

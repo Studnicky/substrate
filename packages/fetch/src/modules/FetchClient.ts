@@ -6,9 +6,9 @@ import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { HookInvoker } from '@studnicky/errors/node';
 import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { type BaseError, CallerFault, Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
@@ -28,6 +28,8 @@ import {
   BodyTimeoutError,
   ConfigurationError,
   ConnectTimeoutError,
+  ConstructionError,
+  type FetchBaseError,
   HeadersTimeoutError,
   SocketError,
   SocketExhaustionError,
@@ -36,6 +38,7 @@ import {
 import { BodySerializer } from './BodySerializer.js';
 import { FetchClientConfiguration } from './FetchClientConfiguration.js';
 import { FetchTransport } from './FetchTransport.js';
+import { RequestErrorClassifier } from './RequestErrorClassifier.js';
 import { RequestInitEncoder } from './RequestInitEncoder.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
 import { UrlQueryString } from './UrlQueryString.js';
@@ -114,7 +117,7 @@ export class FetchClient implements FetchClientInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isInstanceOf(result, this)) {
-      throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
+      throw new ConstructionError('FetchClient.create() did not construct the requested subclass.');
     }
     return result;
   }
@@ -359,15 +362,14 @@ export class FetchClient implements FetchClientInterface {
     outcome: RequestOutcomeInterface,
     state: RequestSignalStateInterface
   ): Promise<never> {
-    const requestError = this.classifyRequestError(error, requestContext.url, state);
-    const hookError = Predicates.isError(requestError) ? requestError : RuntimeError.create(String(requestError));
+    const requestError = RequestErrorClassifier.classifyAbortOrTimeout(RequestErrorClassifier.platformCause(error), requestContext.url, state);
 
     if (requestError instanceof TimeoutError) {
       await this.hooks.invokeAsync('onTimeout', () => {
         const result = this.onTimeout(outcome.method, outcome.requestId, requestContext.url, requestError.timeoutMs);
         return result;
       });
-      await this.reportRequestError(hookError, outcome, requestContext.url);
+      await this.reportRequestError(requestError, outcome, requestContext.url);
       throw requestError;
     }
 
@@ -376,7 +378,7 @@ export class FetchClient implements FetchClientInterface {
         const result = this.onAbort(outcome.method, outcome.requestId, requestContext.url);
         return result;
       });
-      await this.reportRequestError(hookError, outcome, requestContext.url);
+      await this.reportRequestError(requestError, outcome, requestContext.url);
       throw requestError;
     }
 
@@ -388,37 +390,17 @@ export class FetchClient implements FetchClientInterface {
       }
     }
 
-    await this.reportRequestError(hookError, outcome, requestContext.url);
-    throw requestError;
+    const named = RequestErrorClassifier.toNamed(requestError, requestContext.url);
+    await this.reportRequestError(named, outcome, requestContext.url);
+    if (RequestErrorClassifier.isCallerAbortReason(requestError, state.externalSignal)) {
+      // The caller aborted the request's own signal with this value; it belongs to the caller.
+      CallerFault.propagate(requestError);
+    }
+    throw named;
   }
 
   /** Reclassifies a caught abort/timeout DOMException into the request's own error types; every other error passes through unchanged. */
-  private classifyRequestError(error: unknown, url: string, state: RequestSignalStateInterface): unknown {
-    if (error instanceof TimeoutError || error instanceof AbortError) {
-      return error;
-    }
-    if (error instanceof Error || error instanceof DOMException) {
-      if (this.isAbortLikeError(error)) {
-        const result = this.buildAbortOrTimeoutError(error, url, state);
-        return result;
-      }
-    }
-    return error;
-  }
-
-  private isAbortLikeError(error: Error | DOMException): boolean {
-    const result = error.name === 'AbortError' || error.name === 'TimeoutError';
-    return result;
-  }
-
-  private buildAbortOrTimeoutError(error: Error | DOMException, url: string, state: RequestSignalStateInterface): AbortError | TimeoutError {
-    const result = state.requestSignal?.aborted === true && state.timeoutMs !== undefined && state.externalSignal?.aborted !== true
-      ? new TimeoutError(url, state.timeoutMs)
-      : new AbortError(url, error.message);
-    return result;
-  }
-
-  private async reportRequestError(hookError: Error, outcome: RequestOutcomeInterface, url: string): Promise<void> {
+  private async reportRequestError(hookError: BaseError, outcome: RequestOutcomeInterface, url: string): Promise<void> {
     await this.hooks.invokeAsync('onRequestError', () => {
       const result = this.onRequestError(hookError, outcome.method, outcome.requestId, url, outcome.duration);
       return result;
@@ -496,11 +478,10 @@ export class FetchClient implements FetchClientInterface {
    */
   private async handleSocketExhaustion(
     url: string,
-    errorCode: string,
     method: string,
     requestId: string,
     duration: number
-  ): Promise<Error | undefined> {
+  ): Promise<SocketExhaustionError | undefined> {
     if (this.dispatcher === undefined) {
       return undefined;
     }
@@ -513,18 +494,13 @@ export class FetchClient implements FetchClientInterface {
 
     const stats = this.dispatcher.checkDispatcherHealth(origin).stats;
 
+    const exhaustion = new SocketExhaustionError(url, stats);
     await this.hooks.invokeAsync('onRequestError', () => {
-      const result = this.onRequestError(
-        RuntimeError.create(`Connection pool exhaustion: ${errorCode}`),
-        method,
-        requestId,
-        url,
-        duration
-      );
+      const result = this.onRequestError(exhaustion, method, requestId, url, duration);
       return result;
     });
 
-    return new SocketExhaustionError(url, stats);
+    return exhaustion;
   }
 
   /**
@@ -604,7 +580,7 @@ export class FetchClient implements FetchClientInterface {
 
   /** Fires when an HTTP request fails. */
   protected onRequestError(
-    _error: Error,
+    _error: BaseError,
     _method: string,
     _requestId: string,
     _url: string,
@@ -773,7 +749,7 @@ export class FetchClient implements FetchClientInterface {
     method: string,
     requestId: string,
     duration: number
-  ): Promise<Error | undefined> {
+  ): Promise<FetchBaseError | undefined> {
     if (!('code' in error) || !Predicates.isString(error.code)) {
       return undefined;
     }
@@ -786,7 +762,7 @@ export class FetchClient implements FetchClientInterface {
     }
 
     if (errorType === 'connect') {
-      const exhaustionError = await this.handleSocketExhaustion(url, errorCode, method, requestId, duration);
+      const exhaustionError = await this.handleSocketExhaustion(url, method, requestId, duration);
 
       if (exhaustionError !== undefined) {
         return exhaustionError;

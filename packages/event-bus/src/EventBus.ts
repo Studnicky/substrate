@@ -9,6 +9,8 @@ import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkIn
 import { BusQueue } from './BusQueue.js';
 import { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
 import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
+import { EventBusClosedError } from './errors/EventBusClosedError.js';
+import { EventBusUnsubscribedError } from './errors/EventBusUnsubscribedError.js';
 
 /** Swallows hook failures rather than throwing — a throwing hook must not replace publish()/subscribe() or block delivery. */
 class EventBusHookInvoker extends HookInvoker {
@@ -91,10 +93,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     try {
       this.#config = Object.freeze(BusQueueOptionsEntity.intake(config ?? {}));
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new BusQueueConfigError(error.message);
-      }
-      throw error;
+      throw new BusQueueConfigError(error instanceof SchemaIntakeError ? error.message : 'EventBus options intake failed', error);
     }
   }
 
@@ -141,7 +140,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
       unsubscribed = true;
       topicSubscriptions.delete(queue);
       this.#queues.delete(queue);
-      queueController.abort();
+      queueController.abort(new EventBusUnsubscribedError());
       this.#busController.signal.removeEventListener('abort', unsubscribe);
       callerSignal?.removeEventListener('abort', unsubscribe);
       this.hooks.invoke('onUnsubscribe', () => {
@@ -186,7 +185,7 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
 
   async close(): Promise<void> {
     await this.hooks.invokeAsync('onDispose', () => { const result = this.onDispose(); return result; });
-    this.#busController.abort();
+    this.#busController.abort(new EventBusClosedError());
     await this.drain();
   }
 

@@ -1,12 +1,12 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
-import { RuntimeError } from '@studnicky/errors/node';
 import { Predicates } from '@studnicky/types/node';
 
 import type { FileRenameLockCreateOptionsInterface, OwnerTokenInterface } from './interfaces/index.js';
 
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockContentionError } from './errors/FileLockContentionError.js';
+import { FileLockFileSystemError } from './errors/FileLockFileSystemError.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
@@ -38,11 +38,10 @@ export class FileRenameLock {
       this.#fileSystem.renameSync(this.#path, this.#lockPath);
       this.#held = true;
     } catch (error) {
-      const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
-      if (FileRenameLock.isContentionError(actualError)) {
-        throw new FileLockContentionError(this.#path, actualError);
+      if (Predicates.isError(error) && FileRenameLock.isContentionError(error)) {
+        throw new FileLockContentionError(this.#path, error);
       }
-      throw actualError;
+      throw FileLockFileSystemError.from('acquire', this.#path, error);
     }
   }
 
@@ -50,7 +49,9 @@ export class FileRenameLock {
     if (!this.#held) {
       return;
     }
-    this.#fileSystem.renameSync(this.#lockPath, this.#path);
+    FileLockFileSystemError.guard('release', this.#path, () => {
+      this.#fileSystem.renameSync(this.#lockPath, this.#path);
+    });
     this.#held = false;
   }
 

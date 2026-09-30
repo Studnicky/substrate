@@ -91,5 +91,6 @@ import type { EntityStoreOptionsInterface } from '@studnicky/entity-store/interf
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `EntityStore` | Maintains an ID-indexed entity collection. | `@studnicky/entity-store/node` |
+| `EntityStoreCloneError` | Reports an entity that cannot be structured-cloned; the platform error is its `cause`. | `@studnicky/entity-store/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/entity-store)

@@ -1,4 +1,5 @@
 import { HookInvoker } from '@studnicky/errors/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 /**
  * Context implementation using ContextStorageInterface.
@@ -315,7 +316,7 @@ export class Context implements ContextInterface {
       });
     } catch (error) {
       scope.terminate();
-      throw error;
+      CallerFault.propagate(error);
     }
 
     const snapshot = scope.terminate();
@@ -342,7 +343,7 @@ export class Context implements ContextInterface {
       });
     } catch (error) {
       scope.terminate();
-      throw error;
+      CallerFault.propagate(error);
     }
 
     try {
@@ -351,7 +352,8 @@ export class Context implements ContextInterface {
       return { 'snapshot': snapshot, 'value': resolvedValue };
     } catch (error) {
       scope.terminate();
-      throw error;
+      const failure = CallerFault.propagate(error);
+      return failure;
     }
   }
 

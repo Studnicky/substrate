@@ -1,3 +1,5 @@
+import { ScorerAllocator } from './ScorerAllocator.js';
+
 export class LevenshteinScorer {
   static score(left: string, right: string): number {
     if (left === right) {
@@ -21,7 +23,7 @@ export class LevenshteinScorer {
   }
 
   private static createInitialRow(length: number): number[] {
-    const row = Array.from<number>({ 'length': length + 1 });
+    const row = ScorerAllocator.filled(length + 1, 0);
     for (let index = 0; index <= length; index += 1) {
       row[index] = index;
     }

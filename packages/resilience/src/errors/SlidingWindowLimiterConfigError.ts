@@ -4,7 +4,7 @@ import { SlidingWindowLimiterError } from './SlidingWindowLimiterError.js';
 export class SlidingWindowLimiterConfigError extends SlidingWindowLimiterError {
   public override readonly name: string = 'SlidingWindowLimiterConfigError';
 
-  constructor(message: string) {
-    super({ 'code': 'slidingWindowLimiter.invalidConfig', 'message': message, 'retryable': false });
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'slidingWindowLimiter.invalidConfig', 'message': message, 'retryable': false });
   }
 }

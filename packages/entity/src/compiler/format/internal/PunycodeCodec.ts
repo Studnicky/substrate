@@ -1,3 +1,4 @@
+import { CodePointString } from './CodePointString.js';
 /** RFC 3492 Bootstring codec, parameterized for Punycode (used by IDNA A-labels). */
 export class PunycodeCodec {
   private static readonly BASE = 36;
@@ -44,7 +45,7 @@ export class PunycodeCodec {
     for (let index = 0; index < codePoints.length; index += 1) {
       const codePoint = codePoints[index]!;
       if (codePoint < PunycodeCodec.INITIAL_CODE_POINT) {
-        output.push(String.fromCodePoint(codePoint));
+        output.push(CodePointString.from(codePoint));
         basicCount += 1;
       }
     }

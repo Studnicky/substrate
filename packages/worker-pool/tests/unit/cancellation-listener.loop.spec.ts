@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { WorkerPoolError } from '../../src/errors/WorkerPoolError.js';
 import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 
@@ -64,7 +65,9 @@ void describe('WorkerPool caller-signal listener discipline', () => {
 
     await assert.rejects(pool.run([{ 'value': 'never-starts' }]), (error: Error) => {
       assert.ok(error.message.includes('cancelled before its worker finished starting'));
-      assert.equal(error.cause, cancellationReason);
+      assert.ok(error.cause instanceof WorkerPoolError);
+      assert.equal(error.cause.code, 'workerPool.cancelled');
+      assert.equal(error.cause.cause, cancellationReason);
       return true;
     });
 
@@ -89,7 +92,9 @@ void describe('WorkerPool caller-signal listener discipline', () => {
     await assert.rejects(running, (error: Error) => {
       assert.ok(error.message.includes('was cancelled'));
       assert.ok(!error.message.includes('finished starting'));
-      assert.equal(error.cause, cancellationReason);
+      assert.ok(error.cause instanceof WorkerPoolError);
+      assert.equal(error.cause.code, 'workerPool.cancelled');
+      assert.equal(error.cause.cause, cancellationReason);
       return true;
     });
 

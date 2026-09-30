@@ -1,9 +1,9 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
 import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors/node';
 import { Delay, RealTimeScheduler, type SchedulerProviderInterface } from '@studnicky/scheduler/node';
-import { Predicates } from '@studnicky/types/node';
+import { type BaseError, Predicates } from '@studnicky/types/node';
 
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockStateInterface } from './FileLockStateInterface.js';
@@ -12,6 +12,7 @@ import type { FileLockCreateOptionsInterface, LockInterface, OwnerTokenInterface
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockConfigError } from './errors/FileLockConfigError.js';
 import { FileLockContentionError } from './errors/FileLockContentionError.js';
+import { FileLockFileSystemError } from './errors/FileLockFileSystemError.js';
 import { FileLockMachine } from './FileLockMachine.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 import { FileRenameLock } from './FileRenameLock.js';
@@ -206,28 +207,28 @@ export class FileLock implements LockInterface {
       });
       return true;
     } catch (error) {
-      const actualError = Predicates.isError(error) ? error : RuntimeError.create(String(error));
-      if (!(actualError instanceof FileLockContentionError)) {
-        this.hooks.invoke('onError', () => {
-          const errorResult = this.onError(path, actualError);
-          return errorResult;
+      if (error instanceof FileLockContentionError) {
+        if (this.#clock.now() >= deadline) {
+          this.hooks.invoke('onTimeout', () => {
+            const timeoutResult = this.onTimeout(path);
+            return timeoutResult;
+          });
+          throw new FileLockTimeoutError(path, timeoutMs);
+        }
+
+        this.hooks.invoke('onContended', () => {
+          const contendedResult = this.onContended(path);
+          return contendedResult;
         });
-        throw actualError;
+        return false;
       }
 
-      if (this.#clock.now() >= deadline) {
-        this.hooks.invoke('onTimeout', () => {
-          const timeoutResult = this.onTimeout(path);
-          return timeoutResult;
-        });
-        throw new FileLockTimeoutError(path, timeoutMs);
-      }
-
-      this.hooks.invoke('onContended', () => {
-        const contendedResult = this.onContended(path);
-        return contendedResult;
+      const failure = FileLockFileSystemError.from('acquire', path, error);
+      this.hooks.invoke('onError', () => {
+        const errorResult = this.onError(path, failure);
+        return errorResult;
       });
-      return false;
+      throw failure;
     }
   }
 
@@ -254,12 +255,17 @@ export class FileLock implements LockInterface {
   }
 
   read(): string {
-    const result = this.#fs.readFileSync(this.#lockPath, 'utf8');
+    const result = FileLockFileSystemError.guard('read', this.#lockPath, () => {
+      const content = this.#fs.readFileSync(this.#lockPath, 'utf8');
+      return content;
+    });
     return result;
   }
 
   write(content: string): void {
-    this.#fs.writeFileSync(this.#lockPath, content, 'utf8');
+    FileLockFileSystemError.guard('write', this.#lockPath, () => {
+      this.#fs.writeFileSync(this.#lockPath, content, 'utf8');
+    });
   }
 
   release(): void {
@@ -320,5 +326,5 @@ export class FileLock implements LockInterface {
    * ENOSPC, EACCES, EROFS, EPERM). The acquisition rejects immediately with
    * this same error rather than continuing to poll.
    */
-  protected onError(_path: string, _error: Error): void {}
+  protected onError(_path: string, _error: BaseError): void {}
 }

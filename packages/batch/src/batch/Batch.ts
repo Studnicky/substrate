@@ -1,5 +1,5 @@
 import { HookInvoker } from '@studnicky/errors/browser';
-import { BaseError, Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import {
   DEFAULT_BATCH_MAXIMUM_CONCURRENT, EMPTY_LENGTH, FIRST_ARRAY_INDEX
@@ -185,24 +185,10 @@ export class Batch<TResult = unknown> {
 
       return hookResult;
     });
+    let result: TResult;
+
     try {
-      const result = await operation(item);
-
-      if (counters !== undefined) {
-        counters.set('succeeded', (counters.get('succeeded') ?? 0) + 1);
-      }
-      await this.hooks.invokeAsync('onItemSuccess', () => {
-        const hookResult = this.onItemSuccess(globalIndex, result);
-
-        return hookResult;
-      });
-      await this.hooks.invokeAsync('onItemSettled', () => {
-        const hookResult = this.onItemSettled(globalIndex);
-
-        return hookResult;
-      });
-
-      return result;
+      result = await operation(item);
     } catch (error) {
       if (counters !== undefined) {
         counters.set('failed', (counters.get('failed') ?? 0) + 1);
@@ -221,8 +207,24 @@ export class Batch<TResult = unknown> {
 
         return hookResult;
       });
-      throw error;
+      CallerFault.propagate(error);
     }
+
+    if (counters !== undefined) {
+      counters.set('succeeded', (counters.get('succeeded') ?? 0) + 1);
+    }
+    await this.hooks.invokeAsync('onItemSuccess', () => {
+      const hookResult = this.onItemSuccess(globalIndex, result);
+
+      return hookResult;
+    });
+    await this.hooks.invokeAsync('onItemSettled', () => {
+      const hookResult = this.onItemSettled(globalIndex);
+
+      return hookResult;
+    });
+
+    return result;
   }
 
   #createBatchItemPromises<T>(
@@ -378,7 +380,7 @@ export class Batch<TResult = unknown> {
   ): Promise<never> {
     const failure = await state.failure.promise;
 
-    throw failure.reason;
+    CallerFault.propagate(failure.reason);
   }
 
   #resolveContinuousOutcomes(
@@ -405,7 +407,7 @@ export class Batch<TResult = unknown> {
       const outcome = settled[index];
 
       if (outcome?.status === 'rejected') {
-        throw outcome.reason;
+        CallerFault.propagate(outcome.reason);
       }
       if (outcome?.status === 'fulfilled') {
         result.push(outcome.value);

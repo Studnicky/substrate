@@ -11,6 +11,7 @@ import type { HealthCheckResultInterface } from './interfaces/HealthCheckResultI
 import type { HealthEvaluationInterface } from './interfaces/HealthEvaluationInterface.js';
 
 import { HealthCheckOptionsEntity } from './entities/HealthCheckOptionsEntity.js';
+import { HealthCheckSettledError } from './errors/HealthCheckSettledError.js';
 
 interface HealthCheckEntryInterface {
   readonly 'check': HealthCheckInterface;
@@ -249,7 +250,7 @@ export class HealthRegistry {
 
       return result;
     } finally {
-      completionController.abort();
+      completionController.abort(new HealthCheckSettledError(name));
       composed.dispose();
     }
   }

@@ -20,4 +20,16 @@ export class VirtualFileSystemError extends BaseError {
       'retryable': argumentList?.retryable ?? false
     }));
   }
+
+  /**
+   * Returns `cause` unchanged when it is already a `VirtualFileSystemError`; wraps any other
+   * value (a Node `fs` error, a browser `DOMException`) in a `VirtualFileSystemError` carrying
+   * the platform message and the original as `cause`.
+   */
+  public static from(cause: unknown): VirtualFileSystemError {
+    const result = cause instanceof VirtualFileSystemError
+      ? cause
+      : new VirtualFileSystemError(BaseError.toMessage(cause), { 'cause': cause });
+    return result;
+  }
 }

@@ -103,6 +103,7 @@ Entity source files import `JSONSchema` and `FromSchema` directly from `json-sch
 | `FileDestinationError` | Represents file transport destination failures. | `@studnicky/logger/node` |
 | `InvalidLogLevelError` | Represents invalid log-level configuration. | `@studnicky/logger/node` |
 | `LogBuildError` | Represents invalid log-entry construction. | `@studnicky/logger/node` |
+| `LogSerializationError` | Represents a value the platform JSON serializer rejects; the platform error is the `cause`. | `@studnicky/logger/node` |
 | `LogStatusEntity` | Provides the schema and type for structured log statuses. | `@studnicky/logger/entities` |
 | `LoggerError` | Base error for logger failures. | `@studnicky/logger/node` |
 

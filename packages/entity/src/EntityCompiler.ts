@@ -28,15 +28,18 @@ import type { EntityValidationErrorInterface } from './interfaces/EntityValidati
 import type { SchemaCompilerInterface } from './interfaces/SchemaCompilerInterface.js';
 import type { SchemaRegistrySetInterface } from './interfaces/SchemaRegistrySetInterface.js';
 
+import { EntityCloneError } from './EntityCloneError.js';
+import { EntityCompilerConfigurationError } from './EntityCompilerConfigurationError.js';
 import { SchemaId } from './SchemaId.js';
 import { SchemaIntakeError } from './SchemaIntakeError.js';
+import { SchemaPattern } from './SchemaPattern.js';
 
 export class EntityCompiler {
   private static readonly patternPropertyMatchers = new WeakMap<object, Map<string, RegExp>>();
 
   /** The compilation backend to dispatch to. Every runtime entrypoint overrides this. */
   protected static get registries(): SchemaRegistrySetInterface {
-    throw new Error('EntityCompiler must be extended with a runtime-specific registries accessor.');
+    throw new EntityCompilerConfigurationError('EntityCompiler must be extended with a runtime-specific registries accessor.');
   }
 
   /**
@@ -88,8 +91,8 @@ export class EntityCompiler {
       let cloned: unknown;
       try {
         cloned = structuredClone(normalized);
-      } catch {
-        throw new SchemaIntakeError('input is not structured-cloneable', [], schemaIdentifier);
+      } catch (error: unknown) {
+        throw new EntityCloneError('input is not structured-cloneable', error);
       }
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
@@ -113,7 +116,12 @@ export class EntityCompiler {
     const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
-      const cloned = structuredClone(partial);
+      let cloned: Partial<TInput>;
+      try {
+        cloned = structuredClone(partial);
+      } catch (error: unknown) {
+        throw new EntityCloneError('input is not structured-cloneable', error);
+      }
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
         throw new SchemaIntakeError(EntityCompiler.formatErrors(errors), errors, schemaIdentifier);
@@ -409,7 +417,7 @@ export class EntityCompiler {
       }
       let matcher = matchers.get(pattern);
       if (matcher === undefined) {
-        matcher = new RegExp(pattern, 'u');
+        matcher = SchemaPattern.compile(pattern);
         matchers.set(pattern, matcher);
       }
       if (matcher.test(propertyName)) {

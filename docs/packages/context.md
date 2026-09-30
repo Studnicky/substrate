@@ -115,7 +115,7 @@ The playground demo does not run the Vite transform, so it uses `scope.await(val
 
 ## Public API
 
-`@studnicky/context/node` provides AsyncLocalStorage-backed scopes. `@studnicky/context/browser` provides browser context scopes. Both runtime entrypoints export `Context`, `ContextError`, and `ContextConfigError`; schemas use `@studnicky/context/entities`, and contracts use `@studnicky/context/interfaces`.
+`@studnicky/context/node` provides AsyncLocalStorage-backed scopes. `@studnicky/context/browser` provides browser context scopes. Both runtime entrypoints export `Context`, `ContextError`, `ContextConfigError`, and `UnsupportedSourceExtensionError`; schemas use `@studnicky/context/entities`, and contracts use `@studnicky/context/interfaces`.
 
 ## Extending
 
@@ -171,10 +171,12 @@ import type {
 | `ContextAsyncRuntime` | Internal continuation runtime used by the transform. | `@studnicky/context/node` |
 | `ContextConfigError` | Reports invalid Context configuration. | `@studnicky/context/node` |
 | `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/node` |
+| `UnsupportedSourceExtensionError` | Reports a module extension the async Context transform cannot parse. | `@studnicky/context/node` |
 | `Context` | Creates browser context scopes. | `@studnicky/context/browser` |
 | `ContextAsyncRuntime` | Internal continuation runtime used by the transform. | `@studnicky/context/browser` |
 | `ContextConfigError` | Reports invalid Context configuration. | `@studnicky/context/browser` |
 | `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/browser` |
+| `UnsupportedSourceExtensionError` | Reports a module extension the async Context transform cannot parse. | `@studnicky/context/browser` |
 | `transform` | Registers the Vite or Rollup async Context transform. | `@studnicky/context/browser/transform` |
 | `ContextStorageInterface` | Defines the shared async storage contract. | `@studnicky/context/interfaces` |
 | `ContextRunResultInterface` | Describes the value and final snapshot returned by `Context.run`/`Context.runAsync`. | `@studnicky/context/interfaces` |

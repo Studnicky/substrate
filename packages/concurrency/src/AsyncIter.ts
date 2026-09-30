@@ -1,6 +1,7 @@
 /** Static utilities for async iterables: merge, filter, enrich. */
 
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
 import type { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';
@@ -82,7 +83,7 @@ export class AsyncIter {
     while (MergeQueue.hasPendingWork(sink)) {
       const entry = await MergeQueue.nextEntry(sink);
       if (entry === undefined) { continue; }
-      if (entry.variant === 'error') { throw entry.error; }
+      if (entry.variant === 'error') { CallerFault.propagate(entry.error); }
       if (entry.variant === 'done') { sink.active -= 1; continue; }
       yield entry.value;
     }

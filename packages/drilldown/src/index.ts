@@ -52,6 +52,7 @@ export {
   GroupingStrategy,
   PropertyType
 } from './enums.js';
+export { DrilldownRulesBuildError } from './errors/DrilldownRulesBuildError.js';
 export type {
   DataAnalyzerInterface,
   DrillDownInterface,

@@ -17,8 +17,9 @@ export class LogBuildError extends LoggerError {
    * Creates a new LogBuildError
    *
    * @param message - Descriptive error message
+   * @param cause - Optional underlying error
    */
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, cause?: unknown) {
+    super(message, cause);
   }
 }

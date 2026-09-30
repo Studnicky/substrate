@@ -8,6 +8,8 @@ import type { PatternApplicatorInterface } from './interfaces/PatternApplicatorI
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 import type { StructuralApplicatorsInterface } from './interfaces/StructuralApplicatorsInterface.js';
 
+import { SchemaDefaultError } from '../SchemaDefaultError.js';
+import { SchemaPattern } from '../SchemaPattern.js';
 import { SchemaPointer } from './SchemaPointer.js';
 import { ValidationErrorFactory } from './ValidationErrorFactory.js';
 
@@ -98,7 +100,7 @@ export class StructuralNodeCompiler {
   private static compilePatterns(plan: SchemaNodePlanInterface, compileChild: CompileChildFunctionInterface): readonly PatternApplicatorInterface[] {
     const result: PatternApplicatorInterface[] = [];
     plan.patternProperties.forEach((subschema, pattern) => {
-      result.push({ 'matcher': new RegExp(pattern, 'u'), 'node': compileChild(subschema, `patternProperties/${pattern}`), 'pattern': pattern });
+      result.push({ 'matcher': SchemaPattern.compile(pattern), 'node': compileChild(subschema, `patternProperties/${pattern}`), 'pattern': pattern });
     });
     return result;
   }
@@ -128,9 +130,18 @@ export class StructuralNodeCompiler {
     if (!context.options.fillDefaults || defaults.size === 0) { return; }
     defaults.forEach((defaultValue, key) => {
       if (!StructuralNodeCompiler.isPresent(value, key)) {
-        JsonObject.write(value, key, structuredClone(defaultValue));
+        JsonObject.write(value, key, StructuralNodeCompiler.cloneDefault(defaultValue, key));
       }
     });
+  }
+
+  private static cloneDefault(defaultValue: unknown, key: string): unknown {
+    try {
+      const result: unknown = structuredClone(defaultValue);
+      return result;
+    } catch (error: unknown) {
+      throw new SchemaDefaultError(`Default for '${key}' is not structured-cloneable`, error);
+    }
   }
 
   private static compileDependentSchemas(

@@ -6,8 +6,8 @@ import type { FetchClientInterface } from '@studnicky/fetch/interfaces';
 import type { RetryInterface } from '@studnicky/retry/interfaces';
 import type { SignalInterface } from '@studnicky/signal/interfaces';
 
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { type HookInvocationError, HookInvoker } from '@studnicky/errors/browser';
+import { BaseError, CallerFault, JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { RequestExecutorConfigInterface } from './interfaces/RequestExecutorConfigInterface.js';
 import type { RequestExecutorDepsInterface } from './interfaces/RequestExecutorDepsInterface.js';
@@ -16,6 +16,7 @@ import type { RequestExecutorOperationContextInterface } from './interfaces/Requ
 
 import { RequestExecutorConfigDataEntity } from './entities/RequestExecutorConfigDataEntity.js';
 import { RequestExecutorExecuteOptionsDataEntity } from './entities/RequestExecutorExecuteOptionsDataEntity.js';
+import { RequestExecutorError } from './errors/index.js';
 
 /**
  * Composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, `@studnicky/pipeline`, and an optional scope port
@@ -55,7 +56,7 @@ import { RequestExecutorExecuteOptionsDataEntity } from './entities/RequestExecu
  *     console.log('request complete', result);
  *   }
  *
- *   protected override onExecuteError(error: Error): void {
+ *   protected override onExecuteError(error: BaseError): void {
  *     console.error('request failed', error);
  *   }
  * }
@@ -121,7 +122,10 @@ export class RequestExecutor {
 
   static #intakeRecord(input: unknown, description: string): Record<string, unknown> {
     if (!Predicates.isPlainObject(input)) {
-      throw RuntimeError.create(`${description} must be a plain object`);
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': `${description} must be a plain object`
+      });
     }
     return input;
   }
@@ -192,42 +196,60 @@ export class RequestExecutor {
 
   static #requireFetchClient(value: unknown): FetchClientInterface {
     if (!RequestExecutor.#isFetchClient(value)) {
-      throw RuntimeError.create('fetchClient must implement FetchClientInterface');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'fetchClient must implement FetchClientInterface'
+      });
     }
     return value;
   }
 
   static #requireRetry(value: unknown): RetryInterface {
     if (!RequestExecutor.#isRetry(value)) {
-      throw RuntimeError.create('retry must implement RetryInterface');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'retry must implement RetryInterface'
+      });
     }
     return value;
   }
 
   static #requireSignal(value: unknown): SignalInterface {
     if (!RequestExecutor.#isSignal(value)) {
-      throw RuntimeError.create('signal must implement SignalInterface');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'signal must implement SignalInterface'
+      });
     }
     return value;
   }
 
   static #requirePipeline(value: unknown): RequestExecutorDepsInterface['pipeline'] {
     if (!RequestExecutor.#isPipeline(value)) {
-      throw RuntimeError.create('pipeline must implement OperationPipelineInterface');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'pipeline must implement OperationPipelineInterface'
+      });
     }
     return value;
   }
 
   static #requireScope(value: unknown): RequestExecutorDepsInterface['scope'] {
     if (!RequestExecutor.#isScope(value)) {
-      throw RuntimeError.create('scope must implement RequestScopeFactoryInterface');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'scope must implement RequestScopeFactoryInterface'
+      });
     }
     return value;
   }
 
   static #requireAbortSignal(value: unknown): AbortSignal {
     if (!Predicates.isObjectLike(value) || !RequestExecutor.#isAbortSignal(value)) {
-      throw RuntimeError.create('signal must implement AbortSignal');
+      throw new RequestExecutorError({
+        'code': 'requestExecutor.invalidInput',
+        'message': 'signal must implement AbortSignal'
+      });
     }
     return value;
   }
@@ -302,13 +324,21 @@ export class RequestExecutor {
 
         return result;
       } catch (cause) {
-        const error = Predicates.isError(cause) ? cause : RuntimeError.create(String(cause));
+        const error = cause instanceof BaseError
+          ? cause
+          : new RequestExecutorError({ 'cause': cause, 'code': 'requestExecutor.executionFailed', 'message': 'RequestExecutor callback failed' });
         this.hooks.invoke('onExecuteError', () => {
           const hookResult = this.onExecuteError(error);
           return hookResult;
         });
 
-        throw cause;
+        if (cause instanceof BaseError) {
+          throw cause;
+        }
+        // The retry loop only rejects with a `BaseError` of its own; any other value is raised
+        // by the caller-supplied `callback` and reaches the caller unchanged.
+        const propagated: never = CallerFault.propagate(cause);
+        return propagated;
       }
     };
 
@@ -362,10 +392,10 @@ export class RequestExecutor {
 
   /**
    * Fires once the retry loop's final attempt has failed, immediately before `execute()`
-   * rethrows. Non-Error failures are represented as an Error for this hook while
-   * `execute()` rethrows the original value unchanged.
+   * rethrows. A failure raised by the caller's callback that is not a `BaseError` is wrapped in
+   * a `RequestExecutorError` for this hook while `execute()` rethrows the original value unchanged.
    */
-  protected onExecuteError(_error: Error): void {}
+  protected onExecuteError(_error: BaseError): void {}
 
   /** Count of hook failures recorded since construction. */
   get hookErrorCount(): number {

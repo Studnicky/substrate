@@ -14,12 +14,18 @@
 
 export {
   AbortError,
+  BodySerializationError,
   BodyTimeoutError,
   ConfigurationError,
   ConnectTimeoutError,
+  ConstructionError,
+  DispatcherShutdownError,
   FetchBaseError,
   HeadersTimeoutError,
   HTTPError,
+  InvalidUrlError,
+  QueryEncodingError,
+  RequestFailedError,
   SocketError,
   SocketExhaustionError,
   TimeoutError

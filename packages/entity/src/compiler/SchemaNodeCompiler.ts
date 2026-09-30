@@ -7,6 +7,7 @@ import type { ResolvedUriReferenceInterface } from './interfaces/ResolvedUriRefe
 import type { SchemaCompileContextInterface } from './interfaces/SchemaCompileContextInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
+import { SchemaReferenceError } from '../SchemaReferenceError.js';
 import { ArrayNodeCompiler } from './ArrayNodeCompiler.js';
 import { CompositionNodeCompiler } from './CompositionNodeCompiler.js';
 import { DynamicAnchorNodeCompiler } from './DynamicAnchorNodeCompiler.js';
@@ -166,7 +167,7 @@ export class SchemaNodeCompiler {
   private static compileResolvedReference(resolved: ResolvedUriReferenceInterface, compileContext: SchemaCompileContextInterface): CompiledNodeInterface {
     const target = SchemaNodeCompiler.locateReferenceTarget(resolved, compileContext);
     if (target === undefined) {
-      throw new Error(`Unresolvable reference: ${resolved.base}#${resolved.fragment}`);
+      throw new SchemaReferenceError(`Unresolvable reference: ${resolved.base}#${resolved.fragment}`);
     }
     const node = SchemaNodeCompiler.compile(target.schema, compileContext, target.pointer, target.mergeBase);
     if (SchemaNodeCompiler.declaresOwnResource(target.schema)) { return node; }

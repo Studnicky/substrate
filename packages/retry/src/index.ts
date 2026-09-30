@@ -6,7 +6,9 @@
 export {
   MaximumRetriesExceededError,
   NonRetryableError,
-  RetryError
+  RetryError,
+  RetryErrorSnapshot,
+  RetryEventPayloadError
 } from './errors/index.js';
 export type { BackoffStrategyInterface } from './interfaces/BackoffStrategyInterface.js';
 export { BackoffStrategy } from './retry/backoff/index.js';

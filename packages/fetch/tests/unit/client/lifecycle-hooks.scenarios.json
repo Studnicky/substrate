@@ -142,7 +142,7 @@
     },
     {
       "name": "request-error-string",
-      "description": "Thrown non-Error values pass through onRequestError",
+      "description": "Thrown non-Error values are wrapped in RequestFailedError before onRequestError",
       "operation": "throw-fetch-string",
       "input": { "method": "GET", "path": "/throw-string" },
       "expected": { "message": "fetch-string-error" }

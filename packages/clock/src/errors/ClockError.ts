@@ -9,7 +9,7 @@ import { BaseError } from '@studnicky/types/browser';
 export class ClockError extends BaseError {
   public override readonly name: string = 'ClockError';
 
-  public constructor(message: string, cause?: Error) {
+  public constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'clock.invalidConfig', 'message': message, 'retryable': false });
   }
 }

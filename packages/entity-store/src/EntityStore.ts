@@ -3,6 +3,8 @@ import { Predicates } from '@studnicky/types/browser';
 
 import type { EntityStoreOptionsInterface } from './interfaces/EntityStoreOptionsInterface.js';
 
+import { EntityStoreCloneError } from './errors/EntityStoreCloneError.js';
+
 interface EntityStoreConstructorInterface<TEntity, TId extends PropertyKey, TInstance extends EntityStore<TEntity, TId>> extends Function {
   readonly 'prototype': TInstance;
 }
@@ -62,6 +64,16 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
     return result;
   }
 
+  /** Structured-clones `value`; a platform clone failure surfaces as `EntityStoreCloneError`. */
+  static #detach<TValue>(value: TValue): TValue {
+    try {
+      const result = structuredClone(value);
+      return result;
+    } catch (cause) {
+      throw new EntityStoreCloneError(cause);
+    }
+  }
+
   protected constructor(deps: EntityStoreOptionsInterface<TEntity, TId>) {
     this.#entities = new Map();
     this.#selectId = deps.selectId;
@@ -104,7 +116,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
 
   /** Derives the id via `selectId`; inserts a new entity or overwrites an existing one. */
   public async upsertOne(entity: TEntity): Promise<void> {
-    const retainedEntity = structuredClone(entity);
+    const retainedEntity = EntityStore.#detach(entity);
     const id = this.#selectId(retainedEntity);
     this.#entities.set(id, retainedEntity);
     this.#cachedSorted = undefined;
@@ -169,7 +181,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
       if (entity === undefined) {
         continue;
       }
-      const retainedEntity = structuredClone(entity);
+      const retainedEntity = EntityStore.#detach(entity);
       const id = this.#selectId(retainedEntity);
       this.#entities.set(id, retainedEntity);
     }
@@ -184,7 +196,7 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
   /** Returns every entity, sorted by `sortComparer` if configured, else in insertion order. */
   public getAll(): readonly TEntity[] {
     if (this.#sortComparer === undefined) {
-      const result = structuredClone(Array.from(this.#entities.values()));
+      const result = EntityStore.#detach(Array.from(this.#entities.values()));
       return result;
     }
 
@@ -194,14 +206,14 @@ export class EntityStore<TEntity, TId extends PropertyKey = string> {
       this.#cachedSorted = sorted;
     }
 
-    const result = structuredClone(this.#cachedSorted ?? []);
+    const result = EntityStore.#detach(this.#cachedSorted ?? []);
     return result;
   }
 
   /** Returns the entity for `id`, or `undefined` if absent. */
   public getById(id: TId): TEntity | undefined {
     const entity = this.#entities.get(id);
-    const result = entity === undefined ? undefined : structuredClone(entity);
+    const result = entity === undefined ? undefined : EntityStore.#detach(entity);
     return result;
   }
 

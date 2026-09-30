@@ -15,10 +15,19 @@ export class NodeSchemaAgreement {
     const flattenedNode = NodeSchemaAgreement.flattenSchema(nodeSchema);
     const flattenedSchema = NodeSchemaAgreement.flattenSchema(schema);
     if (!isDeepStrictEqual(flattenedSchema, flattenedNode)) {
-      const error = RuntimeError.create(
-        `Schema and Node disagree.\nSchema: ${JSON.stringify(schema)}\nNode (flattened): ${JSON.stringify(flattenedNode)}`
-      );
-      throw error;
+      const description = NodeSchemaAgreement.describeDisagreement(schema, flattenedNode);
+      throw RuntimeError.create(description);
+    }
+  }
+
+  private static describeDisagreement(schema: Record<string, unknown>, flattenedNode: Record<string, unknown>): string {
+    try {
+      const result = `Schema and Node disagree.\nSchema: ${JSON.stringify(schema)}\nNode (flattened): ${JSON.stringify(flattenedNode)}`;
+      return result;
+    } catch (error) {
+      const cause = error instanceof Error ? error.message : String(error);
+      const result = `Schema and Node disagree; the schemas cannot be serialized for display (${cause}).`;
+      return result;
     }
   }
 

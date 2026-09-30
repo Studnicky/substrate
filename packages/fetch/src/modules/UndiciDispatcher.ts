@@ -4,7 +4,6 @@
  */
 
 
-import { RuntimeError } from '@studnicky/errors/node';
 import { RaceTimeout } from '@studnicky/signal/node';
 import { Predicates } from '@studnicky/types/node';
 import { Agent } from 'undici';
@@ -20,7 +19,7 @@ import {
   POOL_PRESSURE_THRESHOLD
 } from '../constants/POOL_HEALTH.js';
 import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
-import { ConfigurationError } from '../errors/index.js';
+import { ConfigurationError, ConstructionError, DispatcherShutdownError } from '../errors/index.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
 
 interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
@@ -75,7 +74,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
   ): TInstance {
     const result: unknown = Reflect.construct(this, [agent]);
     if (!Predicates.isInstanceOf(result, this)) {
-      throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
+      throw new ConstructionError('UndiciDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;
@@ -195,7 +194,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
       return;
     }
 
-    await this.agent.close();
+    try {
+      await this.agent.close();
+    } catch (cause) {
+      throw new DispatcherShutdownError('undici Agent close failed', cause);
+    }
   }
 
   /**
@@ -239,7 +242,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
       await RaceTimeout.wait(timeout, undefined);
     }
 
-    await this.agent.destroy();
+    try {
+      await this.agent.destroy();
+    } catch (cause) {
+      throw new DispatcherShutdownError('undici Agent destroy failed', cause);
+    }
   }
 
   /**

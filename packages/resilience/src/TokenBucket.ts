@@ -2,7 +2,7 @@
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
@@ -53,10 +53,7 @@ export class TokenBucket {
     try {
       schemaOptions = TokenBucketOptionsEntity.intake(serializableOptions);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new ResilienceConfigError(error.message);
-      }
-      throw error;
+      throw new ResilienceConfigError(error instanceof SchemaIntakeError ? error.message : 'TokenBucket options intake failed', error);
     }
     this.#requestsPerSecond = schemaOptions.requestsPerSecond;
     this.#burstSize = schemaOptions.burstSize;
@@ -110,7 +107,7 @@ export class TokenBucket {
       const waitMs = Math.ceil((tokens - this.#tokens) / this.#requestsPerSecond * 1000);
       const outcome = await RaceTimeout.wait(waitMs, signal);
       if (outcome === 'aborted') {
-        throw signal?.reason;
+        CallerFault.propagate(signal?.reason);
       }
     }
   }

@@ -2,7 +2,7 @@
 
 import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 import { HookInvoker } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
 import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';
@@ -141,7 +141,7 @@ export class BusQueue<T> {
           await this.onEnqueue(depth);
         } catch (error: unknown) {
           entry.cancel();
-          throw error;
+          CallerFault.propagate(error);
         }
       });
       if (overflowed) {
@@ -150,13 +150,13 @@ export class BusQueue<T> {
             await this.onOverflow(depth);
           } catch (error: unknown) {
             entry.cancel();
-            throw error;
+            CallerFault.propagate(error);
           }
         });
       }
     } catch (error: unknown) {
       entry.cancel();
-      throw error;
+      CallerFault.propagate(error);
     } finally {
       entry.release();
     }

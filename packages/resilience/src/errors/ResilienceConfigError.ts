@@ -4,7 +4,7 @@ import { ResilienceError } from './ResilienceError.js';
 export class ResilienceConfigError extends ResilienceError {
   public override readonly name: string = 'ResilienceConfigError';
 
-  constructor(message: string) {
-    super({ 'code': 'resilience.invalidConfig', 'message': message, 'retryable': false });
+  constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'resilience.invalidConfig', 'message': message, 'retryable': false });
   }
 }

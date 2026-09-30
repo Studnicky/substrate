@@ -8,6 +8,7 @@ import type { TimingInterface } from '../interfaces/TimingInterface.js';
 
 import { DEFAULT_MAXIMUM_EVENTS, NS_PER_UNIT } from '../constants/index.js';
 import { TimingOptionsEntity } from '../entities/TimingOptionsEntity.js';
+import { TimingClockError } from '../errors/TimingClockError.js';
 
 
 /**
@@ -337,12 +338,22 @@ export class Timing implements TimingInterface {
       }
     }
 
+    const result = this.readPerformanceHrtime();
+
+    return result;
+  }
+
+  /** Converts the monotonic Performance API reading to integer nanoseconds. */
+  protected readPerformanceHrtime(): bigint {
     const milliseconds = globalThis.performance.now();
     const wholeMilliseconds = Math.trunc(milliseconds);
     const fractionalNanoseconds = Math.round((milliseconds - wholeMilliseconds) * NS_PER_UNIT.ms);
-    const result = (BigInt(wholeMilliseconds) * BigInt(NS_PER_UNIT.ms)) + BigInt(fractionalNanoseconds);
-
-    return result;
+    try {
+      const result = (BigInt(wholeMilliseconds) * BigInt(NS_PER_UNIT.ms)) + BigInt(fractionalNanoseconds);
+      return result;
+    } catch (error) {
+      throw TimingClockError.create(`performance.now() reading ${String(milliseconds)}ms is not convertible to nanoseconds`, error);
+    }
   }
 
 }

@@ -17,7 +17,7 @@ export class ConfigurationError extends BaseError {
    * @param message - Human-readable description of the validation failure.
    * @param cause   - Optional underlying cause.
    */
-  public static create(message: string, cause?: Error): ConfigurationError {
+  public static create(message: string, cause?: unknown): ConfigurationError {
     const result = new ConfigurationError({ 'cause': cause, 'code': ConfigurationError.errorCode, 'message': message, 'retryable': false });
     return result;
   }

@@ -3,7 +3,6 @@ import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/browser';
 import { ConfigurationError } from '@studnicky/config/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
 import {
   DefaultHttpErrorClassifier,
   HookInvoker,
@@ -11,7 +10,7 @@ import {
 } from '@studnicky/errors/browser';
 import { TransitionRejectedError } from '@studnicky/fsm/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, Predicates } from '@studnicky/types/browser';
 
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';
@@ -29,7 +28,8 @@ import { RetryContextDataEntity } from '../entities/RetryContextDataEntity.js';
 import { RetrySuccessEventEntity } from '../entities/RetrySuccessEventEntity.js';
 import {
   MaximumRetriesExceededError,
-  NonRetryableError
+  NonRetryableError,
+  RetryEventPayloadError
 } from '../errors/index.js';
 import { RetryBackoffStrategyGuard } from './RetryBackoffStrategyGuard.js';
 import { RetryCallMachine } from './RetryCallMachine.js';
@@ -202,37 +202,39 @@ export class Retry implements RetryInterface {
 
   /** Validates retry configuration at the construction boundary. */
   private static validateConfig(config: RetryConfigInterface): RetryResolvedConfigInterface {
+    if (!Predicates.isObject(config)) {
+      throw ConfigurationError.create('config must be an object');
+    }
+
+    const {
+      backoffStrategy,
+      'clock': clockProvider,
+      errorClassifier,
+      eventSink,
+      ...configData
+    } = config;
+
+    Retry.validateClockProvider(clockProvider);
+    Retry.validateBackoffStrategy(backoffStrategy);
+    Retry.validateEventSink(eventSink);
+    Retry.validateErrorClassifier(errorClassifier);
+
+    const parsed = Retry.intakeConfigData(configData);
+    const result = Retry.mergeValidatedConfig(parsed, {
+      'backoffStrategy': backoffStrategy,
+      'clockProvider': clockProvider,
+      'errorClassifier': errorClassifier,
+      'eventSink': eventSink
+    });
+    return result;
+  }
+
+  private static intakeConfigData(configData: unknown): RetryConfigEntity.Type {
     try {
-      if (!Predicates.isObject(config)) {
-        throw ConfigurationError.create('config must be an object');
-      }
-
-      const {
-        backoffStrategy,
-        'clock': clockProvider,
-        errorClassifier,
-        eventSink,
-        ...configData
-      } = config;
-
-      Retry.validateClockProvider(clockProvider);
-      Retry.validateBackoffStrategy(backoffStrategy);
-      Retry.validateEventSink(eventSink);
-      Retry.validateErrorClassifier(errorClassifier);
-
-      const parsed = RetryConfigEntity.intake(configData);
-      const result = Retry.mergeValidatedConfig(parsed, {
-        'backoffStrategy': backoffStrategy,
-        'clockProvider': clockProvider,
-        'errorClassifier': errorClassifier,
-        'eventSink': eventSink
-      });
+      const result = RetryConfigEntity.intake(configData);
       return result;
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw ConfigurationError.create(error.message);
-      }
-      throw error;
+      throw ConfigurationError.create(BaseError.toMessage(error), error);
     }
   }
 
@@ -351,8 +353,8 @@ export class Retry implements RetryInterface {
    * `attempting → waiting`, `attempting → failed`, `waiting → attempting`,
    * `waiting → exhausted`, `waiting → aborted`) — and interprets a
    * deliberate `TransitionRejectedError` as an illegal edge. Any other
-   * thrown value (a reducer defect) propagates rather than being swallowed
-   * as `false`.
+   * thrown value (a reducer defect) surfaces as a `RuntimeError` carrying the original
+   * as `cause` rather than being swallowed as `false`.
    */
   protected guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
     try {
@@ -362,7 +364,7 @@ export class Retry implements RetryInterface {
       if (error instanceof TransitionRejectedError) {
         return false;
       }
-      throw error;
+      throw RuntimeError.create('Retry call machine transition failed unexpectedly', { 'cause': error });
     }
   }
 
@@ -442,6 +444,15 @@ export class Retry implements RetryInterface {
     }));
   }
 
+  private static snapshotPayload<TPayload>(payload: TPayload): TPayload {
+    try {
+      const result = structuredClone(payload);
+      return result;
+    } catch (error) {
+      throw new RetryEventPayloadError('Retry event payload is not structured-cloneable', error);
+    }
+  }
+
   private publishEvent<K extends keyof RetryEventTopicMapInterface>(
     topic: K,
     payload: RetryEventTopicMapInterface[K]
@@ -451,7 +462,7 @@ export class Retry implements RetryInterface {
       return;
     }
 
-    const snapshot = structuredClone(payload);
+    const snapshot = Retry.snapshotPayload(payload);
     Object.freeze(snapshot);
     this.hooks.invoke('publishRetryEvent', () => {
       const result = eventSink.publish(topic, snapshot);

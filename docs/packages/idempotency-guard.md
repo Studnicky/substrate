@@ -57,6 +57,7 @@ Import `IdempotencyGuard`, `IdempotencyConflictError`, `IdempotencyGuardConfigEr
 | `IdempotencyConflictError` | `run()` is called with a key whose cached entry has a different payload fingerprint |
 | `IdempotencyGuardConfigError` | `IdempotencyGuard.create()` receives invalid capacity or TTL options |
 | `IdempotencyGuardError` | Base domain error for idempotency-guard failures |
+| `IdempotencyPayloadError` | `run()` receives a payload that cannot be fingerprinted (not an object, or not JSON-serializable) |
 
 ## Documentation
 
@@ -88,5 +89,6 @@ import type { IdempotencyGuardEntryInterface } from '@studnicky/idempotency-guar
 | `IdempotencyConflictError` | Represents reuse of an idempotency key with a different payload. | `@studnicky/idempotency-guard/node` |
 | `IdempotencyGuardConfigError` | Represents invalid idempotency-guard configuration. | `@studnicky/idempotency-guard/node` |
 | `IdempotencyGuardError` | Base error for idempotency-guard failures. | `@studnicky/idempotency-guard/node` |
+| `IdempotencyPayloadError` | Represents a payload that cannot be fingerprinted. | `@studnicky/idempotency-guard/node` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/idempotency-guard)

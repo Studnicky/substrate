@@ -5,7 +5,6 @@
  * measurement and feeds the results in via `setScrollOffset()` /
  * `setViewportSize()`.
  */
-import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
@@ -68,10 +67,7 @@ export class VisibleRange {
       const data = VisibleRangeConfigDataEntity.intake(config);
       return data;
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new VisibleRangeError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new VisibleRangeError(RuntimeError.toMessage(error), { 'cause': error });
     }
   }
 

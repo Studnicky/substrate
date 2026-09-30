@@ -3,6 +3,7 @@ export { Channel } from './Channel.js';
 export { Coalesce } from './Coalesce.js';
 export { ChannelError } from './errors/index.js';
 export { CoalesceTimeoutError } from './errors/index.js';
+export { CoalesceWaitCompletedError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';
 export { SemaphoreError } from './errors/index.js';
 export { SemaphoreQueueFullError } from './errors/index.js';

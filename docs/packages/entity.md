@@ -94,5 +94,19 @@ Run strict entity intake and creation, then check an acyclic and cyclic value gr
 | `SchemaCompilerInterface` | One schema-keyed compilation backend that compiles a schema once and caches it by `$id`. | `@studnicky/entity/interfaces` |
 | `SchemaNodeInterface` | Pairs a schema literal with its own precomputed derived type. | `@studnicky/entity/interfaces` |
 | `SchemaRegistrySetInterface` | The three isolated compilation backends `EntityCompiler` dispatches to. | `@studnicky/entity/interfaces` |
-| `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/node` |
-| `SchemaIntakeError` | Represents a schema intake failure. | `@studnicky/entity/browser` |
+| `SchemaIntakeError` | A `BaseError` subclass (`entity.schemaIntakeFailed`) thrown on a schema intake failure. | `@studnicky/entity/node` |
+| `CodePointError` | Thrown when a value is not a convertible Unicode code point; the platform error is the `cause`. (`entity.codePointInvalid`) | `@studnicky/entity/node` |
+| `EntityCloneError` | Thrown when an input value cannot be structured-cloned at an entity boundary; the platform error is the `cause` (`entity.inputNotCloneable`). | `@studnicky/entity/node` |
+| `EntityCompilerConfigurationError` | Thrown when `EntityCompiler` is used without a runtime-specific registries accessor. (`entity.compilerConfigurationInvalid`) | `@studnicky/entity/node` |
+| `SchemaDefaultError` | Thrown when a schema default cannot be structured-cloned onto an entity. (`entity.schemaDefaultNotCloneable`) | `@studnicky/entity/node` |
+| `SchemaNodeDefinitionError` | Thrown when a recursive schema node is read before its definition resolves. (`entity.schemaNodeDefinitionInvalid`) | `@studnicky/entity/node` |
+| `SchemaPatternError` | Thrown when a schema pattern is not a valid regular expression; the platform error is the `cause`. (`entity.schemaPatternInvalid`) | `@studnicky/entity/node` |
+| `SchemaReferenceError` | Thrown when a schema reference addresses no locatable target. (`entity.schemaReferenceUnresolvable`) | `@studnicky/entity/node` |
+| `SchemaIntakeError` | A `BaseError` subclass (`entity.schemaIntakeFailed`) thrown on a schema intake failure. | `@studnicky/entity/browser` |
+| `CodePointError` | Thrown when a value is not a convertible Unicode code point; the platform error is the `cause`. (`entity.codePointInvalid`) | `@studnicky/entity/browser` |
+| `EntityCloneError` | Thrown when an input value cannot be structured-cloned at an entity boundary; the platform error is the `cause` (`entity.inputNotCloneable`). | `@studnicky/entity/browser` |
+| `EntityCompilerConfigurationError` | Thrown when `EntityCompiler` is used without a runtime-specific registries accessor. (`entity.compilerConfigurationInvalid`) | `@studnicky/entity/browser` |
+| `SchemaDefaultError` | Thrown when a schema default cannot be structured-cloned onto an entity. (`entity.schemaDefaultNotCloneable`) | `@studnicky/entity/browser` |
+| `SchemaNodeDefinitionError` | Thrown when a recursive schema node is read before its definition resolves. (`entity.schemaNodeDefinitionInvalid`) | `@studnicky/entity/browser` |
+| `SchemaPatternError` | Thrown when a schema pattern is not a valid regular expression; the platform error is the `cause`. (`entity.schemaPatternInvalid`) | `@studnicky/entity/browser` |
+| `SchemaReferenceError` | Thrown when a schema reference addresses no locatable target. (`entity.schemaReferenceUnresolvable`) | `@studnicky/entity/browser` |

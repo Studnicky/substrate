@@ -1,3 +1,5 @@
+import { ScorerAllocator } from './ScorerAllocator.js';
+
 export class JaroScorer {
   static score(left: string, right: string): number {
     if (left === right) {
@@ -6,8 +8,8 @@ export class JaroScorer {
     if (left.length === 0 || right.length === 0) {
       return 0;
     }
-    const leftMatches = Array.from<boolean>({ 'length': left.length }).fill(false);
-    const rightMatches = Array.from<boolean>({ 'length': right.length }).fill(false);
+    const leftMatches = ScorerAllocator.filled(left.length, false);
+    const rightMatches = ScorerAllocator.filled(right.length, false);
     const matches = JaroScorer.findMatches(left, right, leftMatches, rightMatches);
     if (matches === 0) {
       return 0;

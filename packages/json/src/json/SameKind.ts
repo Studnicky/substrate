@@ -1,3 +1,5 @@
+import { SameKindError } from '../errors/SameKindError.js';
+
 /** Structural-kind proof that a produced value stands in for the value it was derived from. */
 
 export class SameKind {
@@ -16,6 +18,6 @@ export class SameKind {
     if (this.holds(candidate, original)) {
       return candidate;
     }
-    throw new TypeError('Derived value does not share the kind of its source value.');
+    throw new SameKindError('Derived value does not share the kind of its source value.');
   }
 }

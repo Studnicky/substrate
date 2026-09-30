@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { CallerFault, JsonObject, Predicates } from '@studnicky/types/browser';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
@@ -292,7 +292,7 @@ export class HookInvoker {
       await pending;
     } catch (cause) {
       if (isFailureHandlerResult) {
-        if (propagateTerminalFailure) { throw cause; }
+        if (propagateTerminalFailure) { CallerFault.propagate(cause); }
         return;
       }
 
@@ -321,7 +321,7 @@ export class HookInvoker {
       failureHandlerResult = this.onHookError(hookName, cause);
     } catch (terminalCause) {
       if (!asynchronousFailure || propagateTerminalFailure) {
-        throw terminalCause;
+        CallerFault.propagate(terminalCause);
       }
       return undefined;
     }

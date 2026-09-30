@@ -1,6 +1,7 @@
 /** Counting permit gate. acquire() returns a release function. */
 
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { BaseError, CallerFault } from '@studnicky/types/browser';
 
 import type { SemaphoreGrantStateEntity } from './entities/SemaphoreGrantStateEntity.js';
 import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
@@ -17,7 +18,7 @@ interface SemaphoreWaiterInterface {
   'previous': SemaphoreWaiterInterface | undefined;
   'queued': boolean;
   readonly 'reject': (reason?: unknown) => void;
-  readonly 'resolve': (release: () => Promise<void>) => void;
+  readonly 'resolve': (release: (() => Promise<void>) | PromiseLike<() => Promise<void>>) => void;
   'state': SemaphoreWaiterStateEntity.Type;
   readonly 'unregisterAbort': () => void;
 }
@@ -111,7 +112,7 @@ export class Semaphore {
       this.#available += 1;
       await this.#grantReadyWaiters();
       this.#notifyIdleWaiters();
-      throw error;
+      CallerFault.propagate(error);
     }
     const release = this.#buildRelease();
     return release;
@@ -172,7 +173,10 @@ export class Semaphore {
       }
       await this.#grantReadyWaiters();
       this.#notifyIdleWaiters();
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      CallerFault.propagate(error);
     }
 
     await this.#grantReadyWaiters();
@@ -305,7 +309,7 @@ export class Semaphore {
       this.#activeCount -= 1;
       this.#available += 1;
       waiter.unregisterAbort();
-      waiter.reject(error);
+      waiter.resolve(CallerFault.rejection(error));
       return false;
     }
 

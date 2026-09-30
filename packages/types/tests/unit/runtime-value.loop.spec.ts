@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { RuntimeValueError } from "../../src/errors/RuntimeValueError.js";
 import { RuntimeValue } from "../../src/guards/RuntimeValue.js";
+import { StructuralHashInputError } from "../../src/errors/StructuralHashInputError.js";
+import { StructuralHash } from "../../src/objects/StructuralHash.js";
 
 void describe("RuntimeValue", () => {
   void it("accepts recursive Date, Map, Set, array, record, JSON, and undefined operands without changing map keys", () => {
@@ -30,7 +33,7 @@ void describe("RuntimeValue", () => {
     assert.equal(RuntimeValue.is(record), false);
     assert.equal(RuntimeValue.is(map), false);
     assert.equal(RuntimeValue.is(set), false);
-    assert.throws(() => RuntimeValue.intake(record), TypeError);
+    assert.throws(() => RuntimeValue.intake(record), (error: unknown) => error instanceof RuntimeValueError && error.code === 'types.runtimeValueInvalid');
   });
 
   void it("rejects unsupported and invalid nested runtime values", () => {
@@ -50,5 +53,12 @@ void describe("RuntimeValue", () => {
     }
 
     assert.equal(RuntimeValue.is({ "nested": [new Set<unknown>([() => undefined])] }), false);
+  });
+
+  void it("rejects a non-JSON schema with a named StructuralHashInputError", () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic["self"] = cyclic;
+
+    assert.throws(() => StructuralHash.of(cyclic), (error: unknown) => error instanceof StructuralHashInputError && error.code === "types.structuralHashInputInvalid");
   });
 });

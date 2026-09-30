@@ -1,4 +1,3 @@
-import { RuntimeError } from '@studnicky/errors/node';
 import { JsonObject } from '@studnicky/types/node';
 import { Agent } from 'undici';
 
@@ -6,6 +5,7 @@ import type { DispatcherConfigEntity } from '../entities/DispatcherConfigEntity.
 
 import { DEFAULT_DISPATCHER_CONFIG } from '../constants/DEFAULT_DISPATCHER_CONFIG.js';
 import { MergedConfigEntity } from '../entities/MergedConfigEntity.js';
+import { ConfigurationError, ConstructionError } from '../errors/index.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
 
 interface ConnectionDefaultsInterface {
@@ -35,7 +35,7 @@ interface LimitDefaultsInterface {
 /** Creates configured undici Agents for owners that retain and manage them. */
 export class DispatcherAgent {
   private constructor() {
-    throw RuntimeError.create('DispatcherAgent is a static factory');
+    throw new ConstructionError('DispatcherAgent is a static factory');
   }
 
   static create(config: DispatcherConfigEntity.InputType): Agent | TestDispatcher {
@@ -70,8 +70,12 @@ export class DispatcherAgent {
     }
     DispatcherAgent.#setIfDefined(options, 'maxOrigins', config.maximumOrigins);
 
-    const result = new Agent(options);
-    return result;
+    try {
+      const result = new Agent(options);
+      return result;
+    } catch (cause) {
+      throw new ConfigurationError('undici Agent rejected the dispatcher configuration', cause);
+    }
   }
 
   static #mergeWithDefaults(config: DispatcherConfigEntity.InputType): MergedConfigEntity.Type {

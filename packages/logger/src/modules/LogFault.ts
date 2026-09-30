@@ -12,10 +12,9 @@ export class LogFault {
   private constructor() {}
 
   static #throwBuildError(error: unknown): never {
-    if (error instanceof SchemaIntakeError) {
-      throw new LogBuildError(LogBuildErrorMessage.resolve('LogFault', error));
-    }
-    throw error;
+    const message = error instanceof SchemaIntakeError ? LogBuildErrorMessage.resolve('LogFault', error) : LogBuildError.toMessage(error);
+
+    throw new LogBuildError(message, error);
   }
 
   static create(input: Readonly<LogFaultConfigEntity.InputType>): LogFaultDataEntity.Type {

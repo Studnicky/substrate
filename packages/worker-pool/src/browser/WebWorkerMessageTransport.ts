@@ -29,35 +29,37 @@ export class WebWorkerMessageTransport<TRequest, TResponse> implements WorkerTra
   }
 
   public async request(worker: WebWorkerInterface, request: TRequest): Promise<TResponse> {
-    return await new Promise<TResponse>((resolve, reject): void => {
+    const event = await new Promise<WebWorkerMessageEventInterface>((resolve, reject): void => {
       const cleanup = (): void => {
         worker.removeEventListener('error', onError);
         worker.removeEventListener('message', onMessage);
       };
-      const onError = (event: WebWorkerErrorEventInterface): void => {
+      const onError = (errorEvent: WebWorkerErrorEventInterface): void => {
         cleanup();
         reject(new WorkerPoolError({
           'code': 'webWorkerTransport.error',
-          'message': event.message === '' ? 'Web Worker failed while processing a request' : event.message
+          'message': errorEvent.message === '' ? 'Web Worker failed while processing a request' : errorEvent.message
         }));
       };
-      const onMessage = (event: WebWorkerMessageEventInterface): void => {
+      const onMessage = (messageEvent: WebWorkerMessageEventInterface): void => {
         cleanup();
-        try {
-          resolve(this.#decode(event.data));
-        } catch (error) {
-          reject(error);
-        }
+        resolve(messageEvent);
       };
 
       worker.addEventListener('error', onError);
       worker.addEventListener('message', onMessage);
       try {
         worker.postMessage(request);
-      } catch (error) {
+      } catch (cause) {
         cleanup();
-        reject(error);
+        reject(new WorkerPoolError({
+          'cause': cause,
+          'code': 'webWorkerTransport.postFailed',
+          'message': 'Web Worker request could not be posted'
+        }));
       }
     });
+    const result = this.#decode(event.data);
+    return result;
   }
 }

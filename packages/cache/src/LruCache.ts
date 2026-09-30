@@ -1,5 +1,4 @@
 import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
@@ -96,10 +95,7 @@ export class LruCache<K, V> {
     try {
       cacheOptions = LruCacheOptionsEntity.intake(config);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new CacheConfigError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new CacheConfigError(RuntimeError.toMessage(error), error);
     }
 
     const provider: ClockProviderInterface = collaborators.clock ?? RealTimeClockProvider.create();

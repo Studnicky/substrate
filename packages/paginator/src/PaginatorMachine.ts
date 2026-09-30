@@ -60,7 +60,7 @@ export abstract class PaginatorMachine<TPage, TCursor> extends StateMachine<
         });
     }
 
-    throw RuntimeError.create(`Unhandled paginator state variant: ${JSON.stringify(state)}`);
+    throw RuntimeError.create(`Unhandled paginator state variant: ${String(Reflect.get(state, 'variant'))}`);
   }
 
   private receivePage(

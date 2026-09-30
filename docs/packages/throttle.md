@@ -56,4 +56,6 @@ import type { ThrottleInterface } from '@studnicky/throttle/interfaces';
 | `Throttle` | Limits concurrent asynchronous work. | `@studnicky/throttle/node` |
 | `ThrottleInterface` | Defines the throttle contract. | `@studnicky/throttle/interfaces` |
 | `ThrottleAbortedError` | Represents cancelled work. | `@studnicky/throttle/node` |
+| `ThrottleAcquisitionError` | Wraps a permit acquisition failure that is not a `BaseError`. | `@studnicky/throttle/node` |
 | `ThrottleDrainingError` | Represents work rejected during draining. | `@studnicky/throttle/node` |
+| `ThrottleGracePeriodEndedError` | Abort reason for the grace-period timer once in-flight operations finish. | `@studnicky/throttle/node` |

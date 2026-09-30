@@ -7,7 +7,7 @@ import {
   after, before, describe, it
 } from 'node:test';
 
-import { FetchClient } from '../../../src/node/index.js';
+import { FetchClient, InvalidUrlError, RequestFailedError } from '../../../src/node/index.js';
 import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
 import {
   startTestServer, stopTestServer
@@ -194,7 +194,7 @@ function assertRejectedExpectation(error: Error, expectation: Extract<RequestExp
   } else if (expectation.error === 'Error') {
     assert.ok(error.name.includes('Error'));
   } else {
-    assert.ok(error instanceof TypeError);
+    assert.ok(error instanceof InvalidUrlError || (error instanceof RequestFailedError && error.cause instanceof TypeError));
   }
 
   for (const fragment of expectation.messageIncludes ?? []) {
@@ -223,8 +223,9 @@ function assertRejectsNative(
   expectation: Extract<RequestExpectation, { shape: 'rejects-native' }>
 ): void {
   assert.ok(!result.ok, 'expected the native runtime to reject the credentialed URL before any request reached the network');
-  assert.ok(result.error instanceof TypeError);
-  assert.equal(result.error.name, expectation.error);
+  assert.ok(result.error instanceof RequestFailedError);
+  assert.ok(result.error.cause instanceof TypeError);
+  assert.equal(result.error.cause.name, expectation.error);
   for (const fragment of expectation.messageIncludes) {
     assert.ok(result.error.message.toLowerCase().includes(fragment.toLowerCase()));
   }

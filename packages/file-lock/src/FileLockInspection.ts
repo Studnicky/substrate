@@ -4,6 +4,7 @@ import type { FileLockInspectionOptionsInterface } from './interfaces/FileLockIn
 
 import { FileLockInspectionEntity } from './entities/FileLockInspectionEntity.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
+import { FileLockFileSystemError } from './errors/FileLockFileSystemError.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
 import { NodeFileSystem } from './NodeFileSystem.js';
 
@@ -14,7 +15,10 @@ export class FileLockInspection {
     const directory = LockPathHelpers.dirname(path);
     const prefix = `${LockPathHelpers.basename(path)}.lock.`;
     const result: FileLockInspectionEntity.Type[] = [];
-    const entries = fileSystem.readdirSync(directory).toSorted();
+    const entries = FileLockFileSystemError.guard('inspect', path, () => {
+      const names = fileSystem.readdirSync(directory).toSorted();
+      return names;
+    });
 
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];

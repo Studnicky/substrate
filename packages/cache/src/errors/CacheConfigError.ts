@@ -4,7 +4,7 @@ import { CacheError } from './CacheError.js';
 export class CacheConfigError extends CacheError {
   public override readonly name: string = 'CacheConfigError';
 
-  public constructor(message: string) {
-    super({ 'code': 'cache.invalidConfig', 'message': message, 'retryable': false });
+  public constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'cache.invalidConfig', 'message': message, 'retryable': false });
   }
 }

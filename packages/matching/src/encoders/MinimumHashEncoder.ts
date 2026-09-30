@@ -8,7 +8,7 @@ export class MinimumHashEncoder {
       throw RuntimeError.create('Signature size must be a positive integer.');
     }
     const tokens = TokenExtractor.extract(value);
-    const signature = Array.from<number>({ 'length': signatureSize }).fill(Number.MAX_SAFE_INTEGER);
+    const signature = MinimumHashEncoder.allocate(signatureSize);
     for (let tokenIndex = 0; tokenIndex < tokens.length; tokenIndex += 1) {
       const token = tokens[tokenIndex];
       if (token === undefined) {
@@ -31,5 +31,14 @@ export class MinimumHashEncoder {
       hash = Math.imul(hash ^ character.codePointAt(0)!, 16_777_619) >>> 0;
     }
     return hash;
+  }
+
+  private static allocate(signatureSize: number): number[] {
+    try {
+      const result = Array.from<number>({ 'length': signatureSize }).fill(Number.MAX_SAFE_INTEGER);
+      return result;
+    } catch (error) {
+      throw RuntimeError.create(`Signature size ${String(signatureSize)} cannot be allocated`, { 'cause': error });
+    }
   }
 }

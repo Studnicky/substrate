@@ -27,6 +27,9 @@ export { TIMING_STATUS } from './constants/index.js';
 /** Error thrown when building a timing event fails validation */
 export { TimingBuildError } from './errors/TimingBuildError.js';
 
+/** Error thrown when a host timer reading cannot be converted to nanoseconds */
+export { TimingClockError } from './errors/TimingClockError.js';
+
 /** No-operation timing tracker class */
 export { NoOpTiming } from './modules/NoOpTiming.js';
 

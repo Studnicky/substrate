@@ -1,5 +1,3 @@
-import { RuntimeError } from '@studnicky/errors/node';
-
 import type { CpuInfoEntity } from './entities/CpuInfoEntity.js';
 import type { GpuCacheComputedNoneStateEntity } from './entities/GpuCacheComputedNoneStateEntity.js';
 import type { GpuCacheComputedValueStateEntity } from './entities/GpuCacheComputedValueStateEntity.js';
@@ -8,6 +6,7 @@ import type { GpuInfoEntity } from './entities/GpuInfoEntity.js';
 import type { MemoryInfoEntity } from './entities/MemoryInfoEntity.js';
 import type { PlatformInfoEntity } from './entities/PlatformInfoEntity.js';
 
+import { SystemConstructionError } from './errors/index.js';
 import { GPU_CACHE_MACHINE } from './GPU_CACHE_MACHINE.js';
 import { SystemProvider } from './providers/SystemProvider.js';
 
@@ -18,7 +17,7 @@ export class System {
     = GPU_CACHE_MACHINE.getInitialState();
 
   private constructor() {
-    throw RuntimeError.create('System is a static-only class');
+    throw new SystemConstructionError();
   }
 
   static get cpu(): CpuInfoEntity.Type {

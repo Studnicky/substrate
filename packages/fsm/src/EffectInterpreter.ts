@@ -2,7 +2,7 @@
 import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
 import { RuntimeError } from '@studnicky/errors/browser';
 import { Clone } from '@studnicky/json/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
@@ -35,8 +35,8 @@ interface EffectInterpreterCreateOptionsInterface<
  */
 interface MailboxEntryInterface<TEvent> {
   readonly 'event': TEvent;
-  readonly 'reject'?: ((error: unknown) => void) | undefined;
-  readonly 'resolve'?: (() => void) | undefined;
+  readonly 'reject'?: ((error: BaseError) => void) | undefined;
+  readonly 'resolve'?: ((outcome?: PromiseLike<void>) => void) | undefined;
 }
 
 /**
@@ -105,10 +105,7 @@ export class EffectInterpreter<
         'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
       });
     } catch (error) {
-      if (error instanceof CircularBufferError) {
-        throw new FsmConfigError('mailboxCapacity must be a positive integer');
-      }
-      throw error;
+      throw new FsmConfigError(error instanceof CircularBufferError ? 'mailboxCapacity must be a positive integer' : 'mailbox creation failed', error);
     }
   }
 
@@ -201,7 +198,11 @@ export class EffectInterpreter<
       await this.#processEntry(entry.event);
       entry.resolve?.();
     } catch (error: unknown) {
-      entry.reject?.(error);
+      if (error instanceof BaseError) {
+        entry.reject?.(error);
+      } else {
+        entry.resolve?.(CallerFault.rejection(error));
+      }
     }
   }
 
@@ -271,7 +272,7 @@ export class EffectInterpreter<
       const error = Predicates.isError(errorValue) ? errorValue : RuntimeError.create(String(errorValue));
       this.hooks.invoke('onEffectError', () => { const result = this.onEffectError(effect, error);
         return result; });
-      throw error;
+      CallerFault.propagate(error);
     }
   }
 

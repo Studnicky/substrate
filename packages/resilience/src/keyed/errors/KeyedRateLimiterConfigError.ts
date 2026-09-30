@@ -4,7 +4,7 @@ import { KeyedRateLimiterError } from './KeyedRateLimiterError.js';
 export class KeyedRateLimiterConfigError extends KeyedRateLimiterError {
   public override readonly name: string = 'KeyedRateLimiterConfigError';
 
-  public constructor(message: string) {
-    super({ 'code': 'keyedRateLimiter.invalidConfig', 'message': message });
+  public constructor(message: string, cause?: unknown) {
+    super({ 'cause': cause, 'code': 'keyedRateLimiter.invalidConfig', 'message': message });
   }
 }

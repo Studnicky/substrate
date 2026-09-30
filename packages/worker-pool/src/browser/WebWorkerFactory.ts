@@ -65,11 +65,19 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
     const WorkerConstructor = candidate;
 
     const result = Promise.resolve().then((): WebWorkerInterface => {
-      const worker = new WorkerConstructor(this.#script, this.#options);
+      try {
+        const worker = new WorkerConstructor(this.#script, this.#options);
 
-      this.#workers.add(worker);
+        this.#workers.add(worker);
 
-      return worker;
+        return worker;
+      } catch (cause) {
+        throw new WorkerPoolError({
+          'cause': cause,
+          'code': 'webWorkerFactory.createFailed',
+          'message': 'Web Worker construction failed'
+        });
+      }
     });
 
     return await result;
@@ -91,7 +99,15 @@ export class WebWorkerFactory implements WorkerFactoryInterface<WebWorkerInterfa
     if (!this.#workers.delete(worker)) {
       return;
     }
-    worker.terminate();
+    try {
+      worker.terminate();
+    } catch (cause) {
+      throw new WorkerPoolError({
+        'cause': cause,
+        'code': 'webWorkerFactory.terminateFailed',
+        'message': 'Web Worker termination failed'
+      });
+    }
     await Promise.resolve();
   }
 

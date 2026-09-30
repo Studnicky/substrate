@@ -7,7 +7,7 @@ import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 import { LruCache } from '@studnicky/cache/browser';
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { RateLimitConsumptionInterface } from '../interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from '../interfaces/TokenBucketOptionsInterface.js';
@@ -181,10 +181,7 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     try {
       verifiedClock = clock === undefined ? undefined : RateLimiterClock.create(clock);
     } catch (error) {
-      if (error instanceof ResilienceConfigError) {
-        throw new KeyedRateLimiterConfigError(error.message);
-      }
-      throw error;
+      throw new KeyedRateLimiterConfigError(error instanceof ResilienceConfigError ? error.message : 'KeyedRateLimiter clock validation failed', error);
     }
     const tokenBucketOptions: TokenBucketOptionsInterface = {
       'burstSize': serializableOptions.burstSize,
@@ -231,20 +228,24 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     const request = this.#intakeRequest(key, tokens);
     const strategy = this.#resolveStrategy(request.key);
 
+    let result: RateLimitConsumptionEntity.Type;
     try {
-      const result = this.#intakeConsumption(strategy.consume(request.tokens));
-      this.hooks.invoke('onTokenAcquired', () => {
-        const hookResult = this.onTokenAcquired(request.key, result);
-        return hookResult;
-      });
-      return result;
+      result = this.#intakeConsumption(strategy.consume(request.tokens));
     } catch (error) {
       this.hooks.invoke('onLimitExceeded', () => {
-        const result = this.onLimitExceeded(request.key);
-        return result;
+        const hookResult = this.onLimitExceeded(request.key);
+        return hookResult;
       });
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      CallerFault.propagate(error);
     }
+    this.hooks.invoke('onTokenAcquired', () => {
+      const hookResult = this.onTokenAcquired(request.key, result);
+      return hookResult;
+    });
+    return result;
   }
 
   /**

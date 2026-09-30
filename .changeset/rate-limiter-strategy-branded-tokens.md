@@ -1,6 +1,5 @@
 ---
-"@studnicky/resilience": minor
-"@studnicky/keyed-rate-limiter": major
+"@studnicky/resilience": major
 "@studnicky/process-kit": patch
 "@studnicky/scheduler": patch
 ---

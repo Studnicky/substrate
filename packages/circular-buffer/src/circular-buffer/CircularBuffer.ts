@@ -35,7 +35,6 @@
  * can never produce an unhandled promise rejection or crash the process.
  */
 
-import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/browser';
 import { Predicates } from '@studnicky/types/browser';
 
@@ -152,16 +151,23 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     try {
       options = CircularBufferOptionsEntity.intake(config);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        throw new CircularBufferError(RuntimeError.toMessage(error));
-      }
-      throw error;
+      throw new CircularBufferError(RuntimeError.toMessage(error), { 'cause': error });
     }
 
     const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
     this.capacity = capacity;
-    this.items = Array.from<T | undefined>({ 'length': capacity });
+    this.items = CircularBuffer.allocate<T>(capacity);
     this.#overflow = options.overflow ?? 'overwrite';
+  }
+
+  /** Allocates the backing store; a capacity the platform cannot allocate surfaces as `CircularBufferError`. */
+  private static allocate<TItem>(capacity: number): (TItem | undefined)[] {
+    try {
+      const result = Array.from<TItem | undefined>({ 'length': capacity });
+      return result;
+    } catch (error) {
+      throw new CircularBufferError(`Capacity ${String(capacity)} cannot be allocated`, { 'cause': error });
+    }
   }
 
   /**
@@ -177,7 +183,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     try {
       const oldCapacity = this.capacity;
       const newCapacity = this.capacity * BUFFER_GROWTH_FACTOR;
-      const newItems = Array.from<T | undefined>({ 'length': newCapacity });
+      const newItems = CircularBuffer.allocate<T>(newCapacity);
       const length = this.count;
       const capacity = this.capacity;
       const head = this.head;

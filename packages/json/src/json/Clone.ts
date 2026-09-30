@@ -2,6 +2,7 @@
 
 import { JsonObject, Predicates } from '@studnicky/types/browser';
 
+import { CloneError } from '../errors/CloneError.js';
 import { SameKind } from './SameKind.js';
 
 export class Clone {
@@ -46,7 +47,12 @@ export class Clone {
 
   /** Clone a RegExp while retaining its source, flags, and current index. */
   protected static cloneRegExp(value: RegExp): RegExp {
-    const result = structuredClone(value);
+    let result: RegExp;
+    try {
+      result = structuredClone(value);
+    } catch (cause) {
+      throw new CloneError(cause);
+    }
     result.lastIndex = value.lastIndex;
     return result;
   }

@@ -5,12 +5,13 @@ import { BaseError, type BaseErrorArgumentsInterface, JsonObject, Predicates } f
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 
 import { EMPTY_LENGTH } from '../constants/index.js';
+import { RetryErrorSnapshot } from './RetryErrorSnapshot.js';
 
 /** Creates detached diagnostic graphs without retaining caller-owned values. */
 class RetryDiagnosticSnapshot {
   static error(error: Error, seen = new WeakMap<object, unknown>()): Error {
     if (!Predicates.isError(error)) {
-      throw new TypeError('RetryDiagnosticSnapshot.error requires an Error value.');
+      throw RuntimeError.create('RetryDiagnosticSnapshot.error requires an Error value.');
     }
 
     const snapshot = this.object(error, seen);
@@ -57,10 +58,9 @@ class RetryDiagnosticSnapshot {
   }
 
   private static snapshotError(value: Error, seen: WeakMap<object, unknown>): object {
-    const snapshot = new Error(value.message);
+    const snapshot = new RetryErrorSnapshot(value.message, value.name);
 
     seen.set(value, snapshot);
-    snapshot.name = value.name;
     RetryDiagnosticSnapshot.copyProperties(value, snapshot, seen);
 
     return snapshot;

@@ -135,4 +135,4 @@ import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 | `OpfsFileSystemOptionsInterface` | Defines OPFS construction options. | `@studnicky/virtual-fs/browser` |
 | `OpfsStorageInterface` | Defines the injected OPFS storage boundary. | `@studnicky/virtual-fs/browser` |
 | `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs/node` |
-| `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs/node` |
+| `VirtualFileSystemError` | Represents virtual file system failures. `NodeFileSystem` and `OpfsFileSystem` reject with it, carrying the platform `fs` error or `DOMException` as `cause` and its message. | `@studnicky/virtual-fs/node` |

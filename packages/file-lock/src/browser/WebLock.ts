@@ -4,6 +4,7 @@ import type { WebLockManagerInterface } from './WebLockManagerInterface.js';
 
 import { WebLockOptionsEntity } from '../entities/WebLockOptionsEntity.js';
 import { FileLockConfigError } from '../errors/FileLockConfigError.js';
+import { FileLockWebLockError } from '../errors/FileLockWebLockError.js';
 
 class WebLockManager {
   static get(): WebLockManagerInterface {
@@ -33,12 +34,19 @@ export class WebLock implements LockInterface {
     const manager = options.lockManager ?? WebLockManager.get();
 
     return await new Promise<WebLock>((resolve, reject) => {
-      manager.request(validated.name, { 'mode': 'exclusive' }, async () => {
-        resolve(lock);
-        await lock.#releaseSignal.promise;
+      const rejectWebLock = (cause: unknown): void => {
+        reject(new FileLockWebLockError(validated.name, cause));
+      };
+      try {
+        manager.request(validated.name, { 'mode': 'exclusive' }, async () => {
+          resolve(lock);
+          await lock.#releaseSignal.promise;
 
-        return undefined;
-      }).catch(reject);
+          return undefined;
+        }).catch(rejectWebLock);
+      } catch (cause) {
+        rejectWebLock(cause);
+      }
     });
   }
 

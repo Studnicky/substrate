@@ -4,6 +4,7 @@ import type { EntityValidationErrorInterface } from '../interfaces/EntityValidat
 import type { CompiledNodeInterface } from './interfaces/CompilerExecutionStateInterface.js';
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 
+import { SchemaPattern } from '../SchemaPattern.js';
 import { SchemaPointer } from './SchemaPointer.js';
 import { ValidationErrorFactory } from './ValidationErrorFactory.js';
 
@@ -111,7 +112,7 @@ export class ScalarNodeCompiler {
   /** `format`, `contentEncoding`, `contentMediaType` are annotations in 2020-12; they never assert. */
   private static pushStringKeywords(assertions: ScalarAssertionInterface[], plan: SchemaNodePlanInterface): void {
     const { 'maximumLength': maximumLengthValue, 'minimumLength': minimumLengthValue, pattern } = plan;
-    const compiledPattern = pattern === undefined ? undefined : new RegExp(pattern, 'u');
+    const compiledPattern = pattern === undefined ? undefined : SchemaPattern.compile(pattern);
     if (minimumLengthValue !== undefined) {
       const predicate = (value: string): boolean => { const result = Predicates.satisfiesMinimumLength(value, minimumLengthValue); return result; };
       assertions.push(ScalarNodeCompiler.stringAssertion('minLength', minimumLengthValue, predicate));

@@ -157,5 +157,20 @@ The same runtime symbols are available from `@studnicky/store/browser`; select t
 | `BrowserPersistenceOptionsEntity` | Validates browser persistence target configuration. | `@studnicky/store/entities` |
 | `BrowserPersistence` | Browser-native persistence adapter. | `@studnicky/store/browser` |
 | `StorageTarget` | Browser persistence target selector. | `@studnicky/store/browser` |
+| `StoreError` | Abstract base of every store error. | `@studnicky/store/node` |
+| `BrowserStorageError` | Web Storage access or an operation on it failed; the platform error is the `cause`. | `@studnicky/store/node` |
+| `ContextScopeInactiveError` | A ContextStore is used outside an active Context scope. | `@studnicky/store/node` |
+| `ContextStoreFactoryError` | A ContextStore factory returned a value that is not a `StoreInterface`. | `@studnicky/store/node` |
+| `ContextStoreKeyConflictError` | The Context key of a ContextStore holds a value that is not one of its stores. | `@studnicky/store/node` |
+| `ContextStoreOptionsError` | `ContextStore.create` received invalid options. | `@studnicky/store/node` |
+| `IndexedDbEntryError` | An IndexedDB state entry is not a serialized string. | `@studnicky/store/node` |
+| `IndexedDbError` | An IndexedDB open, transaction, or request failed; the platform error is the `cause`. | `@studnicky/store/node` |
+| `IndexedDbUnavailableError` | IndexedDB persistence is selected in a runtime without IndexedDB. | `@studnicky/store/node` |
+| `StateDecodeError` | Serialized state is not valid JSON; the platform `SyntaxError` is the `cause`. | `@studnicky/store/node` |
+| `StateEncodeError` | State cannot be serialized to a JSON string. | `@studnicky/store/node` |
+| `StoreListenerMutationError` | A Store mutation is requested from inside a Store listener. | `@studnicky/store/node` |
+| `SynchronizationIdentityMismatchError` | A ContextStore backing store reports a different synchronization identity. | `@studnicky/store/node` |
+| `StrataLayerUnavailableError` | A StrataStore cannot resolve one of its layers. | `@studnicky/store/strata` |
+| `StrataStoreOptionsError` | `StrataStore.create` received layers or a mutex identity that violate the composition contract. | `@studnicky/store/strata` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/store)
