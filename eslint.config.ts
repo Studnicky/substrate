@@ -5,6 +5,7 @@ import perfectionistPlugin from 'eslint-plugin-perfectionist';
 import regexp from 'eslint-plugin-regexp';
 import sonarjs from 'eslint-plugin-sonarjs';
 import unusedImports from 'eslint-plugin-unused-imports';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 const REPO_ROOT = decodeURIComponent(new URL('.', import.meta.url).pathname);
@@ -179,7 +180,9 @@ export default [
       // reports zero against real code instead of hundreds against real idioms.
       '@studnicky/adapter-only-import': ['error', { ...SUBSTRATE_LAYERS, 'adapterLayerName': 'capability' }],
       '@studnicky/domain-purity': ['error', { ...SUBSTRATE_LAYERS, 'domainLayerName': 'foundation' }],
-      '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS]
+      '@studnicky/layer-import-boundary': ['error', SUBSTRATE_LAYERS],
+      // Every error a published package emits is a named BaseError subclass.
+      '@studnicky/no-native-error': 'error'
     }
   },
   {
@@ -189,7 +192,7 @@ export default [
     }
   },
   { ignores: ['.claude/**'] },
-  ...tseslint.config(
+  ...defineConfig(
     {
       'ignores': [
         'docs/.vitepress/cache/**',
