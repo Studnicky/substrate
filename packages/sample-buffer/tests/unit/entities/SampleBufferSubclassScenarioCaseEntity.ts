@@ -1,6 +1,7 @@
-import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /**
@@ -45,11 +46,11 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'type': 'object'
   } as const;
   const stateNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'cacheNull': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'head': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'length': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    }, ['cacheNull', 'capacity', 'head', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'cacheNull': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    'head': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    'length': SchemaNode.defineNumber({ 'type': 'number' } as const)
+  }, ['cacheNull', 'capacity', 'head', 'length'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const percentilesAtEdgesSchema = {
     'additionalProperties': false,
@@ -66,63 +67,67 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     'type': 'object'
   } as const;
   const percentilesQuartileNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      '0': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      '100': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      '25': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      '50': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    }, ['0', '100', '25', '50'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    '0': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    '100': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    '25': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    '50': SchemaNode.defineNumber({ 'type': 'number' } as const)
+  }, ['0', '100', '25', '50'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const emptyTupleSchema = { 'items': false, 'prefixItems': [], 'type': 'array' } as const;
   const emptyTupleNode = SchemaNode.defineTuple({ 'items': false, 'type': 'array' } as const, [] as const);
 
-  function branchSchema<
-    const TShape extends string,
-    const TInputProps extends Record<string, unknown>,
-    const TInputRequired extends readonly string[],
-    const TExpectedProps extends Record<string, unknown>,
-    const TExpectedRequired extends readonly string[]
-  >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return {
-      'additionalProperties': false,
-      'properties': {
-        'description': { 'minLength': 1, 'type': 'string' },
-        'expected': { 'additionalProperties': false, 'properties': expectedProperties, 'required': expectedRequired, 'type': 'object' },
-        'input': { 'additionalProperties': false, 'properties': inputProperties, 'required': inputRequired, 'type': 'object' },
-        'name': { 'minLength': 1, 'type': 'string' },
-        'shape': { 'const': shape }
-      },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
+  class SampleBufferSubclassScenarioCaseEntityBuilders {
+    static branchSchema<
+      const TShape extends string,
+      const TInputProps extends Record<string, unknown>,
+      const TInputRequired extends readonly string[],
+      const TExpectedProps extends Record<string, unknown>,
+      const TExpectedRequired extends readonly string[]>(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
+      const result = {
+        'additionalProperties': false,
+        'properties': {
+          'description': { 'minLength': 1, 'type': 'string' },
+          'expected': { 'additionalProperties': false, 'properties': expectedProperties, 'required': expectedRequired, 'type': 'object' },
+          'input': { 'additionalProperties': false, 'properties': inputProperties, 'required': inputRequired, 'type': 'object' },
+          'name': { 'minLength': 1, 'type': 'string' },
+          'shape': { 'const': shape }
+        },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
 
-  function branchNode<
-    const TShape extends string,
-    TInputProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
-    const TInputRequired extends readonly (keyof TInputProps & string)[],
-    TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
-    const TExpectedRequired extends readonly (keyof TExpectedProps & string)[]
-  >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
+    static branchNode<
+      const TShape extends string,
+      TInputProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+      TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
+    >(shape: TShape, inputProperties: TInputProps, inputRequired: readonly (keyof TInputProps & string)[], expectedProperties: TExpectedProps, expectedRequired: readonly (keyof TExpectedProps & string)[]) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'shape': SchemaNode.defineConst({}, shape)
       }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
+
+    static numberValue(): { 'type': 'number' } {const result: { 'type': 'number' } = { 'type': 'number' };
+      return result;}
+
+    static numberValueNode(): ReturnType<typeof SchemaNode.defineNumber<{ 'type': 'number' }>> {const result: ReturnType<typeof SchemaNode.defineNumber<{ 'type': 'number' }>> = SchemaNode.defineNumber({ 'type': 'number' } as const);
+      return result;}
   }
 
-  const num = (): { 'type': 'number' } => ({ 'type': 'number' });
-  const numNode = (): ReturnType<typeof SchemaNode.defineNumber<{ 'type': 'number' }>> => SchemaNode.defineNumber({ 'type': 'number' } as const);
-
-  const onEvictSchema = branchSchema(
+  const onEvictSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-evict' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
     { 'evictedValues': numberArraySchema },
     ['evictedValues'] as const
   );
-  const onEvictNode = branchNode(
+  const onEvictNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-evict' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
@@ -130,29 +135,29 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ['evictedValues'] as const
   );
 
-  const onEvictBeforeOverwriteSchema = branchSchema(
+  const onEvictBeforeOverwriteSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-evict-before-overwrite' as const,
     { 'sampleBuffer': capacitySchema, 'values': numberArraySchema },
     ['sampleBuffer', 'values'] as const,
-    { 'capturedOldValue': num() },
+    { 'capturedOldValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['capturedOldValue'] as const
   );
-  const onEvictBeforeOverwriteNode = branchNode(
+  const onEvictBeforeOverwriteNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-evict-before-overwrite' as const,
     { 'sampleBuffer': capacityNode, 'values': numberArrayNode },
     ['sampleBuffer', 'values'] as const,
-    { 'capturedOldValue': numNode() },
+    { 'capturedOldValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['capturedOldValue'] as const
   );
 
-  const onPushSchema = branchSchema(
+  const onPushSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-push' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
     { 'pushLog': pushLogArraySchema },
     ['pushLog'] as const
   );
-  const onPushNode = branchNode(
+  const onPushNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-push' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
@@ -160,104 +165,104 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ['pushLog'] as const
   );
 
-  const onPushLengthUpdateSchema = branchSchema(
+  const onPushLengthUpdateSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-push-length-update' as const,
-    { 'sampleBuffer': capacitySchema, 'value': num() },
+    { 'sampleBuffer': capacitySchema, 'value': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['sampleBuffer', 'value'] as const,
-    { 'lengthAtHook': num() },
+    { 'lengthAtHook': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['lengthAtHook'] as const
   );
-  const onPushLengthUpdateNode = branchNode(
+  const onPushLengthUpdateNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-push-length-update' as const,
-    { 'sampleBuffer': capacityNode, 'value': numNode() },
+    { 'sampleBuffer': capacityNode, 'value': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['sampleBuffer', 'value'] as const,
-    { 'lengthAtHook': numNode() },
+    { 'lengthAtHook': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['lengthAtHook'] as const
   );
 
-  const onClearSchema = branchSchema(
+  const onClearSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-clear' as const,
-    { 'clearTimes': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'clearTimes': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['clearTimes', 'pushItems', 'sampleBuffer'] as const,
-    { 'clearCount': num() },
+    { 'clearCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['clearCount'] as const
   );
-  const onClearNode = branchNode(
+  const onClearNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-clear' as const,
-    { 'clearTimes': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'clearTimes': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['clearTimes', 'pushItems', 'sampleBuffer'] as const,
-    { 'clearCount': numNode() },
+    { 'clearCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['clearCount'] as const
   );
 
-  const onClearBeforeResetSchema = branchSchema(
+  const onClearBeforeResetSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-clear-before-reset' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'lengthAtHook': num() },
+    { 'lengthAtHook': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['lengthAtHook'] as const
   );
-  const onClearBeforeResetNode = branchNode(
+  const onClearBeforeResetNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-clear-before-reset' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'lengthAtHook': numNode() },
+    { 'lengthAtHook': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['lengthAtHook'] as const
   );
 
-  const onPercentileCalledSchema = branchSchema(
+  const onPercentileCalledSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-percentile-called' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'pct': num(), 'result': num(), 'resultType': { 'type': 'string' } },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'result': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'resultType': { 'type': 'string' } },
     ['pct', 'result', 'resultType'] as const
   );
-  const onPercentileCalledNode = branchNode(
+  const onPercentileCalledNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-percentile-called' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'pct': numNode(), 'result': numNode(), 'resultType': SchemaNode.defineString({ 'type': 'string' } as const) },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'result': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'resultType': SchemaNode.defineString({ 'type': 'string' } as const) },
     ['pct', 'result', 'resultType'] as const
   );
 
-  const onPercentileAbsentWhenEmptySchema = branchSchema(
+  const onPercentileAbsentWhenEmptySchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-percentile-absent-when-empty' as const,
-    { 'pct': num(), 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['pct', 'sampleBuffer'] as const,
-    { 'percentileLogLength': num() },
+    { 'percentileLogLength': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['percentileLogLength'] as const
   );
-  const onPercentileAbsentWhenEmptyNode = branchNode(
+  const onPercentileAbsentWhenEmptyNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-percentile-absent-when-empty' as const,
-    { 'pct': numNode(), 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['pct', 'sampleBuffer'] as const,
-    { 'percentileLogLength': numNode() },
+    { 'percentileLogLength': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['percentileLogLength'] as const
   );
 
-  const onPercentileResultMatchesReturnSchema = branchSchema(
+  const onPercentileResultMatchesReturnSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-percentile-result-matches-return' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'result': num() },
+    { 'result': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['result'] as const
   );
-  const onPercentileResultMatchesReturnNode = branchNode(
+  const onPercentileResultMatchesReturnNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-percentile-result-matches-return' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'result': numNode() },
+    { 'result': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['result'] as const
   );
 
-  const onPercentileEdgeCasesSchema = branchSchema(
+  const onPercentileEdgeCasesSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-percentile-edge-cases' as const,
     { 'percentiles': numberArraySchema, 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['percentiles', 'pushItems', 'sampleBuffer'] as const,
     { 'results': numberArraySchema },
     ['results'] as const
   );
-  const onPercentileEdgeCasesNode = branchNode(
+  const onPercentileEdgeCasesNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-percentile-edge-cases' as const,
     { 'percentiles': numberArrayNode, 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['percentiles', 'pushItems', 'sampleBuffer'] as const,
@@ -265,44 +270,44 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ['results'] as const
   );
 
-  const onOverflowNotFullSchema = branchSchema(
+  const onOverflowNotFullSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-overflow-not-full' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowCount': num() },
+    { 'overflowCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['overflowCount'] as const
   );
-  const onOverflowNotFullNode = branchNode(
+  const onOverflowNotFullNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-overflow-not-full' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowCount': numNode() },
+    { 'overflowCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['overflowCount'] as const
   );
 
-  const onOverflowFullSchema = branchSchema(
+  const onOverflowFullSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-overflow-full' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowCount': num(), 'overflowValue': num() },
+    { 'overflowCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'overflowValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['overflowCount', 'overflowValue'] as const
   );
-  const onOverflowFullNode = branchNode(
+  const onOverflowFullNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-overflow-full' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowCount': numNode(), 'overflowValue': numNode() },
+    { 'overflowCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'overflowValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['overflowCount', 'overflowValue'] as const
   );
 
-  const onOverflowBeforeOnEvictSchema = branchSchema(
+  const onOverflowBeforeOnEvictSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-overflow-before-on-evict' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
     { 'events': stringArraySchema },
     ['events'] as const
   );
-  const onOverflowBeforeOnEvictNode = branchNode(
+  const onOverflowBeforeOnEvictNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-overflow-before-on-evict' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
@@ -310,119 +315,119 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ['events'] as const
   );
 
-  const onOverflowIncomingValueSchema = branchSchema(
+  const onOverflowIncomingValueSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-overflow-incoming-value' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowValue': num() },
+    { 'overflowValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['overflowValue'] as const
   );
-  const onOverflowIncomingValueNode = branchNode(
+  const onOverflowIncomingValueNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-overflow-incoming-value' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
-    { 'overflowValue': numNode() },
+    { 'overflowValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['overflowValue'] as const
   );
 
-  const onComputeStartEmptySchema = branchSchema(
+  const onComputeStartEmptySchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-start-empty' as const,
-    { 'pct': num(), 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['pct', 'sampleBuffer'] as const,
     { 'computeStartLengths': numberArraySchema },
     ['computeStartLengths'] as const
   );
-  const onComputeStartEmptyNode = branchNode(
+  const onComputeStartEmptyNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-start-empty' as const,
-    { 'pct': numNode(), 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['pct', 'sampleBuffer'] as const,
     { 'computeStartLengths': numberArrayNode },
     ['computeStartLengths'] as const
   );
 
-  const onComputeStartCacheMissSchema = branchSchema(
+  const onComputeStartCacheMissSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-start-cache-miss' as const,
-    { 'calls': num(), 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'calls': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['calls', 'pct', 'pushItems', 'sampleBuffer'] as const,
     { 'computeStartLengths': numberArraySchema },
     ['computeStartLengths'] as const
   );
-  const onComputeStartCacheMissNode = branchNode(
+  const onComputeStartCacheMissNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-start-cache-miss' as const,
-    { 'calls': numNode(), 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'calls': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['calls', 'pct', 'pushItems', 'sampleBuffer'] as const,
     { 'computeStartLengths': numberArrayNode },
     ['computeStartLengths'] as const
   );
 
-  const onComputeStartLengthSchema = branchSchema(
+  const onComputeStartLengthSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-start-length' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'computeStartLength': num() },
+    { 'computeStartLength': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['computeStartLength'] as const
   );
-  const onComputeStartLengthNode = branchNode(
+  const onComputeStartLengthNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-start-length' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'computeStartLength': numNode() },
+    { 'computeStartLength': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['computeStartLength'] as const
   );
 
-  const onComputeCompleteSortedSchema = branchSchema(
+  const onComputeCompleteSortedSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-complete-sorted' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'sorted': numberArraySchema },
     ['sorted'] as const
   );
-  const onComputeCompleteSortedNode = branchNode(
+  const onComputeCompleteSortedNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-complete-sorted' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'sorted': numberArrayNode },
     ['sorted'] as const
   );
 
-  const onComputeCompleteEmptySchema = branchSchema(
+  const onComputeCompleteEmptySchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-complete-empty' as const,
-    { 'pct': num(), 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['pct', 'sampleBuffer'] as const,
     { 'computeCompletes': emptyTupleSchema },
     ['computeCompletes'] as const
   );
-  const onComputeCompleteEmptyNode = branchNode(
+  const onComputeCompleteEmptyNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-complete-empty' as const,
-    { 'pct': numNode(), 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['pct', 'sampleBuffer'] as const,
     { 'computeCompletes': emptyTupleNode },
     ['computeCompletes'] as const
   );
 
-  const onComputeStartAfterInvalidationSchema = branchSchema(
+  const onComputeStartAfterInvalidationSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'on-compute-start-after-invalidation' as const,
-    { 'initialPushItems': numberArraySchema, 'pct': num(), 'pushAfter': num(), 'sampleBuffer': capacitySchema },
+    { 'initialPushItems': numberArraySchema, 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushAfter': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['initialPushItems', 'pct', 'pushAfter', 'sampleBuffer'] as const,
-    { 'computeStartCount': num() },
+    { 'computeStartCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['computeStartCount'] as const
   );
-  const onComputeStartAfterInvalidationNode = branchNode(
+  const onComputeStartAfterInvalidationNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'on-compute-start-after-invalidation' as const,
-    { 'initialPushItems': numberArrayNode, 'pct': numNode(), 'pushAfter': numNode(), 'sampleBuffer': capacityNode },
+    { 'initialPushItems': numberArrayNode, 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushAfter': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['initialPushItems', 'pct', 'pushAfter', 'sampleBuffer'] as const,
-    { 'computeStartCount': numNode() },
+    { 'computeStartCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['computeStartCount'] as const
   );
 
-  const inspectProtectedFieldsSchema = branchSchema(
+  const inspectProtectedFieldsSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'inspect-protected-fields' as const,
     { 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushItems', 'sampleBuffer'] as const,
     { 'state': stateSchema },
     ['state'] as const
   );
-  const inspectProtectedFieldsNode = branchNode(
+  const inspectProtectedFieldsNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'inspect-protected-fields' as const,
     { 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushItems', 'sampleBuffer'] as const,
@@ -430,138 +435,138 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     ['state'] as const
   );
 
-  const throwingOnPushSchema = branchSchema(
+  const throwingOnPushSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-push' as const,
-    { 'pct': num(), 'pushValue': num(), 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['pct', 'pushValue', 'sampleBuffer'] as const,
-    { 'length': num(), 'percentile': num() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['length', 'percentile'] as const
   );
-  const throwingOnPushNode = branchNode(
+  const throwingOnPushNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-push' as const,
-    { 'pct': numNode(), 'pushValue': numNode(), 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['pct', 'pushValue', 'sampleBuffer'] as const,
-    { 'length': numNode(), 'percentile': numNode() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['length', 'percentile'] as const
   );
 
-  const throwingOnOverflowSchema = branchSchema(
+  const throwingOnOverflowSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-overflow' as const,
-    { 'overflowPush': num(), 'percentiles': numberArraySchema, 'primingPushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'overflowPush': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentiles': numberArraySchema, 'primingPushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['overflowPush', 'percentiles', 'primingPushItems', 'sampleBuffer'] as const,
-    { 'length': num(), 'percentiles': percentilesAtEdgesSchema },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentiles': percentilesAtEdgesSchema },
     ['length', 'percentiles'] as const
   );
-  const throwingOnOverflowNode = branchNode(
+  const throwingOnOverflowNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-overflow' as const,
-    { 'overflowPush': numNode(), 'percentiles': numberArrayNode, 'primingPushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'overflowPush': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentiles': numberArrayNode, 'primingPushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['overflowPush', 'percentiles', 'primingPushItems', 'sampleBuffer'] as const,
-    { 'length': numNode(), 'percentiles': percentilesAtEdgesNode },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentiles': percentilesAtEdgesNode },
     ['length', 'percentiles'] as const
   );
 
-  const throwingOnEvictSchema = branchSchema(
+  const throwingOnEvictSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-evict' as const,
-    { 'overflowPush': num(), 'percentiles': numberArraySchema, 'primingPushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'overflowPush': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentiles': numberArraySchema, 'primingPushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['overflowPush', 'percentiles', 'primingPushItems', 'sampleBuffer'] as const,
-    { 'length': num(), 'percentiles': percentilesAtEdgesSchema },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentiles': percentilesAtEdgesSchema },
     ['length', 'percentiles'] as const
   );
-  const throwingOnEvictNode = branchNode(
+  const throwingOnEvictNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-evict' as const,
-    { 'overflowPush': numNode(), 'percentiles': numberArrayNode, 'primingPushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'overflowPush': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentiles': numberArrayNode, 'primingPushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['overflowPush', 'percentiles', 'primingPushItems', 'sampleBuffer'] as const,
-    { 'length': numNode(), 'percentiles': percentilesAtEdgesNode },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentiles': percentilesAtEdgesNode },
     ['length', 'percentiles'] as const
   );
 
-  const throwingOnClearSchema = branchSchema(
+  const throwingOnClearSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-clear' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'length': num(), 'percentile': num() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['length', 'percentile'] as const
   );
-  const throwingOnClearNode = branchNode(
+  const throwingOnClearNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-clear' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'length': numNode(), 'percentile': numNode() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['length', 'percentile'] as const
   );
 
-  const throwingOnPercentileSchema = branchSchema(
+  const throwingOnPercentileSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-percentile' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'errorName': { 'type': 'string' } },
     ['errorName'] as const
   );
-  const throwingOnPercentileNode = branchNode(
+  const throwingOnPercentileNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-percentile' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) },
     ['errorName'] as const
   );
 
-  const throwingOnComputeStartSchema = branchSchema(
+  const throwingOnComputeStartSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'throwing-on-compute-start' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'errorName': { 'type': 'string' } },
     ['errorName'] as const
   );
-  const throwingOnComputeStartNode = branchNode(
+  const throwingOnComputeStartNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'throwing-on-compute-start' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
     { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) },
     ['errorName'] as const
   );
 
-  const hookInvocationErrorCauseSchema = branchSchema(
+  const hookInvocationErrorCauseSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'hook-invocation-error-cause' as const,
-    { 'pushValue': num(), 'sampleBuffer': capacitySchema },
+    { 'pushValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'sampleBuffer': capacitySchema },
     ['pushValue', 'sampleBuffer'] as const,
     { 'causeMessage': { 'type': 'string' }, 'hookName': { 'type': 'string' } },
     ['causeMessage', 'hookName'] as const
   );
-  const hookInvocationErrorCauseNode = branchNode(
+  const hookInvocationErrorCauseNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'hook-invocation-error-cause' as const,
-    { 'pushValue': numNode(), 'sampleBuffer': capacityNode },
+    { 'pushValue': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'sampleBuffer': capacityNode },
     ['pushValue', 'sampleBuffer'] as const,
     { 'causeMessage': SchemaNode.defineString({ 'type': 'string' } as const), 'hookName': SchemaNode.defineString({ 'type': 'string' } as const) },
     ['causeMessage', 'hookName'] as const
   );
 
-  const asyncPushRejectionSafeSchema = branchSchema(
+  const asyncPushRejectionSafeSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'async-push-rejection-safe' as const,
-    { 'pct': num(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'length': num(), 'percentile': num(), 'rejectionCount': num() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'rejectionCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue() },
     ['length', 'percentile', 'rejectionCount'] as const
   );
-  const asyncPushRejectionSafeNode = branchNode(
+  const asyncPushRejectionSafeNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'async-push-rejection-safe' as const,
-    { 'pct': numNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
+    { 'pct': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushItems', 'sampleBuffer'] as const,
-    { 'length': numNode(), 'percentile': numNode(), 'rejectionCount': numNode() },
+    { 'length': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'percentile': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'rejectionCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode() },
     ['length', 'percentile', 'rejectionCount'] as const
   );
 
-  const asyncPercentileRejectionSafeSchema = branchSchema(
+  const asyncPercentileRejectionSafeSchema = SampleBufferSubclassScenarioCaseEntityBuilders.branchSchema(
     'async-percentile-rejection-safe' as const,
     { 'percentiles': numberArraySchema, 'pushItems': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['percentiles', 'pushItems', 'sampleBuffer'] as const,
-    { 'rejectionCount': num(), 'results': percentilesQuartileSchema },
+    { 'rejectionCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValue(), 'results': percentilesQuartileSchema },
     ['rejectionCount', 'results'] as const
   );
-  const asyncPercentileRejectionSafeNode = branchNode(
+  const asyncPercentileRejectionSafeNode = SampleBufferSubclassScenarioCaseEntityBuilders.branchNode(
     'async-percentile-rejection-safe' as const,
     { 'percentiles': numberArrayNode, 'pushItems': numberArrayNode, 'sampleBuffer': capacityNode },
     ['percentiles', 'pushItems', 'sampleBuffer'] as const,
-    { 'rejectionCount': numNode(), 'results': percentilesQuartileNode },
+    { 'rejectionCount': SampleBufferSubclassScenarioCaseEntityBuilders.numberValueNode(), 'results': percentilesQuartileNode },
     ['rejectionCount', 'results'] as const
   );
 
@@ -633,4 +638,7 @@ export namespace SampleBufferSubclassScenarioCaseEntity {
     asyncPercentileRejectionSafeNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

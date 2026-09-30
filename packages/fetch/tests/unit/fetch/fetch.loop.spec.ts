@@ -1,597 +1,282 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { CallerFault } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import {
-  afterEach, beforeEach, describe, it
-} from 'node:test';
+import { it } from 'node:test';
 
-import {
-  AbortError, ConnectTimeoutError, FetchClient, TimeoutError
-} from '../../../src/node/index.js';
+import type { UntypedRequestClientInterface } from '../../helpers/interfaces/UntypedRequestClientInterface.js';
+
 import { QueryParametersEntity } from '../../../src/entities/QueryParametersEntity.js';
-import { createRuntimeValueGuard } from '../../helpers/RuntimeValueGuard.js';
+import { AbortError, ConnectTimeoutError, FetchClient, TimeoutError } from '../../../src/node/index.js';
+import { FetchTestError } from '../../helpers/FetchTestError.js';
+import { PlatformCalls } from '../../helpers/PlatformCalls.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { FetchScenarioCaseEntity } from './entities/FetchScenarioCaseEntity.js';
+import scenarioGroups from './fetch.scenarios.json' with { 'type': 'json' };
 
-type RuntimeTag =
-  | { shape: 'infinity' }
-  | { shape: 'nan' }
-  | { shape: 'negative-infinity' }
-  | { shape: 'undefined' };
+/** Replaces `globalThis.fetch` with an in-memory network covering the success, delay, and failure paths the fetch wrapper handles. */
+class FetchWrapperFakeFetch implements Disposable {
+  lastFetchedUrl = '';
 
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
+  readonly #original: typeof globalThis.fetch;
 
-type RequestSignal =
-  | { delayMs: number; shape: 'abort-after-ms' }
-  | { shape: 'already-aborted' };
+  private constructor(original: typeof globalThis.fetch) {
+    this.#original = original;
+  }
 
-type ScenarioCase = {
-  description: string;
-  expected:
-    | { shape: 'ok'; status: number; text?: string; url?: string }
-    | { error: 'AbortError' | 'ConnectTimeoutError' | 'Error' | 'TimeoutError'; shape: 'reject'; messageIncludes?: readonly string[]; messagePattern?: string; timeoutMs?: number };
-  input: {
-    request: {
-      args?: readonly [RuntimeValue?] | readonly [RuntimeValue?, Record<string, unknown>?];
-      client?: {
-        baseURL?: string;
-        parameters?: Record<string, RuntimeValue>;
-      };
-      options?: {
-        headers?: Record<string, string>;
-        method?: 'GET';
-        requestId?: string;
-        signal?: RequestSignal;
-        timeout?: RuntimeValue;
-      };
-      path?: string;
-      signal?: RequestSignal;
-      timeout?: RuntimeValue;
-      url?: string;
-      invoke?: 'apply-get' | 'get';
+  static install(): FetchWrapperFakeFetch {
+    const installed = new FetchWrapperFakeFetch(globalThis.fetch);
+    globalThis.fetch = (input, init): Promise<Response> => {
+      const answered = installed.#respond(input, init);
+      return answered;
     };
-  };
-  name: string;
-};
-
-import scenarioGroups from './fetch.scenarios.json' with { type: 'json' };
-
-type MessagePatternPredicate = (message: string) => boolean;
-
-const messagePatternPredicates: Record<string, MessagePatternPredicate> = {
-  'ECONNREFUSED|fetch failed': (message) => message.includes('ECONNREFUSED') || message.includes('fetch failed'),
-  'EAI_AGAIN|ENOTFOUND|fetch failed': (message) => message.includes('EAI_AGAIN') || message.includes('ENOTFOUND') || message.includes('fetch failed'),
-  'timeout must be a positive number': (message) => message.includes('timeout must be a positive number'),
-  'url must be a non-empty string': (message) => message.includes('url must be a non-empty string')
-};
-
-const originalFetch = globalThis.fetch;
-const client = FetchClient.create();
-let lastFetchedUrl = '';
-
-void beforeEach(() => {
-  globalThis.fetch = fakeFetch;
-});
-
-void afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
-function abortError(): DOMException {
-  return new DOMException('The operation was aborted.', 'AbortError');
-}
-
-function assertMessagePattern(message: string, pattern: string): void {
-  const predicate = messagePatternPredicates[pattern];
-
-  if (predicate === undefined) {
-    throw RuntimeError.create(`Unsupported fetch message pattern scenario: ${pattern}`);
+    return installed;
   }
 
-  assert.equal(predicate(message), true);
-}
+  static #codedError(message: string, code: string): RuntimeError {
+    const error = Object.assign(RuntimeError.create(message), { 'code': code });
+    return error;
+  }
 
-const runtimeValueGuard = createRuntimeValueGuard(['infinity', 'nan', 'negative-infinity', 'undefined'] as const);
+  static #delayed(delayMs: number, signal: AbortSignal | null | undefined): Promise<Response> {
+    const pending = new Promise<Response>((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve(new Response(`delayed ${String(delayMs)}ms`, {
+          'headers': { 'Content-Type': 'text/plain' },
+          'status': 200
+        }));
+      }, delayMs);
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timeout);
+        resolve(CallerFault.rejection(AbortSignal.abort().reason));
+      }, { 'once': true });
+    });
+    return pending;
+  }
 
-function isMessageIncludes(value: unknown): value is readonly string[] {
-  return value === undefined || (Array.isArray(value) && value.every((fragment) => { return typeof fragment === 'string'; }));
-}
-
-function isRequestSignal(value: unknown): value is RequestSignal {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.shape === 'already-aborted') {
-    return true;
-  }
-  return value.shape === 'abort-after-ms' && typeof value.delayMs === 'number';
-}
-
-function isRequestArgs(value: unknown): value is ScenarioCase['input']['request']['args'] {
-  if (!Array.isArray(value) || value.length > 2) {
-    return false;
-  }
-  if (value[0] !== undefined && !runtimeValueGuard.isRuntimeValue(value[0])) {
-    return false;
-  }
-  return value[1] === undefined || Predicates.isObject(value[1]);
-}
-
-function isRequestOptions(value: unknown): value is NonNullable<ScenarioCase['input']['request']['options']> {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.headers !== undefined && !Predicates.isObject(value.headers)) {
-    return false;
-  }
-  if (value.method !== undefined && value.method !== 'GET') {
-    return false;
-  }
-  if (value.requestId !== undefined && typeof value.requestId !== 'string') {
-    return false;
-  }
-  if (value.signal !== undefined && !isRequestSignal(value.signal)) {
-    return false;
-  }
-  return value.timeout === undefined || runtimeValueGuard.isRuntimeValue(value.timeout);
-}
-
-function isRequestClient(value: unknown): value is NonNullable<ScenarioCase['input']['request']['client']> {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.baseURL !== undefined && typeof value.baseURL !== 'string') {
-    return false;
-  }
-  return value.parameters === undefined || Predicates.isObject(value.parameters);
-}
-
-function isRequestDefinition(value: unknown): value is ScenarioCase['input']['request'] {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.args !== undefined && !isRequestArgs(value.args)) {
-    return false;
-  }
-  if (value.client !== undefined && !isRequestClient(value.client)) {
-    return false;
-  }
-  if (value.options !== undefined && !isRequestOptions(value.options)) {
-    return false;
-  }
-  if (value.path !== undefined && typeof value.path !== 'string') {
-    return false;
-  }
-  if (value.signal !== undefined && !isRequestSignal(value.signal)) {
-    return false;
-  }
-  if (value.timeout !== undefined && !runtimeValueGuard.isRuntimeValue(value.timeout)) {
-    return false;
-  }
-  if (value.url !== undefined && typeof value.url !== 'string') {
-    return false;
-  }
-  return value.invoke === undefined || value.invoke === 'apply-get' || value.invoke === 'get';
-}
-
-function isScenarioExpectation(value: unknown): value is ScenarioCase['expected'] {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.shape === 'ok') {
-    if (typeof value.status !== 'number') {
-      return false;
+  static #networkFailure(parsedUrl: URL): Promise<Response> | undefined {
+    if (parsedUrl.hostname === 'localhost' && parsedUrl.port === '1') {
+      const refused = CallerFault.rejection(RuntimeError.create('fetch failed: ECONNREFUSED 127.0.0.1:1'));
+      return refused;
     }
-    if (value.text !== undefined && typeof value.text !== 'string') {
-      return false;
+    if (parsedUrl.hostname.includes('definitely-does-not-exist')) {
+      const notFound = CallerFault.rejection(RuntimeError.create(`fetch failed: ENOTFOUND ${parsedUrl.hostname}`));
+      return notFound;
     }
-    return value.url === undefined || typeof value.url === 'string';
-  }
-  if (value.shape !== 'reject') {
-    return false;
-  }
-  if (value.error !== 'AbortError' && value.error !== 'ConnectTimeoutError' && value.error !== 'Error' && value.error !== 'TimeoutError') {
-    return false;
-  }
-  if (!isMessageIncludes(value.messageIncludes)) {
-    return false;
-  }
-  if (value.messagePattern !== undefined && typeof value.messagePattern !== 'string') {
-    return false;
-  }
-  return value.timeoutMs === undefined || typeof value.timeoutMs === 'number';
-}
-
-function isScenarioCase(value: unknown): value is ScenarioCase {
-  return Predicates.isObject(value)
-    && typeof value.description === 'string'
-    && typeof value.name === 'string'
-    && isScenarioExpectation(value.expected)
-    && Predicates.isObject(value.input)
-    && isRequestDefinition(value.input.request);
-}
-
-function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
-  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
-}
-
-function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
-  if (!isScenarioFile(value)) {
-    throw RuntimeError.create('fetch.scenarios.json does not match the expected scenario case shape');
-  }
-  return value;
-}
-
-const scenarioCases = requireScenarioFile(scenarioGroups).cases;
-
-function buildUndiciError(message: string, code: string): Error {
-  return Object.assign(RuntimeError.create(message), { code });
-}
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
-  }
-
-  if (value !== null && typeof value === 'object') {
-    if (isRuntimeTag(value)) {
-      if (value.shape === 'undefined') {
-        return undefined;
-      }
-
-      if (value.shape === 'infinity') {
-        return Number.POSITIVE_INFINITY;
-      }
-
-      if (value.shape === 'negative-infinity') {
-        return Number.NEGATIVE_INFINITY;
-      }
-
-      if (value.shape === 'nan') {
-        return Number.NaN;
-      }
-
-      const exhaustiveCheck: never = value;
-      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
-    }
-
-    const materialized: Record<string, unknown> = {};
-
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry);
-    }
-
-    return materialized;
-  }
-
-  return value;
-}
-
-function materializeSignal(signal: RequestSignal | undefined): AbortSignal | undefined {
-  if (signal === undefined) {
     return undefined;
   }
 
-  if (signal.shape === 'already-aborted') {
-    const controller = new AbortController();
-    controller.abort();
-    return controller.signal;
-  }
-
-  const controller = new AbortController();
-  setTimeout(() => {
-    controller.abort();
-  }, signal.delayMs);
-  return controller.signal;
-}
-
-/**
- * `timeout` stays `unknown`: the timeout-validation scenarios deliberately materialize
- * non-number values (e.g. the string `"5000"`) to prove FetchClient's own runtime guard
- * (`assertValidRequestTimeout`) rejects them — there is no unknown-accepting public surface
- * to pre-validate through, so the malformed value must reach FetchClient itself.
- */
-function buildOptions(request: ScenarioCase['input']['request']): {
-  headers?: Record<string, string>;
-  method?: 'GET';
-  signal?: AbortSignal;
-  timeout?: unknown;
-} {
-  const options = request.options ?? {};
-  const timeout = request.timeout === undefined ? undefined : materializeRuntimeValue(request.timeout);
-  const optionTimeout = options.timeout === undefined ? undefined : materializeRuntimeValue(options.timeout);
-  const requestSignal = request.signal === undefined ? undefined : materializeSignal(request.signal);
-  const optionSignal = options.signal === undefined ? undefined : materializeSignal(options.signal);
-
-  return {
-    ...(requestSignal === undefined ? {} : { signal: requestSignal }),
-    ...(timeout === undefined ? {} : { timeout }),
-    ...(options.headers === undefined ? {} : { headers: options.headers }),
-    ...(options.method === undefined ? {} : { method: options.method }),
-    ...(optionSignal === undefined ? {} : { signal: optionSignal }),
-    ...(optionTimeout === undefined ? {} : { timeout: optionTimeout })
-  };
-}
-
-function resolveUrl(request: ScenarioCase['input']['request']): string {
-  if (request.url !== undefined) {
-    return request.url;
-  }
-
-  return `https://example.test${request.path ?? ''}`;
-}
-
-function createClient(request: ScenarioCase['input']['request']): FetchClient {
-  if (request.client === undefined) {
-    return client;
-  }
-
-  return FetchClient.create({
-    ...(request.client.baseURL === undefined ? {} : { baseURL: request.client.baseURL }),
-    ...(request.client.parameters === undefined ? {} : { parameters: QueryParametersEntity.intake(materializeRuntimeValue(request.client.parameters)) })
-  });
-}
-
-function buildNetworkError(message: string): Error {
-  return RuntimeError.create(`fetch failed: ${message}`);
-}
-
-async function waitForAbort(ms: number, signal?: AbortSignal | null): Promise<void> {
-  if (signal?.aborted === true) {
-    throw abortError();
-  }
-
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, ms);
-
-    const cleanup = (): void => {
-      clearTimeout(timeout);
-      signal?.removeEventListener('abort', onAbort);
-    };
-
-    const onAbort = (): void => {
-      cleanup();
-      reject(abortError());
-    };
-
-    signal?.addEventListener('abort', onAbort, { once: true });
-  });
-}
-
-async function fakeFetch(input: Request | URL | string, init?: RequestInit): Promise<Response> {
-  const urlString = String(input);
-  lastFetchedUrl = urlString;
-  const parsedUrl = new URL(urlString);
-  const signal = init?.signal;
-
-  if (signal?.aborted === true) {
-    throw abortError();
-  }
-
-  if (parsedUrl.hostname === 'localhost' && parsedUrl.port === '1') {
-    throw buildNetworkError('ECONNREFUSED 127.0.0.1:1');
-  }
-
-  if (parsedUrl.hostname.includes('definitely-does-not-exist')) {
-    throw buildNetworkError(`ENOTFOUND ${parsedUrl.hostname}`);
-  }
-
-  if (parsedUrl.pathname === '/delay') {
-    const delayMs = Number.parseInt(parsedUrl.searchParams.get('ms') ?? '100', 10);
-    await waitForAbort(delayMs, signal);
-    return new Response(`delayed ${delayMs}ms`, {
-      headers: { 'Content-Type': 'text/plain' },
-      status: 200
+  static #text(text: string, status: number): Response {
+    const response = new Response(text, {
+      'headers': { 'Content-Type': 'text/plain' },
+      'status': status
     });
+    return response;
   }
 
-  if (parsedUrl.pathname === '/error') {
-    return new Response('server error', {
-      headers: { 'Content-Type': 'text/plain' },
-      status: 500
-    });
-  }
+  #respond(input: Request | URL | string, init: RequestInit | undefined): Promise<Response> {
+    const urlString = String(input);
+    this.lastFetchedUrl = urlString;
+    const parsedUrl = PlatformCalls.parseUrl(urlString);
+    const signal = init?.signal;
 
-  if (parsedUrl.pathname === '/error-unknown-code') {
-    throw buildUndiciError('unknown error', 'UND_ERR_SOMETHING_ELSE');
-  }
-
-  if (parsedUrl.pathname === '/error-connect') {
-    throw buildUndiciError('connect timeout', 'UND_ERR_CONNECT_TIMEOUT');
-  }
-
-  if (parsedUrl.pathname === '/instant') {
-    return new Response('instant response', {
-      headers: { 'Content-Type': 'text/plain' },
-      status: 200
-    });
-  }
-
-  return new Response('not found', {
-    headers: { 'Content-Type': 'text/plain' },
-    status: 404
-  });
-}
-
-async function invokeRequest(request: ScenarioCase['input']['request']): Promise<Response> {
-  const url = resolveUrl(request);
-  const options = buildOptions(request);
-  const activeClient = createClient(request);
-  const requestTarget = request.client === undefined ? url : (request.url ?? request.path ?? url);
-
-  if (request.invoke === 'apply-get') {
-    const args: unknown[] = [];
-    const firstArg = request.args?.[0];
-    args.push(firstArg === undefined ? undefined : materializeRuntimeValue(firstArg));
-    if (request.args !== undefined && request.args.length > 1) {
-      args.push(request.args[1]);
+    if (signal?.aborted === true) {
+      const aborted = CallerFault.rejection(AbortSignal.abort().reason);
+      return aborted;
     }
-    return Reflect.apply(activeClient.get, activeClient, args);
+    const networkFailure = FetchWrapperFakeFetch.#networkFailure(parsedUrl);
+    if (networkFailure !== undefined) {
+      return networkFailure;
+    }
+    if (parsedUrl.pathname === '/delay') {
+      const delayMs = Number.parseInt(parsedUrl.searchParams.get('ms') ?? '100', 10);
+      const delayed = FetchWrapperFakeFetch.#delayed(delayMs, signal);
+      return delayed;
+    }
+    if (parsedUrl.pathname === '/error-unknown-code') {
+      const unknownCode = CallerFault.rejection(FetchWrapperFakeFetch.#codedError('unknown error', 'UND_ERR_SOMETHING_ELSE'));
+      return unknownCode;
+    }
+    if (parsedUrl.pathname === '/error-connect') {
+      const connect = CallerFault.rejection(FetchWrapperFakeFetch.#codedError('connect timeout', 'UND_ERR_CONNECT_TIMEOUT'));
+      return connect;
+    }
+    const answered = Promise.resolve(FetchWrapperFakeFetch.#textFor(parsedUrl.pathname));
+    return answered;
   }
 
-  return Reflect.apply(activeClient.get, activeClient, [requestTarget, options]);
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { expected } = scenarioCase;
-  if (expected.shape === 'reject') {
-    await assert.rejects(async () => {
-      await invokeRequest(scenarioCase.input.request);
-    }, (error: Error) => {
-      if (expected.error === 'AbortError') {
-        assert.ok(error instanceof AbortError);
-      } else if (expected.error === 'ConnectTimeoutError') {
-        assert.ok(error instanceof ConnectTimeoutError);
-      } else if (expected.error === 'TimeoutError') {
-        assert.ok(error instanceof TimeoutError);
-      } else {
-        assert.ok(error instanceof Error);
-      }
-
-      if (expected.timeoutMs !== undefined && error instanceof TimeoutError) {
-        assert.strictEqual(error.timeoutMs, expected.timeoutMs);
-      }
-
-      for (const expectedMessagePart of expected.messageIncludes ?? []) {
-        assert.ok(error.message.includes(expectedMessagePart));
-      }
-
-      if (expected.messagePattern !== undefined) {
-        assertMessagePattern(error.message, expected.messagePattern);
-      }
-
-      return true;
-    });
-    return;
+  static #textFor(pathname: string): Response {
+    if (pathname === '/error') {
+      const serverError = FetchWrapperFakeFetch.#text('server error', 500);
+      return serverError;
+    }
+    if (pathname === '/instant') {
+      const instant = FetchWrapperFakeFetch.#text('instant response', 200);
+      return instant;
+    }
+    const missing = FetchWrapperFakeFetch.#text('not found', 404);
+    return missing;
   }
 
-  const response = await invokeRequest(scenarioCase.input.request);
-  assert.strictEqual(response.status, expected.status);
-  if (expected.url !== undefined) {
-    assert.strictEqual(lastFetchedUrl, expected.url);
-  }
-  if (expected.text !== undefined) {
-    assert.strictEqual(await response.text(), expected.text);
-  } else {
-    await response.arrayBuffer();
+  [Symbol.dispose](): void {
+    globalThis.fetch = this.#original;
   }
 }
 
-void describe('fetch wrapper', () => {
-  void describe('URL validation', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('url-validation-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
-    }
-  });
+class FetchRunners {
+  private static readonly client = FetchClient.create();
 
-  void describe('Timeout validation', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('timeout-validation-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
-    }
-  });
-
-  void describe('Timeout functionality', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('timeout-functionality-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
-    }
-  });
-
-  void describe('Signal handling', () => {
+  static declaresNullSignalTest(): void {
     void it('accepts a null native Fetch signal', async () => {
-      const response = await client.get('https://example.test/instant', { 'signal': null });
+      using _ = FetchWrapperFakeFetch.install();
+      const response = await FetchRunners.client.get('https://example.test/instant', { 'signal': null });
       assert.equal(response.status, 200);
     });
+  }
 
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('signal-handling-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+  static async 'ok'(scenarioCase: ScenarioCaseOfType<FetchScenarioCaseEntity.Type, 'ok', 'outcome'>): Promise<void> {
+    using fake = FetchWrapperFakeFetch.install();
+    const { expected } = scenarioCase;
+    const response = await FetchRunners.invokeRequest(scenarioCase.input.request);
+    assert.strictEqual(response.status, expected.status);
+    if (expected.url !== undefined) {
+      assert.strictEqual(fake.lastFetchedUrl, expected.url);
     }
-  });
+    if (expected.text === undefined) {
+      await response.arrayBuffer();
+    } else {
+      assert.strictEqual(await response.text(), expected.text);
+    }
+  }
 
-  void describe('Request without timeout', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('request-without-timeout-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
-    }
-  });
+  static async 'reject'(scenarioCase: ScenarioCaseOfType<FetchScenarioCaseEntity.Type, 'reject', 'outcome'>): Promise<void> {
+    using _ = FetchWrapperFakeFetch.install();
+    const { expected } = scenarioCase;
+    const caught = await RejectionProbe.capture(async () => {
+      await FetchRunners.invokeRequest(scenarioCase.input.request);
+    });
+    assert.ok(caught instanceof Error);
+    FetchRunners.assertErrorKind(caught, expected.error);
 
-  void describe('Error handling', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('error-handling-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+    if (expected.timeoutMs !== undefined && caught instanceof TimeoutError) {
+      assert.strictEqual(caught.timeoutMs, expected.timeoutMs);
     }
-  });
 
-  void describe('Edge cases', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('edge-case-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+    const fragments = expected.messageIncludes ?? [];
+    for (let index = 0; index < fragments.length; index += 1) {
+      assert.ok(caught.message.includes(fragments[index] ?? ''));
     }
-  });
 
-  void describe('Signal cleanup', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('signal-cleanup-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+    if (expected.messagePattern !== undefined) {
+      FetchRunners.assertMessagePattern(caught.message, expected.messagePattern);
     }
-  });
+  }
 
-  void describe('fetchWithoutTimeout path', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('fetch-without-timeout-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+  private static assertErrorKind(caught: Error, kind: 'AbortError' | 'ConnectTimeoutError' | 'Error' | 'TimeoutError'): void {
+    if (kind === 'AbortError') {
+      assert.ok(caught instanceof AbortError);
+    } else if (kind === 'ConnectTimeoutError') {
+      assert.ok(caught instanceof ConnectTimeoutError);
+    } else if (kind === 'TimeoutError') {
+      assert.ok(caught instanceof TimeoutError);
+    } else {
+      assert.ok(caught instanceof Error);
     }
-  });
+  }
 
-  void describe('timeout path', () => {
-    for (const scenario of scenarioCases.filter((item) => {
-      return item.name.startsWith('timeout-path-');
-    })) {
-      void it(scenario.name, async () => {
-        await runCase(scenario);
-      });
+  private static assertMessagePattern(message: string, pattern: string): void {
+    let matches = false;
+    if (pattern === 'EAI_AGAIN|ENOTFOUND|fetch failed') {
+      matches = message.includes('EAI_AGAIN') || message.includes('ENOTFOUND') || message.includes('fetch failed');
+    } else if (pattern === 'ECONNREFUSED|fetch failed') {
+      matches = message.includes('ECONNREFUSED') || message.includes('fetch failed');
+    } else if (pattern === 'timeout must be a positive number' || pattern === 'url must be a non-empty string') {
+      matches = message.includes(pattern);
+    } else {
+      throw new FetchTestError(`Unsupported fetch message pattern scenario: ${pattern}`);
     }
-  });
+    assert.equal(matches, true);
+  }
+
+  /**
+   * `timeout` stays untyped: the timeout-validation scenarios deliberately materialize non-number values
+   * (e.g. the string `"5000"`) to prove FetchClient's own runtime guard (`assertValidRequestTimeout`)
+   * rejects them — there is no unknown-accepting public surface to pre-validate through, so the
+   * malformed value must reach FetchClient itself.
+   */
+  private static buildOptions(request: FetchScenarioCaseEntity.Type['input']['request']): object {
+    const options = request.options ?? {};
+    const timeout = request.timeout === undefined ? undefined : RuntimeValueMaterializer.materialize(request.timeout);
+    const optionTimeout = options.timeout === undefined ? undefined : RuntimeValueMaterializer.materialize(options.timeout);
+    const requestSignal = FetchRunners.materializeSignal(request.signal);
+    const optionSignal = FetchRunners.materializeSignal(options.signal);
+
+    const built = {
+      ...(requestSignal === undefined ? {} : { 'signal': requestSignal }),
+      ...(timeout === undefined ? {} : { 'timeout': timeout }),
+      ...(options.headers === undefined ? {} : { 'headers': options.headers }),
+      ...(options.method === undefined ? {} : { 'method': options.method }),
+      ...(optionSignal === undefined ? {} : { 'signal': optionSignal }),
+      ...(optionTimeout === undefined ? {} : { 'timeout': optionTimeout })
+    };
+    return built;
+  }
+
+  private static createClient(request: FetchScenarioCaseEntity.Type['input']['request']): FetchClient {
+    if (request.client === undefined) {
+      return FetchRunners.client;
+    }
+
+    const parameters = request.client.parameters;
+    const created = FetchClient.create({
+      ...(request.client.baseURL === undefined ? {} : { 'baseURL': request.client.baseURL }),
+      ...(parameters === undefined ? {} : { 'parameters': QueryParametersEntity.intake(RuntimeValueMaterializer.materialize(parameters)) })
+    });
+    return created;
+  }
+
+  private static async invokeRequest(request: FetchScenarioCaseEntity.Type['input']['request']): Promise<Response> {
+    const url = request.url ?? `https://example.test${request.path ?? ''}`;
+    const activeClient: UntypedRequestClientInterface = FetchRunners.createClient(request);
+
+    if (request.invoke === 'apply-get') {
+      const argumentList = request.argumentList ?? [];
+      const firstArgument = argumentList[0];
+      const target = firstArgument === undefined ? undefined : RuntimeValueMaterializer.materialize(firstArgument);
+      const response = argumentList.length > 1 ? await activeClient.get(target, argumentList[1]) : await activeClient.get(target);
+      return response;
+    }
+
+    const requestTarget = request.client === undefined ? url : (request.url ?? request.path ?? url);
+    const response = await activeClient.get(requestTarget, FetchRunners.buildOptions(request));
+    return response;
+  }
+
+  private static materializeSignal(signal: FetchScenarioCaseEntity.Type['input']['request']['signal']): AbortSignal | undefined {
+    if (signal === undefined) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    if (signal.shape === 'already-aborted') {
+      controller.abort(new FetchTestError('the signal is aborted before the request starts'));
+      return controller.signal;
+    }
+
+    setTimeout(() => {
+      controller.abort(new FetchTestError('the signal aborts while the request is in flight'));
+    }, signal.delayMs);
+    return controller.signal;
+  }
+}
+
+ScenarioSuite.registerBy('outcome', {
+  'entity': FetchScenarioCaseEntity,
+  'extraTests': FetchRunners.declaresNullSignalTest,
+  'file': scenarioGroups,
+  'name': 'fetch wrapper',
+  'runners': FetchRunners
 });

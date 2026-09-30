@@ -1,4 +1,4 @@
-import { plugin, v8Plugin } from '@studnicky/eslint-config/node';
+import { PlatformCallDefaults, plugin, v8Plugin } from '@studnicky/eslint-config/node';
 import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
 import perfectionistPlugin from 'eslint-plugin-perfectionist';
@@ -9,6 +9,12 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 const REPO_ROOT = decodeURIComponent(new URL('.', import.meta.url).pathname);
+const TSCONFIG_ESLINT = `${REPO_ROOT}tsconfig.eslint.json`;
+// node:assert is the test harness: its AssertionError is how node:test reports a failed test.
+const TEST_PLATFORM_CALLS = PlatformCallDefaults.build().filter((entry) => {
+  const isAssert = entry.owner === 'assert' || entry.owner === 'assert/strict';
+  return !isAssert;
+});
 
 // Architectural bands, derived from the measured `@studnicky/*` dependency DAG rather than a
 // borrowed hexagonal vocabulary: a package's band is the depth of its longest internal
@@ -144,12 +150,10 @@ const FILTERS_MATCHING_LAYERS = {
 
 export default [
   {
-    // Architectural bands govern what a PUBLISHED package depends on, so this applies to `src`
-    // only. Examples and tests are consumers — like any downstream application they compose
-    // across the whole toolkit, and `packages/fsm/examples` legitimately imports
-    // `@studnicky/scheduler`, a package that depends on `fsm` in turn. Constraining them would
-    // report a boundary that does not exist in anything shipped.
-    'files': ['packages/*/src/**/*.ts'],
+    // Architectural bands and the error contract govern package source and tests. Examples are
+    // consumers — like any downstream application they compose across the whole toolkit, and
+    // `packages/fsm/examples` imports `@studnicky/scheduler`, a package that depends on `fsm`.
+    'files': ['packages/*/src/**/*.ts', 'packages/*/tests/**/*.ts'],
     'plugins': { '@studnicky': plugin },
     'rules': {
       // The other four `arch/*` rules stay OFF, measured rather than assumed. All four encode
@@ -202,7 +206,7 @@ export default [
       ]
     },
     {
-      'files': ['packages/*/src/**/*.ts', 'packages/*/examples/**/*.ts'],
+      'files': ['packages/*/src/**/*.ts', 'packages/*/tests/**/*.ts', 'packages/*/examples/**/*.ts'],
       'languageOptions': {
         'parser': tseslint.parser,
         'parserOptions': {
@@ -589,29 +593,18 @@ export default [
         'unused-imports/no-unused-imports': 'error'
       }
     },
-    // Test files — parse with TS parser (no type-checking) and relax rules
+    // Test files — type-aware against tsconfig.eslint.json, which includes every package's tests.
     {
       'files': ['packages/*/tests/**/*.ts'],
       'languageOptions': {
-        'parser': tseslint.parser,
         'parserOptions': {
-          'project': false
+          'project': [TSCONFIG_ESLINT],
+          'projectService': false,
+          'tsconfigRootDir': REPO_ROOT
         }
       },
       'rules': {
-        '@studnicky/inline-trivial-logic': 'off',
-        '@studnicky/export-shape': 'off',
-        '@studnicky/v8/for-of-arrays': 'off',
-        '@typescript-eslint/consistent-type-exports': 'off',
-        '@typescript-eslint/consistent-type-imports': 'off',
-        '@typescript-eslint/dot-notation': 'off',
-        '@typescript-eslint/no-magic-numbers': 'off',
-        '@typescript-eslint/no-meaningless-void-operator': 'off',
-        '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-        '@typescript-eslint/non-nullable-type-assertion-style': 'off',
-        '@typescript-eslint/prefer-nullish-coalescing': 'off',
-        '@typescript-eslint/prefer-optional-chain': 'off',
-        '@typescript-eslint/return-await': 'off'
+        '@studnicky/no-native-error': ['error', { 'platformCalls': TEST_PLATFORM_CALLS }]
       }
     },
     // Config and framework entrypoints their loader requires to default-export.
@@ -630,7 +623,7 @@ export default [
       'files': ['packages/*/examples/**/*.ts'],
       'languageOptions': {
         'parserOptions': {
-          'project': ['./tsconfig.eslint.json'],
+          'project': [TSCONFIG_ESLINT],
           'projectService': false,
           'tsconfigRootDir': REPO_ROOT
         }

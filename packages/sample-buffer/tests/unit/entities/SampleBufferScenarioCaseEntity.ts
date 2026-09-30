@@ -1,6 +1,7 @@
-import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The twelve scenario case shapes `sample-buffer.loop.spec.ts` exercises against `SampleBuffer`. */
@@ -30,51 +31,52 @@ export namespace SampleBufferScenarioCaseEntity {
   const nullableNumberSchema = { 'oneOf': [{ 'type': 'number' }, { 'type': 'null' }] } as const;
   const nullableNumberNode = SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'type': 'number' } as const), SchemaNode.defineNull({ 'type': 'null' } as const)] as const);
 
-  function branchSchema<
-    const TShape extends string,
-    const TInputProps extends Record<string, unknown>,
-    const TInputRequired extends readonly string[],
-    const TExpectedProps extends Record<string, unknown>,
-    const TExpectedRequired extends readonly string[]
-  >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return {
-      'additionalProperties': false,
-      'properties': {
-        'description': { 'minLength': 1, 'type': 'string' },
-        'expected': { 'additionalProperties': false, 'properties': expectedProperties, 'required': expectedRequired, 'type': 'object' },
-        'input': { 'additionalProperties': false, 'properties': inputProperties, 'required': inputRequired, 'type': 'object' },
-        'name': { 'minLength': 1, 'type': 'string' },
-        'shape': { 'const': shape }
-      },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
+  class SampleBufferScenarioCaseEntityBuilders {
+    static branchSchema<
+      const TShape extends string,
+      const TInputProps extends Record<string, unknown>,
+      const TInputRequired extends readonly string[],
+      const TExpectedProps extends Record<string, unknown>,
+      const TExpectedRequired extends readonly string[]>(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
+      const result = {
+        'additionalProperties': false,
+        'properties': {
+          'description': { 'minLength': 1, 'type': 'string' },
+          'expected': { 'additionalProperties': false, 'properties': expectedProperties, 'required': expectedRequired, 'type': 'object' },
+          'input': { 'additionalProperties': false, 'properties': inputProperties, 'required': inputRequired, 'type': 'object' },
+          'name': { 'minLength': 1, 'type': 'string' },
+          'shape': { 'const': shape }
+        },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
 
-  function branchNode<
-    const TShape extends string,
-    TInputProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
-    const TInputRequired extends readonly (keyof TInputProps & string)[],
-    TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
-    const TExpectedRequired extends readonly (keyof TExpectedProps & string)[]
-  >(shape: TShape, inputProperties: TInputProps, inputRequired: TInputRequired, expectedProperties: TExpectedProps, expectedRequired: TExpectedRequired) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
+    static branchNode<
+      const TShape extends string,
+      TInputProps extends Record<string, SchemaNodeInterface<unknown, unknown>>,
+      TExpectedProps extends Record<string, SchemaNodeInterface<unknown, unknown>>
+    >(shape: TShape, inputProperties: TInputProps, inputRequired: readonly (keyof TInputProps & string)[], expectedProperties: TExpectedProps, expectedRequired: readonly (keyof TExpectedProps & string)[]) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
         'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'expected': SchemaNode.defineObject({ 'type': 'object' } as const, expectedProperties, expectedRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'input': SchemaNode.defineObject({ 'type': 'object' } as const, inputProperties, inputRequired, { 'additionalProperties': false, 'patternProperties': {} }),
         'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
         'shape': SchemaNode.defineConst({}, shape)
       }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
   }
 
-  const capacityErrorSchema = branchSchema(
+  const capacityErrorSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'capacity-error' as const,
     { 'sampleBuffer': capacityWithExtraSchema },
     ['sampleBuffer'] as const,
     { 'errorName': { 'type': 'string' } },
     ['errorName'] as const
   );
-  const capacityErrorNode = branchNode(
+  const capacityErrorNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'capacity-error' as const,
     { 'sampleBuffer': capacityWithExtraNode },
     ['sampleBuffer'] as const,
@@ -82,14 +84,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['errorName'] as const
   );
 
-  const clearResetsSchema = branchSchema(
+  const clearResetsSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'clear-resets' as const,
     { 'pct': { 'type': 'number' }, 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushes', 'sampleBuffer'] as const,
     { 'full': { 'type': 'boolean' }, 'length': { 'type': 'number' }, 'percentile': nullableNumberSchema },
     ['full', 'length', 'percentile'] as const
   );
-  const clearResetsNode = branchNode(
+  const clearResetsNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'clear-resets' as const,
     { 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushes', 'sampleBuffer'] as const,
@@ -97,14 +99,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['full', 'length', 'percentile'] as const
   );
 
-  const constructionSchema = branchSchema(
+  const constructionSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'construction' as const,
     { 'sampleBuffer': capacitySchema },
     ['sampleBuffer'] as const,
     { 'full': { 'type': 'boolean' }, 'length': { 'type': 'number' } },
     ['full', 'length'] as const
   );
-  const constructionNode = branchNode(
+  const constructionNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'construction' as const,
     { 'sampleBuffer': capacityNode },
     ['sampleBuffer'] as const,
@@ -112,14 +114,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['full', 'length'] as const
   );
 
-  const invalidMultiErrorSchema = branchSchema(
+  const invalidMultiErrorSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'invalid-multi-error' as const,
     { 'sampleBuffer': capacityWithExtraSchema },
     ['sampleBuffer'] as const,
     { 'errorName': { 'type': 'string' }, 'messageIncludes': stringArraySchema },
     ['errorName', 'messageIncludes'] as const
   );
-  const invalidMultiErrorNode = branchNode(
+  const invalidMultiErrorNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'invalid-multi-error' as const,
     { 'sampleBuffer': capacityWithExtraNode },
     ['sampleBuffer'] as const,
@@ -127,14 +129,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['errorName', 'messageIncludes'] as const
   );
 
-  const isFullSchema = branchSchema(
+  const isFullSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'is-full' as const,
     { 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushes', 'sampleBuffer'] as const,
     { 'full': { 'type': 'boolean' } },
     ['full'] as const
   );
-  const isFullNode = branchNode(
+  const isFullNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'is-full' as const,
     { 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushes', 'sampleBuffer'] as const,
@@ -142,14 +144,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['full'] as const
   );
 
-  const maintainsLengthSchema = branchSchema(
+  const maintainsLengthSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'maintains-length' as const,
     { 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushes', 'sampleBuffer'] as const,
     { 'isFull': { 'type': 'boolean' }, 'length': { 'type': 'number' } },
     ['isFull', 'length'] as const
   );
-  const maintainsLengthNode = branchNode(
+  const maintainsLengthNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'maintains-length' as const,
     { 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushes', 'sampleBuffer'] as const,
@@ -157,14 +159,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['isFull', 'length'] as const
   );
 
-  const overwritesOldestSchema = branchSchema(
+  const overwritesOldestSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'overwrites-oldest' as const,
     { 'pct': { 'type': 'number' }, 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushes', 'sampleBuffer'] as const,
     { 'isFull': { 'type': 'boolean' }, 'length': { 'type': 'number' }, 'percentile': { 'type': 'number' } },
     ['isFull', 'length', 'percentile'] as const
   );
-  const overwritesOldestNode = branchNode(
+  const overwritesOldestNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'overwrites-oldest' as const,
     { 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushes', 'sampleBuffer'] as const,
@@ -172,14 +174,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['isFull', 'length', 'percentile'] as const
   );
 
-  const percentileSchema = branchSchema(
+  const percentileSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'percentile' as const,
     { 'pct': { 'type': 'number' }, 'sampleBuffer': capacitySchema, 'samples': numberArraySchema },
     ['pct', 'sampleBuffer', 'samples'] as const,
     { 'percentile': nullableNumberSchema },
     ['percentile'] as const
   );
-  const percentileNode = branchNode(
+  const percentileNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'percentile' as const,
     { 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'sampleBuffer': capacityNode, 'samples': numberArrayNode },
     ['pct', 'sampleBuffer', 'samples'] as const,
@@ -195,14 +197,14 @@ export namespace SampleBufferScenarioCaseEntity {
   } as const;
   const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'sampleCount': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sampleCount'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const percentileBatchSchema = branchSchema(
+  const percentileBatchSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'percentile-batch' as const,
     { 'batch': batchSchema, 'pct': { 'type': 'number' }, 'sampleBuffer': capacitySchema, 'startValue': { 'type': 'number' } },
     ['batch', 'pct', 'sampleBuffer', 'startValue'] as const,
     { 'percentile': { 'type': 'number' } },
     ['percentile'] as const
   );
-  const percentileBatchNode = branchNode(
+  const percentileBatchNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'percentile-batch' as const,
     { 'batch': batchNode, 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'sampleBuffer': capacityNode, 'startValue': SchemaNode.defineNumber({ 'type': 'number' } as const) },
     ['batch', 'pct', 'sampleBuffer', 'startValue'] as const,
@@ -210,14 +212,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['percentile'] as const
   );
 
-  const pushLengthsSchema = branchSchema(
+  const pushLengthsSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'push-lengths' as const,
     { 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pushes', 'sampleBuffer'] as const,
     { 'lengths': numberArraySchema },
     ['lengths'] as const
   );
-  const pushLengthsNode = branchNode(
+  const pushLengthsNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'push-lengths' as const,
     { 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pushes', 'sampleBuffer'] as const,
@@ -225,14 +227,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['lengths'] as const
   );
 
-  const recalculateAfterPushSchema = branchSchema(
+  const recalculateAfterPushSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'recalculate-after-push' as const,
     { 'pct': { 'type': 'number' }, 'pushAfter': { 'type': 'number' }, 'pushes': numberArraySchema, 'sampleBuffer': capacitySchema },
     ['pct', 'pushAfter', 'pushes', 'sampleBuffer'] as const,
     { 'percentileAfter': { 'type': 'number' }, 'percentileBefore': { 'type': 'number' } },
     ['percentileAfter', 'percentileBefore'] as const
   );
-  const recalculateAfterPushNode = branchNode(
+  const recalculateAfterPushNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'recalculate-after-push' as const,
     { 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'pushAfter': SchemaNode.defineNumber({ 'type': 'number' } as const), 'pushes': numberArrayNode, 'sampleBuffer': capacityNode },
     ['pct', 'pushAfter', 'pushes', 'sampleBuffer'] as const,
@@ -240,14 +242,14 @@ export namespace SampleBufferScenarioCaseEntity {
     ['percentileAfter', 'percentileBefore'] as const
   );
 
-  const reuseAfterClearSchema = branchSchema(
+  const reuseAfterClearSchema = SampleBufferScenarioCaseEntityBuilders.branchSchema(
     'reuse-after-clear' as const,
     { 'firstPushes': numberArraySchema, 'pct': { 'type': 'number' }, 'sampleBuffer': capacitySchema, 'secondPushes': numberArraySchema },
     ['firstPushes', 'pct', 'sampleBuffer', 'secondPushes'] as const,
     { 'length': { 'type': 'number' }, 'percentile': { 'type': 'number' } },
     ['length', 'percentile'] as const
   );
-  const reuseAfterClearNode = branchNode(
+  const reuseAfterClearNode = SampleBufferScenarioCaseEntityBuilders.branchNode(
     'reuse-after-clear' as const,
     { 'firstPushes': numberArrayNode, 'pct': SchemaNode.defineNumber({ 'type': 'number' } as const), 'sampleBuffer': capacityNode, 'secondPushes': numberArrayNode },
     ['firstPushes', 'pct', 'sampleBuffer', 'secondPushes'] as const,
@@ -287,4 +289,7 @@ export namespace SampleBufferScenarioCaseEntity {
     reuseAfterClearNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

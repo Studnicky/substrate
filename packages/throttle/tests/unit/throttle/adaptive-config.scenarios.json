@@ -484,7 +484,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 1
+          "maximumConcurrent": 1
         },
         "clock": {
           "operationDurationMs": 1,
@@ -518,7 +518,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 1
+          "maximumConcurrent": 1
         },
         "clock": {
           "operationDurationMs": 200,
@@ -552,7 +552,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 1
+          "maximumConcurrent": 1
         },
         "clock": {
           "operationDurationMs": 50,
@@ -586,7 +586,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 1
+          "maximumConcurrent": 1
         },
         "clock": {
           "operationDurationMs": 1,

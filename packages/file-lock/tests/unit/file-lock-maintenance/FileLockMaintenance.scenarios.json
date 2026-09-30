@@ -3,20 +3,47 @@
     {
       "name": "discovers every owner-qualified lock for one original path",
       "shape": "inspect",
-      "input": { "path": "queue.json", "ownerTokens": ["alpha", "beta"] },
-      "expected": { "lockPaths": ["queue.json.lock.alpha", "queue.json.lock.beta"] }
+      "input": {
+        "path": "queue.json",
+        "ownerTokens": [
+          "alpha",
+          "beta"
+        ]
+      },
+      "expected": {
+        "lockPaths": [
+          "queue.json.lock.alpha",
+          "queue.json.lock.beta"
+        ]
+      },
+      "description": "discovers every owner-qualified lock for one original path"
     },
     {
       "name": "restores an inspected lock only when its original path is absent",
       "shape": "restore",
-      "input": { "content": "locked content", "ownerToken": "owner", "path": "snapshot.json" },
-      "expected": { "content": "locked content" }
+      "input": {
+        "content": "locked content",
+        "ownerToken": "owner",
+        "path": "snapshot.json"
+      },
+      "expected": {
+        "content": "locked content"
+      },
+      "description": "restores an inspected lock only when its original path is absent"
     },
     {
       "name": "refuses recovery when a destination file exists and treats only a live process identifier as live",
       "shape": "conflict-and-liveness",
-      "input": { "content": "locked content", "ownerToken": "owner", "path": "state.json" },
-      "expected": { "invalidOwnerIsAlive": false, "processIsAlive": true }
+      "input": {
+        "content": "locked content",
+        "ownerToken": "owner",
+        "path": "state.json"
+      },
+      "expected": {
+        "invalidOwnerIsAlive": false,
+        "processIsAlive": true
+      },
+      "description": "refuses recovery when a destination file exists and treats only a live process identifier as live"
     }
   ]
 }

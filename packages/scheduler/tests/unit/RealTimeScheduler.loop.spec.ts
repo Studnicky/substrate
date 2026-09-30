@@ -1,28 +1,14 @@
-import { RuntimeError, HookInvoker } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-/**
- * Unit tests for `RealTimeScheduler`.
- */
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { setTimeout as setTimeoutPromise } from 'node:timers/promises';
-import {
-  describe, it, mock
-} from 'node:test';
+import { mock } from 'node:test';
+import * as timersPromises from 'node:timers/promises';
 
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import { RealTimeSchedulerScenarioCaseEntity } from './entities/RealTimeSchedulerScenarioCaseEntity.js';
-import scenarioGroups from './RealTimeScheduler.scenarios.json' with { type: 'json' };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(RealTimeSchedulerScenarioCaseEntity.Schema, RealTimeSchedulerScenarioCaseEntity.Node);
-
-type ScenarioCase = RealTimeSchedulerScenarioCaseEntity.Type;
-type OpenBag = ScenarioCase['expected'];
-type ScenarioRunnerContext = {
-  batch: OpenBag;
-  expected: OpenBag;
-  input: OpenBag;
-};
-type ScenarioRunner = (context: ScenarioRunnerContext) => Promise<void> | void;
+import scenarioGroups from './RealTimeScheduler.scenarios.json' with { 'type': 'json' };
 
 class AuditScheduler extends RealTimeScheduler {
   public scheduleCount = 0;
@@ -49,393 +35,10 @@ class AuditScheduler extends RealTimeScheduler {
   }
 }
 
-function numberField(input: OpenBag, key: string): number {
-  const value = input[key];
-  if (typeof value !== 'number') {
-    throw RuntimeError.create(`Expected numeric field '${key}'`);
-  }
-  return value;
-}
-
-function futureAtMs(input: OpenBag): number {
-  return Date.now() + numberField(input, 'delayMs');
-}
-
-const scenarioRunners = {
-  'scheduleAt-returns-task': ({ expected, input }): void => {
-    const sched = RealTimeScheduler.create();
-    const atMs = futureAtMs(input);
-    const task = sched.scheduleAt(atMs, () => { return; });
-    assert.strictEqual(task.atMs === atMs, expected.atMsMatches);
-    assert.strictEqual(task.id.length > 0, expected.hasId);
-    task.cancel();
-    sched.cancelAll();
-  },
-
-  'backend-overrides': ({ batch, input }): void => {
-    class BackendScheduler extends RealTimeScheduler {
-      static override create(): BackendScheduler {
-        return new BackendScheduler();
-      }
-      public timeoutCount = 0;
-      public intervalCount = 0;
-      public clearCount = 0;
-
-      protected override createTimeout(fire: () => void, delayMs: number): ReturnType<typeof setTimeout> {
-        this.timeoutCount++;
-        return super.createTimeout(fire, delayMs);
-      }
-
-      protected override createInterval(fire: () => void, intervalMs: number): ReturnType<typeof setInterval> {
-        this.intervalCount++;
-        return super.createInterval(fire, intervalMs);
-      }
-
-      protected override clearTimer(handle: ReturnType<typeof setTimeout>, variant: 'interval' | 'timeout'): void {
-        this.clearCount++;
-        super.clearTimer(handle, variant);
-      }
-    }
-
-    const sched = BackendScheduler.create();
-    const timeoutTask = sched.scheduleAt(futureAtMs(input), () => { return; });
-    const intervalTask = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { return; });
-    const tasks = [timeoutTask, intervalTask];
-    assert.strictEqual(tasks.length, numberField(batch, 'taskCount'));
-    assert.ok(sched.timeoutCount >= 1);
-    assert.ok(sched.intervalCount >= 1);
-    timeoutTask.cancel();
-    intervalTask.cancel();
-    assert.ok(sched.clearCount >= 2);
-    sched.cancelAll();
-  },
-
-  'scheduleEvery-returns-task': ({ expected, input }): void => {
-    const sched = RealTimeScheduler.create();
-    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { return; });
-    assert.strictEqual(task.atMs > 0, expected.atMsPositive);
-    assert.strictEqual(task.id.length > 0, expected.hasId);
-    task.cancel();
-    sched.cancelAll();
-  },
-
-  'cancelAll-clears-multiple': ({ batch, expected, input }): void => {
-    const sched = new AuditScheduler();
-    for (let index = 0; index < numberField(batch, 'taskCount'); index++) {
-      sched.scheduleAt(futureAtMs(input), () => { return; });
-    }
-    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
-    sched.cancelAll();
-    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
-  },
-
-  'cancel-before-fire': ({ expected, input }): void => {
-    const sched = new AuditScheduler();
-    const task = sched.scheduleAt(futureAtMs(input), () => { return; });
-    task.cancel();
-    task.cancel();
-    sched.cancelAll();
-    assert.strictEqual(sched.cancelCount, expected.cancelCount);
-  },
-
-  'cancelAll-interval-task': ({ expected, input }): void => {
-    const sched = new AuditScheduler();
-    sched.scheduleEvery(numberField(input, 'intervalMs'), () => { return; });
-    sched.cancelAll();
-    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
-    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
-  },
-
-  'cancelAll-empty': ({ batch, expected }): void => {
-    const sched = new AuditScheduler();
-    assert.strictEqual(numberField(batch, 'taskCount'), 0);
-    sched.cancelAll();
-    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
-    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
-  },
-
-  'unique-task-ids': ({ batch, expected, input }): void => {
-    const sched = RealTimeScheduler.create();
-    const idSet = new Set<string>();
-    const taskCount = numberField(batch, 'taskCount');
-    for (let index = 0; index < taskCount; index++) {
-      const task = sched.scheduleAt(futureAtMs(input), () => { return; });
-      idSet.add(task.id);
-    }
-    sched.cancelAll();
-    assert.strictEqual(idSet.size, taskCount);
-    assert.strictEqual(idSet.size === taskCount, expected.uniqueIds);
-  },
-
-  'rejecting-scheduleAt': ({ expected, input }): Promise<void> => {
-    let rejectionEvents = 0;
-    const onUnhandledRejection = (): void => {
-      rejectionEvents++;
-    };
-    const sched = RealTimeScheduler.create();
-    const atMs = Date.now() + numberField(input, 'pastMsOffset');
-    process.on('unhandledRejection', onUnhandledRejection);
-    sched.scheduleAt(atMs, async () => {
-      await Promise.resolve();
-      throw RuntimeError.create('scheduleAt reject');
-    });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
-      sched.cancelAll();
-    }).finally(() => {
-      process.off('unhandledRejection', onUnhandledRejection);
-    });
-  },
-
-  'rejecting-scheduleEvery': ({ expected, input }): Promise<void> => {
-    let rejectionEvents = 0;
-    const onUnhandledRejection = (): void => {
-      rejectionEvents++;
-    };
-    const sched = RealTimeScheduler.create();
-    process.on('unhandledRejection', onUnhandledRejection);
-    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), async () => {
-      await Promise.resolve();
-      throw RuntimeError.create('scheduleEvery reject');
-    });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      task.cancel();
-      sched.cancelAll();
-      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
-    }).finally(() => {
-      process.off('unhandledRejection', onUnhandledRejection);
-    });
-  },
-
-  'onSchedule-called': ({ expected, input }): void => {
-    class MissHookScheduler extends RealTimeScheduler {
-      public scheduleCount = 0;
-      public constructor() { super(); }
-      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
-        this.scheduleCount++;
-      }
-    }
-
-    const sched = new MissHookScheduler();
-    sched.scheduleAt(futureAtMs(input), () => { return; });
-    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
-  },
-
-  'onCancel-called': ({ expected, input }): void => {
-    const sched = new AuditScheduler();
-    const task = sched.scheduleAt(futureAtMs(input), () => { return; });
-    task.cancel();
-    assert.strictEqual(sched.cancelCount, expected.cancelCount);
-    sched.cancelAll();
-  },
-
-  'cancel-after-fire': ({ expected, input }): Promise<void> => {
-    const sched = new AuditScheduler();
-    let callbackCount = 0;
-    const task = sched.scheduleAt(Date.now() + numberField(input, 'delayMs'), () => { callbackCount++; });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      task.cancel();
-      task.cancel();
-      assert.strictEqual(callbackCount, expected.callbackCount);
-      assert.strictEqual(sched.fireCount, expected.fireCount);
-      assert.strictEqual(sched.cancelCount, expected.cancelCount);
-      sched.cancelAll();
-    });
-  },
-
-  'onCancelAll-called': ({ expected, input }): void => {
-    const sched = new AuditScheduler();
-    sched.scheduleAt(futureAtMs(input), () => { return; });
-    sched.cancelAll();
-    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
-  },
-
-  'custom-id': ({ expected, input }): void => {
-    class CustomIdScheduler extends RealTimeScheduler {
-      public constructor() { super(); }
-      protected override generateId(): string {
-        return 'custom-id';
-      }
-    }
-    const sched = new CustomIdScheduler();
-    const task = sched.scheduleAt(futureAtMs(input), () => { return; });
-    assert.strictEqual(task.id, expected.id);
-    sched.cancelAll();
-  },
-
-  'onMiss-past-scheduleAt': ({ expected, input }): void => {
-    class MissHookScheduler extends RealTimeScheduler {
-      public missIds: string[] = [];
-      public missAtMs: number[] = [];
-      public constructor() { super(); }
-      protected override onMiss(id: string, atMs: number, _nowMs: number): void {
-        this.missIds.push(id);
-        this.missAtMs.push(atMs);
-      }
-    }
-    const sched = new MissHookScheduler();
-    const pastMs = Date.now() + numberField(input, 'pastMsOffset');
-    const task = sched.scheduleAt(pastMs, () => { return; });
-    assert.strictEqual(sched.missIds.length, expected.missCount);
-    assert.strictEqual(sched.missAtMs[0], pastMs);
-    task.cancel();
-    sched.cancelAll();
-  },
-
-  'onMiss-future-scheduleAt': ({ expected, input }): void => {
-    class MissHookScheduler extends RealTimeScheduler {
-      public missCount = 0;
-      public constructor() { super(); }
-      protected override onMiss(_id: string, _atMs: number, _nowMs: number): void {
-        this.missCount++;
-      }
-    }
-    const sched = new MissHookScheduler();
-    const task = sched.scheduleAt(Date.now() + numberField(input, 'futureMsOffset'), () => { return; });
-    assert.strictEqual(sched.missCount, expected.missCount);
-    task.cancel();
-    sched.cancelAll();
-  },
-
-  'onFireError-sync': ({ expected, input }): Promise<void> => {
-    class FireErrorHookScheduler extends RealTimeScheduler {
-      public fireErrorCount = 0;
-      public constructor() { super(); }
-      protected override onFireError(_id: string, _error: Error): void {
-        this.fireErrorCount++;
-      }
-    }
-    const sched = new FireErrorHookScheduler();
-    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), () => { throw RuntimeError.create('sync throw'); });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
-      sched.cancelAll();
-    });
-  },
-
-  'onFireError-async': ({ expected, input }): Promise<void> => {
-    class FireErrorHookScheduler extends RealTimeScheduler {
-      public fireErrorCount = 0;
-      public constructor() { super(); }
-      protected override onFireError(_id: string, _error: Error): void {
-        this.fireErrorCount++;
-      }
-    }
-    const sched = new FireErrorHookScheduler();
-    sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), async () => { throw RuntimeError.create('async reject'); });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
-      sched.cancelAll();
-    });
-  },
-
-  'onIdle-after-cancelAll': ({ expected, input }): void => {
-    class IdleHookScheduler extends RealTimeScheduler {
-      public idleCount = 0;
-      public constructor() { super(); }
-      protected override onIdle(): void {
-        this.idleCount++;
-      }
-    }
-    const sched = new IdleHookScheduler();
-    sched.scheduleAt(futureAtMs(input), () => { return; });
-    sched.cancelAll();
-    assert.strictEqual(sched.idleCount, expected.idleCount);
-  },
-
-  'onIdle-empty-cancelAll': ({ batch, expected }): void => {
-    class IdleHookScheduler extends RealTimeScheduler {
-      public idleCount = 0;
-      public constructor() { super(); }
-      protected override onIdle(): void {
-        this.idleCount++;
-      }
-    }
-    const sched = new IdleHookScheduler();
-    assert.strictEqual(numberField(batch, 'idleCount'), expected.idleCount);
-    sched.cancelAll();
-    assert.strictEqual(sched.idleCount, expected.idleCount);
-  },
-
-  'chained-timeout-fire': ({ batch, expected, input }): void => {
-    const maxDelayMs = numberField(input, 'maxDelayMs');
-    const stageCount = numberField(batch, 'chainStageCount');
-
-    class TinyMaxDelayScheduler extends RealTimeScheduler {
-      public fireCount = 0;
-      public scheduleCount = 0;
-      public constructor() { super(); }
-      protected override get maximumTimeoutDelayMs(): number {
-        return maxDelayMs;
-      }
-      protected override onFire(_id: string): void {
-        this.fireCount++;
-      }
-      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
-        this.scheduleCount++;
-      }
-    }
-
-    // Drives the multi-stage chain deterministically: mocks Date.now() and setTimeout
-    // so each stage advances by exactly maxDelayMs, with no reliance on wall-clock margins.
-    mock.timers.enable({ apis: ['Date', 'setTimeout'] });
-    try {
-      const sched = new TinyMaxDelayScheduler();
-      const atMs = Date.now() + (maxDelayMs * stageCount);
-      let fired = false;
-      const task = sched.scheduleAt(atMs, () => { fired = true; });
-
-      for (let stage = 0; stage < stageCount; stage++) {
-        mock.timers.tick(maxDelayMs);
-      }
-
-      assert.strictEqual(fired, expected.completed);
-      assert.strictEqual(sched.fireCount, 1);
-      assert.strictEqual(sched.scheduleCount, 1);
-      assert.strictEqual(task.atMs, atMs);
-      sched.cancelAll();
-    } finally {
-      mock.timers.reset();
-    }
-  },
-
-  'chained-timeout-cancel': ({ batch, expected, input }): void => {
-    const maxDelayMs = numberField(input, 'maxDelayMs');
-    const stageCount = numberField(batch, 'chainStageCount');
-
-    class TinyMaxDelayScheduler extends RealTimeScheduler {
-      public fireCount = 0;
-      public constructor() { super(); }
-      protected override get maximumTimeoutDelayMs(): number {
-        return maxDelayMs;
-      }
-      protected override onFire(_id: string): void {
-        this.fireCount++;
-      }
-    }
-
-    // Cancels mid-first-stage, then drives the rest of the chain's virtual time to
-    // completion deterministically, proving cancellation holds across the whole chain.
-    mock.timers.enable({ apis: ['Date', 'setTimeout'] });
-    try {
-      const sched = new TinyMaxDelayScheduler();
-      const atMs = Date.now() + (maxDelayMs * stageCount);
-      let fired = false;
-      const task = sched.scheduleAt(atMs, () => { fired = true; });
-
-      mock.timers.tick(maxDelayMs / 2);
-      task.cancel();
-      mock.timers.tick((maxDelayMs * stageCount) - (maxDelayMs / 2));
-
-      assert.strictEqual(fired, false);
-      assert.strictEqual(sched.fireCount, 0);
-      assert.strictEqual(!fired && sched.fireCount === 0, expected.completed);
-    } finally {
-      mock.timers.reset();
-    }
-  },
-
-  'async-onFire-rejection-guarded': ({ expected, input }): Promise<void> => {
+class RealTimeSchedulerRunners {
+  static async 'async-onFire-rejection-guarded'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'async-onFire-rejection-guarded'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
     const recordedHookNames: string[] = [];
     const recordedCauses: Error[] = [];
 
@@ -451,9 +54,14 @@ const scenarioRunners = {
     class AsyncRejectingFireScheduler extends RealTimeScheduler {
       protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
       public constructor() { super(); }
-      protected override async onFire(_id: string): Promise<void> {
-        await Promise.resolve();
-        throw rejectionError;
+      public static make(): AsyncRejectingFireScheduler {
+        const scheduler = new AsyncRejectingFireScheduler();
+        const rejectFire = (): Promise<void> => {
+          const rejection = RealTimeSchedulerRunners.rejectFireAfterTick(rejectionError);
+          return rejection;
+        };
+        Object.defineProperty(scheduler, 'onFire', { 'value': rejectFire });
+        return scheduler;
       }
     }
 
@@ -463,25 +71,244 @@ const scenarioRunners = {
     };
     process.on('unhandledRejection', onUnhandledRejection);
 
-    const sched = new AsyncRejectingFireScheduler();
+    const sched = AsyncRejectingFireScheduler.make();
 
-    return (async () => {
-      try {
-        sched.scheduleAt(Date.now() + numberField(input, 'pastMsOffset'), () => { return; });
-        await setTimeoutPromise(numberField(input, 'waitMs'));
-        await new Promise((resolve) => { setImmediate(resolve); });
-        await new Promise((resolve) => { setImmediate(resolve); });
-        assert.strictEqual(rejectionEvents, Number(expected.unhandledRejections));
-        assert.deepStrictEqual(recordedHookNames, ['onFire']);
-        assert.strictEqual(recordedCauses[0], rejectionError);
-      } finally {
-        process.off('unhandledRejection', onUnhandledRejection);
-        sched.cancelAll();
+    try {
+      sched.scheduleAt(Date.now() + input.pastMsOffset, () => { return; });
+      await timersPromises.setTimeout(input.waitMs);
+      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => { setImmediate(resolve); });
+      assert.strictEqual(rejectionEvents, expected.unhandledRejections);
+      assert.deepStrictEqual(recordedHookNames, ['onFire']);
+      assert.strictEqual(recordedCauses[0], rejectionError);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+      sched.cancelAll();
+    }
+  }
+
+  static 'backend-overrides'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'backend-overrides'>): void {
+    const batch = scenarioCase.input.batch;
+    const input = scenarioCase.input.scheduler;
+    class BackendScheduler extends RealTimeScheduler {
+      static override create(): BackendScheduler {
+        return new BackendScheduler();
       }
-    })();
-  },
+      public timeoutCount = 0;
+      public intervalCount = 0;
+      public clearCount = 0;
 
-  'onDrift-captured': ({ expected, input }): Promise<void> => {
+      protected override createTimeout(fire: () => void, delayMs: number): ReturnType<typeof setTimeout> {
+        this.timeoutCount++;
+        const handle = super.createTimeout(fire, delayMs);
+        return handle;
+      }
+
+      protected override createInterval(fire: () => void, intervalMs: number): ReturnType<typeof setInterval> {
+        this.intervalCount++;
+        const handle = super.createInterval(fire, intervalMs);
+        return handle;
+      }
+
+      protected override clearTimer(handle: ReturnType<typeof setTimeout>, variant: 'interval' | 'timeout'): void {
+        this.clearCount++;
+        super.clearTimer(handle, variant);
+      }
+    }
+
+    const sched = BackendScheduler.create();
+    const timeoutTask = sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    const intervalTask = sched.scheduleEvery(input.intervalMs, () => { return; });
+    const tasks = [timeoutTask, intervalTask];
+    assert.strictEqual(tasks.length, batch.taskCount);
+    assert.ok(sched.timeoutCount >= 1);
+    assert.ok(sched.intervalCount >= 1);
+    timeoutTask.cancel();
+    intervalTask.cancel();
+    assert.ok(sched.clearCount >= 2);
+    sched.cancelAll();
+  }
+
+  static async 'cancel-after-fire'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'cancel-after-fire'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    let callbackCount = 0;
+    const task = sched.scheduleAt(Date.now() + input.delayMs, () => { callbackCount++; });
+    await timersPromises.setTimeout(input.waitMs);
+    task.cancel();
+    task.cancel();
+    assert.strictEqual(callbackCount, expected.callbackCount);
+    assert.strictEqual(sched.fireCount, expected.fireCount);
+    assert.strictEqual(sched.cancelCount, expected.cancelCount);
+    sched.cancelAll();
+  }
+
+  static 'cancel-before-fire'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'cancel-before-fire'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    const task = sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    task.cancel();
+    task.cancel();
+    sched.cancelAll();
+    assert.strictEqual(sched.cancelCount, expected.cancelCount);
+  }
+
+  static 'cancelAll-clears-multiple'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'cancelAll-clears-multiple'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    for (let index = 0; index < batch.taskCount; index++) {
+      sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    }
+    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
+    sched.cancelAll();
+    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
+  }
+
+  static 'cancelAll-empty'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'cancelAll-empty'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    const sched = new AuditScheduler();
+    assert.strictEqual(batch.taskCount, 0);
+    sched.cancelAll();
+    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
+    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
+  }
+
+  static 'cancelAll-interval-task'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'cancelAll-interval-task'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    sched.scheduleEvery(input.intervalMs, () => { return; });
+    sched.cancelAll();
+    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
+    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
+  }
+
+  static 'chained-timeout-cancel'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'chained-timeout-cancel'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const maximumDelayMs = input.maximumDelayMs;
+    const stageCount = batch.chainStageCount;
+
+    class TinyMaximumDelayScheduler extends RealTimeScheduler {
+      public fireCount = 0;
+      public constructor() { super(); }
+      protected override get maximumTimeoutDelayMs(): number {
+        return maximumDelayMs;
+      }
+      protected override onFire(_id: string): void {
+        this.fireCount++;
+      }
+    }
+
+    // Cancels mid-first-stage, then drives the rest of the chain's virtual time to
+    // completion deterministically, proving cancellation holds across the whole chain.
+    mock.timers.enable({ 'apis': ['Date', 'setTimeout'] });
+    try {
+      const sched = new TinyMaximumDelayScheduler();
+      const atMs = Date.now() + (maximumDelayMs * stageCount);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => { fired = true; });
+
+      mock.timers.tick(maximumDelayMs / 2);
+      task.cancel();
+      mock.timers.tick((maximumDelayMs * stageCount) - (maximumDelayMs / 2));
+
+      assert.strictEqual(fired, false);
+      assert.strictEqual(sched.fireCount, 0);
+      assert.strictEqual(!fired && sched.fireCount === 0, expected.completed);
+    } finally {
+      mock.timers.reset();
+    }
+  }
+
+  static 'chained-timeout-fire'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'chained-timeout-fire'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const maximumDelayMs = input.maximumDelayMs;
+    const stageCount = batch.chainStageCount;
+
+    class TinyMaximumDelayScheduler extends RealTimeScheduler {
+      public fireCount = 0;
+      public scheduleCount = 0;
+      public constructor() { super(); }
+      protected override get maximumTimeoutDelayMs(): number {
+        return maximumDelayMs;
+      }
+      protected override onFire(_id: string): void {
+        this.fireCount++;
+      }
+      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
+        this.scheduleCount++;
+      }
+    }
+
+    // Drives the multi-stage chain deterministically: mocks Date.now() and setTimeout
+    // so each stage advances by exactly maximumDelayMs, with no reliance on wall-clock margins.
+    mock.timers.enable({ 'apis': ['Date', 'setTimeout'] });
+    try {
+      const sched = new TinyMaximumDelayScheduler();
+      const atMs = Date.now() + (maximumDelayMs * stageCount);
+      let fired = false;
+      const task = sched.scheduleAt(atMs, () => { fired = true; });
+
+      for (let stage = 0; stage < stageCount; stage++) {
+        mock.timers.tick(maximumDelayMs);
+      }
+
+      assert.strictEqual(fired, expected.completed);
+      assert.strictEqual(sched.fireCount, 1);
+      assert.strictEqual(sched.scheduleCount, 1);
+      assert.strictEqual(task.atMs, atMs);
+      sched.cancelAll();
+    } finally {
+      mock.timers.reset();
+    }
+  }
+
+  static 'custom-id'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'custom-id'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class CustomIdScheduler extends RealTimeScheduler {
+      public constructor() { super(); }
+      protected override generateId(): string {
+        return 'custom-id';
+      }
+    }
+    const sched = new CustomIdScheduler();
+    const task = sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    assert.strictEqual(task.id, expected.id);
+    sched.cancelAll();
+  }
+
+  static 'onCancel-called'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onCancel-called'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    const task = sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    task.cancel();
+    assert.strictEqual(sched.cancelCount, expected.cancelCount);
+    sched.cancelAll();
+  }
+
+  static 'onCancelAll-called'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onCancelAll-called'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = new AuditScheduler();
+    sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    sched.cancelAll();
+    assert.strictEqual(sched.cancelAllCount, expected.cancelAllCount);
+  }
+
+  static async 'onDrift-captured'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onDrift-captured'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
     class DriftScheduler extends RealTimeScheduler {
       public driftCount = 0;
       public driftMs: number[] = [];
@@ -495,45 +322,206 @@ const scenarioRunners = {
     const originalNow = Date.now;
     let tick = 0;
 
+    const sched = new DriftScheduler();
+    let fired = false;
     try {
       Date.now = (): number => {
-        tick += numberField(input, 'clockStepMs');
+        tick += input.clockStepMs;
         return tick;
       };
 
-      const sched = new DriftScheduler();
-      let fired = false;
-      sched.scheduleAt(numberField(input, 'atMs'), () => { fired = true; });
-      return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-        assert.strictEqual(fired, expected.completed);
-        assert.strictEqual(sched.driftCount, 1);
-        assert.ok(sched.driftMs[0] !== undefined && sched.driftMs[0] > 0);
-        sched.cancelAll();
-      });
+      sched.scheduleAt(input.atMs, () => { fired = true; });
     } finally {
       Date.now = originalNow;
     }
-  },
+    await timersPromises.setTimeout(input.waitMs);
+    assert.strictEqual(fired, expected.completed);
+    assert.strictEqual(sched.driftCount, 1);
+    assert.ok(sched.driftMs[0] !== undefined && sched.driftMs[0] > 0);
+    sched.cancelAll();
+  }
 
-  'scheduleEvery-sync-throw': ({ expected, input }): Promise<void> => {
-    class FireErrorScheduler extends RealTimeScheduler {
+  static async 'onFireError-async'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onFireError-async'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class FireErrorHookScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
       protected override onFireError(_id: string, _error: Error): void {
         this.fireErrorCount++;
       }
     }
+    const sched = new FireErrorHookScheduler();
+    sched.scheduleAt(Date.now() + input.pastMsOffset, async () => { return await Promise.reject(RuntimeError.create('async reject')); });
+    await timersPromises.setTimeout(input.waitMs);
+    assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
+    sched.cancelAll();
+  }
 
-    const sched = new FireErrorScheduler();
-    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), () => { throw RuntimeError.create('interval sync throw'); });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      task.cancel();
-      assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
+  static async 'onFireError-sync'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onFireError-sync'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class FireErrorHookScheduler extends RealTimeScheduler {
+      public fireErrorCount = 0;
+      public constructor() { super(); }
+      protected override onFireError(_id: string, _error: Error): void {
+        this.fireErrorCount++;
+      }
+    }
+    const sched = new FireErrorHookScheduler();
+    sched.scheduleAt(Date.now() + input.pastMsOffset, () => { throw RuntimeError.create('sync throw'); });
+    await timersPromises.setTimeout(input.waitMs);
+    assert.strictEqual(sched.fireErrorCount, expected.fireErrorCount);
+    sched.cancelAll();
+  }
+
+  static 'onIdle-after-cancelAll'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onIdle-after-cancelAll'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class IdleHookScheduler extends RealTimeScheduler {
+      public idleCount = 0;
+      public constructor() { super(); }
+      protected override onIdle(): void {
+        this.idleCount++;
+      }
+    }
+    const sched = new IdleHookScheduler();
+    sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    sched.cancelAll();
+    assert.strictEqual(sched.idleCount, expected.idleCount);
+  }
+
+  static 'onIdle-empty-cancelAll'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onIdle-empty-cancelAll'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    class IdleHookScheduler extends RealTimeScheduler {
+      public idleCount = 0;
+      public constructor() { super(); }
+      protected override onIdle(): void {
+        this.idleCount++;
+      }
+    }
+    const sched = new IdleHookScheduler();
+    assert.strictEqual(batch.idleCount, expected.idleCount);
+    sched.cancelAll();
+    assert.strictEqual(sched.idleCount, expected.idleCount);
+  }
+
+  static 'onMiss-future-scheduleAt'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onMiss-future-scheduleAt'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class MissHookScheduler extends RealTimeScheduler {
+      public missCount = 0;
+      public constructor() { super(); }
+      protected override onMiss(_id: string, _atMs: number, _nowMs: number): void {
+        this.missCount++;
+      }
+    }
+    const sched = new MissHookScheduler();
+    const task = sched.scheduleAt(Date.now() + input.futureMsOffset, () => { return; });
+    assert.strictEqual(sched.missCount, expected.missCount);
+    task.cancel();
+    sched.cancelAll();
+  }
+
+  static 'onMiss-past-scheduleAt'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onMiss-past-scheduleAt'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class MissHookScheduler extends RealTimeScheduler {
+      public missIds: string[] = [];
+      public missAtMs: number[] = [];
+      public constructor() { super(); }
+      protected override onMiss(id: string, atMs: number, _nowMs: number): void {
+        this.missIds.push(id);
+        this.missAtMs.push(atMs);
+      }
+    }
+    const sched = new MissHookScheduler();
+    const pastMs = Date.now() + input.pastMsOffset;
+    const task = sched.scheduleAt(pastMs, () => { return; });
+    assert.strictEqual(sched.missIds.length, expected.missCount);
+    assert.strictEqual(sched.missAtMs[0], pastMs);
+    task.cancel();
+    sched.cancelAll();
+  }
+
+  static 'onSchedule-called'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'onSchedule-called'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class MissHookScheduler extends RealTimeScheduler {
+      public scheduleCount = 0;
+      public constructor() { super(); }
+      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
+        this.scheduleCount++;
+      }
+    }
+
+    const sched = new MissHookScheduler();
+    sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+    assert.strictEqual(sched.scheduleCount, expected.scheduleCount);
+  }
+
+  static async 'rejecting-scheduleAt'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'rejecting-scheduleAt'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
+    };
+    const sched = RealTimeScheduler.create();
+    const atMs = Date.now() + input.pastMsOffset;
+    process.on('unhandledRejection', onUnhandledRejection);
+    try {
+      sched.scheduleAt(atMs, async () => {
+        await Promise.resolve();
+        throw RuntimeError.create('scheduleAt reject');
+      });
+      await timersPromises.setTimeout(input.waitMs);
+      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
       sched.cancelAll();
-    });
-  },
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  }
 
-  'scheduleEvery-async-reject': ({ expected, input }): Promise<void> => {
+  static async 'rejecting-scheduleEvery'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'rejecting-scheduleEvery'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    let rejectionEvents = 0;
+    const onUnhandledRejection = (): void => {
+      rejectionEvents++;
+    };
+    const sched = RealTimeScheduler.create();
+    process.on('unhandledRejection', onUnhandledRejection);
+    try {
+      const task = sched.scheduleEvery(input.intervalMs, async () => {
+        await Promise.resolve();
+        throw RuntimeError.create('scheduleEvery reject');
+      });
+      await timersPromises.setTimeout(input.waitMs);
+      task.cancel();
+      sched.cancelAll();
+      assert.strictEqual(rejectionEvents, expected.unhandledRejectionCount);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  }
+
+  static 'scheduleAt-returns-task'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'scheduleAt-returns-task'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = RealTimeScheduler.create();
+    const atMs = Date.now() + input.delayMs;
+    const task = sched.scheduleAt(atMs, () => { return; });
+    assert.strictEqual(task.atMs === atMs, expected.atMsMatches);
+    assert.strictEqual(task.id.length > 0, expected.hasId);
+    task.cancel();
+    sched.cancelAll();
+  }
+
+  static async 'scheduleEvery-async-reject'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'scheduleEvery-async-reject'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
     class FireErrorScheduler extends RealTimeScheduler {
       public fireErrorCount = 0;
       public constructor() { super(); }
@@ -543,41 +531,71 @@ const scenarioRunners = {
     }
 
     const sched = new FireErrorScheduler();
-    const task = sched.scheduleEvery(numberField(input, 'intervalMs'), async () => {
+    const task = sched.scheduleEvery(input.intervalMs, async () => {
       await Promise.resolve();
       throw RuntimeError.create('interval async reject');
     });
-    return setTimeoutPromise(numberField(input, 'waitMs')).then(() => {
-      task.cancel();
-      assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
-      sched.cancelAll();
-    });
+    await timersPromises.setTimeout(input.waitMs);
+    task.cancel();
+    assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
+    sched.cancelAll();
   }
-} satisfies Record<string, ScenarioRunner>;
 
-type ScenarioShape = keyof typeof scenarioRunners;
-
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.hasOwn(scenarioRunners, shape);
-}
-
-function scenarioRunner(shape: string): ScenarioRunner {
-  assert.ok(isScenarioShape(shape), `Unknown RealTimeScheduler scenario shape: ${shape}`);
-  return scenarioRunners[shape];
-}
-
-function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  const input = scenarioCase.input.scheduler;
-  const batch = scenarioCase.input.batch ?? {};
-  const expected = scenarioCase.expected;
-
-  return scenarioRunner(scenarioCase.shape)({ batch, expected, input });
-}
-
-void describe('RealTimeScheduler', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
+  static 'scheduleEvery-returns-task'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'scheduleEvery-returns-task'>): void {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = RealTimeScheduler.create();
+    const task = sched.scheduleEvery(input.intervalMs, () => { return; });
+    assert.strictEqual(task.atMs > 0, expected.atMsPositive);
+    assert.strictEqual(task.id.length > 0, expected.hasId);
+    task.cancel();
+    sched.cancelAll();
   }
+
+  static async 'scheduleEvery-sync-throw'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'scheduleEvery-sync-throw'>): Promise<void> {
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    class FireErrorScheduler extends RealTimeScheduler {
+      public fireErrorCount = 0;
+      public constructor() { super(); }
+      protected override onFireError(_id: string, _error: Error): void {
+        this.fireErrorCount++;
+      }
+    }
+
+    const sched = new FireErrorScheduler();
+    const task = sched.scheduleEvery(input.intervalMs, () => { throw RuntimeError.create('interval sync throw'); });
+    await timersPromises.setTimeout(input.waitMs);
+    task.cancel();
+    assert.strictEqual(sched.fireErrorCount > 0, expected.completed);
+    sched.cancelAll();
+  }
+
+  static 'unique-task-ids'(scenarioCase: ScenarioCaseOfType<RealTimeSchedulerScenarioCaseEntity.Type, 'unique-task-ids'>): void {
+    const batch = scenarioCase.input.batch;
+    const expected = scenarioCase.expected;
+    const input = scenarioCase.input.scheduler;
+    const sched = RealTimeScheduler.create();
+    const idSet = new Set<string>();
+    const taskCount = batch.taskCount;
+    for (let index = 0; index < taskCount; index++) {
+      const task = sched.scheduleAt(Date.now() + input.delayMs, () => { return; });
+      idSet.add(task.id);
+    }
+    sched.cancelAll();
+    assert.strictEqual(idSet.size, taskCount);
+    assert.strictEqual(idSet.size === taskCount, expected.uniqueIds);
+  }
+
+  private static async rejectFireAfterTick(rejectionError: RuntimeError): Promise<void> {
+    await Promise.resolve();
+    throw rejectionError;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': RealTimeSchedulerScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'RealTimeScheduler',
+  'runners': RealTimeSchedulerRunners
 });

@@ -1,34 +1,37 @@
-import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-/** Builds one `oneOf` branch's `Schema`/`Node` pair from a single call, so the two can never drift apart. */
-function defineCase<
-  const TShape extends string,
-  TInputNode extends SchemaNodeInterface<unknown, unknown>,
-  TExpectedNode extends SchemaNodeInterface<unknown, unknown>
->(shape: TShape, inputSchema: Record<string, unknown>, inputNode: TInputNode, expectedSchema: Record<string, unknown>, expectedNode: TExpectedNode) {
-  const schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': nonEmptyStringSchema,
-      'expected': expectedSchema,
-      'input': inputSchema,
-      'name': nonEmptyStringSchema,
-      'shape': { 'const': shape }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
-  };
-  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+class VirtualFileSystemSubclassScenarioCaseEntityBuilders {
+  /** Builds one `oneOf` branch's `Schema`/`Node` pair from a single call, so the two can never drift apart. */
+  static defineCase<
+    const TShape extends string,
+    TInputNode extends SchemaNodeInterface<unknown, unknown>,
+    TExpectedNode extends SchemaNodeInterface<unknown, unknown>>(shape: TShape, inputSchema: Record<string, unknown>, inputNode: TInputNode, expectedSchema: Record<string, unknown>, expectedNode: TExpectedNode) {
+    const schema = {
+      'additionalProperties': false,
+      'properties': {
+        'description': nonEmptyStringSchema,
+        'expected': expectedSchema,
+        'input': inputSchema,
+        'name': nonEmptyStringSchema,
+        'shape': { 'const': shape }
+      },
+      'required': ['description', 'expected', 'input', 'name', 'shape'],
+      'type': 'object'
+    };
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': NonEmptyStringNode,
       'expected': expectedNode,
       'input': inputNode,
       'name': NonEmptyStringNode,
       'shape': SchemaNode.defineConst({}, shape)
     }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  return { node, schema };
+    const result = { 'node': node, 'schema': schema };
+    return result;
+  }
 }
 
 const StringNode = SchemaNode.defineString({ 'type': 'string' } as const);
@@ -103,7 +106,7 @@ const hookNameWrittenExpectedSchema = {
   'type': 'object'
 } as const;
 
-const onCreateNewFiles = defineCase(
+const onCreateNewFiles = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onCreate-new-files',
   { 'additionalProperties': false, 'properties': { 'files': fileEntryArraySchema }, 'required': ['files'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -111,7 +114,7 @@ const onCreateNewFiles = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'createLog': StringArrayNode }, ['createLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onCreateRecursiveMkdir = defineCase(
+const onCreateRecursiveMkdir = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onCreate-recursive-mkdir',
   { 'additionalProperties': false, 'properties': { 'path': stringSchema }, 'required': ['path'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -120,7 +123,7 @@ const onCreateRecursiveMkdir = defineCase(
     'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onCreateNoOverwrite = defineCase(
+const onCreateNoOverwrite = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onCreate-no-overwrite',
   firstPathSecondInputSchema,
   FirstPathSecondInputNode,
@@ -128,7 +131,7 @@ const onCreateNoOverwrite = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'createCount': NumberNode }, ['createCount'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onWriteUpdateOnly = defineCase(
+const onWriteUpdateOnly = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onWrite-update-only',
   firstPathSecondInputSchema,
   FirstPathSecondInputNode,
@@ -136,7 +139,7 @@ const onWriteUpdateOnly = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'writeLog': StringArrayNode }, ['writeLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onReadReadFileSync = defineCase(
+const onReadReadFileSync = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onRead-readFileSync',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -144,7 +147,7 @@ const onReadReadFileSync = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'readLog': StringArrayNode }, ['readLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onReadReaddirSync = defineCase(
+const onReadReaddirSync = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onRead-readdirSync',
   { 'additionalProperties': false, 'properties': { 'path': stringSchema }, 'required': ['path'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'path': StringNode }, ['path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -153,7 +156,7 @@ const onReadReaddirSync = defineCase(
     'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onDeleteUnlinkSync = defineCase(
+const onDeleteUnlinkSync = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onDelete-unlinkSync',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -161,7 +164,7 @@ const onDeleteUnlinkSync = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteLog': StringArrayNode }, ['deleteLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onDeleteNotBeforeUnlink = defineCase(
+const onDeleteNotBeforeUnlink = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onDelete-not-before-unlink',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -169,7 +172,7 @@ const onDeleteNotBeforeUnlink = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'deleteCount': NumberNode }, ['deleteCount'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const onRenamePaths = defineCase(
+const onRenamePaths = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'onRename-paths',
   contentFromToInputSchema,
   ContentFromToInputNode,
@@ -177,7 +180,7 @@ const onRenamePaths = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'renameLog': FromToEntryArrayNode }, ['renameLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const fullTrace = defineCase(
+const fullTrace = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'full-trace',
   {
     'additionalProperties': false,
@@ -199,15 +202,15 @@ const fullTrace = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'createLog': StringArrayNode,
-      'deleteLog': StringArrayNode,
-      'readLog': StringArrayNode,
-      'renameCount': NumberNode,
-      'writeLog': StringArrayNode
-    }, ['createLog', 'deleteLog', 'readLog', 'renameCount', 'writeLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    'createLog': StringArrayNode,
+    'deleteLog': StringArrayNode,
+    'readLog': StringArrayNode,
+    'renameCount': NumberNode,
+    'writeLog': StringArrayNode
+  }, ['createLog', 'deleteLog', 'readLog', 'renameCount', 'writeLog'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const subclassCreateInstance = defineCase(
+const subclassCreateInstance = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'subclass-create-instance',
   { 'additionalProperties': false, 'properties': { 'factory': stringSchema }, 'required': ['factory'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'factory': StringNode }, ['factory'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -220,8 +223,8 @@ const subclassCreateInstance = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'instanceofBase': BooleanNode, 'instanceofSubclass': BooleanNode }, ['instanceofBase', 'instanceofSubclass'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const throwingCreateHook = defineCase('throwing-create-hook', contentPathInputSchema, ContentPathInputNode, hookNameWrittenExpectedSchema, HookNameWrittenExpectedNode);
-const throwingWriteHook = defineCase(
+const throwingCreateHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase('throwing-create-hook', contentPathInputSchema, ContentPathInputNode, hookNameWrittenExpectedSchema, HookNameWrittenExpectedNode);
+const throwingWriteHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'throwing-write-hook',
   firstPathSecondInputSchema,
   FirstPathSecondInputNode,
@@ -229,7 +232,7 @@ const throwingWriteHook = defineCase(
   HookNameWrittenExpectedNode
 );
 
-const throwingReadHook = defineCase(
+const throwingReadHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'throwing-read-hook',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -237,7 +240,7 @@ const throwingReadHook = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode }, ['hookName'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const throwingRenameHook = defineCase(
+const throwingRenameHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'throwing-rename-hook',
   contentFromToInputSchema,
   ContentFromToInputNode,
@@ -250,7 +253,7 @@ const throwingRenameHook = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'hookName': StringNode, 'newContent': StringNode, 'oldExists': BooleanNode }, ['hookName', 'newContent', 'oldExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const throwingDeleteHook = defineCase(
+const throwingDeleteHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'throwing-delete-hook',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -264,7 +267,7 @@ const throwingDeleteHook = defineCase(
     'additionalProperties': false, 'patternProperties': {} })
 );
 
-const hookCauseChains = defineCase(
+const hookCauseChains = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'hook-cause-chains',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -272,7 +275,7 @@ const hookCauseChains = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'causeMatches': BooleanNode }, ['causeMatches'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const asyncCreateHook = defineCase(
+const asyncCreateHook = VirtualFileSystemSubclassScenarioCaseEntityBuilders.defineCase(
   'async-create-hook',
   contentPathInputSchema,
   ContentPathInputNode,
@@ -302,4 +305,7 @@ export namespace VirtualFileSystemSubclassScenarioCaseEntity {
     throwingWriteHook.node, throwingReadHook.node, throwingRenameHook.node, throwingDeleteHook.node, hookCauseChains.node, asyncCreateHook.node
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

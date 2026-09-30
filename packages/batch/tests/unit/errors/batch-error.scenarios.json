@@ -6,11 +6,11 @@
       "shape": "construction",
       "input": {
         "error": {
-          "message": "maxConcurrent must be a positive integer",
-          "args": {
+          "message": "maximumConcurrent must be a positive integer",
+          "errorOptions": {
             "correlationId": "corr-123",
             "metadata": {
-              "field": "maxConcurrent",
+              "field": "maximumConcurrent",
               "value": 0
             }
           }
@@ -20,25 +20,25 @@
         "code": "batch.invalidConfig",
         "correlationId": "corr-123",
         "metadata": {
-          "field": "maxConcurrent",
+          "field": "maximumConcurrent",
           "value": 0
         },
-        "message": "maxConcurrent must be a positive integer",
+        "message": "maximumConcurrent must be a positive integer",
         "retryable": false
       }
     },
     {
-      "name": "construction-without-args",
-      "description": "BatchError fills in default fields when optional args are omitted",
+      "name": "construction-without-errorOptions",
+      "description": "BatchError fills in default fields when optional errorOptions are omitted",
       "shape": "construction",
       "input": {
         "error": {
-          "message": "maxConcurrent must be a positive integer"
+          "message": "maximumConcurrent must be a positive integer"
         }
       },
       "expected": {
         "code": "batch.invalidConfig",
-        "message": "maxConcurrent must be a positive integer",
+        "message": "maximumConcurrent must be a positive integer",
         "retryable": false
       }
     },
@@ -49,7 +49,7 @@
       "input": {
         "error": {
           "message": "upstream batch submission timed out",
-          "args": {
+          "errorOptions": {
             "retryable": true
           }
         }

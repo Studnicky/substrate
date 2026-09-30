@@ -1,19 +1,17 @@
-import { fileURLToPath } from 'node:url';
+import { RuntimeError } from '@studnicky/errors/node';
+import { Signal } from '@studnicky/signal/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { setImmediate } from 'node:timers/promises';
 import { Worker } from 'node:worker_threads';
 
-import { Signal } from '@studnicky/signal/node';
+import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
-import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { WorkerFixturePath } from '../helpers/WorkerFixturePath.js';
 
 interface ItemInterface {
   readonly 'value': string;
-}
-
-function resolveWorkerPath(relativePath: string): string {
-  return fileURLToPath(new URL(relativePath, import.meta.url));
 }
 
 /**
@@ -24,8 +22,28 @@ function resolveWorkerPath(relativePath: string): string {
  */
 class WorkerKillingSignal extends Signal {
   static override create(): WorkerKillingSignal {
-    return new WorkerKillingSignal();
+    const signal = new WorkerKillingSignal();
+    return signal;
   }
+
+  /** Records every worker as it registers for 'online' — the same moment `createWorker` adds it to `workerRecords`. */
+  static observeRegistration(worker: unknown, event: unknown): void {
+    if (WorkerKillingSignal.#recording && event === 'online' && worker instanceof Worker) {
+      WorkerKillingSignal.#activeWorkers.push(worker);
+    }
+  }
+
+  static startRecording(): void {
+    WorkerKillingSignal.#activeWorkers = [];
+    WorkerKillingSignal.#recording = true;
+  }
+
+  static stopRecording(): void {
+    WorkerKillingSignal.#recording = false;
+  }
+
+  static #activeWorkers: Worker[] = [];
+  static #recording = false;
   #armed = 0;
   readonly killed: Worker[] = [];
 
@@ -34,47 +52,38 @@ class WorkerKillingSignal extends Signal {
   }
 
   protected override async onCompose(): Promise<void> {
-    if (this.#armed <= 0) { return; }
-    this.#armed -= 1;
-    // LIFO: the worker just handed to THIS compose() call is always the most recently
-    // registered one — a FIFO queue can instead hand back a self-healed replacement worker
-    // spawned by an earlier kill, killing a worker that is mid-task rather than mid-assignment.
-    const worker = WorkerKillingSignal.#activeWorkers.pop();
-    if (worker === undefined) { return; }
-    this.killed.push(worker);
-    const exited = new Promise<void>((resolve) => { worker.once('exit', () => { resolve(); }); });
-    await worker.terminate().catch(() => {});
-    await exited;
-    throw new Error(`WorkerKillingSignal: forced compose failure after killing worker ${String(this.killed.length)}`);
-  }
-
-  static #activeWorkers: Worker[] = [];
-
-  /** Records every worker as it registers for 'online' — the same moment `createWorker` adds it to `workerRecords`. */
-  static install(): () => void {
-    const originalOnce = Worker.prototype.once;
-    WorkerKillingSignal.#activeWorkers = [];
-    Worker.prototype.once = function patchedOnce(
-      this: Worker,
-      event: string | symbol,
-      listener: (...args: unknown[]) => void
-    ): Worker {
-      if (event === 'online') { WorkerKillingSignal.#activeWorkers.push(this); }
-      return originalOnce.call(this, event, listener);
-    };
-    return () => { Worker.prototype.once = originalOnce; };
+    if (this.#armed > 0) {
+      this.#armed -= 1;
+      // LIFO: the worker just handed to THIS compose() call is always the most recently
+      // registered one — a FIFO queue can instead hand back a self-healed replacement worker
+      // spawned by an earlier kill, killing a worker that is mid-task rather than mid-assignment.
+      const worker = WorkerKillingSignal.#activeWorkers.pop();
+      if (worker !== undefined) {
+        this.killed.push(worker);
+        const exited = new Promise<void>((resolve) => { worker.once('exit', () => { resolve(); }); });
+        await worker.terminate().catch(() => {});
+        await exited;
+        throw RuntimeError.create(`WorkerKillingSignal: forced compose failure after killing worker ${String(this.killed.length)}`);
+      }
+    }
   }
 }
 
-async function flushTurn(): Promise<void> {
-  await new Promise((resolve) => { setImmediate(resolve); });
-}
+const originalWorkerOnce = Worker.prototype.once;
+Worker.prototype.once = new Proxy(originalWorkerOnce, {
+  'apply': (target, thisArg: unknown, argumentList: Parameters<typeof originalWorkerOnce>): Worker => {
+    WorkerKillingSignal.observeRegistration(thisArg, argumentList[0]);
+    const returned: unknown = Reflect.apply(target, thisArg, argumentList);
+    assert.ok(returned instanceof Worker);
+    return returned;
+  }
+});
 
 void describe('WorkerPool assignTask record === undefined branch', () => {
-  it('recovers when a worker dies mid-assignment while other tasks are already queued', async () => {
-    const uninstall = WorkerKillingSignal.install();
+  void it('recovers when a worker dies mid-assignment while other tasks are already queued', async () => {
+    WorkerKillingSignal.startRecording();
     const rejectionEvents: unknown[] = [];
-    const onUnhandledRejection = (reason: Error): void => { rejectionEvents.push(reason); };
+    const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -89,23 +98,25 @@ void describe('WorkerPool assignTask record === undefined branch', () => {
         'batchConcurrency': 4,
         'concurrency': 1,
         'signal': signal,
-        'workerPath': resolveWorkerPath('../fixtures/reusableEchoWorker.ts')
+        'workerPath': WorkerFixturePath.resolve('../fixtures/reusableEchoWorker.ts')
       };
       const pool = WorkerPool.create<ItemInterface, string>(config);
 
       const items: ItemInterface[] = [{ 'value': 'i0' }, { 'value': 'i1' }, { 'value': 'i2' }, { 'value': 'i3' }];
 
-      await assert.rejects(pool.run(items), (error: Error) => {
-        assert.ok(error.cause instanceof Error && error.cause.message.includes('forced compose failure'));
+      await assert.rejects(pool.run(items), (error) => {
+        const caught: unknown = error;
+        assert.ok(caught instanceof Error);
+        assert.ok(caught.cause instanceof Error && caught.cause.message.includes('forced compose failure'));
         return true;
       });
 
       assert.equal(signal.killed.length, 1);
-      await flushTurn();
+      await setImmediate();
       assert.deepStrictEqual(rejectionEvents, []);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
-      uninstall();
+      WorkerKillingSignal.stopRecording();
     }
   });
 });

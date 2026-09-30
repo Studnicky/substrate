@@ -1,653 +1,597 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
-
-import { Predicates } from '@studnicky/types/node';
-
 import {
+  type CompilerHost,
+  type CompilerOptions,
   createCompilerHost,
   createProgram,
   createSourceFile,
-  type CompilerHost,
-  type CompilerOptions,
+  type CreateSourceFileOptions,
+  type InterfaceDeclaration,
   isInterfaceDeclaration,
   isModuleBlock,
   isModuleDeclaration,
   isTypeAliasDeclaration,
-  ModuleKind,
   type ModuleDeclaration,
+  ModuleKind,
   ModuleResolutionKind,
+  type Program,
   ScriptKind,
   ScriptTarget,
-  type SourceFile
+  type SourceFile,
+  type TypeAliasDeclaration
 } from 'typescript';
 
 import { TypeContractClassification } from '../../src/rules/shared/TypeContractClassification.js';
-import scenarioGroups from './TypeContractClassification.scenarios.json' with { type: 'json' };
+import scenarioGroups from './TypeContractClassification.scenarios.json' with { 'type': 'json' };
 
-const packageRoot = resolve(import.meta.dirname, '../..');
-const virtualRoot = resolve(packageRoot, '.type-contract-classification');
+interface AliasOutcomeExpectationInterface {
+  readonly 'classification'?: string | undefined;
+  readonly 'evidence'?: boolean | undefined;
+  readonly 'fixable'?: boolean | undefined;
+  readonly 'readonlyReasons'?: readonly string[] | undefined;
+  readonly 'reason'?: string | undefined;
+}
 
-const compilerOptions: CompilerOptions = {
-  allowImportingTsExtensions: true,
-  module: ModuleKind.NodeNext,
-  moduleResolution: ModuleResolutionKind.NodeNext,
-  skipLibCheck: true,
-  strict: true,
-  target: ScriptTarget.ESNext
-};
+interface AliasAssertionInterface extends AliasOutcomeExpectationInterface {
+  readonly 'name': string;
+}
 
-function createFixture(sources: ReadonlyMap<string, string>) {
-  const files = new Map<string, string>();
-  sources.forEach((source, filename) => {
-    files.set(resolve(virtualRoot, filename), source);
-  });
+interface InterfaceOutcomeExpectationInterface {
+  readonly 'classification'?: string | undefined;
+  readonly 'reason'?: string | undefined;
+}
 
-  const baseHost = createCompilerHost(compilerOptions);
-  const host: CompilerHost = {
-    ...baseHost,
-    directoryExists: (directory) => {
+interface InterfaceAssertionInterface extends InterfaceOutcomeExpectationInterface {
+  readonly 'name': string;
+}
+
+interface RequiredAssertionInterface {
+  readonly 'classification': string;
+  readonly 'name': string;
+  readonly 'reason'?: string | undefined;
+}
+
+class VirtualFixtureHost {
+  public static readonly 'compilerOptions': CompilerOptions = {
+    'allowImportingTsExtensions': true,
+    'module': ModuleKind.NodeNext,
+    'moduleResolution': ModuleResolutionKind.NodeNext,
+    'skipLibCheck': true,
+    'strict': true,
+    'target': ScriptTarget.ESNext
+  };
+
+  public static readonly 'virtualRoot': string = resolve(import.meta.dirname, '../..', '.type-contract-classification');
+
+  public static createFixture(sources: ReadonlyMap<string, string>): Program {
+    const files = new Map<string, string>();
+
+    sources.forEach((source, filename) => {
+      files.set(resolve(VirtualFixtureHost.virtualRoot, filename), source);
+    });
+
+    const baseHost = createCompilerHost(VirtualFixtureHost.compilerOptions);
+    const host: CompilerHost = { ...baseHost };
+
+    host.directoryExists = (directory: string): boolean => {
       const normalized = resolve(directory);
       const virtualDirectory = [...files.keys()].some((filename) => {
-        return filename.startsWith(`${normalized}/`);
+        const nested = filename.startsWith(`${normalized}/`);
+
+        return nested;
       });
-      return virtualDirectory || baseHost.directoryExists?.(directory) === true;
-    },
-    fileExists: (filename) => {
-      return files.has(resolve(filename)) || baseHost.fileExists(filename);
-    },
-    getSourceFile: (filename, languageVersion, onError, shouldCreateNewSourceFile) => {
+      const exists = virtualDirectory || baseHost.directoryExists?.(directory) === true;
+
+      return exists;
+    };
+    host.fileExists = (filename: string): boolean => {
+      const exists = files.has(resolve(filename)) || baseHost.fileExists(filename);
+
+      return exists;
+    };
+    host.getSourceFile = (filename: string, languageVersion: CreateSourceFileOptions | ScriptTarget, onError, shouldCreateNewSourceFile): SourceFile | undefined => {
       const source = files.get(resolve(filename));
-      if (source !== undefined) {
-        return createSourceFile(filename, source, languageVersion, true, ScriptKind.TS);
-      }
-      return baseHost.getSourceFile(filename, languageVersion, onError, shouldCreateNewSourceFile);
-    },
-    readFile: (filename) => {
-      return files.get(resolve(filename)) ?? baseHost.readFile(filename);
-    }
-  };
+      const sourceFile = source === undefined
+        ? baseHost.getSourceFile(filename, languageVersion, onError, shouldCreateNewSourceFile)
+        : createSourceFile(filename, source, languageVersion, true, ScriptKind.TS);
 
-  return createProgram({
-    host,
-    options: compilerOptions,
-    rootNames: [...files.keys()]
-  });
-}
+      return sourceFile;
+    };
+    host.readFile = (filename: string): string | undefined => {
+      const contents = files.get(resolve(filename)) ?? baseHost.readFile(filename);
 
-function sourceFile(program: ReturnType<typeof createFixture>, filename = 'root.ts'): SourceFile {
-  const source = program.getSourceFile(resolve(virtualRoot, filename));
-  if (source === undefined) {
-    throw RuntimeError.create(`Missing fixture source: ${filename}`);
+      return contents;
+    };
+
+    const result = createProgram({
+      'host': host,
+      'options': VirtualFixtureHost.compilerOptions,
+      'rootNames': [...files.keys()]
+    });
+
+    return result;
   }
-  return source;
 }
 
-function alias(program: ReturnType<typeof createFixture>, name: string, filename = 'root.ts') {
-  const declaration = sourceFile(program, filename).statements.find((statement) => {
-    return isTypeAliasDeclaration(statement) && statement.name.text === name;
-  });
-  if (declaration === undefined || !isTypeAliasDeclaration(declaration)) {
+class FixtureLookup {
+  public static alias(program: Program, name: string, filename = 'root.ts'): TypeAliasDeclaration {
+    const declaration = FixtureLookup.sourceFile(program, filename).statements.find((statement) => {
+      const matches = isTypeAliasDeclaration(statement) && statement.name.text === name;
+
+      return matches;
+    });
+
+    if (declaration !== undefined && isTypeAliasDeclaration(declaration)) {
+      return declaration;
+    }
+
     throw RuntimeError.create(`Missing type alias: ${name}`);
   }
-  return declaration;
-}
 
-function namespaceAlias(
-  program: ReturnType<typeof createFixture>,
-  namespaceName: string,
-  aliasName: string,
-  filename = 'root.ts'
-): NonNullable<ReturnType<typeof alias>> {
-  const namespaceDeclaration = sourceFile(program, filename).statements.find(
-    (statement): statement is ModuleDeclaration => {
-      return isModuleDeclaration(statement) && statement.name.text === namespaceName;
+  public static interfaceDeclaration(program: Program, name: string): InterfaceDeclaration {
+    const declaration = FixtureLookup.sourceFile(program, 'root.ts').statements.find((statement) => {
+      const matches = isInterfaceDeclaration(statement) && statement.name.text === name;
+
+      return matches;
+    });
+
+    if (declaration !== undefined && isInterfaceDeclaration(declaration)) {
+      return declaration;
     }
-  );
-  const namespaceBody = namespaceDeclaration?.body;
-  if (namespaceBody === undefined || !isModuleBlock(namespaceBody)) {
-    throw RuntimeError.create(`Missing namespace body: ${namespaceName}`);
-  }
-  const declaration = namespaceBody.statements.find((statement) => {
-    return isTypeAliasDeclaration(statement) && statement.name.text === aliasName;
-  });
-  if (declaration === undefined || !isTypeAliasDeclaration(declaration)) {
-    throw RuntimeError.create(`Missing namespace type alias: ${namespaceName}.${aliasName}`);
-  }
-  return declaration;
-}
 
-function interfaceDeclaration(program: ReturnType<typeof createFixture>, name: string) {
-  const declaration = sourceFile(program).statements.find((statement) => {
-    return isInterfaceDeclaration(statement) && statement.name.text === name;
-  });
-  if (declaration === undefined || !isInterfaceDeclaration(declaration)) {
     throw RuntimeError.create(`Missing interface: ${name}`);
   }
-  return declaration;
-}
 
-function programFromFiles(files: Record<string, string>): ReturnType<typeof createFixture> {
-  return createFixture(new Map(Object.entries(files)));
-}
+  public static namespaceAlias(
+    program: Program,
+    namespaceName: string,
+    aliasName: string,
+    filename = 'root.ts'
+  ): TypeAliasDeclaration {
+    const namespaceDeclaration = FixtureLookup.sourceFile(program, filename).statements.find(
+      (statement): statement is ModuleDeclaration => {
+        const matches = isModuleDeclaration(statement) && statement.name.text === namespaceName;
 
-function assertAliasOutcome(
-  program: ReturnType<typeof createFixture>,
-  name: string,
-  expected: {
-    classification?: string;
-    evidence?: boolean;
-    fixable?: boolean;
-    reason?: string;
-    readonlyReasons?: readonly string[];
-  }
-): void {
-  const actual = TypeContractClassification.forProgram(program).analyzeAlias(alias(program, name));
-  if (expected.classification !== undefined) {
-    assert.equal(actual.classification, expected.classification, name);
-  }
-  if (expected.reason !== undefined) {
-    assert.equal(actual.reason, expected.reason, name);
-  }
-  if (expected.evidence) {
-    assert.ok(actual.evidence.pos >= 0, name);
-  }
-  if (expected.readonlyReasons !== undefined) {
-    assert.deepEqual(
-      actual.readonlyOutput.map((entry) => { return entry.reason; }),
-      expected.readonlyReasons,
-      name
+        return matches;
+      }
     );
+    const namespaceBody = namespaceDeclaration?.body;
+
+    if (namespaceBody !== undefined && isModuleBlock(namespaceBody)) {
+      const declaration = namespaceBody.statements.find((statement) => {
+        const matches = isTypeAliasDeclaration(statement) && statement.name.text === aliasName;
+
+        return matches;
+      });
+
+      if (declaration !== undefined && isTypeAliasDeclaration(declaration)) {
+        return declaration;
+      }
+
+      throw RuntimeError.create(`Missing namespace type alias: ${namespaceName}.${aliasName}`);
+    }
+
+    throw RuntimeError.create(`Missing namespace body: ${namespaceName}`);
   }
-  if (expected.fixable !== undefined) {
-    assert.equal(actual.readonlyOutput[0]?.fixable, expected.fixable, name);
+
+  public static programFromFiles(files: Record<string, string>): Program {
+    const result = VirtualFixtureHost.createFixture(new Map(Object.entries(files)));
+
+    return result;
+  }
+
+  private static sourceFile(program: Program, filename: string): SourceFile {
+    const source = program.getSourceFile(resolve(VirtualFixtureHost.virtualRoot, filename));
+
+    if (source !== undefined) {
+      return source;
+    }
+
+    throw RuntimeError.create(`Missing fixture source: ${filename}`);
   }
 }
 
-function assertInterfaceOutcome(
-  program: ReturnType<typeof createFixture>,
-  name: string,
-  expected: { classification?: string; reason?: string }
-): void {
-  const actual = TypeContractClassification.forProgram(program).analyzeInterface(interfaceDeclaration(program, name));
-  if (expected.classification !== undefined) {
-    assert.equal(actual.classification, expected.classification, name);
+class OutcomeAssertions {
+  public static alias(program: Program, name: string, expected: AliasOutcomeExpectationInterface): void {
+    const actual = TypeContractClassification.forProgram(program).analyzeAlias(FixtureLookup.alias(program, name));
+
+    if (expected.classification !== undefined) {
+      assert.equal(actual.classification, expected.classification, name);
+    }
+    if (expected.reason !== undefined) {
+      assert.equal(actual.reason, expected.reason, name);
+    }
+    if (expected.evidence === true) {
+      assert.ok(actual.evidence.pos >= 0, name);
+    }
+    if (expected.readonlyReasons !== undefined) {
+      assert.deepEqual(
+        actual.readonlyOutput.map((entry) => {
+          return entry.reason;
+        }),
+        expected.readonlyReasons,
+        name
+      );
+    }
+    if (expected.fixable !== undefined) {
+      assert.equal(actual.readonlyOutput[0]?.fixable, expected.fixable, name);
+    }
   }
-  if (expected.reason !== undefined) {
-    assert.equal(actual.reason, expected.reason, name);
+
+  public static aliasList(program: Program, assertions: readonly AliasAssertionInterface[]): void {
+    for (let index = 0; index < assertions.length; index += 1) {
+      const expected = assertions[index]!;
+
+      OutcomeAssertions.alias(program, expected.name, expected);
+    }
+  }
+
+  public static interfaceDeclaration(program: Program, name: string, expected: InterfaceOutcomeExpectationInterface): void {
+    const actual = TypeContractClassification.forProgram(program).analyzeInterface(FixtureLookup.interfaceDeclaration(program, name));
+
+    if (expected.classification !== undefined) {
+      assert.equal(actual.classification, expected.classification, name);
+    }
+    if (expected.reason !== undefined) {
+      assert.equal(actual.reason, expected.reason, name);
+    }
+  }
+
+  public static interfaceList(program: Program, assertions: readonly InterfaceAssertionInterface[]): void {
+    for (let index = 0; index < assertions.length; index += 1) {
+      const expected = assertions[index]!;
+
+      OutcomeAssertions.interfaceDeclaration(program, expected.name, expected);
+    }
+  }
+
+  public static provenance(
+    program: Program,
+    classification: ReturnType<typeof TypeContractClassification.forProgram>,
+    assertions: readonly RequiredAssertionInterface[]
+  ): void {
+    for (let index = 0; index < assertions.length; index += 1) {
+      const expected = assertions[index]!;
+      const actual = classification.analyzeAlias(FixtureLookup.alias(program, expected.name));
+
+      assert.equal(actual.classification, expected.classification, expected.name);
+      if (expected.reason !== undefined) {
+        assert.equal(actual.reason, expected.reason, expected.name);
+      }
+    }
   }
 }
 
-type ScenarioCase =
-  | {
-      expected: { classification: string; reason: string };
-      input: { aliasName: string; files: Record<string, string>; namespaceName: string };
-      shape: 'entity-direct';
-      name: string;
+class ScenarioIntake {
+  public static aliasAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !ScenarioIntake.isOptionalString(raw.classification) || !ScenarioIntake.isOptionalString(raw.reason) || !ScenarioIntake.isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+      throw ScenarioIntake.malformed('TypeContractClassification alias assertion', raw);
     }
-  | {
-      expected: {
-        assertions: Array<{ classification: string; name: string; reason?: string }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'composition-provenance';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ classification: string; name: string; reason?: string }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'owner-direct';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'alias-cycles';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: {
-          intrinsic: Array<{ classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string }>;
-          shadowed: Array<{ name: string; readonlyReasons: readonly string[] }>;
-        };
-      };
-      input: {
-        programs: {
-          intrinsic: Record<string, string>;
-          shadowed: Record<string, string>;
-        };
-      };
-      shape: 'readonly-intrinsics';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'explicit-readonly';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'exposed-defaults';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ name: string; readonlyReasons?: readonly string[] }>;
-        excluded: readonly string[];
-      };
-      input: { files: Record<string, string> };
-      shape: 'readonly-exclusions';
-      name: string;
-    }
-  | {
-      expected: {
-        assertions: Array<{ fixable?: boolean; name: string; readonlyReasons: readonly string[] }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'readonly-indirection';
-      name: string;
-    }
-  | {
-      expected: {
-        aliasAssertions: Array<{ classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] }>;
-        interfaceAssertions: Array<{ classification?: string; name: string; reason?: string }>;
-      };
-      input: { files: Record<string, string> };
-      shape: 'interface-matrix';
-      name: string;
+    const result: AliasAssertionInterface = {
+      'classification': raw.classification,
+      'name': raw.name,
+      'readonlyReasons': raw.readonlyReasons,
+      'reason': raw.reason
     };
 
-const SCENARIO_SHAPES = new Set(['entity-direct', 'composition-provenance', 'owner-direct', 'alias-cycles', 'readonly-intrinsics', 'explicit-readonly', 'exposed-defaults', 'readonly-exclusions', 'readonly-indirection', 'interface-matrix']);
-
-function isScenarioShape(value: unknown): value is ScenarioCase['shape'] {
-  return typeof value === 'string' && SCENARIO_SHAPES.has(value);
-}
-
-function isOptionalString(value: unknown): value is string | undefined {
-  return value === undefined || typeof value === 'string';
-}
-
-function isOptionalBoolean(value: unknown): value is boolean | undefined {
-  return value === undefined || typeof value === 'boolean';
-}
-
-function isReadonlyStringArray(value: unknown): value is readonly string[] {
-  return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
-}
-
-function isOptionalReadonlyStringArray(value: unknown): value is readonly string[] | undefined {
-  return value === undefined || isReadonlyStringArray(value);
-}
-
-function isRecordOfStrings(value: unknown): value is Record<string, string> {
-  return Predicates.isObject(value) && Object.values(value).every((entry) => typeof entry === 'string');
-}
-
-function intakeFiles(raw: unknown): Record<string, string> {
-  if (!isRecordOfStrings(raw)) {
-    throw new TypeError(`malformed TypeContractClassification files map: ${JSON.stringify(raw)}`);
+    return result;
   }
-  return raw;
-}
 
-function intakeFilesInput(raw: unknown): { files: Record<string, string> } {
-  if (!Predicates.isObject(raw)) {
-    throw new TypeError(`malformed TypeContractClassification input: ${JSON.stringify(raw)}`);
-  }
-  return { 'files': intakeFiles(raw.files) };
-}
-
-function intakeAssertionArray<T>(raw: unknown, intakeOne: (entry: unknown) => T): T[] {
-  if (!Array.isArray(raw)) {
-    throw new TypeError(`malformed TypeContractClassification assertions array: ${JSON.stringify(raw)}`);
-  }
-  return raw.map(intakeOne);
-}
-
-function intakeRequiredAssertion(raw: unknown): { classification: string; name: string; reason?: string } {
-  if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || typeof raw.name !== 'string' || !isOptionalString(raw.reason)) {
-    throw new TypeError(`malformed TypeContractClassification assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    'classification': raw.classification,
-    'name': raw.name,
-    ...(raw.reason === undefined ? {} : { 'reason': raw.reason })
-  };
-}
-
-function intakeCycleAssertion(raw: unknown): { classification?: string; evidence?: boolean; fixable?: boolean; name: string; reason?: string; readonlyReasons?: readonly string[] } {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason) || !isOptionalBoolean(raw.fixable) || !isOptionalBoolean(raw.evidence) || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
-    throw new TypeError(`malformed TypeContractClassification cycle assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
-    ...(raw.evidence === undefined ? {} : { 'evidence': raw.evidence }),
-    ...(raw.fixable === undefined ? {} : { 'fixable': raw.fixable }),
-    'name': raw.name,
-    ...(raw.reason === undefined ? {} : { 'reason': raw.reason }),
-    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
-  };
-}
-
-function intakeReadonlyAssertion(raw: unknown): { fixable?: boolean; name: string; readonlyReasons: readonly string[] } {
-  if (!Predicates.isObject(raw) || !isOptionalBoolean(raw.fixable) || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons)) {
-    throw new TypeError(`malformed TypeContractClassification readonly assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    ...(raw.fixable === undefined ? {} : { 'fixable': raw.fixable }),
-    'name': raw.name,
-    'readonlyReasons': raw.readonlyReasons
-  };
-}
-
-function intakeExclusionAssertion(raw: unknown): { name: string; readonlyReasons?: readonly string[] } {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
-    throw new TypeError(`malformed TypeContractClassification exclusion assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    'name': raw.name,
-    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
-  };
-}
-
-function intakeIntrinsicAssertion(raw: unknown): { classification: string; fixable: false; name: string; readonlyReasons: readonly string[]; reason: string } {
-  if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || raw.fixable !== false || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons) || typeof raw.reason !== 'string') {
-    throw new TypeError(`malformed TypeContractClassification intrinsic assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    'classification': raw.classification,
-    'fixable': raw.fixable,
-    'name': raw.name,
-    'readonlyReasons': raw.readonlyReasons,
-    'reason': raw.reason
-  };
-}
-
-function intakeShadowedAssertion(raw: unknown): { name: string; readonlyReasons: readonly string[] } {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isReadonlyStringArray(raw.readonlyReasons)) {
-    throw new TypeError(`malformed TypeContractClassification shadowed assertion: ${JSON.stringify(raw)}`);
-  }
-  return { 'name': raw.name, 'readonlyReasons': raw.readonlyReasons };
-}
-
-function intakeInterfaceAssertion(raw: unknown): { classification?: string; name: string; reason?: string } {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason)) {
-    throw new TypeError(`malformed TypeContractClassification interface assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
-    'name': raw.name,
-    ...(raw.reason === undefined ? {} : { 'reason': raw.reason })
-  };
-}
-
-function intakeAliasAssertion(raw: unknown): { classification?: string; name: string; reason?: string; readonlyReasons?: readonly string[] } {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isOptionalString(raw.classification) || !isOptionalString(raw.reason) || !isOptionalReadonlyStringArray(raw.readonlyReasons)) {
-    throw new TypeError(`malformed TypeContractClassification alias assertion: ${JSON.stringify(raw)}`);
-  }
-  return {
-    ...(raw.classification === undefined ? {} : { 'classification': raw.classification }),
-    'name': raw.name,
-    ...(raw.reason === undefined ? {} : { 'reason': raw.reason }),
-    ...(raw.readonlyReasons === undefined ? {} : { 'readonlyReasons': raw.readonlyReasons })
-  };
-}
-
-type ScenarioPayloadIntake = (name: string, rawInput: unknown, rawExpected: unknown) => ScenarioCase;
-
-// One payload validator per discriminant; the shape selects which fixture contract runs, never a cast.
-const SCENARIO_PAYLOAD_INTAKE: Record<ScenarioCase['shape'], ScenarioPayloadIntake> = {
-  'alias-cycles': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed alias-cycles expected: ${JSON.stringify(rawExpected)}`);
+  public static assertionArray<Assertion>(raw: unknown, intakeOne: (entry: unknown) => Assertion): Assertion[] {
+    if (!Array.isArray(raw)) {
+      throw ScenarioIntake.malformed('TypeContractClassification assertions array', raw);
     }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeCycleAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'alias-cycles'
-    };
-  },
-  'composition-provenance': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed composition-provenance expected: ${JSON.stringify(rawExpected)}`);
+    const result = raw.map(intakeOne);
+
+    return result;
+  }
+
+  public static cycleAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !ScenarioIntake.isOptionalString(raw.classification) || !ScenarioIntake.isOptionalString(raw.reason) || !ScenarioIntake.isOptionalBoolean(raw.fixable) || !ScenarioIntake.isOptionalBoolean(raw.evidence) || !ScenarioIntake.isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+      throw ScenarioIntake.malformed('TypeContractClassification cycle assertion', raw);
     }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeRequiredAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'composition-provenance'
+    const result: AliasAssertionInterface = {
+      'classification': raw.classification,
+      'evidence': raw.evidence,
+      'fixable': raw.fixable,
+      'name': raw.name,
+      'readonlyReasons': raw.readonlyReasons,
+      'reason': raw.reason
     };
-  },
-  'entity-direct': (name, rawInput, rawExpected) => {
+
+    return result;
+  }
+
+  public static exclusionAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !ScenarioIntake.isOptionalReadonlyStringArray(raw.readonlyReasons)) {
+      throw ScenarioIntake.malformed('TypeContractClassification exclusion assertion', raw);
+    }
+    const result: AliasAssertionInterface = { 'name': raw.name, 'readonlyReasons': raw.readonlyReasons };
+
+    return result;
+  }
+
+  public static expectedObject(description: string, raw: unknown): Record<string, unknown> {
+    if (Predicates.isObject(raw)) {
+      return raw;
+    }
+
+    throw ScenarioIntake.malformed(description, raw);
+  }
+
+  public static files(raw: unknown): Record<string, string> {
+    if (!ScenarioIntake.isRecordOfStrings(raw)) {
+      throw ScenarioIntake.malformed('TypeContractClassification files map', raw);
+    }
+
+    return raw;
+  }
+
+  public static filesOf(raw: unknown): Record<string, string> {
+    if (!Predicates.isObject(raw)) {
+      throw ScenarioIntake.malformed('TypeContractClassification input', raw);
+    }
+    const result = ScenarioIntake.files(raw.files);
+
+    return result;
+  }
+
+  public static interfaceAssertion(raw: unknown): InterfaceAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !ScenarioIntake.isOptionalString(raw.classification) || !ScenarioIntake.isOptionalString(raw.reason)) {
+      throw ScenarioIntake.malformed('TypeContractClassification interface assertion', raw);
+    }
+    const result: InterfaceAssertionInterface = {
+      'classification': raw.classification,
+      'name': raw.name,
+      'reason': raw.reason
+    };
+
+    return result;
+  }
+
+  public static intrinsicAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || raw.fixable !== false || typeof raw.name !== 'string' || !ScenarioIntake.isReadonlyStringArray(raw.readonlyReasons) || typeof raw.reason !== 'string') {
+      throw ScenarioIntake.malformed('TypeContractClassification intrinsic assertion', raw);
+    }
+    const result: AliasAssertionInterface = {
+      'classification': raw.classification,
+      'fixable': raw.fixable,
+      'name': raw.name,
+      'readonlyReasons': raw.readonlyReasons,
+      'reason': raw.reason
+    };
+
+    return result;
+  }
+
+  public static isReadonlyStringArray(value: unknown): value is readonly string[] {
+    const result = Array.isArray(value) && value.every((entry) => {
+      const isString = typeof entry === 'string';
+
+      return isString;
+    });
+
+    return result;
+  }
+
+  public static malformed(description: string, raw: unknown): RuntimeError {
+    try {
+      const result = RuntimeError.create(`malformed ${description}: ${JSON.stringify(raw)}`);
+
+      return result;
+    } catch (cause) {
+      throw RuntimeError.create(`Cannot serialize the malformed value for ${description}`, { 'cause': cause });
+    }
+  }
+
+  public static readonlyAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || !ScenarioIntake.isOptionalBoolean(raw.fixable) || typeof raw.name !== 'string' || !ScenarioIntake.isReadonlyStringArray(raw.readonlyReasons)) {
+      throw ScenarioIntake.malformed('TypeContractClassification readonly assertion', raw);
+    }
+    const result: AliasAssertionInterface = {
+      'fixable': raw.fixable,
+      'name': raw.name,
+      'readonlyReasons': raw.readonlyReasons
+    };
+
+    return result;
+  }
+
+  public static requiredAssertion(raw: unknown): RequiredAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.classification !== 'string' || typeof raw.name !== 'string' || !ScenarioIntake.isOptionalString(raw.reason)) {
+      throw ScenarioIntake.malformed('TypeContractClassification assertion', raw);
+    }
+    const result: RequiredAssertionInterface = {
+      'classification': raw.classification,
+      'name': raw.name,
+      'reason': raw.reason
+    };
+
+    return result;
+  }
+
+  public static shadowedAssertion(raw: unknown): AliasAssertionInterface {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !ScenarioIntake.isReadonlyStringArray(raw.readonlyReasons)) {
+      throw ScenarioIntake.malformed('TypeContractClassification shadowed assertion', raw);
+    }
+    const result: AliasAssertionInterface = { 'name': raw.name, 'readonlyReasons': raw.readonlyReasons };
+
+    return result;
+  }
+
+  private static isOptionalBoolean(value: unknown): value is boolean | undefined {
+    const result = value === undefined || typeof value === 'boolean';
+
+    return result;
+  }
+
+  private static isOptionalReadonlyStringArray(value: unknown): value is readonly string[] | undefined {
+    const result = value === undefined || ScenarioIntake.isReadonlyStringArray(value);
+
+    return result;
+  }
+
+  private static isOptionalString(value: unknown): value is string | undefined {
+    const result = value === undefined || typeof value === 'string';
+
+    return result;
+  }
+
+  private static isRecordOfStrings(value: unknown): value is Record<string, string> {
+    const result = Predicates.isObject(value) && Object.values(value).every((entry) => {
+      const isString = typeof entry === 'string';
+
+      return isString;
+    });
+
+    return result;
+  }
+}
+
+class TypeContractClassificationRunners {
+  public static declareCases(): void {
+    const cases: readonly unknown[] = scenarioGroups.cases;
+
+    for (let index = 0; index < cases.length; index += 1) {
+      TypeContractClassificationRunners.declareCase(cases[index]);
+    }
+  }
+
+  private static declareCase(raw: unknown): void {
+    if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || typeof raw.shape !== 'string') {
+      throw ScenarioIntake.malformed('TypeContractClassification scenario entry', raw);
+    }
+    const shape = raw.shape;
+    const input = raw.input;
+    const expected = raw.expected;
+
+    void it(raw.name, () => {
+      TypeContractClassificationRunners.runCase(shape, input, expected);
+    });
+  }
+
+  private static runAliasCycles(rawInput: unknown, rawExpected: unknown): void {
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.filesOf(rawInput));
+    const expected = ScenarioIntake.expectedObject('alias-cycles expected', rawExpected);
+
+    OutcomeAssertions.aliasList(program, ScenarioIntake.assertionArray(expected.assertions, ScenarioIntake.cycleAssertion));
+  }
+
+  private static runAssertionShape(shape: string, rawInput: unknown, rawExpected: unknown): void {
+    switch (shape) {
+      case 'composition-provenance':
+      case 'owner-direct':
+        TypeContractClassificationRunners.runProvenance(shape, rawInput, rawExpected);
+        break;
+      case 'explicit-readonly':
+      case 'exposed-defaults':
+      case 'readonly-indirection':
+        TypeContractClassificationRunners.runReadonlyAssertions(shape, rawInput, rawExpected);
+        break;
+      default:
+        throw ScenarioIntake.malformed('TypeContractClassification scenario shape', shape);
+    }
+  }
+
+  private static runCase(shape: string, rawInput: unknown, rawExpected: unknown): void {
+    switch (shape) {
+      case 'alias-cycles':
+        TypeContractClassificationRunners.runAliasCycles(rawInput, rawExpected);
+        break;
+      case 'entity-direct':
+        TypeContractClassificationRunners.runEntityDirect(rawInput, rawExpected);
+        break;
+      case 'interface-matrix':
+        TypeContractClassificationRunners.runInterfaceMatrix(rawInput, rawExpected);
+        break;
+      case 'readonly-exclusions':
+        TypeContractClassificationRunners.runReadonlyExclusions(rawInput, rawExpected);
+        break;
+      case 'readonly-intrinsics':
+        TypeContractClassificationRunners.runReadonlyIntrinsics(rawInput, rawExpected);
+        break;
+      default:
+        TypeContractClassificationRunners.runAssertionShape(shape, rawInput, rawExpected);
+    }
+  }
+
+  private static runEntityDirect(rawInput: unknown, rawExpected: unknown): void {
     if (!Predicates.isObject(rawInput) || typeof rawInput.aliasName !== 'string' || typeof rawInput.namespaceName !== 'string') {
-      throw new TypeError(`malformed entity-direct input: ${JSON.stringify(rawInput)}`);
+      throw ScenarioIntake.malformed('entity-direct input', rawInput);
     }
     if (!Predicates.isObject(rawExpected) || typeof rawExpected.classification !== 'string' || typeof rawExpected.reason !== 'string') {
-      throw new TypeError(`malformed entity-direct expected: ${JSON.stringify(rawExpected)}`);
+      throw ScenarioIntake.malformed('entity-direct expected', rawExpected);
     }
-    return {
-      'expected': { 'classification': rawExpected.classification, 'reason': rawExpected.reason },
-      'input': { 'aliasName': rawInput.aliasName, 'files': intakeFiles(rawInput.files), 'namespaceName': rawInput.namespaceName },
-      'name': name,
-      'shape': 'entity-direct'
-    };
-  },
-  'explicit-readonly': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed explicit-readonly expected: ${JSON.stringify(rawExpected)}`);
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.files(rawInput.files));
+    const actual = TypeContractClassification.forProgram(program).analyzeAlias(
+      FixtureLookup.namespaceAlias(program, rawInput.namespaceName, rawInput.aliasName)
+    );
+
+    assert.equal(actual.classification, rawExpected.classification, rawInput.aliasName);
+    assert.equal(actual.reason, rawExpected.reason, rawInput.aliasName);
+    assert.ok(actual.evidence.pos >= 0, rawInput.aliasName);
+  }
+
+  private static runInterfaceMatrix(rawInput: unknown, rawExpected: unknown): void {
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.filesOf(rawInput));
+    const expected = ScenarioIntake.expectedObject('interface-matrix expected', rawExpected);
+
+    OutcomeAssertions.interfaceList(program, ScenarioIntake.assertionArray(expected.interfaceAssertions, ScenarioIntake.interfaceAssertion));
+    OutcomeAssertions.aliasList(program, ScenarioIntake.assertionArray(expected.aliasAssertions, ScenarioIntake.aliasAssertion));
+  }
+
+  private static runProvenance(shape: string, rawInput: unknown, rawExpected: unknown): void {
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.filesOf(rawInput));
+    const expected = ScenarioIntake.expectedObject(`${shape} expected`, rawExpected);
+    const classification = TypeContractClassification.forProgram(program);
+
+    OutcomeAssertions.provenance(program, classification, ScenarioIntake.assertionArray(expected.assertions, ScenarioIntake.requiredAssertion));
+    if (shape === 'composition-provenance') {
+      assert.ok(TypeContractClassification.forProgram(program) === classification, 'forProgram retains one classification per program');
     }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'explicit-readonly'
-    };
-  },
-  'exposed-defaults': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed exposed-defaults expected: ${JSON.stringify(rawExpected)}`);
+  }
+
+  private static runReadonlyAssertions(shape: string, rawInput: unknown, rawExpected: unknown): void {
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.filesOf(rawInput));
+    const expected = ScenarioIntake.expectedObject(`${shape} expected`, rawExpected);
+
+    OutcomeAssertions.aliasList(program, ScenarioIntake.assertionArray(expected.assertions, ScenarioIntake.readonlyAssertion));
+  }
+
+  private static runReadonlyExclusions(rawInput: unknown, rawExpected: unknown): void {
+    const expected = ScenarioIntake.expectedObject('readonly-exclusions expected', rawExpected);
+    const excluded: unknown = expected.excluded;
+
+    if (!ScenarioIntake.isReadonlyStringArray(excluded)) {
+      throw ScenarioIntake.malformed('readonly-exclusions expected', rawExpected);
     }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'exposed-defaults'
-    };
-  },
-  'interface-matrix': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed interface-matrix expected: ${JSON.stringify(rawExpected)}`);
+    const program = FixtureLookup.programFromFiles(ScenarioIntake.filesOf(rawInput));
+
+    for (let index = 0; index < excluded.length; index += 1) {
+      OutcomeAssertions.alias(program, String(excluded[index]), { 'readonlyReasons': [] });
     }
-    return {
-      'expected': {
-        'aliasAssertions': intakeAssertionArray(rawExpected.aliasAssertions, intakeAliasAssertion),
-        'interfaceAssertions': intakeAssertionArray(rawExpected.interfaceAssertions, intakeInterfaceAssertion)
-      },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'interface-matrix'
-    };
-  },
-  'owner-direct': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed owner-direct expected: ${JSON.stringify(rawExpected)}`);
-    }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeRequiredAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'owner-direct'
-    };
-  },
-  'readonly-exclusions': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected) || !isReadonlyStringArray(rawExpected.excluded)) {
-      throw new TypeError(`malformed readonly-exclusions expected: ${JSON.stringify(rawExpected)}`);
-    }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeExclusionAssertion), 'excluded': rawExpected.excluded },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'readonly-exclusions'
-    };
-  },
-  'readonly-indirection': (name, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed readonly-indirection expected: ${JSON.stringify(rawExpected)}`);
-    }
-    return {
-      'expected': { 'assertions': intakeAssertionArray(rawExpected.assertions, intakeReadonlyAssertion) },
-      'input': intakeFilesInput(rawInput),
-      'name': name,
-      'shape': 'readonly-indirection'
-    };
-  },
-  'readonly-intrinsics': (name, rawInput, rawExpected) => {
+    OutcomeAssertions.aliasList(program, ScenarioIntake.assertionArray(expected.assertions, ScenarioIntake.exclusionAssertion));
+  }
+
+  private static runReadonlyIntrinsics(rawInput: unknown, rawExpected: unknown): void {
     if (!Predicates.isObject(rawInput) || !Predicates.isObject(rawInput.programs)) {
-      throw new TypeError(`malformed readonly-intrinsics input: ${JSON.stringify(rawInput)}`);
+      throw ScenarioIntake.malformed('readonly-intrinsics input', rawInput);
     }
     if (!Predicates.isObject(rawExpected) || !Predicates.isObject(rawExpected.assertions)) {
-      throw new TypeError(`malformed readonly-intrinsics expected: ${JSON.stringify(rawExpected)}`);
+      throw ScenarioIntake.malformed('readonly-intrinsics expected', rawExpected);
     }
-    return {
-      'expected': {
-        'assertions': {
-          'intrinsic': intakeAssertionArray(rawExpected.assertions.intrinsic, intakeIntrinsicAssertion),
-          'shadowed': intakeAssertionArray(rawExpected.assertions.shadowed, intakeShadowedAssertion)
-        }
-      },
-      'input': {
-        'programs': {
-          'intrinsic': intakeFiles(rawInput.programs.intrinsic),
-          'shadowed': intakeFiles(rawInput.programs.shadowed)
-        }
-      },
-      'name': name,
-      'shape': 'readonly-intrinsics'
-    };
+    const intrinsicProgram = FixtureLookup.programFromFiles(ScenarioIntake.files(rawInput.programs.intrinsic));
+    const shadowedProgram = FixtureLookup.programFromFiles(ScenarioIntake.files(rawInput.programs.shadowed));
+
+    OutcomeAssertions.aliasList(intrinsicProgram, ScenarioIntake.assertionArray(rawExpected.assertions.intrinsic, ScenarioIntake.intrinsicAssertion));
+    OutcomeAssertions.aliasList(shadowedProgram, ScenarioIntake.assertionArray(rawExpected.assertions.shadowed, ScenarioIntake.shadowedAssertion));
   }
-};
-
-/** Validates one raw scenario fixture entry, including its shape-specific payload, at the JSON-load edge. */
-function intakeScenarioCase(raw: unknown): ScenarioCase {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || !isScenarioShape(raw.shape)) {
-    throw new TypeError(`malformed TypeContractClassification scenario entry: ${JSON.stringify(raw)}`);
-  }
-  return SCENARIO_PAYLOAD_INTAKE[raw.shape](raw.name, raw.input, raw.expected);
-}
-
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenario: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
-
-const runnerMap: RunnerMap = {
-  'alias-cycles': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const expected of scenario.expected.assertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'composition-provenance': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    const classification = TypeContractClassification.forProgram(program);
-    for (const expected of scenario.expected.assertions) {
-      const actual = classification.analyzeAlias(alias(program, expected.name));
-      assert.equal(actual.classification, expected.classification, expected.name);
-      if (expected.reason !== undefined) {
-        assert.equal(actual.reason, expected.reason, expected.name);
-      }
-    }
-    assert.equal(TypeContractClassification.forProgram(program), classification);
-  },
-  'entity-direct': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    const actual = TypeContractClassification.forProgram(program).analyzeAlias(
-      namespaceAlias(program, scenario.input.namespaceName, scenario.input.aliasName)
-    );
-    assert.equal(actual.classification, scenario.expected.classification, scenario.input.aliasName);
-    assert.equal(actual.reason, scenario.expected.reason, scenario.input.aliasName);
-    assert.ok(actual.evidence.pos >= 0, scenario.input.aliasName);
-  },
-  'explicit-readonly': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const expected of scenario.expected.assertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'exposed-defaults': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const expected of scenario.expected.assertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'interface-matrix': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const expected of scenario.expected.interfaceAssertions) {
-      assertInterfaceOutcome(program, expected.name, expected);
-    }
-    for (const expected of scenario.expected.aliasAssertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'owner-direct': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    const classification = TypeContractClassification.forProgram(program);
-    for (const expected of scenario.expected.assertions) {
-      const actual = classification.analyzeAlias(alias(program, expected.name));
-      assert.equal(actual.classification, expected.classification, expected.name);
-      if (expected.reason !== undefined) {
-        assert.equal(actual.reason, expected.reason, expected.name);
-      }
-    }
-  },
-  'readonly-exclusions': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const name of scenario.expected.excluded) {
-      assertAliasOutcome(program, name, { readonlyReasons: [] });
-    }
-    for (const expected of scenario.expected.assertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'readonly-indirection': (scenario) => {
-    const program = programFromFiles(scenario.input.files);
-    for (const expected of scenario.expected.assertions) {
-      assertAliasOutcome(program, expected.name, expected);
-    }
-  },
-  'readonly-intrinsics': (scenario) => {
-    const intrinsicProgram = programFromFiles(scenario.input.programs.intrinsic);
-    const shadowedProgram = programFromFiles(scenario.input.programs.shadowed);
-    for (const expected of scenario.expected.assertions.intrinsic) {
-      assertAliasOutcome(intrinsicProgram, expected.name, expected);
-    }
-    for (const expected of scenario.expected.assertions.shadowed) {
-      assertAliasOutcome(shadowedProgram, expected.name, expected);
-    }
-  }
-};
-
-function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenario.shape](scenario);
 }
 
 void describe('TypeContractClassification', () => {
-  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+  TypeContractClassificationRunners.declareCases();
 });

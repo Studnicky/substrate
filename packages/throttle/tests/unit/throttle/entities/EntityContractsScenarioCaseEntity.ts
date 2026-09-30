@@ -1,35 +1,41 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 const openBagSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
 const openBagNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
-const validateCaseSchema = <const TShape extends 'abort-options' | 'active-operation-state'>(shape: TShape) => ({
-  'additionalProperties': false,
-  'properties': {
-    'description': { 'minLength': 1, 'type': 'string' },
-    'expected': openBagSchema,
-    'input': openBagSchema,
-    'name': { 'minLength': 1, 'type': 'string' },
-    'shape': { 'const': shape }
-  },
-  'required': ['description', 'expected', 'input', 'name', 'shape'],
-  'type': 'object'
-}) as const;
+class EntityContractsScenarioCaseEntityBuilders {
+  static validateCaseSchema<const TShape extends 'abort-options' | 'active-operation-state'>(shape: TShape) {const result = {
+    'additionalProperties': false,
+    'properties': {
+      'description': { 'minLength': 1, 'type': 'string' },
+      'expected': openBagSchema,
+      'input': openBagSchema,
+      'name': { 'minLength': 1, 'type': 'string' },
+      'shape': { 'const': shape }
+    },
+    'required': ['description', 'expected', 'input', 'name', 'shape'],
+    'type': 'object'
+  } as const;
+  return result;}
 
-const validateCaseNode = <const TShape extends 'abort-options' | 'active-operation-state'>(shape: TShape) => SchemaNode.defineObject({ 'type': 'object' } as const, {
+  static validateCaseNode<const TShape extends 'abort-options' | 'active-operation-state'>(shape: TShape) {const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
     'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
     'expected': openBagNode,
     'input': openBagNode,
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
     'shape': SchemaNode.defineConst({}, shape)
   }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  return result;}
+}
 
-const abortOptionsSchema = validateCaseSchema('abort-options');
-const abortOptionsNode = validateCaseNode('abort-options');
-const activeOperationStateSchema = validateCaseSchema('active-operation-state');
-const activeOperationStateNode = validateCaseNode('active-operation-state');
+const abortOptionsSchema = EntityContractsScenarioCaseEntityBuilders.validateCaseSchema('abort-options');
+const abortOptionsNode = EntityContractsScenarioCaseEntityBuilders.validateCaseNode('abort-options');
+const activeOperationStateSchema = EntityContractsScenarioCaseEntityBuilders.validateCaseSchema('active-operation-state');
+const activeOperationStateNode = EntityContractsScenarioCaseEntityBuilders.validateCaseNode('active-operation-state');
 
 const errorConstructorsSchema = {
   'additionalProperties': false,
@@ -81,22 +87,22 @@ const errorConstructorsSchema = {
 } as const;
 
 const errorConstructorsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'aborted': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          }, ['code', 'message', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'draining': SchemaNode.defineObject({ 'type': 'object' } as const, { 'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['code', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-      }, ['aborted', 'draining'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'aborted': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['message', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'draining': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-      }, ['aborted', 'draining'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'error-constructors' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'aborted': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
+    }, ['code', 'message', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'draining': SchemaNode.defineObject({ 'type': 'object' } as const, { 'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['code', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['aborted', 'draining'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'aborted': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'timeoutMs': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['message', 'timeoutMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'draining': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['aborted', 'draining'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'error-constructors' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The three scenario case shapes `entity-contracts.loop.spec.ts` exercises. */
 export namespace EntityContractsScenarioCaseEntity {
@@ -104,4 +110,7 @@ export namespace EntityContractsScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [abortOptionsNode, activeOperationStateNode, errorConstructorsNode] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

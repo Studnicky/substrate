@@ -1,87 +1,73 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { ConfigurationError } from '@studnicky/config/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { it } from 'node:test';
 
-import { Throttle } from '../../../src/throttle/index.js';
 import { ThrottleConfigEntity } from '../../../src/entities/ThrottleConfigEntity.js';
+import { Throttle } from '../../../src/throttle/index.js';
+import scenarioGroups from './configuration.scenarios.json' with { 'type': 'json' };
 import { ConfigurationScenarioCaseEntity } from './entities/ConfigurationScenarioCaseEntity.js';
-import scenarioGroups from './configuration.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = ConfigurationScenarioCaseEntity.Type;
-type JsonThrottleConfig = ScenarioCase['input']['throttle'];
-
-const fileIntake = ScenarioFileCompiler.compileIntake(ConfigurationScenarioCaseEntity.Schema, ConfigurationScenarioCaseEntity.Node);
-
-type ConcurrencyLimitShape = 'missing' | 'nan-token' | 'number';
-type ThrottleConfigResolver = (config: JsonThrottleConfig) => Parameters<typeof Throttle.create>[0];
-
-const concurrencyLimitShape = (config: JsonThrottleConfig): ConcurrencyLimitShape => {
-  if (config.concurrencyLimit === 'NaN') return 'nan-token';
-  if (config.concurrencyLimit === undefined) return 'missing';
-  return 'number';
-};
-
-const throttleConfigResolverMap: Record<ConcurrencyLimitShape, ThrottleConfigResolver> = {
-  missing: () => ({}),
-  'nan-token': () => ({ concurrencyLimit: Number.NaN }),
-  number: (config) => {
-    const { concurrencyLimit } = config;
-    return typeof concurrencyLimit === 'number' ? { concurrencyLimit } : {};
-  }
-};
-
-function resolveThrottleConfig(config: JsonThrottleConfig): Parameters<typeof Throttle.create>[0] {
-  return throttleConfigResolverMap[concurrencyLimitShape(config)](config);
-}
-
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-  'accepts-valid-configuration': (scenarioCase) => {
-    assert.doesNotThrow(() => { Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle)); });
+class ConfigurationRunners {
+  static 'accepts-valid-configuration'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'accepts-valid-configuration'>): void {
+    assert.doesNotThrow(() => { Throttle.create(ConfigurationRunners.resolveThrottleConfig(scenarioCase.input.throttle)); });
     assert.doesNotThrow(() => { Throttle.create(); });
     assert.equal(scenarioCase.expected.accepted, true);
     assert.equal(scenarioCase.expected.defaultAccepted, true);
-  },
-  'custom-concurrency-limit': (scenarioCase) => {
-    const throttle = Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle));
+  }
+
+  static 'custom-concurrency-limit'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'custom-concurrency-limit'>): void {
+    const throttle = Throttle.create(ConfigurationRunners.resolveThrottleConfig(scenarioCase.input.throttle));
     assert.strictEqual(throttle.getStats().concurrencyLimit, scenarioCase.expected.concurrencyLimit);
-  },
-  'default-config': (scenarioCase) => {
+  }
+
+  static 'default-config'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'default-config'>): void {
     const throttle = Throttle.create();
     assert.strictEqual(throttle.getStats().concurrencyLimit, scenarioCase.expected.concurrencyLimit);
     assert.deepStrictEqual(scenarioCase.input.throttle, {});
-  },
-  'invalid-concurrency-limit': (scenarioCase) => {
-    assert.throws(() => { Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle)); }, ConfigurationError);
+  }
+
+  static 'invalid-concurrency-limit'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'invalid-concurrency-limit'>): void {
+    assert.throws(() => { Throttle.create(ConfigurationRunners.resolveThrottleConfig(scenarioCase.input.throttle)); }, ConfigurationError);
     assert.equal(scenarioCase.expected.errorName, 'ConfigurationError');
-  },
-  'invalid-concurrency-limit-nan': (scenarioCase) => {
+  }
+
+  static 'invalid-concurrency-limit-nan'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'invalid-concurrency-limit-nan'>): void {
     assert.strictEqual(scenarioCase.input.throttle.concurrencyLimit, 'NaN');
-    assert.throws(() => { Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle)); }, ConfigurationError);
+    assert.throws(() => { Throttle.create(ConfigurationRunners.resolveThrottleConfig(scenarioCase.input.throttle)); }, ConfigurationError);
     assert.equal(scenarioCase.expected.errorName, 'ConfigurationError');
-  },
-  'missing-concurrency-limit-uses-default': (scenarioCase) => {
-    const throttle = Throttle.create(resolveThrottleConfig(scenarioCase.input.throttle));
+  }
+
+  static 'missing-concurrency-limit-uses-default'(scenarioCase: ScenarioCaseOfType<ConfigurationScenarioCaseEntity.Type, 'missing-concurrency-limit-uses-default'>): void {
+    const throttle = Throttle.create(ConfigurationRunners.resolveThrottleConfig(scenarioCase.input.throttle));
     assert.strictEqual(throttle.getStats().concurrencyLimit, scenarioCase.expected.concurrencyLimit);
   }
-};
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
-}
+  private static resolveThrottleConfig(config: ConfigurationScenarioCaseEntity.Type['input']['throttle']): Parameters<typeof Throttle.create>[0] {
+    let resolved: Parameters<typeof Throttle.create>[0] = {};
+    if (config.concurrencyLimit === 'NaN') {
+      resolved = { 'concurrencyLimit': Number.NaN };
+    }
+    if (typeof config.concurrencyLimit === 'number') {
+      resolved = { 'concurrencyLimit': config.concurrencyLimit };
+    }
+    return resolved;
+  }
 
-void describe('Throttle configuration', () => {
-  void it('defaults only undefined configuration and rejects null through entity intake', () => {
-    assert.doesNotThrow(() => { Throttle.create(undefined); });
-    assert.strictEqual(ThrottleConfigEntity.validate(null), false);
-  });
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
+  static declaresEntityConfigContract(): void {
+    void it('defaults only undefined configuration and rejects null through entity intake', () => {
+      assert.doesNotThrow(() => { Throttle.create(undefined); });
+      assert.strictEqual(ThrottleConfigEntity.validate(null), false);
     });
   }
+}
+
+ScenarioSuite.register({
+  'entity': ConfigurationScenarioCaseEntity,
+  'extraTests': ConfigurationRunners.declaresEntityConfigContract,
+  'file': scenarioGroups,
+  'name': 'Throttle configuration',
+  'runners': ConfigurationRunners
 });

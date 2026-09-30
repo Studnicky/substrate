@@ -1,4 +1,4 @@
-import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
@@ -17,6 +17,9 @@ export namespace JobEffectEntity {
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'variant': SchemaNode.defineConst({ 'type': 'string' } as const, 'log' as const) }, ['message', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
 }

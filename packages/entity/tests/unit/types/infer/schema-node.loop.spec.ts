@@ -2,9 +2,6 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { ContainsBrandInterface, MaximumItemsBrandInterface, MinimumItemsBrandInterface, UniqueItemsBrandInterface } from '../../../../src/interfaces/index.js';
-import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
-import type { IdentityType } from '../../../../src/types/IdentityType.js';
-import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
 import type {
   ContentEncodingBrandType,
   ContentMediaTypeBrandType,
@@ -18,116 +15,104 @@ import type {
   MultipleOfBrandType,
   PatternBrandType
 } from '../../../../src/types/brands/index.js';
-import { Assert, Equal } from './type-level-assert.js';
+import type { IdentityType } from '../../../../src/types/IdentityType.js';
+import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
+import type { RecursiveTreeSchemaInterface } from '../../fixtures/interfaces/RecursiveTreeSchemaInterface.js';
+import type { RecursiveTreeStaticInterface } from '../../fixtures/interfaces/RecursiveTreeStaticInterface.js';
+import type { AssertType, EqualType } from './type-level-assert.js';
 
-/** Compiles only if `value` structurally satisfies `T` — the type-level half of the cases that still use a real value. */
-function assertAssignable<T>(value: T): void {
-  void value;
-}
-
-/** No-op filler standing in for an unset optional brand condition — matches the `Record<never, never>` each `Apply*ConstraintBrandsType` conditional produces when its keyword is absent. */
-type UnsetBrandType = Record<never, never>;
+import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
 
 void describe('SchemaNode scalar constructors', () => {
-  const nameNode = SchemaNode.defineString({ 'type': 'string', 'minLength': 1, 'maxLength': 64, 'format': 'email' } as const);
-  type NameExpectedType = string & FormatBrandType<'email'> & MaximumLengthBrandType<64> & MinimumLengthBrandType<1> & UnsetBrandType & UnsetBrandType & UnsetBrandType;
-  type NameBrandCheck = Assert<Equal<NodeStaticType<typeof nameNode>, NameExpectedType>>;
+  const nameNode = SchemaNode.defineString({ 'format': 'email', 'maxLength': 64, 'minLength': 1, 'type': 'string' } as const);
 
   void it('defineString brands minLength/maxLength/format onto string', () => {
     assert.equal(nameNode.schema.minLength, 1);
     assert.equal(nameNode.schema.format, 'email');
-    const checks: [NameBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof nameNode>, FormatBrandType<'email'> & MaximumLengthBrandType<64> & MinimumLengthBrandType<1> & Record<never, never> & string>>] = [true];
     assert.deepEqual(checks, [true]);
     assert.equal(nameNode.schema.format, 'email');
   });
 
-  const codeNode = SchemaNode.defineString({ 'type': 'string', 'pattern': '^[A-Z]{3}$' } as const);
-  type CodeExpectedType = string & PatternBrandType<'^[A-Z]{3}$'> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType;
-  type CodeBrandCheck = Assert<Equal<NodeStaticType<typeof codeNode>, CodeExpectedType>>;
+  const codeNode = SchemaNode.defineString({ 'pattern': '^[A-Z]{3}$', 'type': 'string' } as const);
 
   void it('defineString brands pattern onto string', () => {
     assert.equal(codeNode.schema.pattern, '^[A-Z]{3}$');
-    const checks: [CodeBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof codeNode>, PatternBrandType<'^[A-Z]{3}$'> & Record<never, never> & string>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
-  const blobNode = SchemaNode.defineString({ 'type': 'string', 'contentEncoding': 'base64', 'contentMediaType': 'image/png' } as const);
-  type BlobExpectedType = string & ContentEncodingBrandType<'base64'> & ContentMediaTypeBrandType<'image/png'> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType;
-  type BlobBrandCheck = Assert<Equal<NodeStaticType<typeof blobNode>, BlobExpectedType>>;
+  const blobNode = SchemaNode.defineString({ 'contentEncoding': 'base64', 'contentMediaType': 'image/png', 'type': 'string' } as const);
 
   void it('defineString brands contentEncoding/contentMediaType onto string', () => {
     assert.equal(blobNode.schema.contentEncoding, 'base64');
-    const checks: [BlobBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof blobNode>, ContentEncodingBrandType<'base64'> & ContentMediaTypeBrandType<'image/png'> & Record<never, never> & string>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
-  const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
-  type AgeExpectedType = number & MaximumBrandType<120> & MinimumBrandType<0> & UnsetBrandType & UnsetBrandType & UnsetBrandType;
-  type AgeBrandCheck = Assert<Equal<NodeStaticType<typeof ageNode>, AgeExpectedType>>;
+  const ageNode = SchemaNode.defineNumber({ 'maximum': 120, 'minimum': 0, 'type': 'number' } as const);
 
   void it('defineNumber brands minimum/maximum onto number', () => {
     assert.equal(ageNode.schema.minimum, 0);
-    const checks: [AgeBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof ageNode>, MaximumBrandType<120> & MinimumBrandType<0> & number & Record<never, never>>>] = [true];
     assert.deepEqual(checks, [true]);
     assert.equal(ageNode.schema.maximum, 120);
   });
 
-  const evenNode = SchemaNode.defineNumber({ 'type': 'integer', 'exclusiveMinimum': 0, 'exclusiveMaximum': 100, 'multipleOf': 2 } as const);
-  type EvenExpectedType = number & ExclusiveMaximumBrandType<100> & ExclusiveMinimumBrandType<0> & MultipleOfBrandType<2> & UnsetBrandType & UnsetBrandType;
-  type EvenBrandCheck = Assert<Equal<NodeStaticType<typeof evenNode>, EvenExpectedType>>;
+  const evenNode = SchemaNode.defineNumber({ 'exclusiveMaximum': 100, 'exclusiveMinimum': 0, 'multipleOf': 2, 'type': 'integer' } as const);
 
   void it('defineNumber brands exclusiveMinimum/exclusiveMaximum/multipleOf onto number', () => {
     assert.equal(evenNode.schema.multipleOf, 2);
-    const checks: [EvenBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof evenNode>, ExclusiveMaximumBrandType<100> & ExclusiveMinimumBrandType<0> & MultipleOfBrandType<2> & number & Record<never, never>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   void it('defineBoolean derives plain boolean', () => {
     const flagNode = SchemaNode.defineBoolean({ 'type': 'boolean' } as const);
     assert.equal(flagNode.schema.type, 'boolean');
-    assertAssignable<NodeStaticType<typeof flagNode>>(true);
+    const assignable: NodeStaticType<typeof flagNode> = true;
+    assert.deepEqual(assignable, true);
   });
 
   void it('defineNull derives plain null', () => {
     const nullNode = SchemaNode.defineNull({ 'type': 'null' } as const);
     assert.equal(nullNode.schema.type, 'null');
-    assertAssignable<NodeStaticType<typeof nullNode>>(null);
+    const assignable: NodeStaticType<typeof nullNode> = null;
+    assert.deepEqual(assignable, null);
   });
 
   void it('defineConst derives the exact literal', () => {
     const versionNode = SchemaNode.defineConst({}, 'v1' as const);
     assert.equal(versionNode.schema.const, 'v1');
-    assertAssignable<NodeStaticType<typeof versionNode>>('v1');
+    const assignable: NodeStaticType<typeof versionNode> = 'v1';
+    assert.deepEqual(assignable, 'v1');
   });
 
   void it('defineEnum derives the literal union', () => {
     const colorNode = SchemaNode.defineEnum({}, ['red', 'green', 'blue'] as const);
     assert.deepEqual(colorNode.schema.enum, ['red', 'green', 'blue']);
-    assertAssignable<NodeStaticType<typeof colorNode>>('green');
+    const assignable: NodeStaticType<typeof colorNode> = 'green';
+    assert.deepEqual(assignable, 'green');
   });
 });
 
 void describe('SchemaNode object constructor', () => {
-  const nameNode = SchemaNode.defineString({ 'type': 'string', 'minLength': 1 } as const);
-  const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
+  const nameNode = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+  const ageNode = SchemaNode.defineNumber({ 'maximum': 120, 'minimum': 0, 'type': 'number' } as const);
 
-  const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode, 'age': ageNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  type UserExpectedType = IdentityType<{ 'age'?: NodeStaticType<typeof ageNode> } & { 'name': NodeStaticType<typeof nameNode> }>;
-  type UserBrandCheck = Assert<Equal<NodeStaticType<typeof userNode>, UserExpectedType>>;
+  const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'age': ageNode, 'name': nameNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   void it('required properties become non-optional, others optional', () => {
     assert.deepEqual(userNode.schema.required, ['name']);
-    const checks: [UserBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof userNode>, IdentityType<{ 'age'?: NodeStaticType<typeof ageNode> } & { 'name': NodeStaticType<typeof nameNode> }>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   const bagNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': true, 'patternProperties': {} });
-  type BagExpectedType = IdentityType<{ 'id': NodeStaticType<typeof nameNode> } & Record<string, unknown>>;
-  type BagBrandCheck = Assert<Equal<NodeStaticType<typeof bagNode>, BagExpectedType>>;
 
   void it('additionalProperties true opens the object to unknown extras', () => {
     assert.equal(bagNode.schema.additionalProperties, true);
-    const checks: [BagBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof bagNode>, IdentityType<Record<string, unknown> & { 'id': NodeStaticType<typeof nameNode> }>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
@@ -137,85 +122,72 @@ void describe('SchemaNode object constructor', () => {
   });
 
   void it('minProperties/maxProperties brand the object', () => {
-    const boundedNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 1, 'maxProperties': 3 } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const boundedNode = SchemaNode.defineObject({ 'maxProperties': 3, 'minProperties': 1, 'type': 'object' } as const, { 'id': nameNode }, ['id'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     assert.equal(boundedNode.schema.minProperties, 1);
     assert.equal(boundedNode.schema.maxProperties, 3);
   });
 
   const skuNode = SchemaNode.defineNumber({ 'type': 'number' } as const);
   const catalogNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], {
-    'patternProperties': { '^sku-': skuNode }, 'additionalProperties': false });
-  type CatalogExpectedType = IdentityType<Record<`sku-${string}`, NodeStaticType<typeof skuNode>>>;
-  type CatalogBrandCheck = Assert<Equal<NodeStaticType<typeof catalogNode>, CatalogExpectedType>>;
+    'additionalProperties': false, 'patternProperties': { '^sku-': skuNode } });
 
   void it('patternProperties with an anchored literal pattern derives a template-literal key', () => {
     assert.deepEqual(catalogNode.schema.patternProperties, { '^sku-': skuNode });
-    const checks: [CatalogBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof catalogNode>, IdentityType<Record<`sku-${string}`, NodeStaticType<typeof skuNode>>>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   const anyNode = SchemaNode.defineString({ 'type': 'string' } as const);
-  const wildcardNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], {
-    'patternProperties': { '^[a-z]+$': anyNode }, 'additionalProperties': false });
-  type WildcardExpectedType = IdentityType<Record<never, never>>;
-  type WildcardBrandCheck = Assert<Equal<NodeStaticType<typeof wildcardNode>, WildcardExpectedType>>;
+  const wildcardNodeType = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [], {
+    'additionalProperties': false, 'patternProperties': { '^[a-z]+$': anyNode } });
 
   void it('patternProperties with a non-literal pattern falls back to a no-op ({})', () => {
-    const checks: [WildcardBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof wildcardNodeType>, IdentityType<Record<never, never>>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 });
 
 void describe('SchemaNode array/tuple constructors', () => {
-  const codeNode = SchemaNode.defineString({ 'type': 'string', 'pattern': '^[A-Z]{3}$' } as const);
-  const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
+  const codeNode = SchemaNode.defineString({ 'pattern': '^[A-Z]{3}$', 'type': 'string' } as const);
+  const ageNode = SchemaNode.defineNumber({ 'maximum': 120, 'minimum': 0, 'type': 'number' } as const);
   const versionNode = SchemaNode.defineConst({}, 'v1' as const);
 
-  const tagsNode = SchemaNode.defineArray({ 'type': 'array', 'minItems': 1, 'maxItems': 5 } as const, codeNode, undefined);
-  type TagsExpectedType = MaximumItemsBrandInterface<5> & MinimumItemsBrandInterface<1> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & NodeStaticType<typeof codeNode>[];
-  type TagsBrandCheck = Assert<Equal<NodeStaticType<typeof tagsNode>, TagsExpectedType>>;
+  const tagsNode = SchemaNode.defineArray({ 'maxItems': 5, 'minItems': 1, 'type': 'array' } as const, codeNode, undefined);
 
   void it('defineArray derives an array of the item static, brands minItems/maxItems', () => {
     assert.equal(tagsNode.schema.minItems, 1);
-    const checks: [TagsBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof tagsNode>, MaximumItemsBrandInterface<5> & MinimumItemsBrandInterface<1> & NodeStaticType<typeof codeNode>[] & Record<never, never>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   const uniqueTagsNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, codeNode, undefined);
-  type UniqueTagsExpectedType = UniqueItemsBrandInterface<true> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & NodeStaticType<typeof codeNode>[];
-  type UniqueTagsBrandCheck = Assert<Equal<NodeStaticType<typeof uniqueTagsNode>, UniqueTagsExpectedType>>;
 
   void it('defineArray with uniqueItems: true carries the UniqueItemsBrandInterface', () => {
     assert.equal(uniqueTagsNode.schema.uniqueItems, true);
-    const checks: [UniqueTagsBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof uniqueTagsNode>, NodeStaticType<typeof codeNode>[] & Record<never, never> & UniqueItemsBrandInterface<true>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   const withContainsNode = SchemaNode.defineArray({ 'type': 'array' } as const, ageNode, versionNode);
-  type WithContainsExpectedType = ContainsBrandInterface<NodeStaticType<typeof versionNode>> & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & NodeStaticType<typeof ageNode>[];
-  type WithContainsBrandCheck = Assert<Equal<NodeStaticType<typeof withContainsNode>, WithContainsExpectedType>>;
 
   void it('defineArray with contains carries the ContainsBrandInterface', () => {
     assert.deepEqual(withContainsNode.schema.contains, versionNode);
-    const checks: [WithContainsBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof withContainsNode>, ContainsBrandInterface<NodeStaticType<typeof versionNode>> & NodeStaticType<typeof ageNode>[] & Record<never, never>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   const pairNode = SchemaNode.defineTuple({ 'type': 'array' } as const, [codeNode, ageNode] as const);
-  type PairExpectedTupleType = [] | [NodeStaticType<typeof codeNode>] | [NodeStaticType<typeof codeNode>, NodeStaticType<typeof ageNode>, ...unknown[]];
-  type PairExpectedType = UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & UnsetBrandType & PairExpectedTupleType;
-  type PairBrandCheck = Assert<Equal<NodeStaticType<typeof pairNode>, PairExpectedType>>;
 
   void it('defineTuple preserves per-slot types and arity', () => {
     assert.equal(pairNode.schema.prefixItems.length, 2);
-    const checks: [PairBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof pairNode>, ([] | [NodeStaticType<typeof codeNode>] | [NodeStaticType<typeof codeNode>, NodeStaticType<typeof ageNode>, ...unknown[]]) & Record<never, never>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 });
 
 void describe('SchemaNode composition constructors', () => {
-  const nameNode = SchemaNode.defineString({ 'type': 'string', 'minLength': 1 } as const);
-  const ageNode = SchemaNode.defineNumber({ 'type': 'number', 'minimum': 0, 'maximum': 120 } as const);
+  const nameNode = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+  const ageNode = SchemaNode.defineNumber({ 'maximum': 120, 'minimum': 0, 'type': 'number' } as const);
   const flagNode = SchemaNode.defineBoolean({ 'type': 'boolean' } as const);
   const nullNode = SchemaNode.defineNull({ 'type': 'null' } as const);
 
@@ -223,73 +195,60 @@ void describe('SchemaNode composition constructors', () => {
     const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     const boundedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'age': ageNode }, ['age'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     const allOfNode = SchemaNode.defineAllOf({}, [userNode, boundedNode] as const);
-    type AllOfExpectedType = IdentityType<NodeStaticType<typeof boundedNode> & NodeStaticType<typeof userNode>>;
-    type AllOfBrandCheck = Assert<Equal<NodeStaticType<typeof allOfNode>, AllOfExpectedType>>;
 
     assert.equal(allOfNode.schema.allOf.length, 2);
-    const checks: [AllOfBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof allOfNode>, IdentityType<NodeStaticType<typeof boundedNode> & NodeStaticType<typeof userNode>>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   void it('defineAnyOf unions branch statics', () => {
-    const anyOfNode = SchemaNode.defineAnyOf({}, [nameNode, ageNode] as const);
-    type AnyOfExpectedType = NodeStaticType<typeof ageNode> | NodeStaticType<typeof nameNode>;
-    type AnyOfBrandCheck = Assert<Equal<NodeStaticType<typeof anyOfNode>, AnyOfExpectedType>>;
+    const anyOfNodeType = SchemaNode.defineAnyOf({}, [nameNode, ageNode] as const);
 
-    const checks: [AnyOfBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof anyOfNodeType>, NodeStaticType<typeof ageNode> | NodeStaticType<typeof nameNode>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   void it('defineOneOf unions branch statics', () => {
-    const oneOfNode = SchemaNode.defineOneOf({}, [flagNode, nullNode] as const);
-    assertAssignable<NodeStaticType<typeof oneOfNode>>(true);
-    assertAssignable<NodeStaticType<typeof oneOfNode>>(null);
+    const oneOfNodeType = SchemaNode.defineOneOf({}, [flagNode, nullNode] as const);
+    const assignableBoolean: NodeStaticType<typeof oneOfNodeType> = true;
+    assert.deepEqual(assignableBoolean, true);
+    const assignableNull: NodeStaticType<typeof oneOfNodeType> = null;
+    assert.deepEqual(assignableNull, null);
   });
 
   void it('defineNot falls back to unknown', () => {
     const notNode = SchemaNode.defineNot({}, nameNode);
     assert.deepEqual(notNode.schema.not, nameNode);
-    assertAssignable<NodeStaticType<typeof notNode>>('anything');
+    const assignable: NodeStaticType<typeof notNode> = 'anything';
+    assert.deepEqual(assignable, 'anything');
   });
 
   void it('defineConditional unions then/else statics under renamed ifSchema/thenSchema/elseSchema keys', () => {
     const condNode = SchemaNode.defineConditional(flagNode, ageNode, nameNode);
-    type CondExpectedType = NodeStaticType<typeof ageNode> | NodeStaticType<typeof nameNode>;
-    type CondBrandCheck = Assert<Equal<NodeStaticType<typeof condNode>, CondExpectedType>>;
 
     assert.deepEqual(condNode.schema.thenSchema, ageNode);
     assert.deepEqual(condNode.schema.elseSchema, nameNode);
-    const checks: [CondBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof condNode>, NodeStaticType<typeof ageNode> | NodeStaticType<typeof nameNode>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 
   void it('defineRecursive lets a node reference itself, TypeBox Type.Recursive-style', () => {
-    interface RecursiveTreeSchema {
-      readonly 'type': 'object';
-    }
-    interface RecursiveTreeStatic {
-      readonly 'children': RecursiveTreeStatic[];
-      readonly 'label': string;
-    }
-    type RecursiveTreeNode = ReturnType<typeof SchemaNode.defineRecursive<RecursiveTreeSchema, RecursiveTreeStatic>>;
-
-    const treeNode: RecursiveTreeNode = SchemaNode.defineRecursive<RecursiveTreeSchema, RecursiveTreeStatic>((self) => {
-      const built = SchemaNode.defineObject({ 'type': 'object' } as const, { 'label': nameNode, 'children': SchemaNode.defineArray({ 'type': 'array' } as const, self, undefined) }, ['label', 'children'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const treeNode = SchemaNode.defineRecursive<RecursiveTreeSchemaInterface, RecursiveTreeStaticInterface>((self) => {
+      const built = SchemaNode.defineObject({ 'type': 'object' } as const, { 'children': SchemaNode.defineArray({ 'type': 'array' } as const, self, undefined), 'label': nameNode }, ['label', 'children'] as const, { 'additionalProperties': false, 'patternProperties': {} });
       return built;
     });
 
     assert.equal(treeNode.schema.type, 'object');
-    assertAssignable<NodeStaticType<typeof treeNode>>({ 'label': 'root', 'children': [{ 'label': 'child', 'children': [] }] });
+    const assignable: NodeStaticType<typeof treeNode> = { 'children': [{ 'children': [], 'label': 'child' }], 'label': 'root' };
+    assert.deepEqual(assignable, { 'children': [{ 'children': [], 'label': 'child' }], 'label': 'root' });
   });
 
   void it('$ref by node reuse: the same built node composed twice shares its static type', () => {
     const userNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': nameNode }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
     const reusedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'primary': userNode, 'secondary': userNode }, ['primary'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-    type ReusedExpectedType = IdentityType<{ 'primary': NodeStaticType<typeof userNode> } & { 'secondary'?: NodeStaticType<typeof userNode> }>;
-    type ReusedBrandCheck = Assert<Equal<NodeStaticType<typeof reusedNode>, ReusedExpectedType>>;
 
     assert.deepEqual(reusedNode.schema.properties?.primary, reusedNode.schema.properties?.secondary);
-    const checks: [ReusedBrandCheck] = [true];
+    const checks: [AssertType<EqualType<NodeStaticType<typeof reusedNode>, IdentityType<{ 'primary': NodeStaticType<typeof userNode> } & { 'secondary'?: NodeStaticType<typeof userNode> }>>>] = [true];
     assert.deepEqual(checks, [true]);
   });
 });

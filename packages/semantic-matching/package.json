@@ -58,6 +58,7 @@
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*"
+    "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*"
   }
 }

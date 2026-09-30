@@ -8,7 +8,8 @@
       "input": {
         "entrypoint": "../../examples/predicates-accessors.ts"
       },
-      "name": "predicates-accessors"
+      "name": "predicates-accessors",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the hash example",
@@ -18,7 +19,8 @@
       "input": {
         "entrypoint": "../../examples/hash.ts"
       },
-      "name": "hash"
+      "name": "hash",
+      "shape": "imports-example"
     }
   ]
 }

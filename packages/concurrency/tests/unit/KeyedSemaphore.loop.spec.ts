@@ -1,13 +1,10 @@
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { KeyedSemaphore, SemaphoreQueueFullError } from '../../src/index.js';
-
-function flushMicrotasks(): Promise<void> {
-  return new Promise((resolve) => {
-    setImmediate(resolve);
-  });
-}
+import { ErrorCapture } from '../helpers/ErrorCapture.js';
+import { EventLoop } from '../helpers/EventLoop.js';
 
 void describe('KeyedSemaphore', () => {
   void it('isolates permit capacity and queue state by key', async () => {
@@ -15,7 +12,7 @@ void describe('KeyedSemaphore', () => {
     const releaseAlpha = await semaphore.acquire('alpha');
     const releaseBeta = await semaphore.acquire('beta');
     const pendingAlpha = semaphore.acquire('alpha');
-    await flushMicrotasks();
+    await EventLoop.flush();
 
     assert.equal(semaphore.activeCount(), 2);
     assert.equal(semaphore.activeCount('alpha'), 1);
@@ -23,7 +20,8 @@ void describe('KeyedSemaphore', () => {
     assert.equal(semaphore.queuedCount(), 1);
     assert.equal(semaphore.queuedCount('alpha'), 1);
     assert.equal(semaphore.queuedCount('beta'), 0);
-    await assert.rejects(() => semaphore.acquire('alpha'), SemaphoreQueueFullError);
+    const queueFullError = await ErrorCapture.rejection(semaphore.acquire('alpha'));
+    assert.ok(queueFullError instanceof SemaphoreQueueFullError);
 
     await releaseAlpha();
     const releaseQueuedAlpha = await pendingAlpha;
@@ -59,9 +57,10 @@ void describe('KeyedSemaphore', () => {
   void it('releases keyed permits when a callback throws', async () => {
     const semaphore = KeyedSemaphore.create<string>({ 'permits': 1 });
 
-    await assert.rejects(async () => semaphore.withPermit('invoice:42', async () => {
-      throw new Error('operation failed');
-    }), /operation failed/);
+    const failure = await ErrorCapture.rejection(semaphore.withPermit('invoice:42', async () => {
+      return await Promise.reject(RuntimeError.create('operation failed'));
+    }));
+    assert.ok(failure.message.includes('operation failed'));
 
     await semaphore.waitForIdle('invoice:42');
     assert.equal(semaphore.activeCount(), 0);
@@ -80,13 +79,14 @@ void describe('KeyedSemaphore', () => {
       return release;
     });
 
-    await flushMicrotasks();
+    await EventLoop.flush();
     assert.equal(semaphore.keyCount, 1);
     assert.equal(semaphore.activeCount('tenant:17'), 1);
     assert.equal(semaphore.queuedCount('tenant:17'), 3);
 
-    releaseMiddle.abort();
-    await assert.rejects(middle, /aborted/);
+    releaseMiddle.abort(RuntimeError.create('middle waiter cancelled'));
+    const abortError = await ErrorCapture.rejection(middle);
+    assert.ok(abortError.message.includes('aborted'));
     assert.equal(semaphore.queuedCount('tenant:17'), 2);
 
     await releaseHolder();
@@ -110,9 +110,9 @@ void describe('KeyedSemaphore', () => {
     assert.equal(semaphore.keyCount, 0);
   });
 
-  void it("removes an idle key pool and keeps a keyed release idempotent", async () => {
-    const semaphore = KeyedSemaphore.create<string>({ "permits": 1 });
-    const release = await semaphore.acquire("account:7");
+  void it('removes an idle key pool and keeps a keyed release idempotent', async () => {
+    const semaphore = KeyedSemaphore.create<string>({ 'permits': 1 });
+    const release = await semaphore.acquire('account:7');
 
     assert.equal(semaphore.keyCount, 1);
     await release();

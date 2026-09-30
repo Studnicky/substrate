@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 const nameSchema = { 'minLength': 1, 'type': 'string' } as const;
@@ -19,68 +21,72 @@ const componentPrefixesSchema = {
   'type': 'object'
 } as const;
 const componentPrefixesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'API': nameNode, 'AUTH': nameNode, 'CACHE': nameNode, 'DATA_SOURCE': nameNode, 'DB': nameNode,
-    'ENTITY': nameNode, 'GRAPH': nameNode, 'LLM': nameNode, 'ONTOLOGY': nameNode, 'QUERY_PLANNER': nameNode,
-    'QUERY_ROUTER': nameNode, 'QUERY_TRANSLATE': nameNode, 'SCHEMA': nameNode, 'TIMING': nameNode, 'WORKFLOW': nameNode
-  }, [
-    'API', 'AUTH', 'CACHE', 'DATA_SOURCE', 'DB', 'ENTITY', 'GRAPH', 'LLM', 'ONTOLOGY', 'QUERY_PLANNER',
-    'QUERY_ROUTER', 'QUERY_TRANSLATE', 'SCHEMA', 'TIMING', 'WORKFLOW'
-  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'API': nameNode, 'AUTH': nameNode, 'CACHE': nameNode, 'DATA_SOURCE': nameNode, 'DB': nameNode,
+  'ENTITY': nameNode, 'GRAPH': nameNode, 'LLM': nameNode, 'ONTOLOGY': nameNode, 'QUERY_PLANNER': nameNode,
+  'QUERY_ROUTER': nameNode, 'QUERY_TRANSLATE': nameNode, 'SCHEMA': nameNode, 'TIMING': nameNode, 'WORKFLOW': nameNode
+}, [
+  'API', 'AUTH', 'CACHE', 'DATA_SOURCE', 'DB', 'ENTITY', 'GRAPH', 'LLM', 'ONTOLOGY', 'QUERY_PLANNER',
+  'QUERY_ROUTER', 'QUERY_TRANSLATE', 'SCHEMA', 'TIMING', 'WORKFLOW'
+] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-function defineCreateEventBranch<const TShape extends string>(shape: TShape) {
-  const schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': nameSchema,
-      'expected': nameSchema,
-      'input': {
-        'additionalProperties': false,
-        'properties': { 'component': nameSchema, 'operation': nameSchema },
-        'required': ['component', 'operation'],
-        'type': 'object'
+class LogEventNameScenarioCaseEntityBuilders {
+  static defineCreateEventBranch<const TShape extends string>(shape: TShape) {
+    const schema = {
+      'additionalProperties': false,
+      'properties': {
+        'description': nameSchema,
+        'expected': nameSchema,
+        'input': {
+          'additionalProperties': false,
+          'properties': { 'component': nameSchema, 'operation': nameSchema },
+          'required': ['component', 'operation'],
+          'type': 'object'
+        },
+        'name': nameSchema,
+        'shape': { 'const': shape }
       },
-      'name': nameSchema,
-      'shape': { 'const': shape }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
-  } as const;
-  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'required': ['description', 'expected', 'input', 'name', 'shape'],
+      'type': 'object'
+    } as const;
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
       'expected': nameNode,
       'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': nameNode, 'operation': nameNode }, ['component', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': nameNode,
       'shape': SchemaNode.defineConst({}, shape)
     }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  return { node, schema };
-}
+    const result = { 'node': node, 'schema': schema };
+    return result;
+  }
 
-function defineParseEventBranch<const TShape extends string>(shape: TShape) {
-  const schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': nameSchema,
-      'expected': {
-        'additionalProperties': false,
-        'properties': { 'component': nameSchema, 'operation': { 'type': 'string' } },
-        'required': ['component', 'operation'],
-        'type': 'object'
+  static defineParseEventBranch<const TShape extends string>(shape: TShape) {
+    const schema = {
+      'additionalProperties': false,
+      'properties': {
+        'description': nameSchema,
+        'expected': {
+          'additionalProperties': false,
+          'properties': { 'component': nameSchema, 'operation': { 'type': 'string' } },
+          'required': ['component', 'operation'],
+          'type': 'object'
+        },
+        'input': { 'additionalProperties': false, 'properties': { 'event': nameSchema }, 'required': ['event'], 'type': 'object' },
+        'name': nameSchema,
+        'shape': { 'const': shape }
       },
-      'input': { 'additionalProperties': false, 'properties': { 'event': nameSchema }, 'required': ['event'], 'type': 'object' },
-      'name': nameSchema,
-      'shape': { 'const': shape }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
-  } as const;
-  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'required': ['description', 'expected', 'input', 'name', 'shape'],
+      'type': 'object'
+    } as const;
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': nameNode,
       'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': nameNode, 'operation': SchemaNode.defineString({ 'type': 'string' } as const) }, ['component', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': nameNode }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
       'name': nameNode,
       'shape': SchemaNode.defineConst({}, shape)
     }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  return { node, schema };
+    const result = { 'node': node, 'schema': schema };
+    return result;
+  }
 }
 
 /** `LogEventName` scenario cases, discriminated by `shape`. */
@@ -98,21 +104,21 @@ export namespace LogEventNameScenarioCaseEntity {
     'type': 'object'
   } as const;
   const componentPrefixesCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'component-prefixes' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'components': componentPrefixesNode }, ['components'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'component-prefixes' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  const createConstantComponent = defineCreateEventBranch('create-constant-component' as const);
-  const createGraphQuery = defineCreateEventBranch('create-graph-query' as const);
-  const createQueryPlanner = defineCreateEventBranch('create-query-planner' as const);
+  const createConstantComponent = LogEventNameScenarioCaseEntityBuilders.defineCreateEventBranch('create-constant-component' as const);
+  const createGraphQuery = LogEventNameScenarioCaseEntityBuilders.defineCreateEventBranch('create-graph-query' as const);
+  const createQueryPlanner = LogEventNameScenarioCaseEntityBuilders.defineCreateEventBranch('create-query-planner' as const);
 
-  const parseGraphQuery = defineParseEventBranch('parse-graph-query' as const);
-  const parseMultipleDots = defineParseEventBranch('parse-multiple-dots' as const);
-  const parseQueryPlanner = defineParseEventBranch('parse-query-planner' as const);
-  const parseStandalone = defineParseEventBranch('parse-standalone' as const);
+  const parseGraphQuery = LogEventNameScenarioCaseEntityBuilders.defineParseEventBranch('parse-graph-query' as const);
+  const parseMultipleDots = LogEventNameScenarioCaseEntityBuilders.defineParseEventBranch('parse-multiple-dots' as const);
+  const parseQueryPlanner = LogEventNameScenarioCaseEntityBuilders.defineParseEventBranch('parse-query-planner' as const);
+  const parseStandalone = LogEventNameScenarioCaseEntityBuilders.defineParseEventBranch('parse-standalone' as const);
 
   export const Schema = {
     'oneOf': [
@@ -128,4 +134,7 @@ export namespace LogEventNameScenarioCaseEntity {
     parseGraphQuery.node, parseMultipleDots.node, parseQueryPlanner.node, parseStandalone.node
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

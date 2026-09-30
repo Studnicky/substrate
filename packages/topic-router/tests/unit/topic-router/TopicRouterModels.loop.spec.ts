@@ -1,82 +1,51 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-
 import type { ScoreEvidenceInterface } from '@studnicky/matching/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { TopicSelectionInterface } from '@studnicky/topic-router/node';
-import { Predicates } from '@studnicky/types/node';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
 
 import type { TopicInferenceInterface, TopicSelectionMapperInterface } from '../../../src/models/index.js';
-import scenarioGroups from './TopicRouterModels.scenarios.json' with { type: 'json' };
 
-interface ScenarioCase {
-  readonly 'expected': { readonly 'id': string; readonly 'origin': string; readonly 'score': number };
-  readonly 'input': { readonly 'content': string; readonly 'id': string; readonly 'origin': string; readonly 'score': number };
-  readonly 'name': string;
-  readonly 'shape': 'inference-to-selection';
-}
+import { TopicRouterModelsScenarioCaseEntity } from './entities/TopicRouterModelsScenarioCaseEntity.js';
+import scenarioGroups from './TopicRouterModels.scenarios.json' with { 'type': 'json' };
 
 class StaticInference implements TopicInferenceInterface<string> {
   public constructor(private readonly evidence: ScoreEvidenceInterface) {}
-  public infer(_input: string): Promise<readonly ScoreEvidenceInterface[]> { return Promise.resolve([this.evidence]); }
+  public infer(_input: string): Promise<readonly ScoreEvidenceInterface[]> {
+    const inferred = Promise.resolve([this.evidence]);
+    return inferred;
+  }
 }
 
 class EvidenceSelectionMapper implements TopicSelectionMapperInterface {
   public map(evidence: readonly ScoreEvidenceInterface[]): readonly TopicSelectionInterface[] {
     const result: TopicSelectionInterface[] = [];
-    for (const item of evidence) { result.push({ 'id': item.id, 'origin': item.origin, 'scores': { [item.origin]: item.score } }); }
+    for (let index = 0; index < evidence.length; index += 1) {
+      const item = evidence[index];
+      if (item !== undefined) {
+        const scores: Record<string, number> = {};
+        Object.defineProperty(scores, item.origin, { 'enumerable': true, 'value': item.score });
+        result.push({ 'id': item.id, 'origin': item.origin, 'scores': scores });
+      }
+    }
     return result;
   }
 }
 
-function requireNumber(value: unknown, name: string): number {
-  if (!Predicates.isNumber(value)) { throw RuntimeError.create(`${name} must be a number`); }
-  return value;
-}
-
-function requireRecord(value: unknown, name: string): Record<string, unknown> {
-  if (!Predicates.isObject(value)) { throw RuntimeError.create(`${name} must be an object`); }
-  return value;
-}
-
-function requireString(value: unknown, name: string): string {
-  if (!Predicates.isString(value)) { throw RuntimeError.create(`${name} must be a string`); }
-  return value;
-}
-
-function parseScenarioCase(value: unknown): ScenarioCase {
-  const record = requireRecord(value, 'scenario case');
-  const expected = requireRecord(record['expected'], 'scenario expected');
-  const input = requireRecord(record['input'], 'scenario input');
-  const shape = requireString(record['shape'], 'scenario shape');
-  if (shape !== 'inference-to-selection') { throw RuntimeError.create(`Unknown topic router models scenario shape: ${shape}`); }
-  return {
-    'expected': { 'id': requireString(expected['id'], 'scenario expected id'), 'origin': requireString(expected['origin'], 'scenario expected origin'), 'score': requireNumber(expected['score'], 'scenario expected score') },
-    'input': { 'content': requireString(input['content'], 'scenario input content'), 'id': requireString(input['id'], 'scenario input id'), 'origin': requireString(input['origin'], 'scenario input origin'), 'score': requireNumber(input['score'], 'scenario input score') },
-    'name': requireString(record['name'], 'scenario name'),
-    'shape': shape
-  };
-}
-
-function parseScenarioCases(value: unknown): readonly ScenarioCase[] {
-  const record = requireRecord(value, 'scenario groups');
-  const cases = record['cases'];
-  if (!Predicates.isArray(cases)) { throw RuntimeError.create('scenario groups cases must be an array'); }
-  const result: ScenarioCase[] = [];
-  for (const scenarioCase of cases) { result.push(parseScenarioCase(scenarioCase)); }
-  return result;
-}
-
-const scenarioCases = parseScenarioCases(scenarioGroups);
-
-void describe('topic router model contracts', () => {
-  for (const scenarioCase of scenarioCases) {
-    void it(scenarioCase.name, async () => {
-      const inference = new StaticInference({ 'id': scenarioCase.input.id, 'origin': scenarioCase.input.origin, 'score': scenarioCase.input.score });
-      const selections = new EvidenceSelectionMapper().map(await inference.infer(scenarioCase.input.content));
-      assert.equal(selections.at(0)?.id, scenarioCase.expected.id);
-      assert.equal(selections.at(0)?.origin, scenarioCase.expected.origin);
-      assert.equal(selections.at(0)?.scores?.[scenarioCase.expected.origin], scenarioCase.expected.score);
-    });
+class TopicRouterModelsRunners {
+  static async 'inference-to-selection'(scenarioCase: ScenarioCaseOfType<TopicRouterModelsScenarioCaseEntity.Type, 'inference-to-selection'>): Promise<void> {
+    const inference = new StaticInference({ 'id': scenarioCase.input.id, 'origin': scenarioCase.input.origin, 'score': scenarioCase.input.score });
+    const selections = new EvidenceSelectionMapper().map(await inference.infer(scenarioCase.input.content));
+    assert.equal(selections.at(0)?.id, scenarioCase.expected.id);
+    assert.equal(selections.at(0)?.origin, scenarioCase.expected.origin);
+    assert.equal(selections.at(0)?.scores?.[scenarioCase.expected.origin], scenarioCase.expected.score);
   }
+}
+
+ScenarioSuite.register({
+  'entity': TopicRouterModelsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'topic router model contracts',
+  'runners': TopicRouterModelsRunners
 });

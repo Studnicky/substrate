@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { LogLevelEntity } from '../../../src/entities/LogLevelEntity.js';
@@ -94,11 +96,11 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const createStringLevelNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'level': SchemaNode.defineConst({}, 'debug' as const),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'create-string-level' as const)
-    }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'level': SchemaNode.defineConst({}, 'debug' as const),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'create-string-level' as const)
+  }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createNumericLevelSchema = {
     'additionalProperties': false,
@@ -112,11 +114,11 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const createNumericLevelNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'level': LogLevelEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'create-numeric-level' as const)
-    }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'level': LogLevelEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'create-numeric-level' as const)
+  }, ['description', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createWithMetadataSchema = {
     'additionalProperties': false,
@@ -131,12 +133,12 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const createWithMetadataNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'level': LogLevelEntity.Node,
-      'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'create-with-metadata' as const)
-    }, ['description', 'level', 'metadata', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'level': LogLevelEntity.Node,
+    'metadata': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'create-with-metadata' as const)
+  }, ['description', 'level', 'metadata', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const createInvalidTransportsSchema = {
     'additionalProperties': false,
@@ -149,10 +151,10 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const createInvalidTransportsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'create-invalid-transports' as const)
-    }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'create-invalid-transports' as const)
+  }, ['description', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const globalFloorSchema = {
     'additionalProperties': false,
     'properties': {
@@ -167,13 +169,13 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const globalFloorNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-      'expectedLevels': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
-      'level': LogLevelEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'global-floor' as const)
-    }, ['description', 'expectedCount', 'expectedLevels', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expectedCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+    'expectedLevels': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
+    'level': LogLevelEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'global-floor' as const)
+  }, ['description', 'expectedCount', 'expectedLevels', 'level', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const transportFloorWarnSchema = {
     'additionalProperties': false,
@@ -208,17 +210,17 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const transportFloorWarnNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'warn': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'expectedLevels': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'all': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
-          'warn': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined)
-        }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'loggerLevel': LogLevelEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'transport-floor-warn' as const),
-      'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': LogLevelEntity.Node, 'warn': LogLevelEntity.Node }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-    }, ['description', 'expectedCounts', 'expectedLevels', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'warn': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'expectedLevels': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'all': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined),
+      'warn': SchemaNode.defineArray({ 'type': 'array' } as const, LogLevelEntity.Node, undefined)
+    }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'loggerLevel': LogLevelEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'transport-floor-warn' as const),
+    'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'all': LogLevelEntity.Node, 'warn': LogLevelEntity.Node }, ['all', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['description', 'expectedCounts', 'expectedLevels', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const transportFloorMixedSchema = {
     'additionalProperties': false,
@@ -244,13 +246,13 @@ export namespace LoggerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const transportFloorMixedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'error': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'loggerLevel': LogLevelEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'transport-floor-mixed' as const),
-      'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': LogLevelEntity.Node, 'error': LogLevelEntity.Node }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-    }, ['description', 'expectedCounts', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expectedCounts': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'error': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'loggerLevel': LogLevelEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'transport-floor-mixed' as const),
+    'transportLevels': SchemaNode.defineObject({ 'type': 'object' } as const, { 'debug': LogLevelEntity.Node, 'error': LogLevelEntity.Node }, ['debug', 'error'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['description', 'expectedCounts', 'loggerLevel', 'name', 'shape', 'transportLevels'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -264,4 +266,7 @@ export namespace LoggerScenarioCaseEntity {
     createInvalidTransportsNode, globalFloorNode, transportFloorWarnNode, transportFloorMixedNode
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

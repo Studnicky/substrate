@@ -1,72 +1,26 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { BoundedJsonValueEntity } from '../../../helpers/entities/BoundedJsonValueEntity.js';
 
-const jsonObjectSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
-const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
-
-const inputSchema = {
-  'additionalProperties': false,
-  'properties': {
-    'baseURL': { 'minLength': 1, 'type': 'string' },
-    'body': jsonObjectSchema,
-    'json': jsonObjectSchema,
-    'method': { 'enum': ['PATCH', 'POST', 'PUT'] },
-    'path': { 'minLength': 1, 'type': 'string' }
-  },
-  'required': ['baseURL', 'method', 'path'],
-  'type': 'object'
-} as const;
-const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'body': JsonObjectNode,
-    'json': JsonObjectNode,
-    'method': SchemaNode.defineEnum({}, ['PATCH', 'POST', 'PUT'] as const),
-    'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-  }, ['baseURL', 'method', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-const commonFields = { 'client': { 'enum': ['absolute', 'base'] }, 'description': { 'minLength': 1, 'type': 'string' }, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' } } as const;
-const commonNodeFields = {
-  'client': SchemaNode.defineEnum({}, ['absolute', 'base'] as const),
-  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-  'input': InputNode,
-  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-};
-
-/** The `json-option.loop.spec.ts` scenario case shape: two branches, distinguished by whether `expected` carries `body` or `json`. */
+/** The `json-option.loop.spec.ts` scenario case shape: one branch per HTTP method, named by `shape`. */
 export namespace JsonOptionScenarioCaseEntity {
-  const bodyExpectedSchema = {
-    'additionalProperties': false,
-    'properties': { 'body': jsonObjectSchema, 'headerContentType': { 'minLength': 1, 'type': 'string' }, 'status': { 'maximum': 599, 'minimum': 100, 'type': 'integer' } },
-    'required': ['body', 'status'],
-    'type': 'object'
-  } as const;
-  const jsonExpectedSchema = {
-    'additionalProperties': false,
-    'properties': { 'json': jsonObjectSchema, 'status': { 'maximum': 599, 'minimum': 100, 'type': 'integer' } },
-    'required': ['json', 'status'],
-    'type': 'object'
-  } as const;
+  const jsonObjectSchema = { 'additionalProperties': BoundedJsonValueEntity.Schema, 'properties': {}, 'required': [], 'type': 'object' } as const;
+  const expectedSchema = { 'oneOf': [{ 'additionalProperties': false, 'properties': { 'body': jsonObjectSchema, 'headerContentType': { 'minLength': 1, 'type': 'string' }, 'status': { 'maximum': 599, 'minimum': 100, 'type': 'integer' } }, 'required': ['body', 'status'], 'type': 'object' }, { 'additionalProperties': false, 'properties': { 'json': jsonObjectSchema, 'status': { 'maximum': 599, 'minimum': 100, 'type': 'integer' } }, 'required': ['json', 'status'], 'type': 'object' }] } as const;
+  const inputSchema = { 'additionalProperties': false, 'properties': { 'baseURL': { 'minLength': 1, 'type': 'string' }, 'body': jsonObjectSchema, 'json': jsonObjectSchema, 'path': { 'minLength': 1, 'type': 'string' } }, 'required': ['baseURL', 'path'], 'type': 'object' } as const;
 
-  export const Schema = {
-    'oneOf': [
-      { 'additionalProperties': false, 'properties': { ...commonFields, 'expected': bodyExpectedSchema }, 'required': ['client', 'description', 'expected', 'input', 'name'], 'type': 'object' },
-      { 'additionalProperties': false, 'properties': { ...commonFields, 'expected': jsonExpectedSchema }, 'required': ['client', 'description', 'expected', 'input', 'name'], 'type': 'object' }
-    ]
-  } as const;
+  export const Schema = { 'oneOf': [{ 'additionalProperties': false, 'properties': { 'client': { 'enum': ['absolute', 'base'] }, 'description': { 'minLength': 1, 'type': 'string' }, 'expected': expectedSchema, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'PATCH' } }, 'required': ['client', 'description', 'expected', 'input', 'name', 'shape'], 'type': 'object' }, { 'additionalProperties': false, 'properties': { 'client': { 'enum': ['absolute', 'base'] }, 'description': { 'minLength': 1, 'type': 'string' }, 'expected': expectedSchema, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'POST' } }, 'required': ['client', 'description', 'expected', 'input', 'name', 'shape'], 'type': 'object' }, { 'additionalProperties': false, 'properties': { 'client': { 'enum': ['absolute', 'base'] }, 'description': { 'minLength': 1, 'type': 'string' }, 'expected': expectedSchema, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'PUT' } }, 'required': ['client', 'description', 'expected', 'input', 'name', 'shape'], 'type': 'object' }] } as const;
 
-  const BodyExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'body': JsonObjectNode,
-      'headerContentType': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const)
-    }, ['body', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  const JsonExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'json': JsonObjectNode, 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['json', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  const JsonObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': BoundedJsonValueEntity.Node, 'patternProperties': {} });
+  const ExpectedNode = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ 'type': 'object' } as const, { 'body': JsonObjectNode, 'headerContentType': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['body', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'json': JsonObjectNode, 'status': SchemaNode.defineNumber({ 'maximum': 599, 'minimum': 100, 'type': 'integer' } as const) }, ['json', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} })] as const);
+  const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'body': JsonObjectNode, 'json': JsonObjectNode, 'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['baseURL', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  export const Node = SchemaNode.defineOneOf({}, [
-    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': BodyExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    SchemaNode.defineObject({ 'type': 'object' } as const, { ...commonNodeFields, 'expected': JsonExpectedNode }, ['client', 'description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-  ] as const);
+  export const Node = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ 'type': 'object' } as const, { 'client': SchemaNode.defineEnum({}, ['absolute', 'base'] as const), 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': ExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'PATCH' as const) }, ['client', 'description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'client': SchemaNode.defineEnum({}, ['absolute', 'base'] as const), 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': ExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'POST' as const) }, ['client', 'description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'client': SchemaNode.defineEnum({}, ['absolute', 'base'] as const), 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': ExpectedNode, 'input': InputNode, 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'PUT' as const) }, ['client', 'description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

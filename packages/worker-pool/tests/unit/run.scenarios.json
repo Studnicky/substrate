@@ -30,8 +30,8 @@
       "description": "bounds concurrency and proves more than one worker overlaps",
       "expected": {
         "itemCount": 6,
-        "observedMaxGreaterThanOne": true,
-        "observedMaxLessThanOrEqualConcurrency": true
+        "observedMaximumGreaterThanOne": true,
+        "observedMaximumLessThanOrEqualConcurrency": true
       },
       "input": {
         "batch": {

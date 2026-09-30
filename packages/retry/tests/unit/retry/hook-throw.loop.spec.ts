@@ -1,67 +1,27 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
-import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 
 import { Retry } from '../../../src/retry/index.js';
 import { HookThrowScenarioCaseEntity } from '../entities/HookThrowScenarioCaseEntity.js';
-import scenarioGroups from './hook-throw.scenarios.json' with { type: 'json' };
+import { AsyncHook } from './fixtures/AsyncHook.js';
+import { FailingOperation } from './fixtures/FailingOperation.js';
+import { FlakyOperation } from './fixtures/FlakyOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import { RetryClassifier } from './fixtures/RetryClassifier.js';
+import scenarioGroups from './hook-throw.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(HookThrowScenarioCaseEntity.Schema, HookThrowScenarioCaseEntity.Node);
-
-type ScenarioCase = HookThrowScenarioCaseEntity.Type;
-
-type RetryScenarioInput = ScenarioCase['input'];
-
-class RetryableClassifier {
-  classify(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
-    return { retryable: true };
-  }
-}
-
-class NonRetryableClassifier {
-  classify(_error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
-    return { reason: 'fatal', retryable: false };
-  }
-}
-
-type AttemptOutcome = 'failure' | 'success';
-
-type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
-
-function resolveAttemptOutcome(attempts: number, input: RetryScenarioInput): AttemptOutcome {
-  return attempts <= Number(input.batch?.failureCountBeforeSuccess ?? 0) ? 'failure' : 'success';
-}
-
-async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioInput): Promise<{ attempts: number; result: string }> {
-  let attempts = 0;
-
-  const result = await retry.execute(async () => {
-    attempts += 1;
-
-    const attemptMap: Record<AttemptOutcome, () => string> = {
-      'failure': () => {
-        throw RuntimeError.create(String(input.firstErrorMessage));
-      },
-      'success': () => String(input.result)
-    };
-
-    return attemptMap[resolveAttemptOutcome(attempts, input)]();
-  });
-
-  return { attempts, result };
-}
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'enter-call': async (scenario) => {
-    const { expected, input } = scenario;
+class HookThrowRunners {
+  static async 'enter-call'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'enter-call'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingEnterCallRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -71,14 +31,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingEnterCallRetry(input.retry);
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'on-attempt': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-attempt'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-attempt'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingAttemptRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -88,14 +49,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingAttemptRetry(input.retry);
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'on-give-up-exhausted': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-give-up-exhausted'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-give-up-exhausted'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingExhaustedGiveUpRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -105,20 +67,21 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingExhaustedGiveUpRetry({
-      errorClassifier: new RetryableClassifier(),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }),
+      retry.execute(new FailingOperation(String(input.errorMessage)).run),
       { 'name': String(expected.errorShape) }
     );
-  },
-  'on-give-up-non-retryable': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-give-up-non-retryable'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-give-up-non-retryable'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingGiveUpRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -128,20 +91,21 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingGiveUpRetry({
-      errorClassifier: new NonRetryableClassifier(),
+      'errorClassifier': RetryClassifier.nonRetryable,
       ...input.retry
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }),
+      retry.execute(new FailingOperation(String(input.errorMessage)).run),
       { 'name': String(expected.errorShape) }
     );
-  },
-  'on-retry-scheduled': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-retry-scheduled'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-retry-scheduled'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingRetryScheduledRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -151,42 +115,34 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingRetryScheduledRetry({
-      errorClassifier: new RetryableClassifier(),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
-    const { attempts, result } = await executeUntilConfiguredSuccess(retry, input);
+    const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.firstErrorMessage), String(input.result));
 
     assert.strictEqual(result, String(expected.result));
     assert.strictEqual(attempts, Number(expected.attempts));
-  },
-  'on-retry-scheduled-async': async (scenario) => {
-    const { expected, input } = scenario;
+  }
 
-    class RejectingRetryScheduledRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
+  static async 'on-retry-scheduled-async'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-retry-scheduled-async'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
-      protected override async onRetryScheduled(): Promise<void> {
-        await Promise.resolve();
-        throw RuntimeError.create(String(input.hookErrorMessage));
-      }
-    }
-
-    const retry = new RejectingRetryScheduledRetry({
-      errorClassifier: new RetryableClassifier(),
+    const retry = Retry.create({
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
-    const { attempts, result } = await executeUntilConfiguredSuccess(retry, input);
+    assert.strictEqual(Reflect.set(retry, 'onRetryScheduled', AsyncHook.rejecting(String(input.hookErrorMessage))), true);
+    const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.firstErrorMessage), String(input.result));
 
     assert.strictEqual(result, String(expected.result));
     assert.strictEqual(attempts, Number(expected.attempts));
-  },
-  'on-retryable-error': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-retryable-error'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-retryable-error'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingRetryableErrorRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -196,19 +152,20 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingRetryableErrorRetry({
-      errorClassifier: new RetryableClassifier(),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
-    const { attempts, result } = await executeUntilConfiguredSuccess(retry, input);
+    const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.firstErrorMessage), String(input.result));
 
     assert.strictEqual(result, String(expected.result));
     assert.strictEqual(attempts, Number(expected.attempts));
-  },
-  'on-success': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'on-success'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-success'>): Promise<void> {
+    const { expected, input } = scenarioCase;
 
     class ThrowingSuccessRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -218,19 +175,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingSuccessRetry(input.retry);
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
   }
-};
-
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
 }
 
-void describe('Retry hook throws', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HookThrowScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Retry hook throws',
+  'runners': HookThrowRunners
 });

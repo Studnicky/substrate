@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { PaginatorExhaustedCursorEntity } from '../../../src/entities/PaginatorExhaustedCursorEntity.js';
@@ -39,10 +41,10 @@ const stringNumberPageReceivedEventSchema = {
 } as const;
 
 const stringNumberPageReceivedEventNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'nextCursor': cursorUnionNode,
-    'page': SchemaNode.defineString({ 'type': 'string' } as const),
-    'type': SchemaNode.defineConst({}, 'pageReceived' as const)
-  }, ['nextCursor', 'page', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'nextCursor': cursorUnionNode,
+  'page': SchemaNode.defineString({ 'type': 'string' } as const),
+  'type': SchemaNode.defineConst({}, 'pageReceived' as const)
+}, ['nextCursor', 'page', 'type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** `Node.schema`'s flattened form drops the redundant `type` sibling `defineConst` never emits — matched here, not on the production entity's own `Schema`. */
 const resetEventSchema = {
@@ -67,10 +69,10 @@ const stringNumberHasMoreStateSchema = {
 } as const;
 
 const stringNumberHasMoreStateNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'cursor': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-    'variant': SchemaNode.defineConst({}, 'hasMore' as const)
-  }, ['cursor', 'pages', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'cursor': SchemaNode.defineNumber({ 'type': 'number' } as const),
+  'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+  'variant': SchemaNode.defineConst({}, 'hasMore' as const)
+}, ['cursor', 'pages', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const stringExhaustedStateSchema = {
   'additionalProperties': false,
@@ -80,9 +82,9 @@ const stringExhaustedStateSchema = {
 } as const;
 
 const stringExhaustedStateNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-    'variant': SchemaNode.defineConst({}, 'exhausted' as const)
-  }, ['pages', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'pages': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+  'variant': SchemaNode.defineConst({}, 'exhausted' as const)
+}, ['pages', 'variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** `Node.schema`'s flattened form drops the redundant `type` sibling `defineConst` never emits — matched here, not on the production entity's own `Schema`. */
 const idleStateSchema = {
@@ -119,12 +121,12 @@ const cursorDiscriminantsSchema = {
 } as const;
 
 const cursorDiscriminantsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'cursors': SchemaNode.defineArray({ 'type': 'array' } as const, cursorUnionNode, undefined) }, ['cursors'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'cursor-discriminants' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'cursors': SchemaNode.defineArray({ 'type': 'array' } as const, cursorUnionNode, undefined) }, ['cursors'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'cursor-discriminants' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const eventDiscriminantsSchema = {
   'additionalProperties': false,
@@ -150,12 +152,12 @@ const eventDiscriminantsSchema = {
 } as const;
 
 const eventDiscriminantsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'events': SchemaNode.defineArray({ 'type': 'array' } as const, eventUnionNode, undefined) }, ['events'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'event-discriminants' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'events': SchemaNode.defineArray({ 'type': 'array' } as const, eventUnionNode, undefined) }, ['events'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'event-discriminants' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const stateDiscriminantsSchema = {
   'additionalProperties': false,
@@ -181,12 +183,12 @@ const stateDiscriminantsSchema = {
 } as const;
 
 const stateDiscriminantsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'states': SchemaNode.defineArray({ 'type': 'array' } as const, stateUnionNode, undefined) }, ['states'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'state-discriminants' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'descriptions': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['descriptions'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'states': SchemaNode.defineArray({ 'type': 'array' } as const, stateUnionNode, undefined) }, ['states'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'state-discriminants' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The three scenario case shapes `discriminantNarrowing.loop.spec.ts` exercises. Mutually exclusive by `shape`. */
 export namespace DiscriminantNarrowingScenarioCaseEntity {
@@ -196,4 +198,7 @@ export namespace DiscriminantNarrowingScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [cursorDiscriminantsNode, eventDiscriminantsNode, stateDiscriminantsNode] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

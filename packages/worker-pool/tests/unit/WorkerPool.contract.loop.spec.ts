@@ -1,18 +1,16 @@
-import { fileURLToPath } from 'node:url';
-
+import { RuntimeError } from '@studnicky/errors/node';
 import { Signal } from '@studnicky/signal/node';
+import { resolve } from 'node:path';
+
+import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import type { WorkerPoolContractHarnessInterface } from '../helpers/WorkerPoolContractHarnessInterface.js';
+import type { WorkerPoolContractItemInterface } from '../helpers/WorkerPoolContractItemInterface.js';
+import type { WorkerPoolContractSubjectInterface } from '../helpers/WorkerPoolContractSubjectInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
-import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
-import { registerWorkerPoolContract } from '../helpers/registerWorkerPoolContract.js';
+import { WorkerPoolContract } from '../helpers/WorkerPoolContract.js';
 
-interface ContractItemInterface {
-  readonly 'error'?: string;
-  readonly 'ms'?: number;
-  readonly 'value': string;
-}
-
-class ObservedWorkerPool extends WorkerPool<ContractItemInterface, string> {
+class ObservedWorkerPool extends WorkerPool<WorkerPoolContractItemInterface, string> {
   #createdWorkerCount = 0;
   #errorCount = 0;
   #timeoutCount = 0;
@@ -42,28 +40,51 @@ class ObservedWorkerPool extends WorkerPool<ContractItemInterface, string> {
   }
 }
 
-registerWorkerPoolContract({
-  'create': (options) => {
-    const controller = new AbortController();
+class NodeContractSubject implements WorkerPoolContractSubjectInterface {
+  readonly pool: ObservedWorkerPool;
+  readonly #controller = new AbortController();
+
+  constructor(options: { readonly 'maximumWorkers': number; readonly 'timeoutMs'?: number }) {
     const config: WorkerPoolConfigInterface = {
-      'abortSignal': controller.signal,
+      'abortSignal': this.#controller.signal,
       'batchConcurrency': options.maximumWorkers,
       'concurrency': options.maximumWorkers,
       'signal': Signal.create(),
-      'workerPath': fileURLToPath(new URL('../fixtures/reusableEchoWorker.ts', import.meta.url))
+      'workerPath': resolve(import.meta.dirname, '../fixtures/reusableEchoWorker.ts')
     };
     if (options.timeoutMs !== undefined) {
       config.timeoutMs = options.timeoutMs;
     }
-    const pool = ObservedWorkerPool.create<ContractItemInterface, string, ObservedWorkerPool>(config);
+    this.pool = ObservedWorkerPool.create<WorkerPoolContractItemInterface, string, ObservedWorkerPool>(config);
+  }
 
-    return {
-      'abort': (): void => { controller.abort(new Error('contract cancellation')); },
-      'getCreatedWorkerCount': (): number => { return pool.getCreatedWorkerCount(); },
-      'getErrorCount': (): number => { return pool.getErrorCount(); },
-      'getTimeoutCount': (): number => { return pool.getTimeoutCount(); },
-      'pool': pool
-    };
-  },
-  'name': 'Node'
-});
+  abort(): void {
+    this.#controller.abort(RuntimeError.create('contract cancellation'));
+  }
+
+  getCreatedWorkerCount(): number {
+    const created = this.pool.getCreatedWorkerCount();
+    return created;
+  }
+
+  getErrorCount(): number {
+    const errors = this.pool.getErrorCount();
+    return errors;
+  }
+
+  getTimeoutCount(): number {
+    const timeouts = this.pool.getTimeoutCount();
+    return timeouts;
+  }
+}
+
+class NodeContractHarness implements WorkerPoolContractHarnessInterface {
+  readonly name = 'Node';
+
+  create(options: { readonly 'maximumWorkers': number; readonly 'timeoutMs'?: number }): WorkerPoolContractSubjectInterface {
+    const subject = new NodeContractSubject(options);
+    return subject;
+  }
+}
+
+WorkerPoolContract.register(new NodeContractHarness());

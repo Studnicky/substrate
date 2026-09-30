@@ -1,177 +1,52 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Predicates } from '@studnicky/types/node';
-
-import { DrilldownRulesEntity, DrillDown, DrillDownConfigEntity } from '../../src/index.js';
+import { DrillDown, DrillDownConfigEntity, DrilldownRulesEntity } from '../../src/index.js';
 import { TypeGuards } from '../../src/typeguards/index.js';
-import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { type: 'json' };
+import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { 'type': 'json' };
+import { DrilldownRulesScenarioCaseEntity } from './entities/DrilldownRulesScenarioCaseEntity.js';
 
-type ScenarioCase =
-  | { description: string; expected: { valid: boolean }; input: { depth: number }; name: string; shape: 'validate-nested' }
-  | { description: string; expected: { valid: boolean }; input: { corruptAfter: number; depth: number }; name: string; shape: 'validate-corrupted' }
-  | {
-      description: string;
-      expected: { firstLeafUngroupedLength: number; leafValues: string[] };
-      input: { path: string[]; properties: string[]; values: string[][] };
-      name: string;
-      shape: 'group-nested';
+class DrilldownRulesRunners {
+  static 'group-nested'(scenarioCase: ScenarioCaseOfType<DrilldownRulesScenarioCaseEntity.Type, 'group-nested'>): void {
+    const records = DrilldownRulesRunners.buildRecords(scenarioCase.input.properties, scenarioCase.input.values);
+    // `minimumGroupSize` alone proves the branded bound; `rules` is already `DrilldownRulesEntity.Type`,
+    // validated separately above.
+    const provenMinimumGroupSize = DrillDownConfigEntity.intake({ 'minimumGroupSize': 1 });
+    const minimumGroupSize = provenMinimumGroupSize.minimumGroupSize;
+
+    assert.ok(minimumGroupSize !== undefined, 'minimumGroupSize was just supplied to intake');
+
+    const config: DrillDownConfigEntity.Type = {
+      'minimumGroupSize': minimumGroupSize,
+      'rules': DrilldownRulesRunners.buildPathRules(scenarioCase.input.properties, scenarioCase.input.values, scenarioCase.input.path, 0)
     };
 
-function requireBoolean(value: unknown, path: string): boolean {
-  assert.ok(Predicates.isBoolean(value), `${path} must be a boolean`);
-  return value;
-}
+    const drilldown = new DrillDown();
+    let node = drilldown.group(records, config);
 
-function requireInteger(value: unknown, path: string): number {
-  assert.ok(Predicates.isNumber(value), `${path} must be a number`);
-  assert.ok(Number.isInteger(value), `${path} must be an integer`);
-  return value;
-}
+    const path = scenarioCase.input.path;
+    for (let index = 0; index < path.length; index += 1) {
+      const child = node.grouped?.[0];
 
-function requireRecord(value: unknown, path: string): Record<string, unknown> {
-  assert.ok(Predicates.isRecord(value), `${path} must be an object`);
-  return value;
-}
-
-function requireString(value: unknown, path: string): string {
-  assert.ok(Predicates.isString(value), `${path} must be a string`);
-  return value;
-}
-
-function requireStringArray(value: unknown, path: string): string[] {
-  assert.ok(Predicates.isArray(value), `${path} must be an array`);
-  return value.map((entry, index) => { return requireString(entry, `${path}[${index}]`); });
-}
-
-function requireStringMatrix(value: unknown, path: string): string[][] {
-  assert.ok(Predicates.isArray(value), `${path} must be an array`);
-  return value.map((entry, index) => { return requireStringArray(entry, `${path}[${index}]`); });
-}
-
-function parseScenarioCase(value: unknown, index: number): ScenarioCase {
-  const path = `scenario[${index}]`;
-  const scenario = requireRecord(value, path);
-  const name = requireString(scenario.name, `${path}.name`);
-  const description = requireString(scenario.description, `${path}.description`);
-  const shape = requireString(scenario.shape, `${path}.shape`);
-  const input = requireRecord(scenario.input, `${path}.input`);
-  const expected = requireRecord(scenario.expected, `${path}.expected`);
-
-  if (shape === 'validate-nested') {
-    return {
-      'description': description,
-      'expected': { 'valid': requireBoolean(expected.valid, `${path}.expected.valid`) },
-      'input': { 'depth': requireInteger(input.depth, `${path}.input.depth`) },
-      'name': name,
-      'shape': shape
-    };
-  }
-
-  if (shape === 'validate-corrupted') {
-    return {
-      'description': description,
-      'expected': { 'valid': requireBoolean(expected.valid, `${path}.expected.valid`) },
-      'input': {
-        'corruptAfter': requireInteger(input.corruptAfter, `${path}.input.corruptAfter`),
-        'depth': requireInteger(input.depth, `${path}.input.depth`)
-      },
-      'name': name,
-      'shape': shape
-    };
-  }
-
-  assert.equal(shape, 'group-nested', `${path}.shape is not supported`);
-
-  return {
-    'description': description,
-    'expected': {
-      'firstLeafUngroupedLength': requireInteger(expected.firstLeafUngroupedLength, `${path}.expected.firstLeafUngroupedLength`),
-      'leafValues': requireStringArray(expected.leafValues, `${path}.expected.leafValues`)
-    },
-    'input': {
-      'path': requireStringArray(input.path, `${path}.input.path`),
-      'properties': requireStringArray(input.properties, `${path}.input.properties`),
-      'values': requireStringMatrix(input.values, `${path}.input.values`)
-    },
-    'name': name,
-    'shape': shape
-  };
-}
-
-function parseScenarioCases(value: unknown): ScenarioCase[] {
-  assert.ok(Predicates.isArray(value), 'scenario fixture must be an array');
-  return value.map(parseScenarioCase);
-}
-
-/** Builds a `rules` tree nesting per-value rules `depth` levels deep, one string value per level. */
-function buildNestedRules(depth: number): DrilldownRulesEntity.Type {
-  if (depth === 0) {
-    return {};
-  }
-
-  return {
-    'group': [{
-      'property': `level${depth}`,
-      'values': [{ 'match': 'match', 'rules': buildNestedRules(depth - 1), 'type': 'string' }]
-    }]
-  };
-}
-
-/** Builds the cartesian product of `values` as flat records keyed by `properties`. */
-function buildRecords(properties: readonly string[], values: readonly string[][]): Record<string, unknown>[] {
-  let records: Record<string, unknown>[] = [{}];
-
-  for (let index = 0; index < properties.length; index += 1) {
-    const property = properties[index] ?? '';
-    const column = values[index] ?? [];
-    const next: Record<string, unknown>[] = [];
-
-    for (const record of records) {
-      for (const value of column) {
-        next.push({ ...record, [property]: value });
-      }
+      assert.ok(child !== undefined);
+      assert.equal(child.value, path[index]);
+      node = child;
     }
-    records = next;
+
+    assert.ok(node.grouped !== null && node.grouped !== undefined);
+    assert.deepEqual(node.grouped.map((child) => {
+      const value = child.value;
+      return value;
+    }), scenarioCase.expected.leafValues);
+    assert.equal(node.grouped[0]?.ungrouped?.length, scenarioCase.expected.firstLeafUngroupedLength);
   }
 
-  return records;
-}
-
-/** Builds a config whose per-value rules follow `path` one property per level. */
-function buildPathRules(properties: readonly string[], values: readonly string[][], path: readonly string[], level: number): DrilldownRulesEntity.Type {
-  const property = properties[level] ?? '';
-
-  if (level >= path.length) {
-    const leaf = (values[level] ?? []).map((value): { 'match': string; 'type': 'string' } => {
-      return { 'match': value, 'type': 'string' };
-    });
-
-    return { 'group': [{ 'property': property, 'values': leaf }] };
-  }
-
-  return {
-    'group': [{
-      'property': property,
-      'values': [{
-        'match': path[level] ?? '',
-        'rules': buildPathRules(properties, values, path, level + 1),
-        'type': 'string'
-      }]
-    }]
-  };
-}
-
-function runScenarioCase(scenarioCase: ScenarioCase): void {
-  if (scenarioCase.shape === 'validate-nested') {
-    const rules = buildNestedRules(scenarioCase.input.depth);
-
-    assert.equal(DrilldownRulesEntity.validate(rules), scenarioCase.expected.valid);
-    return;
-  }
-
-  if (scenarioCase.shape === 'validate-corrupted') {
-    const rules = buildNestedRules(scenarioCase.input.depth);
+  static 'validate-corrupted'(scenarioCase: ScenarioCaseOfType<DrilldownRulesScenarioCaseEntity.Type, 'validate-corrupted'>): void {
+    const rules = DrilldownRulesRunners.buildNestedRules(scenarioCase.input.depth);
     let cursor = rules;
 
     for (let index = 0; index < scenarioCase.input.corruptAfter; index += 1) {
@@ -179,49 +54,88 @@ function runScenarioCase(scenarioCase: ScenarioCase): void {
     }
     const target = cursor.group?.[0];
 
-    assert.ok(target !== undefined, 'corruption target must exist');
-    Reflect.set(target, 'notAProperty', true);
-    Reflect.deleteProperty(target, 'property');
+    assert.ok(cursor.group !== undefined && target !== undefined, 'corruption target must exist');
+    // The corrupted node gains an unknown member and loses its required `property`.
+    Reflect.set(cursor.group, 0, { 'notAProperty': true, 'values': target.values });
 
     assert.equal(DrilldownRulesEntity.validate(rules), scenarioCase.expected.valid);
-    return;
   }
 
-  const records = buildRecords(scenarioCase.input.properties, scenarioCase.input.values);
-  // `minimumGroupSize` alone proves the branded bound; `rules` is already `DrilldownRulesEntity.Type`,
-  // validated separately above.
-  const provenMinimumGroupSize = DrillDownConfigEntity.intake({ 'minimumGroupSize': 1 });
-  const minimumGroupSize = provenMinimumGroupSize.minimumGroupSize;
+  static 'validate-nested'(scenarioCase: ScenarioCaseOfType<DrilldownRulesScenarioCaseEntity.Type, 'validate-nested'>): void {
+    const rules = DrilldownRulesRunners.buildNestedRules(scenarioCase.input.depth);
 
-  assert.ok(minimumGroupSize !== undefined, 'minimumGroupSize was just supplied to intake');
-
-  const config: DrillDownConfigEntity.Type = {
-    'minimumGroupSize': minimumGroupSize,
-    'rules': buildPathRules(scenarioCase.input.properties, scenarioCase.input.values, scenarioCase.input.path, 0)
-  };
-
-  const drilldown = new DrillDown();
-  let node = drilldown.group(records, config);
-
-  for (const step of scenarioCase.input.path) {
-    const child = node.grouped?.[0];
-
-    assert.ok(child !== undefined);
-    assert.equal(child.value, step);
-    node = child;
+    assert.equal(DrilldownRulesEntity.validate(rules), scenarioCase.expected.valid);
   }
 
-  assert.ok(node.grouped !== null && node.grouped !== undefined);
-  assert.deepEqual(node.grouped.map((child) => { return child.value; }), scenarioCase.expected.leafValues);
-  assert.equal(node.grouped[0]?.ungrouped?.length, scenarioCase.expected.firstLeafUngroupedLength);
+  /** Builds a `rules` tree nesting per-value rules `depth` levels deep, one string value per level. */
+  private static buildNestedRules(depth: number): DrilldownRulesEntity.Type {
+    let rules: DrilldownRulesEntity.Type = {};
+    if (depth > 0) {
+      rules = {
+        'group': [{
+          'property': `level${String(depth)}`,
+          'values': [{ 'match': 'match', 'rules': DrilldownRulesRunners.buildNestedRules(depth - 1), 'type': 'string' }]
+        }]
+      };
+    }
+    return rules;
+  }
+
+  /** Builds a config whose per-value rules follow `path` one property per level. */
+  private static buildPathRules(properties: readonly string[], values: readonly (readonly string[])[], path: readonly string[], level: number): DrilldownRulesEntity.Type {
+    const property = properties[level] ?? '';
+    let rules: DrilldownRulesEntity.Type = {};
+
+    if (level >= path.length) {
+      const leaf: { 'match': string; 'type': 'string' }[] = [];
+      const column = values[level] ?? [];
+      for (let index = 0; index < column.length; index += 1) {
+        leaf.push({ 'match': String(column[index]), 'type': 'string' });
+      }
+      rules = { 'group': [{ 'property': property, 'values': leaf }] };
+    } else {
+      rules = {
+        'group': [{
+          'property': property,
+          'values': [{
+            'match': path[level] ?? '',
+            'rules': DrilldownRulesRunners.buildPathRules(properties, values, path, level + 1),
+            'type': 'string'
+          }]
+        }]
+      };
+    }
+
+    return rules;
+  }
+
+  /** Builds the cartesian product of `values` as flat records keyed by `properties`. */
+  private static buildRecords(properties: readonly string[], values: readonly (readonly string[])[]): Record<string, unknown>[] {
+    let records: Record<string, unknown>[] = [{}];
+
+    for (let index = 0; index < properties.length; index += 1) {
+      const property = properties[index] ?? '';
+      const column = values[index] ?? [];
+      const next: Record<string, unknown>[] = [];
+
+      for (let recordIndex = 0; recordIndex < records.length; recordIndex += 1) {
+        const record = records[recordIndex] ?? {};
+        for (let valueIndex = 0; valueIndex < column.length; valueIndex += 1) {
+          next.push(JsonObject.fromEntries([...Object.entries(record), [property, column[valueIndex]]]));
+        }
+      }
+      records = next;
+    }
+
+    return records;
+  }
 }
 
-void describe('DrilldownRulesEntity', () => {
-  for (const scenarioCase of parseScenarioCases(scenarioCases)) {
-    void it(`${scenarioCase.name}: ${scenarioCase.description}`, () => {
-      runScenarioCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': DrilldownRulesScenarioCaseEntity,
+  'file': scenarioCases,
+  'name': 'DrilldownRulesEntity',
+  'runners': DrilldownRulesRunners
 });
 
 void describe('schema-owned group values', () => {
@@ -255,13 +169,13 @@ void describe('schema-owned group values', () => {
       { 'group': [{ 'property': 'category', 'values': [{ 'match': 1, 'type': 'string' }] }] }
     ];
 
-    for (const rules of malformedRules) {
-      assert.equal(DrilldownRulesEntity.validate(rules), false);
+    for (let index = 0; index < malformedRules.length; index += 1) {
+      assert.equal(DrilldownRulesEntity.validate(malformedRules[index]), false);
     }
   });
 
   void it('uses canonical range entities as the only node-value proof', () => {
-    const candidates: Array<{ 'guard': (value: unknown) => boolean, 'invalid': unknown, 'valid': unknown }> = [
+    const candidates: { 'guard': (value: unknown) => boolean, 'invalid': unknown, 'valid': unknown }[] = [
       { 'guard': TypeGuards.isAlphabeticRange, 'invalid': { 'end': 'm', 'start': 1 }, 'valid': { 'end': 'm', 'start': 'a' } },
       { 'guard': TypeGuards.isCidrRange, 'invalid': { 'cidr': 24 }, 'valid': { 'cidr': '10.0.0.0/24' } },
       { 'guard': TypeGuards.isDateRange, 'invalid': { 'after': '0', 'before': 1 }, 'valid': { 'after': 0, 'before': 1 } },
@@ -270,7 +184,9 @@ void describe('schema-owned group values', () => {
       { 'guard': TypeGuards.isSequentialRange, 'invalid': { 'maximum': 1, 'minimum': 0, 'padding': 2, 'prefix': 1 }, 'valid': { 'maximum': 1, 'minimum': 0, 'padding': 2, 'prefix': 'item-' } }
     ];
 
-    for (const candidate of candidates) {
+    for (let index = 0; index < candidates.length; index += 1) {
+      const candidate = candidates[index];
+      assert.ok(candidate !== undefined);
       assert.equal(candidate.guard(candidate.invalid), false);
       assert.equal(candidate.guard(candidate.valid), true);
     }

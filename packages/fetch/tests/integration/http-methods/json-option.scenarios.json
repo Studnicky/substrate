@@ -6,7 +6,6 @@
       "client": "base",
       "input": {
         "baseURL": "__TEST_SERVER_URL__",
-        "method": "POST",
         "path": "/echo",
         "json": {
           "a": 1,
@@ -20,7 +19,8 @@
           "b": "two"
         },
         "headerContentType": "application/json"
-      }
+      },
+      "shape": "POST"
     },
     {
       "name": "base-client-body-wins",
@@ -34,7 +34,6 @@
         "json": {
           "winner": false
         },
-        "method": "POST",
         "path": "/echo"
       },
       "expected": {
@@ -42,7 +41,8 @@
         "body": {
           "winner": true
         }
-      }
+      },
+      "shape": "POST"
     },
     {
       "name": "absolute-client-json-post",
@@ -50,7 +50,6 @@
       "client": "absolute",
       "input": {
         "baseURL": "__TEST_SERVER_URL__",
-        "method": "POST",
         "path": "/echo",
         "json": {
           "a": 1,
@@ -64,7 +63,8 @@
           "b": "two"
         },
         "headerContentType": "application/json"
-      }
+      },
+      "shape": "POST"
     },
     {
       "name": "absolute-client-json-put",
@@ -72,7 +72,6 @@
       "client": "absolute",
       "input": {
         "baseURL": "__TEST_SERVER_URL__",
-        "method": "PUT",
         "path": "/posts/1",
         "json": {
           "title": "updated via json"
@@ -84,7 +83,8 @@
           "id": 1,
           "title": "updated via json"
         }
-      }
+      },
+      "shape": "PUT"
     },
     {
       "name": "absolute-client-json-patch",
@@ -92,7 +92,6 @@
       "client": "absolute",
       "input": {
         "baseURL": "__TEST_SERVER_URL__",
-        "method": "PATCH",
         "path": "/posts/1",
         "json": {
           "title": "patched via json"
@@ -104,7 +103,8 @@
           "id": 1,
           "title": "Test Post"
         }
-      }
+      },
+      "shape": "PATCH"
     }
   ]
 }

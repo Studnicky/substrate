@@ -3,37 +3,38 @@ import { describe, it } from 'node:test';
 
 import { Invariant } from '../../../src/types/Invariant.js';
 
-interface RangeFixtureInterface {
-  'max': number;
-  'min': number;
-}
-
 void describe('Invariant', () => {
-  const minLessThanMax = Invariant.define<RangeFixtureInterface>(
-    'minLessThanMax',
-    (value) => (value.min < value.max ? undefined : 'min must be less than max'),
-    '/min'
+  const minimumLessThanMaximum = Invariant.define<{ 'maximum': number; 'minimum': number }>(
+    'minimumLessThanMaximum',
+    (value) => {
+      const message = value.minimum < value.maximum ? undefined : 'minimum must be less than maximum';
+      return message;
+    },
+    '/minimum'
   );
 
   void it('carries its name and JSON Pointer location', () => {
-    assert.equal(minLessThanMax.name, 'minLessThanMax');
-    assert.equal(minLessThanMax.pointer, '/min');
+    assert.equal(minimumLessThanMaximum.name, 'minimumLessThanMaximum');
+    assert.equal(minimumLessThanMaximum.pointer, '/minimum');
   });
 
   void it('returns undefined when the invariant holds', () => {
-    const result = Invariant.run(minLessThanMax, { 'max': 10, 'min': 1 });
+    const result = Invariant.run(minimumLessThanMaximum, { 'maximum': 10, 'minimum': 1 });
 
     assert.equal(result, undefined);
   });
 
   void it('returns the error message when the invariant is violated', () => {
-    const result = Invariant.run(minLessThanMax, { 'max': 1, 'min': 10 });
+    const result = Invariant.run(minimumLessThanMaximum, { 'maximum': 1, 'minimum': 10 });
 
-    assert.equal(result, 'min must be less than max');
+    assert.equal(result, 'minimum must be less than maximum');
   });
 
   void it('defaults the pointer to the schema root', () => {
-    const rootInvariant = Invariant.define<number>('positive', (value) => (value > 0 ? undefined : 'must be positive'));
+    const rootInvariant = Invariant.define<number>('positive', (value) => {
+      const message = value > 0 ? undefined : 'must be positive';
+      return message;
+    });
 
     assert.equal(rootInvariant.pointer, '');
   });

@@ -80,7 +80,9 @@
     "picomatch": "4.0.7"
   },
   "devDependencies": {
+    "@studnicky/entity": "workspace:*",
     "@studnicky/example-smoke-kit": "workspace:*",
+    "@studnicky/scenario-kit": "workspace:*",
     "@types/picomatch": "4.0.3"
   }
 }

@@ -1,0 +1,22 @@
+{
+  "fixtures": {
+    "default": [
+      {
+        "color": "red",
+        "size": "S"
+      },
+      {
+        "color": "red",
+        "size": "M"
+      },
+      {
+        "color": "blue",
+        "size": "S"
+      },
+      {
+        "color": "blue",
+        "size": "S"
+      }
+    ]
+  }
+}

@@ -1,0 +1,404 @@
+{
+  "cases": [
+    {
+      "name": "resilience-tokenbucket-invalid-rps",
+      "description": "TokenBucket rejects requestsPerSecond <= 0",
+      "shape": "tb-invalid-rps",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 0,
+          "burstSize": 1
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-invalid-burst",
+      "description": "TokenBucket rejects burstSize < 1",
+      "shape": "tb-invalid-burst",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1,
+          "burstSize": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-ok",
+      "description": "TokenBucket consume works when tokens are available",
+      "shape": "tb-consume-ok",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": [
+            1,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "available": 3,
+        "exhausted": false
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consumption-observation",
+      "description": "TokenBucket reports consumed tokens and fractional remaining capacity",
+      "shape": "tb-consumption-observation",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 3,
+          "burstSize": 4,
+          "clock": [
+            0,
+            500
+          ],
+          "consume": [
+            4,
+            0.5
+          ]
+        }
+      },
+      "expected": {
+        "observation": {
+          "consumedTokens": 0.5,
+          "remainingTokens": 1
+        }
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-exhausted",
+      "description": "TokenBucket throws when exhausted",
+      "shape": "tb-consume-exhausted",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 2,
+          "consume": [
+            1,
+            1,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "exhausted": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-consume-multi",
+      "description": "TokenBucket consumes multiple tokens",
+      "shape": "tb-consume-multi",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 3,
+          "consume": [
+            3,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "exhaustedOnSecondConsume": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-available",
+      "description": "TokenBucket available getter reflects state",
+      "shape": "tb-available",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": [
+            2
+          ]
+        }
+      },
+      "expected": {
+        "available": [
+          5,
+          3
+        ]
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-refill",
+      "description": "TokenBucket refills over time",
+      "shape": "tb-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 10,
+          "clock": [
+            0,
+            500
+          ],
+          "consume": [
+            10
+          ]
+        }
+      },
+      "expected": {
+        "availableAfterConsume": 0,
+        "availableAfterRefillAt500Ms": 4
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-cap",
+      "description": "TokenBucket does not exceed burstSize",
+      "shape": "tb-cap",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": [
+            0,
+            10000
+          ]
+        }
+      },
+      "expected": {
+        "availableAtCap": 5
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-immediate",
+      "description": "TokenBucket waitForToken resolves immediately",
+      "shape": "tb-wait-immediate",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0
+        }
+      },
+      "expected": {
+        "availableAfterWait": 4
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-refill",
+      "description": "TokenBucket waitForToken waits until refilled",
+      "shape": "tb-wait-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1000,
+          "burstSize": 1,
+          "clock": [
+            0,
+            0.4,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "completed": true,
+        "observation": {
+          "consumedTokens": 1,
+          "remainingTokens": 0
+        },
+        "availableAfterWait": 0
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-abort",
+      "description": "TokenBucket waitForToken rejects on abort",
+      "shape": "tb-wait-abort",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 0.001,
+          "burstSize": 1,
+          "tokens": 1,
+          "aborted": true
+        }
+      },
+      "expected": {
+        "rejects": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-wait-too-many",
+      "description": "TokenBucket waitForToken rejects when tokens exceed burstSize",
+      "shape": "tb-wait-too-many",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "tokens": 6
+        }
+      },
+      "expected": {
+        "error": "TokenBucketExhaustedError"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-listener-leak",
+      "description": "TokenBucket waitForToken does not leak abort listeners",
+      "shape": "tb-listener-leak",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 1000,
+          "burstSize": 1,
+          "iterations": 5
+        }
+      },
+      "expected": {
+        "addCount": 5,
+        "removeCount": 5
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-acquired",
+      "description": "TokenBucket onTokenAcquired fires after consume",
+      "shape": "tb-observed-acquired",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "consume": 2
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "acquired",
+            "value": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-depleted",
+      "description": "TokenBucket onTokenDepleted fires before exhausted throw",
+      "shape": "tb-observed-depleted",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 2,
+          "clock": 0,
+          "consume": [
+            2,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "eventsContain": "depleted"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-refill",
+      "description": "TokenBucket onRefill fires when refilled",
+      "shape": "tb-observed-refill",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 10,
+          "clock": [
+            0,
+            500
+          ],
+          "consume": 10
+        }
+      },
+      "expected": {
+        "eventsContain": "refill"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-observed-wait",
+      "description": "TokenBucket onTokenAcquired fires after waitForToken",
+      "shape": "tb-observed-wait",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0
+        }
+      },
+      "expected": {
+        "eventsContain": "acquired"
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-hook-swallows",
+      "description": "TokenBucket throwing hooks do not replace canonical results",
+      "shape": "tb-hook-swallows",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 3,
+          "clock": 0,
+          "consume": 2,
+          "waitTokens": 2,
+          "waitBurstSize": 2,
+          "depletedBurstSize": 1,
+          "refillBurstSize": 5,
+          "refillClock": [
+            0,
+            500
+          ]
+        }
+      },
+      "expected": {
+        "available": [
+          1,
+          0,
+          5
+        ],
+        "errorsSwallowed": true
+      }
+    },
+    {
+      "name": "resilience-tokenbucket-async-hook-isolation",
+      "description": "TokenBucket async hook failures stay isolated",
+      "shape": "tb-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "requestsPerSecond": 10,
+          "burstSize": 5,
+          "clock": 0,
+          "first": "first async onTokenAcquired boom",
+          "second": "second async onTokenAcquired boom"
+        }
+      },
+      "expected": {
+        "rejectionEvents": 0,
+        "hookErrorCount": 1,
+        "hookName": "onTokenAcquired"
+      }
+    },
+    {
+      "name": "resilience-entity-rate-limit-consumption",
+      "description": "RateLimitConsumptionEntity validates positive consumption and non-negative remaining capacity",
+      "shape": "entity-rate-limit-consumption",
+      "input": {
+        "resilience": {
+          "valid": {
+            "consumedTokens": 0.5,
+            "remainingTokens": 1
+          },
+          "invalid": {
+            "consumedTokens": 0,
+            "remainingTokens": -1
+          }
+        }
+      },
+      "expected": {
+        "valid": true,
+        "invalid": false
+      }
+    }
+  ]
+}

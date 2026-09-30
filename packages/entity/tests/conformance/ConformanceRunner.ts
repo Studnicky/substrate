@@ -1,6 +1,7 @@
 import type { EntityValidateFunctionInterface } from '../../src/interfaces/EntityValidateFunctionInterface.js';
-import type { ConformanceCompileFunctionInterface } from './interfaces/ConformanceCompileFunctionInterface.js';
+import type { ConformanceCompilerInterface } from './interfaces/ConformanceCompilerInterface.js';
 import type { ConformanceFailureInterface } from './interfaces/ConformanceFailureInterface.js';
+import type { ConformanceGroupInterface } from './interfaces/ConformanceGroupInterface.js';
 import type { ConformanceReportInterface } from './interfaces/ConformanceReportInterface.js';
 import type { ConformanceSuiteFileInterface } from './interfaces/ConformanceSuiteFileInterface.js';
 
@@ -10,7 +11,7 @@ export class ConformanceRunner {
   public static run(
     engineName: string,
     files: readonly ConformanceSuiteFileInterface[],
-    compile: ConformanceCompileFunctionInterface,
+    compiler: ConformanceCompilerInterface,
     remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): ConformanceReportInterface {
     const failures: ConformanceFailureInterface[] = [];
@@ -23,61 +24,67 @@ export class ConformanceRunner {
       const groupCount = file.groups.length;
       for (let groupIndex = 0; groupIndex < groupCount; groupIndex += 1) {
         const group = file.groups[groupIndex]!;
-        const validate = ConformanceRunner.compileGroup(compile, group.schema, remoteSchemas);
+        const outcomes = ConformanceRunner.evaluateGroup(compiler, group, remoteSchemas);
         const caseCount = group.tests.length;
         for (let caseIndex = 0; caseIndex < caseCount; caseIndex += 1) {
           const testCase = group.tests[caseIndex]!;
+          const outcome = outcomes[caseIndex];
           total += 1;
-          const outcome = ConformanceRunner.evaluateCase(validate, testCase.data, testCase.valid);
           if (outcome === undefined) {
             passed += 1;
-            continue;
+          } else {
+            failures.push({
+              'caseDescription': testCase.description,
+              'expectedValid': testCase.valid,
+              'groupDescription': group.description,
+              'reason': outcome,
+              'relativePath': file.relativePath
+            });
           }
-          failures.push({
-            'relativePath': file.relativePath,
-            'groupDescription': group.description,
-            'caseDescription': testCase.description,
-            'expectedValid': testCase.valid,
-            'reason': outcome
-          });
         }
       }
     }
 
     const result: ConformanceReportInterface = {
       'engineName': engineName,
-      'total': total,
-      'passed': passed,
       'failed': failures.length,
-      'failures': failures
+      'failures': failures,
+      'passed': passed,
+      'total': total
     };
     return result;
   }
 
-  /** Compiles a group's schema, wrapping a synchronous compile-time throw as an always-failing validator. */
-  private static compileGroup(
-    compile: ConformanceCompileFunctionInterface,
-    schema: boolean | object,
+  /** Compiles a group's schema once and returns each case's outcome: `undefined` on a pass, else a failure reason. A synchronous compile-time throw fails every case in the group. */
+  private static evaluateGroup(
+    compiler: ConformanceCompilerInterface,
+    group: ConformanceGroupInterface,
     remoteSchemas: ReadonlyMap<string, object | boolean> | undefined
-  ): EntityValidateFunctionInterface<unknown> | { readonly 'compileError': string } {
+  ): readonly (string | undefined)[] {
+    const caseCount = group.tests.length;
+    const result: (string | undefined)[] = [];
     try {
-      const result = compile(schema, remoteSchemas);
-      return result;
+      const validate = compiler.compile(group.schema, remoteSchemas);
+      for (let caseIndex = 0; caseIndex < caseCount; caseIndex += 1) {
+        const testCase = group.tests[caseIndex]!;
+        result.push(ConformanceRunner.evaluateCase(validate, testCase.data, testCase.valid));
+      }
     } catch (error) {
-      const result = { 'compileError': ConformanceRunner.describeError(error) };
-      return result;
+      const reason = `compile failed: ${ConformanceRunner.describeError(error)}`;
+      result.length = 0;
+      for (let caseIndex = 0; caseIndex < caseCount; caseIndex += 1) {
+        result.push(reason);
+      }
     }
+    return result;
   }
 
   /** Returns `undefined` on a passing case, or a failure reason string. */
   private static evaluateCase(
-    validate: EntityValidateFunctionInterface<unknown> | { readonly 'compileError': string },
+    validate: EntityValidateFunctionInterface<unknown>,
     data: unknown,
     expectedValid: boolean
   ): string | undefined {
-    if ('compileError' in validate) {
-      return `compile failed: ${validate.compileError}`;
-    }
     try {
       const actualValid = validate(data);
       if (actualValid === expectedValid) {
@@ -97,7 +104,10 @@ export class ConformanceRunner {
     if (errors === null || errors === undefined || errors.length === 0) {
       return 'no errors reported';
     }
-    const result = errors.map((error) => `${error.keyword} at '${error.instancePath}'`).join('; ');
+    const result = errors.map((error) => {
+      const description = `${error.keyword} at '${error.instancePath}'`;
+      return description;
+    }).join('; ');
     return result;
   }
 

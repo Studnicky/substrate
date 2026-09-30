@@ -1,11 +1,12 @@
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { ErrorClassifier } from '../../src/classifiers/ErrorClassifier.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ErrorClassifierScenarioCaseEntity } from './entities/ErrorClassifierScenarioCaseEntity.js';
-import scenarioGroups from './error-classifier.scenarios.json' with { type: 'json' };
+import scenarioGroups from './error-classifier.scenarios.json' with { 'type': 'json' };
 
 class TestClassifier extends ErrorClassifier {
   public constructor() {
@@ -17,44 +18,45 @@ class TestClassifier extends ErrorClassifier {
   }
 
   public messageContainsPublic(error: Error, ...patterns: string[]): boolean {
-    return this.messageContains(error, ...patterns);
+    const result = this.messageContains(error, ...patterns);
+    return result;
   }
 
-  public nonRetryablePublic(reason: string): { reason?: string; retryable: boolean } {
-    return this.nonRetryable(reason);
+  public nonRetryablePublic(reason: string): { 'reason'?: string; 'retryable': boolean } {
+    const result = this.nonRetryable(reason);
+    return result;
   }
 
-  public retryablePublic(reason: string): { reason?: string; retryable: boolean } {
-    return this.retryable(reason);
+  public retryablePublic(reason: string): { 'reason'?: string; 'retryable': boolean } {
+    const result = this.retryable(reason);
+    return result;
   }
 }
 
-type ScenarioCase = ErrorClassifierScenarioCaseEntity.Type;
-type ScenarioRunner = (scenario: ScenarioCase, classifier: TestClassifier) => void;
+class ErrorClassifierRunners {
+  static 'classifications'(scenarioCase: ScenarioCaseOfType<ErrorClassifierScenarioCaseEntity.Type, 'classifications'>): void {
+    const classifier = new TestClassifier();
+    assert.deepStrictEqual(classifier.retryablePublic('x'), { 'reason': 'x', 'retryable': scenarioCase.expected.retryable });
+    assert.deepStrictEqual(classifier.nonRetryablePublic('y'), { 'reason': 'y', 'retryable': scenarioCase.expected.nonRetryable });
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(ErrorClassifierScenarioCaseEntity.Schema, ErrorClassifierScenarioCaseEntity.Node);
+  static 'message-contains-hit'(scenarioCase: ScenarioCaseOfType<ErrorClassifierScenarioCaseEntity.Type, 'message-contains-hit'>): void {
+    ErrorClassifierRunners.assertMessageContains(scenarioCase);
+  }
 
-const runMessageContains: ScenarioRunner = (scenario, classifier) => {
-  assert.strictEqual(classifier.messageContainsPublic(RuntimeError.create(scenario.input.message), ...(scenario.input.patterns ?? [])), scenario.expected.value);
-};
+  static 'message-contains-miss'(scenarioCase: ScenarioCaseOfType<ErrorClassifierScenarioCaseEntity.Type, 'message-contains-miss'>): void {
+    ErrorClassifierRunners.assertMessageContains(scenarioCase);
+  }
 
-const runnerMap = {
-  'classifications': (scenario, classifier) => {
-    assert.deepStrictEqual(classifier.retryablePublic('x'), { reason: 'x', retryable: scenario.expected.retryable });
-    assert.deepStrictEqual(classifier.nonRetryablePublic('y'), { reason: 'y', retryable: scenario.expected.nonRetryable });
-  },
-  'message-contains-hit': runMessageContains,
-  'message-contains-miss': runMessageContains
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
-
-function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.shape](scenario, new TestClassifier());
+  private static assertMessageContains(scenarioCase: ErrorClassifierScenarioCaseEntity.Type): void {
+    const classifier = new TestClassifier();
+    assert.strictEqual(classifier.messageContainsPublic(RuntimeError.create(scenarioCase.input.message), ...(scenarioCase.input.patterns ?? [])), scenarioCase.expected.value);
+  }
 }
 
-void describe('ErrorClassifier', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ErrorClassifierScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'ErrorClassifier',
+  'runners': ErrorClassifierRunners
 });

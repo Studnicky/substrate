@@ -10,11 +10,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "baseURL must be a string"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "baseURL-null",
@@ -26,11 +26,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "baseURL"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "baseURL-empty",
@@ -42,11 +42,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "baseURL must not be empty"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "baseURL-invalid-url",
@@ -58,11 +58,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "baseURL must be a valid URL"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "baseURL-valid",
@@ -73,9 +73,8 @@
           "baseURL": "https://api.example.com"
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "headers-non-object",
@@ -87,11 +86,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "headers must be an object"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-null",
@@ -103,11 +102,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "headers"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-array",
@@ -119,11 +118,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "headers must be an object"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-invalid-value",
@@ -137,11 +136,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "header value for \"X-Custom\" must be a string"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-valid",
@@ -154,9 +153,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "parameters-non-object",
@@ -168,11 +166,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "parameters must be an object"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "parameters-array",
@@ -184,11 +182,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "parameters must be an object"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "parameters-invalid-value",
@@ -204,11 +202,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "param value for \"invalid\" must be string, number, boolean, or array of these types"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "parameters-valid",
@@ -231,9 +229,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "hook-timeout-ms-non-number",
@@ -245,11 +242,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "hookTimeoutMs must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "hook-timeout-ms-negative",
@@ -261,11 +258,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "hookTimeoutMs must be positive"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "hook-timeout-ms-zero",
@@ -277,11 +274,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "hookTimeoutMs must be positive"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "hook-timeout-ms-infinite",
@@ -295,11 +292,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "hookTimeoutMs must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "hook-timeout-ms-valid",
@@ -310,9 +307,8 @@
           "hookTimeoutMs": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "strict-validation-unknown-key",
@@ -325,11 +321,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "unknownKey"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-validation-multiple-unknown-keys",
@@ -343,11 +339,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "not declared"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-validation-typo",
@@ -359,11 +355,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "baseUrl"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-validation-wrong-case",
@@ -375,11 +371,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "BaseURL"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-validation-nested-unknown",
@@ -394,11 +390,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "invalidOption"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-validation-valid-empty",
@@ -407,9 +403,8 @@
       "input": {
         "fetchClient": {}
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "strict-validation-valid-known-keys",
@@ -427,9 +422,8 @@
           "timeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "strict-validation-valid-undefined",
@@ -446,9 +440,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "timeout-non-number",
@@ -460,11 +453,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "timeout must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "timeout-null",
@@ -476,11 +469,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "timeout"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "timeout-negative",
@@ -492,11 +485,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "timeout must be positive"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "timeout-zero",
@@ -508,11 +501,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "timeout must be positive"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "timeout-infinite",
@@ -526,11 +519,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "timeout must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "timeout-valid",
@@ -541,9 +534,8 @@
           "timeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     }
   ]
 }

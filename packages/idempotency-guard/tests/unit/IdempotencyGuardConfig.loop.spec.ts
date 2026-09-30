@@ -1,59 +1,50 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { IdempotencyGuard, IdempotencyGuardConfigError } from '../../src/index.js';
 import { IdempotencyGuardOptionsEntity } from '../../src/entities/index.js';
+import { IdempotencyGuard, IdempotencyGuardConfigError } from '../../src/index.js';
 import { IdempotencyGuardConfigScenarioCaseEntity } from './entities/IdempotencyGuardConfigScenarioCaseEntity.js';
-import scenarioGroups from './IdempotencyGuardConfig.scenarios.json' with { type: 'json' };
+import scenarioGroups from './IdempotencyGuardConfig.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(IdempotencyGuardConfigScenarioCaseEntity.Schema, IdempotencyGuardConfigScenarioCaseEntity.Node);
-
-/** Exercises `IdempotencyGuard.create`'s typed surface: options a caller's compiler already accepts, checked again at runtime. */
-function runTypedCase(
-  scenarioCase: Extract<IdempotencyGuardConfigScenarioCaseEntity.Type, { shape: 'accepts-valid-options' | 'rejects-range-violation' }>
-): void {
-  if (scenarioCase.shape === 'accepts-valid-options') {
+class IdempotencyGuardConfigRunners {
+  /** Exercises `IdempotencyGuard.create`'s typed surface: options a caller's compiler already accepts, checked again at runtime. */
+  static 'accepts-valid-options'(scenarioCase: ScenarioCaseOfType<IdempotencyGuardConfigScenarioCaseEntity.Type, 'accepts-valid-options'>): void {
     const guard = IdempotencyGuard.create(scenarioCase.input.options);
     assert.ok(guard instanceof IdempotencyGuard);
-    return;
   }
 
-  assert.throws(
-    () => {
-      IdempotencyGuard.create(scenarioCase.input.options);
-    },
-    (error: unknown) => {
-      if (!(error instanceof IdempotencyGuardConfigError)) {
-        return false;
+  static 'rejects-range-violation'(scenarioCase: ScenarioCaseOfType<IdempotencyGuardConfigScenarioCaseEntity.Type, 'rejects-range-violation'>): void {
+    assert.throws(
+      () => {
+        IdempotencyGuard.create(scenarioCase.input.options);
+      },
+      (thrown) => {
+        const error: unknown = thrown;
+        let accepted = false;
+        if (error instanceof IdempotencyGuardConfigError) {
+          assert.equal(error.code, scenarioCase.expected.code);
+          accepted = true;
+        }
+        return accepted;
       }
-      assert.equal(error.code, scenarioCase.expected.code);
-      return true;
-    }
-  );
-}
-
-/** Exercises a shape `IdempotencyGuardOptionsEntity.InputType` forbids at compile time, through the entity's `unknown`-accepting surface directly. */
-function runShapeViolationCase(scenarioCase: Extract<IdempotencyGuardConfigScenarioCaseEntity.Type, { shape: 'rejects-shape-violation' }>): void {
-  assert.equal(IdempotencyGuardOptionsEntity.validate(scenarioCase.input.options), scenarioCase.expected.valid);
-  assert.throws(() => {
-    IdempotencyGuardOptionsEntity.intake(scenarioCase.input.options);
-  }, SchemaIntakeError);
-}
-
-function runCase(scenarioCase: IdempotencyGuardConfigScenarioCaseEntity.Type): void {
-  if (scenarioCase.shape === 'rejects-shape-violation') {
-    runShapeViolationCase(scenarioCase);
-    return;
+    );
   }
-  runTypedCase(scenarioCase);
+
+  /** Exercises a shape `IdempotencyGuardOptionsEntity.InputType` forbids at compile time, through the entity's `unknown`-accepting surface directly. */
+  static 'rejects-shape-violation'(scenarioCase: ScenarioCaseOfType<IdempotencyGuardConfigScenarioCaseEntity.Type, 'rejects-shape-violation'>): void {
+    assert.equal(IdempotencyGuardOptionsEntity.validate(scenarioCase.input.options), scenarioCase.expected.valid);
+    assert.throws(() => {
+      IdempotencyGuardOptionsEntity.intake(scenarioCase.input.options);
+    }, SchemaIntakeError);
+  }
 }
 
-void describe('IdempotencyGuard config validation', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': IdempotencyGuardConfigScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'IdempotencyGuard config validation',
+  'runners': IdempotencyGuardConfigRunners
 });

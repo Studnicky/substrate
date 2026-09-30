@@ -127,6 +127,7 @@ export default [
 
 | Symbol | Purpose | Import path |
 |---|---|---|
+| `PlatformCallDefaults` | Builds the default `platformCalls` list of `@studnicky/no-native-error`, for configurations that extend or filter it. | `@studnicky/eslint-config/node` |
 | `plugin` | Provides the `@studnicky` ESLint plugin. | `@studnicky/eslint-config/node` |
 | `v8Plugin` | Provides the `@studnicky/v8` ESLint plugin. | `@studnicky/eslint-config/node` |
 | `entityModelSuite` | Provides type/interface/entity-namespace shape, naming, location, and keyed-collection rules. | `@studnicky/eslint-config/node` |

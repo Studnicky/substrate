@@ -1,32 +1,27 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { HealthRegistry } from '../../src/HealthRegistry.js';
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import timersPromises from 'node:timers/promises';
+
 import type { HealthStatusEntity } from '../../src/entities/HealthStatusEntity.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
+
+import { HealthRegistry } from '../../src/HealthRegistry.js';
 import { HealthRegistryHooksScenarioCaseEntity } from './entities/HealthRegistryHooksScenarioCaseEntity.js';
-import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { type: 'json' };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(HealthRegistryHooksScenarioCaseEntity.Schema, HealthRegistryHooksScenarioCaseEntity.Node);
-
-function createUnhandledRejectionAssertion(message: string): () => void {
-  return () => { assert.fail(message); };
-}
-
-type ScenarioCase = HealthRegistryHooksScenarioCaseEntity.Type;
+import scenarioGroups from './HealthRegistryHooks.scenarios.json' with { 'type': 'json' };
+import { UnhandledRejectionGuard } from './UnhandledRejectionGuard.js';
 
 class ObservedRegistry extends HealthRegistry {
   readonly registeredCalls: string[] = [];
-  readonly resultCalls: { name: string; result: HealthCheckResultInterface }[] = [];
-  readonly aggregateCalls: { overall: HealthStatusEntity.Type; size: number }[] = [];
-  readonly timeoutCalls: { name: string; timeoutMs: number }[] = [];
+  readonly resultCalls: { 'name': string; 'result': HealthCheckResultInterface }[] = [];
+  readonly aggregateCalls: { 'overall': HealthStatusEntity.Type; 'size': number }[] = [];
+  readonly timeoutCalls: { 'name': string; 'timeoutMs': number }[] = [];
 
   static override create(): ObservedRegistry {
-    return new ObservedRegistry();
+    const registry = new ObservedRegistry();
+    return registry;
   }
 
   protected override onCheckRegistered(name: string): void {
@@ -34,245 +29,290 @@ class ObservedRegistry extends HealthRegistry {
   }
 
   protected override onCheckResult(name: string, result: HealthCheckResultInterface): void {
-    this.resultCalls.push({ name, result });
+    this.resultCalls.push({ 'name': name, 'result': result });
   }
 
   protected override onAggregate(overall: HealthStatusEntity.Type, results: ReadonlyMap<string, HealthCheckResultInterface>): void {
-    this.aggregateCalls.push({ overall, size: results.size });
+    this.aggregateCalls.push({ 'overall': overall, 'size': results.size });
   }
 
   protected override onCheckTimeout(name: string, timeoutMs: number): void {
-    this.timeoutCalls.push({ name, timeoutMs });
+    this.timeoutCalls.push({ 'name': name, 'timeoutMs': timeoutMs });
   }
 }
 
-async function runCheckSet(
-  registry: ObservedRegistry,
-  checks: Array<HealthCheckResultInterface & { name: string }>
-): Promise<void> {
-  for (const check of checks) {
-    registry.register(check.name, async () => {
-      return check.metadata === undefined
-        ? { status: check.status }
-        : { metadata: check.metadata, status: check.status };
-    });
-  }
-  await registry.evaluate();
-}
+class HealthRegistryHooksRunners {
+  static async 'async-aggregate-rejection'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'async-aggregate-rejection'>): Promise<void> {
+    const guard = new UnhandledRejectionGuard('asynchronous aggregate hook produced an unhandled rejection');
+    guard.install();
 
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-    'async-aggregate-rejection': async (scenarioCase) => {
-      class AsyncRejectingAggregateRegistry extends HealthRegistry {
-        protected override async onAggregate(): Promise<void> {
-          await Promise.resolve();
-          throw RuntimeError.create('async aggregate boom');
+    try {
+      const registry = HealthRegistry.create();
+      Object.defineProperty(registry, 'onAggregate', {
+        'value': (): Promise<void> => {
+          const rejection = Promise.resolve().then((): void => {
+            throw RuntimeError.create('async aggregate boom');
+          });
+          return rejection;
         }
-      }
-
-    const onUnhandledRejection = createUnhandledRejectionAssertion('asynchronous aggregate hook produced an unhandled rejection');
-      process.on('unhandledRejection', onUnhandledRejection);
-
-      try {
-        const registry = AsyncRejectingAggregateRegistry.create();
-        registry.register(scenarioCase.input.name, async () => ({ status: scenarioCase.input.status }));
-
-        const evaluation = await registry.evaluate();
-        assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
-
-        await new Promise((resolve) => setTimeout(resolve, scenarioCase.input.waitMs));
-        await new Promise((resolve) => setImmediate(resolve));
-
-        assert.equal(scenarioCase.expected.rejectionCount, 0);
-        assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-        assert.equal(registry.getHookErrors()[0]?.hookName, scenarioCase.expected.hookName);
-      } finally {
-        process.off('unhandledRejection', onUnhandledRejection);
-      }
-    },
-    'deeply-detached-hook-errors': async (scenarioCase) => {
-      const cause = RuntimeError.create(scenarioCase.input.causeMessage, { cause: { checks: scenarioCase.input.nestedChecks } });
-
-      class ThrowingRegistrationRegistry extends HealthRegistry {
-        protected override onCheckRegistered(): void {
-          throw cause;
-        }
-      }
-
-      const registry = ThrowingRegistrationRegistry.create();
-      registry.register('database', async () => ({ status: 'healthy' }));
-
-      assert.equal(registry.hookErrorCount, scenarioCase.expected.errorCount);
-      const firstCause = registry.getHookErrors()[0]?.cause;
-      assert.ok(firstCause instanceof Error);
-      firstCause.message = 'mutated';
-      const firstDetails = firstCause.cause;
-      assert.ok(firstDetails !== null && typeof firstDetails === 'object');
-      const firstChecks = Reflect.get(firstDetails, 'checks');
-      assert.ok(Array.isArray(firstChecks));
-      firstChecks.push(...scenarioCase.input.mutateChecks);
-
-      const secondCause = registry.getHookErrors()[0]?.cause;
-      assert.ok(secondCause instanceof Error);
-      assert.equal(secondCause.message, scenarioCase.expected.message);
-      assert.deepEqual(secondCause.cause, { checks: scenarioCase.expected.nestedChecks });
-      assert.equal(registry.hookErrorCount, scenarioCase.expected.errorCount);
-    },
-    'hook-errors-owned-by-instance': async (scenarioCase) => {
-      class ThrowingRegistrationRegistry extends HealthRegistry {
-        #cause = RuntimeError.create('unconfigured hook failure');
-
-        static override create(): ThrowingRegistrationRegistry {
-          return new ThrowingRegistrationRegistry();
-        }
-
-        failWith(cause: RuntimeError): void {
-          this.#cause = cause;
-        }
-
-        protected override onCheckRegistered(): void {
-          throw this.#cause;
-        }
-      }
-
-      const firstCause = RuntimeError.create(scenarioCase.input.firstCause);
-      const secondCause = RuntimeError.create(scenarioCase.input.secondCause);
-      const first = ThrowingRegistrationRegistry.create();
-      const second = ThrowingRegistrationRegistry.create();
-      first.failWith(firstCause);
-      second.failWith(secondCause);
-
-      first.register('first', async () => ({ status: 'healthy' }));
-      second.register('second', async () => ({ status: 'healthy' }));
-
-      const firstErrors = first.getHookErrors();
-      const secondErrors = second.getHookErrors();
-      assert.equal(first.hookErrorCount, scenarioCase.expected.errorCount);
-      assert.equal(second.hookErrorCount, scenarioCase.expected.errorCount);
-      assert.equal(firstErrors[0]?.hookName, scenarioCase.expected.hookName);
-      assert.equal(secondErrors[0]?.hookName, scenarioCase.expected.hookName);
-      assert.ok(firstErrors[0]?.cause instanceof Error);
-      assert.ok(secondErrors[0]?.cause instanceof Error);
-      assert.notStrictEqual(firstErrors[0].cause, firstCause);
-      assert.notStrictEqual(secondErrors[0].cause, secondCause);
-      assert.equal(firstErrors[0].cause.message, firstCause.message);
-      assert.equal(secondErrors[0].cause.message, secondCause.message);
-    },
-    'hook-order': async (scenarioCase) => {
-      const order: string[] = [];
-
-      class OrderedRegistry extends HealthRegistry {
-        protected override onCheckRegistered(_name: string): void { order.push('registered'); }
-        protected override onCheckResult(_name: string): void { order.push('result'); }
-        protected override onAggregate(): void { order.push('aggregate'); }
-      }
-
-      const registry = OrderedRegistry.create();
-      registry.register(scenarioCase.input.name, async () => ({ status: scenarioCase.input.status }));
-      await registry.evaluate();
-      assert.deepEqual(order, scenarioCase.expected.order);
-    },
-    'no-timeout-after-fast-result': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      registry.register(scenarioCase.input.name, async () => ({ status: scenarioCase.input.status }), { timeoutMs: scenarioCase.input.timeoutMs });
-      await registry.evaluate()
-        .then(() => new Promise((resolve) => setTimeout(resolve, scenarioCase.input.delayMs)))
-        .then(() => {
-          assert.equal(registry.timeoutCalls.length, scenarioCase.expected.timeoutCount);
-          assert.equal(registry.resultCalls.length, 1);
-          assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
-        });
-    },
-    'on-aggregate-after-settle': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      await runCheckSet(registry, scenarioCase.input.checks);
-      assert.equal(registry.aggregateCalls.length, scenarioCase.expected.aggregateCountAfterFirst);
-      assert.deepEqual(registry.aggregateCalls, scenarioCase.expected.aggregateCalls);
-      await registry.evaluate();
-      assert.equal(registry.aggregateCalls.length, scenarioCase.expected.aggregateCountAfterSecond);
-    },
-    'on-check-registered': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      await runCheckSet(registry, scenarioCase.input.checks);
-      assert.deepEqual(registry.registeredCalls, scenarioCase.expected.registeredCalls);
-    },
-    'on-check-result': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      await runCheckSet(registry, scenarioCase.input.checks);
-      assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
-      for (const expected of scenarioCase.expected.resultCalls) {
-        const actual = registry.resultCalls.find((entry) => entry.name === expected.name);
-        assert.equal(actual?.result.status, expected.status);
-        if (expected.metadata !== undefined) {
-          assert.deepEqual(actual?.result.metadata, expected.metadata);
-        }
-      }
-    },
-    'rejecting-check-result': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      registry.register(scenarioCase.input.name, async () => {
-        throw RuntimeError.create(scenarioCase.input.errorMessage);
       });
-      await registry.evaluate();
-      assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
-      assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultCalls[0]?.status);
-    },
-    'throwing-on-aggregate': async (scenarioCase) => {
-      class ThrowingAggregateRegistry extends HealthRegistry {
-        protected override onAggregate(): void {
-          throw RuntimeError.create('hook boom');
-        }
-      }
-
-      const registry = ThrowingAggregateRegistry.create();
-      registry.register(scenarioCase.input.name, async () => ({ status: scenarioCase.input.status }));
-      return registry.evaluate().then((evaluation) => {
-        assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
-        assert.equal(evaluation.results.get(scenarioCase.input.name)?.status, scenarioCase.expected.resultStatus);
+      registry.register(scenarioCase.input.name, () => {
+        const result = Promise.resolve({ 'status': scenarioCase.input.status });
+        return result;
       });
-    },
-    'throwing-on-check-result': async (scenarioCase) => {
-      class ThrowingResultRegistry extends HealthRegistry {
-        protected override onCheckResult(): void {
-          throw RuntimeError.create('hook boom');
-        }
-      }
 
-      const registry = ThrowingResultRegistry.create();
-      registry.register(scenarioCase.input.name, async () => ({ status: scenarioCase.input.status }));
-      return registry.evaluate().then((evaluation) => {
-        assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
-        assert.equal(evaluation.results.get(scenarioCase.input.name)?.status, scenarioCase.expected.resultStatus);
-      });
-    },
-    'timeout-plus-result': async (scenarioCase) => {
-      const registry = ObservedRegistry.create();
-      registry.register(scenarioCase.input.name, async () => {
-        await new Promise((resolve) => setTimeout(resolve, scenarioCase.input.delayMs));
-        return { status: scenarioCase.input.status };
-      }, { timeoutMs: scenarioCase.input.timeoutMs });
+      const evaluation = await registry.evaluate();
+      assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
 
-      await registry.evaluate().then(() => {
-        assert.equal(registry.timeoutCalls.length, scenarioCase.expected.timeoutCalls.length);
-        assert.equal(registry.timeoutCalls[0]?.name, scenarioCase.expected.timeoutCalls[0]?.name);
-        assert.equal(registry.timeoutCalls[0]?.timeoutMs, scenarioCase.expected.timeoutCalls[0]?.timeoutMs);
-        assert.equal(registry.resultCalls.length, 1);
-        assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
-      });
+      await timersPromises.setTimeout(scenarioCase.input.waitMs);
+      await timersPromises.setImmediate();
+
+      assert.equal(scenarioCase.expected.rejectionCount, 0);
+      assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
+      assert.equal(registry.getHookErrors()[0]?.hookName, scenarioCase.expected.hookName);
+    } finally {
+      guard.uninstall();
     }
-};
+  }
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  return runnerMap[scenarioCase.shape](scenarioCase);
+  static 'deeply-detached-hook-errors'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'deeply-detached-hook-errors'>): void {
+    const cause = RuntimeError.create(scenarioCase.input.causeMessage, { 'cause': { 'checks': scenarioCase.input.nestedChecks } });
+
+    class ThrowingRegistrationRegistry extends HealthRegistry {
+      protected override onCheckRegistered(): void {
+        throw cause;
+      }
+    }
+
+    const registry = ThrowingRegistrationRegistry.create();
+    registry.register('database', () => {
+      const healthy = Promise.resolve({ 'status': 'healthy' as const });
+      return healthy;
+    });
+
+    assert.equal(registry.hookErrorCount, scenarioCase.expected.errorCount);
+    const firstCause = registry.getHookErrors()[0]?.cause;
+    assert.ok(firstCause instanceof Error);
+    firstCause.message = 'mutated';
+    const firstDetails: unknown = firstCause.cause;
+    assert.ok(firstDetails !== null && typeof firstDetails === 'object');
+    const firstChecks: unknown = Reflect.get(firstDetails, 'checks');
+    assert.ok(Array.isArray(firstChecks));
+    firstChecks.push(...scenarioCase.input.mutateChecks);
+
+    const secondCause = registry.getHookErrors()[0]?.cause;
+    assert.ok(secondCause instanceof Error);
+    assert.equal(secondCause.message, scenarioCase.expected.message);
+    assert.deepEqual(secondCause.cause, { 'checks': scenarioCase.expected.nestedChecks });
+    assert.equal(registry.hookErrorCount, scenarioCase.expected.errorCount);
+  }
+
+  static 'hook-errors-owned-by-instance'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'hook-errors-owned-by-instance'>): void {
+    class ThrowingRegistrationRegistry extends HealthRegistry {
+      #cause = RuntimeError.create('unconfigured hook failure');
+
+      static override create(): ThrowingRegistrationRegistry {
+        const registry = new ThrowingRegistrationRegistry();
+        return registry;
+      }
+
+      failWith(cause: RuntimeError): void {
+        this.#cause = cause;
+      }
+
+      protected override onCheckRegistered(): void {
+        throw this.#cause;
+      }
+    }
+
+    const firstCause = RuntimeError.create(scenarioCase.input.firstCause);
+    const secondCause = RuntimeError.create(scenarioCase.input.secondCause);
+    const first = ThrowingRegistrationRegistry.create();
+    const second = ThrowingRegistrationRegistry.create();
+    first.failWith(firstCause);
+    second.failWith(secondCause);
+
+    first.register('first', () => {
+      const healthy = Promise.resolve({ 'status': 'healthy' as const });
+      return healthy;
+    });
+    second.register('second', () => {
+      const healthy = Promise.resolve({ 'status': 'healthy' as const });
+      return healthy;
+    });
+
+    const firstErrors = first.getHookErrors();
+    const secondErrors = second.getHookErrors();
+    assert.equal(first.hookErrorCount, scenarioCase.expected.errorCount);
+    assert.equal(second.hookErrorCount, scenarioCase.expected.errorCount);
+    assert.equal(firstErrors[0]?.hookName, scenarioCase.expected.hookName);
+    assert.equal(secondErrors[0]?.hookName, scenarioCase.expected.hookName);
+    assert.ok(firstErrors[0]?.cause instanceof Error);
+    assert.ok(secondErrors[0]?.cause instanceof Error);
+    assert.notStrictEqual(firstErrors[0].cause, firstCause);
+    assert.notStrictEqual(secondErrors[0].cause, secondCause);
+    assert.equal(firstErrors[0].cause.message, firstCause.message);
+    assert.equal(secondErrors[0].cause.message, secondCause.message);
+  }
+
+  static async 'hook-order'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'hook-order'>): Promise<void> {
+    const order: string[] = [];
+
+    class OrderedRegistry extends HealthRegistry {
+      protected override onCheckRegistered(_name: string): void { order.push('registered'); }
+      protected override onCheckResult(_name: string): void { order.push('result'); }
+      protected override onAggregate(): void { order.push('aggregate'); }
+    }
+
+    const registry = OrderedRegistry.create();
+    registry.register(scenarioCase.input.name, () => {
+      const result = Promise.resolve({ 'status': scenarioCase.input.status });
+      return result;
+    });
+    await registry.evaluate();
+    assert.deepEqual(order, scenarioCase.expected.order);
+  }
+
+  static async 'no-timeout-after-fast-result'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'no-timeout-after-fast-result'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    registry.register(scenarioCase.input.name, () => {
+      const result = Promise.resolve({ 'status': scenarioCase.input.status });
+      return result;
+    }, { 'timeoutMs': scenarioCase.input.timeoutMs });
+    await registry.evaluate();
+    await timersPromises.setTimeout(scenarioCase.input.delayMs);
+    assert.equal(registry.timeoutCalls.length, scenarioCase.expected.timeoutCount);
+    assert.equal(registry.resultCalls.length, 1);
+    assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
+  }
+
+  static async 'on-aggregate-after-settle'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'on-aggregate-after-settle'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    await HealthRegistryHooksRunners.runCheckSet(registry, scenarioCase.input.checks);
+    assert.equal(registry.aggregateCalls.length, scenarioCase.expected.aggregateCountAfterFirst);
+    assert.deepEqual(registry.aggregateCalls, scenarioCase.expected.aggregateCalls);
+    await registry.evaluate();
+    assert.equal(registry.aggregateCalls.length, scenarioCase.expected.aggregateCountAfterSecond);
+  }
+
+  static async 'on-check-registered'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'on-check-registered'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    await HealthRegistryHooksRunners.runCheckSet(registry, scenarioCase.input.checks);
+    assert.deepEqual(registry.registeredCalls, scenarioCase.expected.registeredCalls);
+  }
+
+  static async 'on-check-result'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'on-check-result'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    await HealthRegistryHooksRunners.runCheckSet(registry, scenarioCase.input.checks);
+    assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
+    const resultsByName = new Map<string, HealthCheckResultInterface>();
+    for (let index = 0; index < registry.resultCalls.length; index += 1) {
+      const call = registry.resultCalls[index];
+      if (call !== undefined && resultsByName.has(call.name) === false) {
+        resultsByName.set(call.name, call.result);
+      }
+    }
+    for (let index = 0; index < scenarioCase.expected.resultCalls.length; index += 1) {
+      const expected = scenarioCase.expected.resultCalls[index];
+      if (expected !== undefined) {
+        const actual = resultsByName.get(expected.name);
+        assert.equal(actual?.status, expected.status);
+        if (expected.metadata !== undefined) {
+          assert.deepEqual(actual?.metadata, expected.metadata);
+        }
+      }
+    }
+  }
+
+  static async 'rejecting-check-result'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'rejecting-check-result'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    registry.register(scenarioCase.input.name, () => {
+      const rejection = Promise.reject(RuntimeError.create(scenarioCase.input.errorMessage));
+      return rejection;
+    });
+    await registry.evaluate();
+    assert.equal(registry.resultCalls.length, scenarioCase.expected.resultCalls.length);
+    assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultCalls[0]?.status);
+  }
+
+  static async 'throwing-on-aggregate'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'throwing-on-aggregate'>): Promise<void> {
+    class ThrowingAggregateRegistry extends HealthRegistry {
+      protected override onAggregate(): void {
+        throw RuntimeError.create('hook boom');
+      }
+    }
+
+    const registry = ThrowingAggregateRegistry.create();
+    registry.register(scenarioCase.input.name, () => {
+      const result = Promise.resolve({ 'status': scenarioCase.input.status });
+      return result;
+    });
+    const evaluation = await registry.evaluate();
+    assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
+    assert.equal(evaluation.results.get(scenarioCase.input.name)?.status, scenarioCase.expected.resultStatus);
+  }
+
+  static async 'throwing-on-check-result'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'throwing-on-check-result'>): Promise<void> {
+    class ThrowingResultRegistry extends HealthRegistry {
+      protected override onCheckResult(): void {
+        throw RuntimeError.create('hook boom');
+      }
+    }
+
+    const registry = ThrowingResultRegistry.create();
+    registry.register(scenarioCase.input.name, () => {
+      const result = Promise.resolve({ 'status': scenarioCase.input.status });
+      return result;
+    });
+    const evaluation = await registry.evaluate();
+    assert.equal(evaluation.status, scenarioCase.expected.resultStatus);
+    assert.equal(evaluation.results.get(scenarioCase.input.name)?.status, scenarioCase.expected.resultStatus);
+  }
+
+  static async 'timeout-plus-result'(scenarioCase: ScenarioCaseOfType<HealthRegistryHooksScenarioCaseEntity.Type, 'timeout-plus-result'>): Promise<void> {
+    const registry = ObservedRegistry.create();
+    registry.register(scenarioCase.input.name, async () => {
+      await timersPromises.setTimeout(scenarioCase.input.delayMs);
+      const result = { 'status': scenarioCase.input.status };
+      return result;
+    }, { 'timeoutMs': scenarioCase.input.timeoutMs });
+
+    await registry.evaluate();
+    assert.equal(registry.timeoutCalls.length, scenarioCase.expected.timeoutCalls.length);
+    assert.equal(registry.timeoutCalls[0]?.name, scenarioCase.expected.timeoutCalls[0]?.name);
+    assert.equal(registry.timeoutCalls[0]?.timeoutMs, scenarioCase.expected.timeoutCalls[0]?.timeoutMs);
+    assert.equal(registry.resultCalls.length, 1);
+    assert.equal(registry.resultCalls[0]?.result.status, scenarioCase.expected.resultStatus);
+  }
+
+  private static createCheck(check: HealthCheckResultInterface): () => Promise<HealthCheckResultInterface> {
+    const checkFunction = (): Promise<HealthCheckResultInterface> => {
+      const result: HealthCheckResultInterface = check.metadata === undefined
+        ? { 'status': check.status }
+        : { 'metadata': check.metadata, 'status': check.status };
+      const settled = Promise.resolve(result);
+      return settled;
+    };
+    return checkFunction;
+  }
+
+  private static async runCheckSet(
+    registry: ObservedRegistry,
+    checks: readonly (HealthCheckResultInterface & { readonly 'name': string })[]
+  ): Promise<void> {
+    for (let index = 0; index < checks.length; index += 1) {
+      const check = checks[index];
+      if (check !== undefined) {
+        registry.register(check.name, HealthRegistryHooksRunners.createCheck(check));
+      }
+    }
+    await registry.evaluate();
+  }
 }
 
-void describe('HealthRegistry lifecycle hooks', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HealthRegistryHooksScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'HealthRegistry lifecycle hooks',
+  'runners': HealthRegistryHooksRunners
 });

@@ -1,35 +1,124 @@
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { noNativeError } from '../../src/rules/noNativeError.js';
-import scenarioGroups from './noNativeError.scenarios.json' with { type: 'json' };
+import scenarioGroups from './noNativeError.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // The abort-reason check resolves the receiver's type through the checker, so the
 // scenarios run under typed linting.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['packages/eslint-config/*.ts'],
-        defaultProject: 'packages/store/tsconfig.json',
-        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 60
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['packages/eslint-config/*.ts'],
+        'defaultProject': 'packages/store/tsconfig.json',
+        'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 60
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
 
 // Without type-aware parser services the throw, reject, and abort-reason checks report nothing.
 const untypedRuleTester = new RuleTester();
+
+class NoNativeErrorWebWorkerSuite {
+  static declaresWebWorkerTest(): void {
+    void it('resolves the WebWorker lib File System Access classes', () => {
+      ruleTester.run('no-native-error-webworker', noNativeError, {
+        'invalid': [
+          {
+            'code': 'declare const handle: FileSystemFileHandle; export function run(): void { const access = handle.createSyncAccessHandle(); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemFileHandle#createSyncAccessHandle unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.read(new Uint8Array()); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#read unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.write(new Uint8Array()); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#write unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.flush(); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#flush unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.truncate(0); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#truncate unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.getSize(); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#getSize unguarded is reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { access.close(); }',
+            'errors': [{ 'messageId': 'unguardedPlatformCall' }],
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#close unguarded is reported'
+          }
+        ],
+        'valid': [
+          {
+            'code': 'declare const handle: FileSystemFileHandle; export function run(): void { try { const access = handle.createSyncAccessHandle(); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemFileHandle#createSyncAccessHandle inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.read(new Uint8Array()); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#read inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.write(new Uint8Array()); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#write inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.flush(); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#flush inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.truncate(0); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#truncate inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.getSize(); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#getSize inside try with catch is not reported'
+          },
+          {
+            'code': 'declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.close(); } catch { return; } }',
+            'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
+            'name': 'FileSystemSyncAccessHandle#close inside try with catch is not reported'
+          }
+        ]
+      });
+    });
+  }
+}
 
 void describe('no-native-error', () => {
   void it('validates no-native-error scenarios', () => {
@@ -61,91 +150,7 @@ void describe('no-native-error', () => {
     });
   });
 
-  void it('resolves the WebWorker lib File System Access classes', () => {
-    ruleTester.run('no-native-error-webworker', noNativeError, {
-      'invalid': [
-        {
-          'code': "declare const handle: FileSystemFileHandle; export function run(): void { const access = handle.createSyncAccessHandle(); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemFileHandle#createSyncAccessHandle unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.read(new Uint8Array()); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#read unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.write(new Uint8Array()); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#write unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.flush(); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#flush unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.truncate(0); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#truncate unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.getSize(); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#getSize unguarded is reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { access.close(); }",
-          'errors': [{ 'messageId': 'unguardedPlatformCall' }],
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#close unguarded is reported'
-        }
-      ],
-      'valid': [
-        {
-          'code': "declare const handle: FileSystemFileHandle; export function run(): void { try { const access = handle.createSyncAccessHandle(); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemFileHandle#createSyncAccessHandle inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.read(new Uint8Array()); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#read inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.write(new Uint8Array()); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#write inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.flush(); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#flush inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.truncate(0); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#truncate inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.getSize(); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#getSize inside try with catch is not reported'
-        },
-        {
-          'code': "declare const access: FileSystemSyncAccessHandle; export function run(): void { try { access.close(); } catch { return; } }",
-          'filename': 'packages/eslint-config/tests/fixtures/webworker/Probe.ts',
-          'name': 'FileSystemSyncAccessHandle#close inside try with catch is not reported'
-        }
-      ]
-    });
-  });
+  NoNativeErrorWebWorkerSuite.declaresWebWorkerTest();
 
   void it('reports nothing for throw, reject, and abort reasons without type information', () => {
     untypedRuleTester.run('no-native-error-untyped', noNativeError, {

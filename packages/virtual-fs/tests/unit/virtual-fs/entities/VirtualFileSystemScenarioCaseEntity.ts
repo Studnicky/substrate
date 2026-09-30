@@ -1,34 +1,37 @@
-import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-/** Builds one `oneOf` branch's `Schema`/`Node` pair from a single call, so the two can never drift apart. */
-function defineCase<
-  const TShape extends string,
-  TInputNode extends SchemaNodeInterface<unknown, unknown>,
-  TExpectedNode extends SchemaNodeInterface<unknown, unknown>
->(shape: TShape, inputSchema: Record<string, unknown>, inputNode: TInputNode, expectedSchema: Record<string, unknown>, expectedNode: TExpectedNode) {
-  const schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': nonEmptyStringSchema,
-      'expected': expectedSchema,
-      'input': inputSchema,
-      'name': nonEmptyStringSchema,
-      'shape': { 'const': shape }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
-  };
-  const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+class VirtualFileSystemScenarioCaseEntityBuilders {
+  /** Builds one `oneOf` branch's `Schema`/`Node` pair from a single call, so the two can never drift apart. */
+  static defineCase<
+    const TShape extends string,
+    TInputNode extends SchemaNodeInterface<unknown, unknown>,
+    TExpectedNode extends SchemaNodeInterface<unknown, unknown>>(shape: TShape, inputSchema: Record<string, unknown>, inputNode: TInputNode, expectedSchema: Record<string, unknown>, expectedNode: TExpectedNode) {
+    const schema = {
+      'additionalProperties': false,
+      'properties': {
+        'description': nonEmptyStringSchema,
+        'expected': expectedSchema,
+        'input': inputSchema,
+        'name': nonEmptyStringSchema,
+        'shape': { 'const': shape }
+      },
+      'required': ['description', 'expected', 'input', 'name', 'shape'],
+      'type': 'object'
+    };
+    const node = SchemaNode.defineObject({ 'type': 'object' } as const, {
       'description': NonEmptyStringNode,
       'expected': expectedNode,
       'input': inputNode,
       'name': NonEmptyStringNode,
       'shape': SchemaNode.defineConst({}, shape)
     }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  return { node, schema };
+    const result = { 'node': node, 'schema': schema };
+    return result;
+  }
 }
 
 const StringNode = SchemaNode.defineString({ 'type': 'string' } as const);
@@ -159,7 +162,7 @@ const isFileOrDirectoryExpectedSchema = {
   'type': 'object'
 } as const;
 
-const createClockDeterministic = defineCase(
+const createClockDeterministic = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'create-clock-deterministic',
   {
     'additionalProperties': false,
@@ -172,7 +175,7 @@ const createClockDeterministic = defineCase(
   MtimeExpectedNode
 );
 
-const createSeedEmpty = defineCase(
+const createSeedEmpty = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'create-seed-empty',
   { 'additionalProperties': false, 'properties': { 'seed': fileEntryArraySchema }, 'required': ['seed'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'seed': FileEntryArrayNode }, ['seed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -185,7 +188,7 @@ const createSeedEmpty = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'rootEntries': StringArrayNode, 'rootPath': StringNode }, ['rootEntries', 'rootPath'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const createSeedPopulates = defineCase(
+const createSeedPopulates = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'create-seed-populates',
   {
     'additionalProperties': false,
@@ -198,15 +201,15 @@ const createSeedPopulates = defineCase(
   ContentExpectedNode
 );
 
-const existsAfterWrite = defineCase('exists-after-write', textFileInputSchema, TextFileInputNode, existsExpectedSchema, ExistsExpectedNode);
-const existsMissing = defineCase('exists-missing', pathOnlySchema, PathOnlyNode, existsExpectedSchema, ExistsExpectedNode);
-const existsRoot = defineCase('exists-root', pathOnlySchema, PathOnlyNode, existsExpectedSchema, ExistsExpectedNode);
+const existsAfterWrite = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('exists-after-write', textFileInputSchema, TextFileInputNode, existsExpectedSchema, ExistsExpectedNode);
+const existsMissing = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('exists-missing', pathOnlySchema, PathOnlyNode, existsExpectedSchema, ExistsExpectedNode);
+const existsRoot = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('exists-root', pathOnlySchema, PathOnlyNode, existsExpectedSchema, ExistsExpectedNode);
 
-const lifecycleOnCreate = defineCase('lifecycle-onCreate', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
-const lifecycleOnDelete = defineCase('lifecycle-onDelete', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
-const lifecycleOnRead = defineCase('lifecycle-onRead', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
+const lifecycleOnCreate = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('lifecycle-onCreate', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
+const lifecycleOnDelete = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('lifecycle-onDelete', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
+const lifecycleOnRead = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('lifecycle-onRead', textFileInputSchema, TextFileInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
 
-const lifecycleOnRename = defineCase(
+const lifecycleOnRename = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'lifecycle-onRename',
   contentEncodingFromToInputSchema,
   ContentEncodingFromToInputNode,
@@ -224,13 +227,13 @@ const lifecycleOnRename = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'logEntry': SchemaNode.defineObject({ 'type': 'object' } as const, { 'newPath': StringNode, 'oldPath': StringNode }, ['newPath', 'oldPath'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-    }, ['logEntry'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    'logEntry': SchemaNode.defineObject({ 'type': 'object' } as const, { 'newPath': StringNode, 'oldPath': StringNode }, ['newPath', 'oldPath'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['logEntry'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const lifecycleOnWrite = defineCase('lifecycle-onWrite', firstSecondInputSchema, FirstSecondInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
+const lifecycleOnWrite = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('lifecycle-onWrite', firstSecondInputSchema, FirstSecondInputNode, logEntryExpectedSchema, LogEntryExpectedNode);
 
-const mkdirExistingDirNoThrow = defineCase(
+const mkdirExistingDirNoThrow = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'mkdir-existing-dir-no-throw',
   {
     'additionalProperties': false,
@@ -244,7 +247,7 @@ const mkdirExistingDirNoThrow = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'didThrow': BooleanNode }, ['didThrow'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const mkdirExistingDirThrows = defineCase(
+const mkdirExistingDirThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'mkdir-existing-dir-throws',
   {
     'additionalProperties': false,
@@ -257,7 +260,7 @@ const mkdirExistingDirThrows = defineCase(
   ErrorCodeExpectedNode
 );
 
-const mkdirFilePathThrows = defineCase(
+const mkdirFilePathThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'mkdir-file-path-throws',
   textFileInputSchema,
   TextFileInputNode,
@@ -270,7 +273,7 @@ const mkdirFilePathThrows = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorCode': StringNode, 'fileContent': StringNode, 'fileStillExists': BooleanNode }, ['errorCode', 'fileContent', 'fileStillExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const mkdirRecursiveCreates = defineCase(
+const mkdirRecursiveCreates = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'mkdir-recursive-creates',
   {
     'additionalProperties': false,
@@ -284,7 +287,7 @@ const mkdirRecursiveCreates = defineCase(
   ExistsPathsExpectedNode
 );
 
-const mkdirRecursiveIntermediateFileThrows = defineCase(
+const mkdirRecursiveIntermediateFileThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'mkdir-recursive-intermediate-file-throws',
   {
     'additionalProperties': false,
@@ -297,7 +300,7 @@ const mkdirRecursiveIntermediateFileThrows = defineCase(
   ErrorCodeExpectedNode
 );
 
-const readMissingThrows = defineCase(
+const readMissingThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'read-missing-throws',
   { 'additionalProperties': false, 'properties': { 'encoding': { 'const': 'utf8' }, 'path': stringSchema }, 'required': ['encoding', 'path'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'encoding': SchemaNode.defineConst({}, 'utf8' as const), 'path': StringNode }, ['encoding', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -305,9 +308,9 @@ const readMissingThrows = defineCase(
   ErrorCodeExpectedNode
 );
 
-const readdirMissingThrows = defineCase('readdir-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
+const readdirMissingThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('readdir-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
 
-const readdirMixedOperations = defineCase(
+const readdirMixedOperations = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-mixed-operations',
   {
     'additionalProperties': false,
@@ -328,16 +331,16 @@ const readdirMixedOperations = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'childDirectory': StringNode,
-      'directory': StringNode,
-      'extraContent': StringNode,
-      'extraPath': StringNode,
-      'leafContent': StringNode,
-      'leafPath': StringNode,
-      'removedPath': StringNode,
-      'renamedDirectory': StringNode,
-      'rootFiles': FileEntryArrayNode
-    }, ['childDirectory', 'directory', 'extraContent', 'extraPath', 'leafContent', 'leafPath', 'removedPath', 'renamedDirectory', 'rootFiles'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'childDirectory': StringNode,
+    'directory': StringNode,
+    'extraContent': StringNode,
+    'extraPath': StringNode,
+    'leafContent': StringNode,
+    'leafPath': StringNode,
+    'removedPath': StringNode,
+    'renamedDirectory': StringNode,
+    'rootFiles': FileEntryArrayNode
+  }, ['childDirectory', 'directory', 'extraContent', 'extraPath', 'leafContent', 'leafPath', 'removedPath', 'renamedDirectory', 'rootFiles'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'childEntries': stringArraySchema, 'dirBEntries': stringArraySchema, 'rootEntries': stringArraySchema },
@@ -347,7 +350,7 @@ const readdirMixedOperations = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'childEntries': StringArrayNode, 'dirBEntries': StringArrayNode, 'rootEntries': StringArrayNode }, ['childEntries', 'dirBEntries', 'rootEntries'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const readdirNoNested = defineCase(
+const readdirNoNested = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-no-nested',
   {
     'additionalProperties': false,
@@ -360,7 +363,7 @@ const readdirNoNested = defineCase(
   IncludedExcludedExpectedNode
 );
 
-const readdirReflectsDirRename = defineCase(
+const readdirReflectsDirRename = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-reflects-dir-rename',
   {
     'additionalProperties': false,
@@ -376,13 +379,13 @@ const readdirReflectsDirRename = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'directories': StringArrayNode,
-      'files': FileEntryArrayNode,
-      'from': StringNode,
-      'missingAfterRename': StringNode,
-      'movedSubDirectory': StringNode,
-      'to': StringNode
-    }, ['directories', 'files', 'from', 'missingAfterRename', 'movedSubDirectory', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'directories': StringArrayNode,
+    'files': FileEntryArrayNode,
+    'from': StringNode,
+    'missingAfterRename': StringNode,
+    'movedSubDirectory': StringNode,
+    'to': StringNode
+  }, ['directories', 'files', 'from', 'missingAfterRename', 'movedSubDirectory', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'movedEntries': stringArraySchema, 'movedSubEntries': stringArraySchema, 'rootEntries': stringArraySchema },
@@ -392,7 +395,7 @@ const readdirReflectsDirRename = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'movedEntries': StringArrayNode, 'movedSubEntries': StringArrayNode, 'rootEntries': StringArrayNode }, ['movedEntries', 'movedSubEntries', 'rootEntries'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const readdirReflectsFileRename = defineCase(
+const readdirReflectsFileRename = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-reflects-file-rename',
   {
     'additionalProperties': false,
@@ -405,7 +408,7 @@ const readdirReflectsFileRename = defineCase(
   IncludedExcludedExpectedNode
 );
 
-const readdirReflectsUnlink = defineCase(
+const readdirReflectsUnlink = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-reflects-unlink',
   {
     'additionalProperties': false,
@@ -418,7 +421,7 @@ const readdirReflectsUnlink = defineCase(
   IncludedExcludedExpectedNode
 );
 
-const readdirRoot = defineCase(
+const readdirRoot = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-root',
   { 'additionalProperties': false, 'properties': { 'files': fileEntryArraySchema }, 'required': ['files'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'files': FileEntryArrayNode }, ['files'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
@@ -426,7 +429,7 @@ const readdirRoot = defineCase(
   EntriesExpectedNode
 );
 
-const readdirScaleScope = defineCase(
+const readdirScaleScope = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'readdir-scale-scope',
   {
     'additionalProperties': false,
@@ -439,7 +442,7 @@ const readdirScaleScope = defineCase(
   EntriesExpectedNode
 );
 
-const renameDirectory = defineCase(
+const renameDirectory = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'rename-directory',
   {
     'additionalProperties': false,
@@ -458,7 +461,7 @@ const renameDirectory = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'sourceExists': BooleanNode, 'targetExists': BooleanNode, 'targetIsDirectory': BooleanNode }, ['sourceExists', 'targetExists', 'targetIsDirectory'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const renameDirectorySubtree = defineCase(
+const renameDirectorySubtree = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'rename-directory-subtree',
   {
     'additionalProperties': false,
@@ -479,16 +482,16 @@ const renameDirectorySubtree = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'childPath': StringNode,
-      'fileContent': StringNode,
-      'filePath': StringNode,
-      'movedFilePath': StringNode,
-      'movedNestedPath': StringNode,
-      'nestedContent': StringNode,
-      'nestedPath': StringNode,
-      'sourcePath': StringNode,
-      'targetPath': StringNode
-    }, ['childPath', 'fileContent', 'filePath', 'movedFilePath', 'movedNestedPath', 'nestedContent', 'nestedPath', 'sourcePath', 'targetPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'childPath': StringNode,
+    'fileContent': StringNode,
+    'filePath': StringNode,
+    'movedFilePath': StringNode,
+    'movedNestedPath': StringNode,
+    'nestedContent': StringNode,
+    'nestedPath': StringNode,
+    'sourcePath': StringNode,
+    'targetPath': StringNode
+  }, ['childPath', 'fileContent', 'filePath', 'movedFilePath', 'movedNestedPath', 'nestedContent', 'nestedPath', 'sourcePath', 'targetPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   {
     'additionalProperties': false,
     'properties': { 'movedFileContent': stringSchema, 'movedNestedContent': stringSchema, 'sourceExists': booleanSchema },
@@ -498,7 +501,7 @@ const renameDirectorySubtree = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'movedFileContent': StringNode, 'movedNestedContent': StringNode, 'sourceExists': BooleanNode }, ['movedFileContent', 'movedNestedContent', 'sourceExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const renameFileMovesContent = defineCase(
+const renameFileMovesContent = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'rename-file-moves-content',
   contentEncodingFromToInputSchema,
   ContentEncodingFromToInputNode,
@@ -511,7 +514,7 @@ const renameFileMovesContent = defineCase(
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'content': StringNode, 'sourceExists': BooleanNode, 'targetExists': BooleanNode }, ['content', 'sourceExists', 'targetExists'] as const, { 'additionalProperties': false, 'patternProperties': {} })
 );
 
-const renameMissingThrows = defineCase(
+const renameMissingThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'rename-missing-throws',
   { 'additionalProperties': false, 'properties': { 'from': stringSchema, 'to': stringSchema }, 'required': ['from', 'to'], 'type': 'object' },
   SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': StringNode, 'to': StringNode }, ['from', 'to'] as const, {
@@ -520,11 +523,11 @@ const renameMissingThrows = defineCase(
   ErrorCodeExpectedNode
 );
 
-const statDirShape = defineCase('stat-dir-shape', pathOnlySchema, PathOnlyNode, isFileOrDirectoryExpectedSchema, IsFileOrDirectoryExpectedNode);
-const statFileShape = defineCase('stat-file-shape', textFileInputSchema, TextFileInputNode, isFileOrDirectoryExpectedSchema, IsFileOrDirectoryExpectedNode);
-const statMissingThrows = defineCase('stat-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
+const statDirShape = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('stat-dir-shape', pathOnlySchema, PathOnlyNode, isFileOrDirectoryExpectedSchema, IsFileOrDirectoryExpectedNode);
+const statFileShape = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('stat-file-shape', textFileInputSchema, TextFileInputNode, isFileOrDirectoryExpectedSchema, IsFileOrDirectoryExpectedNode);
+const statMissingThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('stat-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
 
-const statMtimeClock = defineCase(
+const statMtimeClock = VirtualFileSystemScenarioCaseEntityBuilders.defineCase(
   'stat-mtime-clock',
   {
     'additionalProperties': false,
@@ -539,22 +542,22 @@ const statMtimeClock = defineCase(
     'type': 'object'
   },
   SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'advanceMs': NumberNode,
-      'content': StringNode,
-      'encoding': SchemaNode.defineConst({}, 'utf8' as const),
-      'initialClockMs': NumberNode,
-      'path': StringNode
-    }, ['advanceMs', 'content', 'encoding', 'initialClockMs', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'advanceMs': NumberNode,
+    'content': StringNode,
+    'encoding': SchemaNode.defineConst({}, 'utf8' as const),
+    'initialClockMs': NumberNode,
+    'path': StringNode
+  }, ['advanceMs', 'content', 'encoding', 'initialClockMs', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
   mtimeExpectedSchema,
   MtimeExpectedNode
 );
 
-const unlinkDirectoryThrows = defineCase('unlink-directory-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
-const unlinkMissingThrows = defineCase('unlink-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
-const unlinkRemoves = defineCase('unlink-removes', textFileInputSchema, TextFileInputNode, existsExpectedSchema, ExistsExpectedNode);
+const unlinkDirectoryThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('unlink-directory-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
+const unlinkMissingThrows = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('unlink-missing-throws', pathOnlySchema, PathOnlyNode, errorCodeExpectedSchema, ErrorCodeExpectedNode);
+const unlinkRemoves = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('unlink-removes', textFileInputSchema, TextFileInputNode, existsExpectedSchema, ExistsExpectedNode);
 
-const writeOverwrite = defineCase('write-overwrite', firstSecondInputSchema, FirstSecondInputNode, contentExpectedSchema, ContentExpectedNode);
-const writeRoundtrip = defineCase('write-roundtrip', textFileInputSchema, TextFileInputNode, contentExpectedSchema, ContentExpectedNode);
+const writeOverwrite = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('write-overwrite', firstSecondInputSchema, FirstSecondInputNode, contentExpectedSchema, ContentExpectedNode);
+const writeRoundtrip = VirtualFileSystemScenarioCaseEntityBuilders.defineCase('write-roundtrip', textFileInputSchema, TextFileInputNode, contentExpectedSchema, ContentExpectedNode);
 
 /** The `VirtualFileSystem.loop.spec.ts` scenario case shape. Thirty-eight shapes carry genuinely disjoint required fields, so each is its own `oneOf` branch rather than one shared permissive bag. */
 export namespace VirtualFileSystemScenarioCaseEntity {
@@ -581,4 +584,7 @@ export namespace VirtualFileSystemScenarioCaseEntity {
     unlinkMissingThrows.node, unlinkRemoves.node, writeOverwrite.node, writeRoundtrip.node
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

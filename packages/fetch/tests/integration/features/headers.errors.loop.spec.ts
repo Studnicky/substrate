@@ -1,199 +1,110 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  after, before, describe, it
-} from 'node:test';
 
-import { FetchClient, RequestFailedError } from '../../../src/node/index.js';
-import {
-  startTestServer, stopTestServer
-} from '../../helpers/test-server/index.js';
+import type { FetchClient } from '../../../src/node/index.js';
+import type { BoundedJsonValueEntity } from '../../helpers/entities/BoundedJsonValueEntity.js';
 
+import { RequestFailedError } from '../../../src/node/index.js';
+import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import { HeadersErrorsScenarioCaseEntity } from './entities/HeadersErrorsScenarioCaseEntity.js';
+import scenarioGroups from './headers.errors.scenarios.json' with { 'type': 'json' };
 
-type RuntimeTag = { shape: 'undefined' };
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
+class HeadersErrorsRunners {
+  static async 'ok'(scenarioCase: ScenarioCaseOfType<HeadersErrorsScenarioCaseEntity.Type, 'ok'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = HeadersErrorsRunners.createClient(scenarioCase.input.clientConfig?.headers, server.url);
+    const { request } = scenarioCase.input;
+    const { expected } = scenarioCase;
 
-type ScenarioCase = {
-  description: string;
-  expected:
-    | { shape: 'ok'; status: number }
-    | { errorType?: 'TypeError'; shape: 'reject'; messageIncludes?: readonly string[] };
-  input: {
-    clientConfig?: {
-      headers?: RuntimeValue;
-    };
-    request?: {
-      acceptValues?: readonly string[];
-      body?: RuntimeValue;
-      headerCount?: number;
-      headers?: Record<string, string>;
-      method: 'GET' | 'POST';
-      path: string;
-    };
-  };
-  name: string;
-};
-
-import scenarioGroups from './headers.errors.scenarios.json' with { type: 'json' };
-
-let testUrl: string;
-
-void before(async () => {
-  testUrl = await startTestServer();
-});
-
-void after(async () => {
-  await stopTestServer();
-});
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
-  }
-
-  if (value !== null && typeof value === 'object') {
-    if (isRuntimeTag(value)) {
-      if (value.shape === 'undefined') {
-        return undefined;
+    if (request.acceptValues !== undefined) {
+      for (let index = 0; index < request.acceptValues.length; index += 1) {
+        const response = await clientInstance.get(request.path, { 'headers': { 'Accept': request.acceptValues[index] ?? '' } });
+        assert.strictEqual(response.status, expected.status);
       }
-      const exhaustiveCheck: never = value.shape;
-      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
-    }
-
-    const materialized: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry);
-    }
-    return materialized;
-  }
-
-  return value;
-}
-
-function isScenarioCase(value: unknown): value is ScenarioCase {
-  return Predicates.isObject(value)
-    && typeof value.description === 'string'
-    && typeof value.name === 'string'
-    && Predicates.isObject(value.expected)
-    && (value.expected.shape === 'ok' || value.expected.shape === 'reject')
-    && Predicates.isObject(value.input);
-}
-
-function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
-  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
-}
-
-function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
-  if (!isScenarioFile(value)) {
-    throw RuntimeError.create('headers.errors.scenarios.json does not match the expected scenario case shape');
-  }
-  return value;
-}
-
-function buildHeaders(count: number): Record<string, string> {
-  const headers: Record<string, string> = {};
-  for (let i = 0; i < count; i++) {
-    headers[`X-Header-${i}`] = `value-${i}`;
-  }
-  return headers;
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const request = scenarioCase.input.request;
-  const { expected } = scenarioCase;
-  const clientConfig = {
-    baseURL: testUrl,
-    ...(scenarioCase.input.clientConfig === undefined ? {} : (scenarioCase.input.clientConfig.headers === undefined ? {} : { headers: materializeRuntimeValue(scenarioCase.input.clientConfig.headers) }))
-  };
-
-  if (expected.shape === 'reject') {
-    if (request === undefined) {
-      assert.throws(() => {
-        Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
-      }, (error: Error) => {
-        for (const expectedMessagePart of expected.messageIncludes ?? []) {
-          assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));
-        }
-        return true;
-      });
       return;
     }
 
-    const clientInstance: FetchClient = Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
-    const headers = 'headerCount' in request && request.headerCount !== undefined ? buildHeaders(request.headerCount) : request.headers;
-    const options = {
-      ...(headers === undefined ? {} : { headers }),
-      ...(request.body === undefined ? {} : { body: materializeRuntimeValue(request.body) })
-    };
+    const response = await HeadersErrorsRunners.send(clientInstance, request);
+    assert.strictEqual(response.status, expected.status);
+  }
 
-    await assert.rejects(async () => {
-      if ('acceptValues' in request) {
-        for (const accept of request.acceptValues ?? []) {
-          await clientInstance.get(request.path, { headers: { Accept: accept } });
+  static 'rejects-construction'(scenarioCase: ScenarioCaseOfType<HeadersErrorsScenarioCaseEntity.Type, 'rejects-construction'>): void {
+    using server = TestServer.start();
+    const clientConfig = HeadersErrorsRunners.createClientConfig(scenarioCase.input.clientConfig?.headers, server.url);
+    const caught = RejectionProbe.captureSync(() => {
+      const created = InvalidClientFactory.create(clientConfig);
+      return created;
+    });
+    assert.ok(caught instanceof Error);
+    HeadersErrorsRunners.assertMessageIncludes(caught, scenarioCase.expected.messageIncludes);
+  }
+
+  static async 'rejects-request'(scenarioCase: ScenarioCaseOfType<HeadersErrorsScenarioCaseEntity.Type, 'rejects-request'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = HeadersErrorsRunners.createClient(scenarioCase.input.clientConfig?.headers, server.url);
+    const { request } = scenarioCase.input;
+    const { expected } = scenarioCase;
+
+    const caught = await RejectionProbe.capture(async () => {
+      if (request.acceptValues !== undefined) {
+        for (let index = 0; index < request.acceptValues.length; index += 1) {
+          await clientInstance.get(request.path, { 'headers': { 'Accept': request.acceptValues[index] ?? '' } });
         }
         return;
       }
-
-      if (request.method === 'GET') {
-        await clientInstance.get(request.path, headers === undefined ? undefined : { headers });
-      } else {
-        await clientInstance.post(request.path, options);
-      }
-    }, (error: Error) => {
-      if (expected.errorType === 'TypeError') {
-        assert.ok(error instanceof RequestFailedError);
-        assert.ok(error.cause instanceof TypeError);
-      }
-      for (const expectedMessagePart of expected.messageIncludes ?? []) {
-        assert.ok(error.message.toLowerCase().includes(expectedMessagePart.toLowerCase()));
-      }
-      return true;
+      await HeadersErrorsRunners.send(clientInstance, request);
     });
-    return;
-  }
-
-  const clientInstance: FetchClient = Reflect.apply(FetchClient.create, FetchClient, [clientConfig]);
-  if (request === undefined) {
-    assert.fail('scenario request is required for ok cases');
-  }
-
-  if ('acceptValues' in request) {
-    for (const accept of request.acceptValues ?? []) {
-      const response = await clientInstance.get(request.path, { headers: { Accept: accept } });
-      assert.strictEqual(response.status, expected.status);
+    assert.ok(caught instanceof Error);
+    if (expected.errorType === 'TypeError') {
+      assert.ok(caught instanceof RequestFailedError);
+      const cause: unknown = caught.cause;
+      assert.ok(cause instanceof TypeError);
     }
-    return;
+    HeadersErrorsRunners.assertMessageIncludes(caught, expected.messageIncludes);
   }
 
-  const headers = 'headerCount' in request && request.headerCount !== undefined ? buildHeaders(request.headerCount) : request.headers;
-  const options = {
-    ...(headers === undefined ? {} : { headers }),
-    ...(request.body === undefined ? {} : { body: materializeRuntimeValue(request.body) })
-  };
+  private static assertMessageIncludes(error: Error, parts: readonly string[] | undefined): void {
+    const expectedParts = parts ?? [];
+    for (let index = 0; index < expectedParts.length; index += 1) {
+      assert.ok(error.message.toLowerCase().includes((expectedParts[index] ?? '').toLowerCase()));
+    }
+  }
 
-  const response = request.method === 'GET'
-    ? await clientInstance.get(request.path, headers === undefined ? undefined : { headers })
-    : await clientInstance.post(request.path, options);
+  private static createClient(headers: BoundedJsonValueEntity.Type | undefined, serverUrl: string): FetchClient {
+    const config = HeadersErrorsRunners.createClientConfig(headers, serverUrl);
+    const created = InvalidClientFactory.create(config);
+    return created;
+  }
 
-  assert.strictEqual(response.status, expected.status);
+  private static createClientConfig(headers: BoundedJsonValueEntity.Type | undefined, serverUrl: string): { 'baseURL': string; 'headers'?: unknown } {
+    const config = {
+      'baseURL': serverUrl,
+      ...(headers === undefined ? {} : { 'headers': RuntimeValueMaterializer.materialize(headers) })
+    };
+    return config;
+  }
+
+  private static async send(clientInstance: FetchClient, request: ScenarioCaseOfType<HeadersErrorsScenarioCaseEntity.Type, 'ok'>['input']['request']): Promise<Response> {
+    const { headers } = request;
+    const options = {
+      ...(headers === undefined ? {} : { 'headers': headers }),
+      ...(request.body === undefined ? {} : { 'body': RuntimeValueMaterializer.materialize(request.body) })
+    };
+    const response = request.method === 'GET'
+      ? await clientInstance.get(request.path, headers === undefined ? undefined : { 'headers': headers })
+      : await clientInstance.post(request.path, options);
+    return response;
+  }
 }
 
-void describe('Headers Error Scenarios', () => {
-  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HeadersErrorsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Headers Error Scenarios',
+  'runners': HeadersErrorsRunners
 });

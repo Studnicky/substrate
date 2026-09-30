@@ -1,501 +1,240 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import type { JsonValueEntity } from '@studnicky/json/entities';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
+import { JsonObject, Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import { afterEach, describe, it } from 'node:test';
 
-import {
-  type ClientConfigInterface,
-  ConfigurationError,
-  FetchClient,
-  type RequestContextInterface,
-  TimeoutError
-} from '../../../src/node/index.js';
+import type { RequestContextInterface } from '../../../src/node/index.js';
+
 import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
+import { ConfigurationError, FetchClient, TimeoutError } from '../../../src/node/index.js';
+import { AbortAwareFetch } from '../../helpers/AbortAwareFetch.js';
+import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';
+import { PlatformCalls } from '../../helpers/PlatformCalls.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { StubbedFetch } from '../../helpers/StubbedFetch.js';
+import scenarioGroups from './constructor.scenarios.json' with { 'type': 'json' };
+import { ConstructorScenarioCaseEntity } from './entities/ConstructorScenarioCaseEntity.js';
 
-import scenarioGroups from './constructor.scenarios.json' with { type: 'json' };
+class TrackingClient extends FetchClient {
+  readonly requestIds: string[] = [];
 
-type ScenarioShape =
-  | 'valid-no-config'
-  | 'valid-baseURL'
-  | 'valid-headers'
-  | 'valid-timeout'
-  | 'valid-dispatcher'
-  | 'valid-requestIdGenerator'
-  | 'valid-autoGenerateRequestId-false'
-  | 'valid-metadata'
-  | 'valid-default-parameters'
-  | 'valid-fetch-options'
-  | 'invalid-baseURL'
-  | 'invalid-timeout-negative'
-  | 'invalid-timeout-non-numeric'
-  | 'invalid-headers-object'
-  | 'invalid-unknown-keys'
-  | 'behavior-baseURL'
-  | 'behavior-default-timeout'
-  | 'behavior-custom-requestIdGenerator'
-  | 'behavior-explicit-requestId'
-  | 'behavior-metadata-merge'
-  | 'behavior-detach-mutable-config'
-  | 'behavior-preserve-non-plain-json'
-  | 'behavior-preserve-null-prototype-json';
-
-type ScenarioInput = {
-  fetchClient: Record<string, unknown>;
-  [key: string]: unknown;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: ScenarioInput;
-  shape: ScenarioShape;
-  name: string;
-};
-
-type ConfigRuntimeTag =
-  | { shape: 'static-request-id'; value: unknown }
-  | { shape: 'throwing-request-id'; message: string };
-
-type ExpectedRuntimeTag = { shape: 'undefined' };
-type ConfigRuntimeTagMaterializer<Shape extends ConfigRuntimeTag['shape']> = (value: Extract<ConfigRuntimeTag, { shape: Shape }>) => unknown;
-type ExpectedRuntimeTagMaterializer = (value: ExpectedRuntimeTag) => unknown;
-type ScenarioRunner = (scenarioCase: ScenarioCase, config: unknown) => Promise<void> | void;
-
-const originalFetch = globalThis.fetch;
-
-void afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
-function setFetch(handler: typeof fetch): void {
-  globalThis.fetch = handler;
-}
-
-function responseJson(data: ScenarioCase['expected'][string], status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' },
-    status
-  });
-}
-
-function requireString(value: ScenarioCase['expected'][string], label: string): string {
-  if (typeof value !== 'string') {
-    throw RuntimeError.create(`${label} must be a string`);
-  }
-
-  return value;
-}
-
-function requireRecord(value: ScenarioCase['expected'][string], label: string): Record<string, unknown> {
-  if (!Predicates.isObject(value)) {
-    throw RuntimeError.create(`${label} must be an object`);
-  }
-
-  return value;
-}
-
-function isConfigRuntimeTag(value: Record<string, unknown>): value is ConfigRuntimeTag {
-  return typeof value.shape === 'string' && value.shape in configRuntimeTagMap;
-}
-
-function isFunction(value: unknown): value is (...args: unknown[]) => unknown {
-  return typeof value === 'function';
-}
-
-function isClientConfigCandidate(value: unknown): value is ClientConfigInterface {
-  if (!Predicates.isObject(value)) {
-    return false;
-  }
-  if (value.baseURL !== undefined && typeof value.baseURL !== 'string') {
-    return false;
-  }
-  if (value.autoGenerateRequestId !== undefined && typeof value.autoGenerateRequestId !== 'boolean') {
-    return false;
-  }
-  if (value.timeout !== undefined && typeof value.timeout !== 'number') {
-    return false;
-  }
-  if (value.hookTimeoutMs !== undefined && typeof value.hookTimeoutMs !== 'number') {
-    return false;
-  }
-  if (value.headers !== undefined && !Predicates.isObject(value.headers)) {
-    return false;
-  }
-  if (value.metadata !== undefined && !Predicates.isObject(value.metadata)) {
-    return false;
-  }
-  if (value.options !== undefined && !Predicates.isObject(value.options)) {
-    return false;
-  }
-  if (value.parameters !== undefined && !Predicates.isObject(value.parameters)) {
-    return false;
-  }
-  if (value.dispatcher !== undefined && !Predicates.isObject(value.dispatcher)) {
-    return false;
-  }
-  return value.requestIdGenerator === undefined || isFunction(value.requestIdGenerator);
-}
-
-function requireClientConfig(value: unknown): ClientConfigInterface {
-  if (!isClientConfigCandidate(value)) {
-    throw RuntimeError.create('expected fetchClient fixture to materialize to a ClientConfigInterface-shaped object');
-  }
-
-  return value;
-}
-
-const configRuntimeTagMap: { [Shape in ConfigRuntimeTag['shape']]: ConfigRuntimeTagMaterializer<Shape> } = {
-  'static-request-id': (value) => {
-    return () => value.value;
-  },
-  'throwing-request-id': (value) => {
-    return () => { throw RuntimeError.create(value.message); };
-  }
-};
-
-const expectedRuntimeTagMap: Record<ExpectedRuntimeTag['shape'], ExpectedRuntimeTagMaterializer> = {
-  undefined: () => undefined
-};
-
-function materializeConfigRuntimeTag<Shape extends ConfigRuntimeTag['shape']>(record: Extract<ConfigRuntimeTag, { shape: Shape }>): unknown {
-  return configRuntimeTagMap[record.shape](record);
-}
-
-function materializeConfigValue(value: ScenarioInput[string]): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeConfigValue(item); });
-  }
-
-  if (Predicates.isObject(value)) {
-    if (isConfigRuntimeTag(value)) {
-      return materializeConfigRuntimeTag(value);
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [key, materializeConfigValue(nested)])
-    );
-  }
-
-  return value;
-}
-
-function isExpectedRuntimeTag(value: ScenarioCase['expected'][string]): value is ExpectedRuntimeTag {
-  return Predicates.isObject(value) && typeof value.shape === 'string' && value.shape in expectedRuntimeTagMap;
-}
-
-function materializeExpectedValue(value: ScenarioCase['expected'][string]): unknown {
-  if (isExpectedRuntimeTag(value)) {
-    return expectedRuntimeTagMap[value.shape](value);
-  }
-
-  return value;
-}
-
-/**
- * Assigns `value` to `target[key]` under `exactOptionalPropertyTypes`, where an
- * optional field must be deleted rather than explicitly set to `undefined`.
- */
-function applyOptionalField<T extends object, K extends keyof T>(target: T, key: K, value: T[K] | undefined): void {
-  if (value === undefined) {
-    delete target[key];
-  } else {
-    target[key] = value;
+  protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
+    this.requestIds.push(requestId);
   }
 }
 
-function assertAcceptedClient(client: FetchClient): void {
-  assert.ok(client instanceof FetchClient);
+class MetadataCapturingClient extends FetchClient {
+  readonly capturedMetadata: object[] = [];
+
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+    this.capturedMetadata.push({ ...context.metadata.metadata });
+    const passedThrough = Promise.resolve(context);
+    return passedThrough;
+  }
 }
 
-function runValidNoConfig(): void {
-  assertAcceptedClient(FetchClient.create());
+class SnapshotClient extends FetchClient {
+  capturedContext: RequestContextInterface | undefined;
+
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+    this.capturedContext = context;
+    const passedThrough = Promise.resolve(context);
+    return passedThrough;
+  }
 }
 
-function runValidConfig(_scenarioCase: ScenarioCase, config: unknown): void {
-  assertAcceptedClient(FetchClient.create(requireClientConfig(config)));
+class JsonBox {
+  readonly shape = 'boxed-json' as const;
+  value: string;
+
+  constructor(value: string) {
+    this.value = value;
+  }
 }
 
-function runInvalidConfig(_scenarioCase: ScenarioCase, config: unknown): void {
-  assert.throws(() => { FetchClientConfiguration.intake(config); }, (error: Error) => {
-    assert.ok(error instanceof ConfigurationError);
-    assert.ok(error.message.length > 0);
-    return true;
-  });
-}
+class ConstructorRunners {
+  static 'accepts-config'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'accepts-config', 'operation'>): void {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    const client = InvalidClientFactory.create(config);
+    assert.ok(client instanceof FetchClient);
+  }
 
-async function runBaseUrlBehavior(scenarioCase: ScenarioCase, config: unknown): Promise<void> {
-  setFetch(async (input): Promise<Response> => {
-    assert.strictEqual(String(input), requireString(scenarioCase.expected.requestUrl, 'expected.requestUrl'));
-    return responseJson(scenarioCase.expected.body);
-  });
+  static 'accepts-no-config'(_scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'accepts-no-config', 'operation'>): void {
+    assert.ok(FetchClient.create() instanceof FetchClient);
+  }
 
-  const client = FetchClient.create(requireClientConfig(config));
-  const response = await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-  assert.strictEqual(response.status, scenarioCase.expected.status);
-  assert.deepStrictEqual(await response.json(), scenarioCase.expected.body);
-}
+  static async 'base-url'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'base-url', 'operation'>): Promise<void> {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    using stub = StubbedFetch.install(ConstructorRunners.responseJson(scenarioCase.expected.body, 200));
+    const client = InvalidClientFactory.create(config);
+    const response = await client.get(scenarioCase.input.requestPath);
+    assert.strictEqual(stub.url, scenarioCase.expected.requestUrl);
+    assert.strictEqual(response.status, scenarioCase.expected.status);
+    assert.deepStrictEqual(await response.json(), scenarioCase.expected.body);
+  }
 
-async function runDefaultTimeoutBehavior(scenarioCase: ScenarioCase, config: unknown): Promise<void> {
-  setFetch((_: Request | URL | string, init?: RequestInit): Promise<Response> => {
-    return new Promise<Response>((_resolve, reject) => {
-      const signal = init?.signal;
-      if (signal === undefined || signal === null) {
-        return;
-      }
+  static async 'custom-request-id'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'custom-request-id', 'operation'>): Promise<void> {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    using _ = StubbedFetch.install(ConstructorRunners.responseJson(scenarioCase.expected.body, 200));
+    const client = InvalidClientFactory.createWith<TrackingClient>(TrackingClient, config);
 
-      if (signal.aborted) {
-        reject(signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'));
-        return;
-      }
+    await client.get(scenarioCase.input.requestPath);
+    assert.strictEqual(client.requestIds[0], scenarioCase.expected.requestId);
+  }
 
-      void signal.addEventListener('abort', () => {
-        reject(signal.reason instanceof Error ? signal.reason : new DOMException('Aborted', 'AbortError'));
-      }, { once: true });
+  static async 'default-timeout'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'default-timeout', 'operation'>): Promise<void> {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    using _ = AbortAwareFetch.install();
+    const client = InvalidClientFactory.create(config);
+    const caught = await RejectionProbe.capture(async () => {
+      await client.get(scenarioCase.input.requestPath);
     });
-  });
-
-  const client = FetchClient.create(requireClientConfig(config));
-  await assert.rejects(async () => {
-    await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-  }, (error) => {
-    assert.ok(error instanceof Error);
-    assert.strictEqual(error.name, scenarioCase.expected.errorName);
-    if (error instanceof TimeoutError) {
-      assert.strictEqual(error.timeoutMs, scenarioCase.expected.timeoutMs);
-    }
-    return true;
-  });
-}
-
-async function runCustomRequestIdBehavior(scenarioCase: ScenarioCase, config: unknown): Promise<void> {
-  const generatedIds: string[] = [];
-
-  class TrackingClient extends FetchClient {
-    protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
-      generatedIds.push(requestId);
+    assert.ok(caught instanceof Error);
+    assert.strictEqual(caught.name, scenarioCase.expected.errorName);
+    if (caught instanceof TimeoutError) {
+      assert.strictEqual(caught.timeoutMs, scenarioCase.expected.timeoutMs);
     }
   }
 
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
+  static async 'detach-mutable-config'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'detach-mutable-config', 'operation'>): Promise<void> {
+    using _ = StubbedFetch.install(ConstructorRunners.emptyResponse());
+    const mutableConfig = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    const client = InvalidClientFactory.createWith<SnapshotClient>(SnapshotClient, mutableConfig);
+    const replacementConfig = ConstructorRunners.materializeConfig(scenarioCase.input.replacementFetchClient);
+    Reflect.set(mutableConfig, 'baseURL', Reflect.get(replacementConfig, 'baseURL'));
+    ConstructorRunners.applyOptionalField(mutableConfig, replacementConfig, 'headers');
+    ConstructorRunners.applyOptionalField(mutableConfig, replacementConfig, 'metadata');
+    ConstructorRunners.applyOptionalField(mutableConfig, replacementConfig, 'options');
+    ConstructorRunners.applyOptionalField(mutableConfig, replacementConfig, 'parameters');
 
-  const client = TrackingClient.create(requireClientConfig(config));
+    await client.get(scenarioCase.input.requestPath);
 
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-  assert.strictEqual(generatedIds[0], scenarioCase.expected.requestId);
-}
-
-async function runExplicitRequestIdBehavior(scenarioCase: ScenarioCase, config: unknown): Promise<void> {
-  const capturedRequestIds: string[] = [];
-
-  class RequestIdClient extends FetchClient {
-    protected override onRequestStart(_method: string, _path: string, requestId: string, _url: string): void {
-      capturedRequestIds.push(requestId);
-    }
+    const { capturedContext } = client;
+    assert.ok(capturedContext !== undefined);
+    assert.strictEqual(capturedContext.url, scenarioCase.expected.url);
+    assert.deepStrictEqual(capturedContext.metadata.metadata, scenarioCase.expected.metadata);
+    assert.deepStrictEqual(capturedContext.options.headers, scenarioCase.expected.headers);
+    assert.deepStrictEqual(capturedContext.options.metadata, scenarioCase.expected.optionsMetadata);
+    assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
+    // `parameters` is never part of `FetchOptionsInterface` — resolved query parameters are folded
+    // into the request URL instead — so this asserts the field does not leak onto options.
+    const options: unknown = capturedContext.options;
+    assert.ok(Predicates.isObject(options));
+    const parameters: unknown = Reflect.get(options, 'parameters');
+    assert.deepStrictEqual(parameters, RuntimeValueMaterializer.materialize(scenarioCase.expected.parameters));
   }
 
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
+  static async 'explicit-request-id'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'explicit-request-id', 'operation'>): Promise<void> {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    using _ = StubbedFetch.install(ConstructorRunners.responseJson(scenarioCase.expected.body, 200));
+    const client = InvalidClientFactory.createWith<TrackingClient>(TrackingClient, config);
 
-  const client = RequestIdClient.create(requireClientConfig(config));
-
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'), {
-    requestId: requireString(scenarioCase.expected.requestId, 'expected.requestId')
-  });
-  assert.strictEqual(capturedRequestIds[0], scenarioCase.expected.requestId);
-}
-
-async function runMetadataMergeBehavior(scenarioCase: ScenarioCase, config: unknown): Promise<void> {
-  const capturedMetadata: Record<string, unknown>[] = [];
-
-  class MetadataClient extends FetchClient {
-    protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-      capturedMetadata.push({ ...context.metadata.metadata });
-      return context;
-    }
+    await client.get(scenarioCase.input.requestPath, { 'requestId': scenarioCase.expected.requestId });
+    assert.strictEqual(client.requestIds[0], scenarioCase.expected.requestId);
   }
 
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
+  static async 'metadata-merge'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'metadata-merge', 'operation'>): Promise<void> {
+    const config = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    using _ = StubbedFetch.install(ConstructorRunners.responseJson(scenarioCase.expected.body, 200));
+    const client = InvalidClientFactory.createWith<MetadataCapturingClient>(MetadataCapturingClient, config);
 
-  const client = MetadataClient.create(requireClientConfig(config));
-
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'), {
-    metadata: requireRecord(scenarioCase.input.requestMetadata, 'input.requestMetadata')
-  });
-
-  assert.ok(capturedMetadata[0] !== undefined);
-  assert.deepStrictEqual(capturedMetadata[0], scenarioCase.expected.metadata);
-}
-
-async function runDetachMutableConfigBehavior(scenarioCase: ScenarioCase): Promise<void> {
-  let capturedContext: RequestContextInterface | undefined;
-
-  class SnapshotClient extends FetchClient {
-    protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-      capturedContext = context;
-      return context;
-    }
-  }
-
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
-
-  const mutableConfig = requireClientConfig(materializeConfigValue(scenarioCase.input.fetchClient));
-  const client = SnapshotClient.create(mutableConfig);
-  const replacementConfig = requireClientConfig(materializeConfigValue(scenarioCase.input.replacementFetchClient));
-  mutableConfig.baseURL = replacementConfig.baseURL;
-  applyOptionalField(mutableConfig, 'headers', replacementConfig.headers);
-  applyOptionalField(mutableConfig, 'metadata', replacementConfig.metadata);
-  applyOptionalField(mutableConfig, 'options', replacementConfig.options);
-  applyOptionalField(mutableConfig, 'parameters', replacementConfig.parameters);
-
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-
-  assert.ok(capturedContext !== undefined);
-  assert.strictEqual(capturedContext.url, scenarioCase.expected.url);
-  assert.deepStrictEqual(capturedContext.metadata.metadata, scenarioCase.expected.metadata);
-  assert.deepStrictEqual(capturedContext.options.headers, scenarioCase.expected.headers);
-  assert.deepStrictEqual(capturedContext.options.metadata, scenarioCase.expected.optionsMetadata);
-  assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
-  // `parameters` is never part of `FetchOptionsInterface` — resolved query parameters are folded
-  // into the request URL instead — so this asserts the field does not leak onto options.
-  assert.ok(Predicates.isObject(capturedContext.options));
-  assert.deepStrictEqual(capturedContext.options.parameters, materializeExpectedValue(scenarioCase.expected.parameters));
-}
-
-async function runPreserveNonPlainJsonBehavior(scenarioCase: ScenarioCase): Promise<void> {
-  let capturedContext: RequestContextInterface | undefined;
-
-  class JsonBox {
-    readonly shape = 'boxed-json' as const;
-    value: string;
-
-    constructor(value: string) {
-      this.value = value;
-    }
-  }
-
-  class SnapshotClient extends FetchClient {
-    protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-      capturedContext = context;
-      return context;
-    }
-  }
-
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
-
-  const boxedJsonFixture = requireRecord(scenarioCase.input.boxedJson, 'input.boxedJson');
-  const boxedJson = new JsonBox(requireString(boxedJsonFixture.value, 'input.boxedJson.value'));
-  const mutableConfig = requireClientConfig(materializeConfigValue(scenarioCase.input.fetchClient));
-  mutableConfig.options = { json: boxedJson };
-  const client = SnapshotClient.create(mutableConfig);
-  boxedJson.value = requireString(boxedJsonFixture.mutatedValue, 'input.boxedJson.mutatedValue');
-
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-
-  const expectedJson = requireRecord(scenarioCase.expected.json, 'expected.json');
-  assert.ok(capturedContext !== undefined);
-  assert.ok(capturedContext.options.json instanceof JsonBox);
-  assert.strictEqual(capturedContext.options.json, boxedJson);
-  assert.strictEqual(capturedContext.options.json.shape, expectedJson.shape);
-  assert.strictEqual(capturedContext.options.json.value, expectedJson.value);
-}
-
-async function runPreserveNullPrototypeJsonBehavior(scenarioCase: ScenarioCase): Promise<void> {
-  let capturedContext: RequestContextInterface | undefined;
-
-  class SnapshotClient extends FetchClient {
-    protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-      capturedContext = context;
-      return context;
-    }
-  }
-
-  setFetch(async (): Promise<Response> => {
-    return responseJson(scenarioCase.expected.body);
-  });
-
-  const nullProtoJson: Record<string, unknown> = Object.create(null);
-  Object.assign(nullProtoJson, materializeConfigValue(scenarioCase.input.nullPrototypeJson));
-
-  const mutableConfig = requireClientConfig(materializeConfigValue(scenarioCase.input.fetchClient));
-  mutableConfig.options = { json: nullProtoJson };
-  const client = SnapshotClient.create(mutableConfig);
-  Object.assign(nullProtoJson, materializeConfigValue(scenarioCase.input.mutatedNullPrototypeJson));
-
-  await client.get(requireString(scenarioCase.input.requestPath, 'input.requestPath'));
-
-  assert.ok(capturedContext !== undefined);
-  assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
-}
-
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
-  'behavior-baseURL': runBaseUrlBehavior,
-  'behavior-custom-requestIdGenerator': runCustomRequestIdBehavior,
-  'behavior-default-timeout': runDefaultTimeoutBehavior,
-  'behavior-detach-mutable-config': runDetachMutableConfigBehavior,
-  'behavior-explicit-requestId': runExplicitRequestIdBehavior,
-  'behavior-metadata-merge': runMetadataMergeBehavior,
-  'behavior-preserve-non-plain-json': runPreserveNonPlainJsonBehavior,
-  'behavior-preserve-null-prototype-json': runPreserveNullPrototypeJsonBehavior,
-  'invalid-baseURL': runInvalidConfig,
-  'invalid-headers-object': runInvalidConfig,
-  'invalid-timeout-negative': runInvalidConfig,
-  'invalid-timeout-non-numeric': runInvalidConfig,
-  'invalid-unknown-keys': runInvalidConfig,
-  'valid-autoGenerateRequestId-false': runValidConfig,
-  'valid-baseURL': runValidConfig,
-  'valid-default-parameters': runValidConfig,
-  'valid-dispatcher': runValidConfig,
-  'valid-fetch-options': runValidConfig,
-  'valid-headers': runValidConfig,
-  'valid-metadata': runValidConfig,
-  'valid-no-config': runValidNoConfig,
-  'valid-requestIdGenerator': runValidConfig,
-  'valid-timeout': runValidConfig
-};
-
-function isScenarioShape(value: unknown): value is ScenarioShape {
-  return typeof value === 'string' && value in runnerMap;
-}
-
-function isScenarioCase(value: unknown): value is ScenarioCase {
-  return Predicates.isObject(value)
-    && typeof value.description === 'string'
-    && typeof value.name === 'string'
-    && isScenarioShape(value.shape)
-    && Predicates.isObject(value.expected)
-    && Predicates.isObject(value.input)
-    && Predicates.isObject(value.input.fetchClient);
-}
-
-function isScenarioFile(value: unknown): value is { cases: ScenarioCase[] } {
-  return Predicates.isObject(value) && Array.isArray(value.cases) && value.cases.every(isScenarioCase);
-}
-
-function requireScenarioFile(value: unknown): { cases: ScenarioCase[] } {
-  if (!isScenarioFile(value)) {
-    throw RuntimeError.create('constructor.scenarios.json does not match the expected scenario case shape');
-  }
-  return value;
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const config = materializeConfigValue(scenarioCase.input.fetchClient);
-  await runnerMap[scenarioCase.shape](scenarioCase, config);
-}
-
-void describe('FetchClient Constructor', () => {
-  for (const scenario of requireScenarioFile(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+    await client.get(scenarioCase.input.requestPath, {
+      'metadata': ScenarioValues.requireRecord(RuntimeValueMaterializer.materialize(scenarioCase.input.requestMetadata), 'input.requestMetadata')
     });
+
+    assert.ok(client.capturedMetadata[0] !== undefined);
+    assert.deepStrictEqual(client.capturedMetadata[0], scenarioCase.expected.metadata);
   }
+
+  static async 'preserve-non-plain-json'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'preserve-non-plain-json', 'operation'>): Promise<void> {
+    using _ = StubbedFetch.install(ConstructorRunners.emptyResponse());
+    const boxedJsonFixture = scenarioCase.input.boxedJson;
+    const boxedJson = new JsonBox(ScenarioValues.requireString(boxedJsonFixture.value, 'input.boxedJson.value'));
+    const mutableConfig = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    Reflect.set(mutableConfig, 'options', { 'json': boxedJson });
+    const client = InvalidClientFactory.createWith<SnapshotClient>(SnapshotClient, mutableConfig);
+    boxedJson.value = ScenarioValues.requireString(boxedJsonFixture.mutatedValue, 'input.boxedJson.mutatedValue');
+
+    await client.get(scenarioCase.input.requestPath);
+
+    const expectedJson = scenarioCase.expected.json;
+    const { capturedContext } = client;
+    assert.ok(capturedContext !== undefined);
+    assert.ok(capturedContext.options.json instanceof JsonBox);
+    assert.strictEqual(capturedContext.options.json, boxedJson);
+    assert.strictEqual(capturedContext.options.json.shape, expectedJson.shape);
+    assert.strictEqual(capturedContext.options.json.value, expectedJson.value);
+  }
+
+  static async 'preserve-null-prototype-json'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'preserve-null-prototype-json', 'operation'>): Promise<void> {
+    using _ = StubbedFetch.install(ConstructorRunners.emptyResponse());
+    const nullProtoJson: unknown = Object.create(null);
+    assert.ok(typeof nullProtoJson === 'object' && nullProtoJson !== null);
+    Object.assign(nullProtoJson, RuntimeValueMaterializer.materialize(scenarioCase.input.nullPrototypeJson));
+
+    const mutableConfig = ConstructorRunners.materializeConfig(scenarioCase.input.fetchClient);
+    Reflect.set(mutableConfig, 'options', { 'json': nullProtoJson });
+    const client = InvalidClientFactory.createWith<SnapshotClient>(SnapshotClient, mutableConfig);
+    Object.assign(nullProtoJson, RuntimeValueMaterializer.materialize(scenarioCase.input.mutatedNullPrototypeJson));
+
+    await client.get(scenarioCase.input.requestPath);
+
+    const { capturedContext } = client;
+    assert.ok(capturedContext !== undefined);
+    assert.deepStrictEqual(capturedContext.options.json, scenarioCase.expected.json);
+  }
+
+  static 'rejects-config'(scenarioCase: ScenarioCaseOfType<ConstructorScenarioCaseEntity.Type, 'rejects-config', 'operation'>): void {
+    const config = RuntimeValueMaterializer.materialize(scenarioCase.input.fetchClient);
+    const caught = RejectionProbe.captureSync(() => {
+      const result = FetchClientConfiguration.intake(config);
+      return result;
+    });
+    assert.ok(caught instanceof ConfigurationError);
+    assert.ok(caught.message.length > 0);
+  }
+
+  /**
+   * Copies `key` from `source` onto `target` under `exactOptionalPropertyTypes`, where an
+   * optional field must be deleted rather than explicitly set to `undefined`.
+   */
+  private static applyOptionalField(target: object, source: object, key: string): void {
+    const value: unknown = Reflect.get(source, key);
+    if (value === undefined) {
+      Reflect.deleteProperty(target, key);
+    } else {
+      JsonObject.write(target, key, value);
+    }
+  }
+
+  private static materializeConfig(fetchClient: JsonValueEntity.Type): Record<string, unknown> {
+    const config = ScenarioValues.requireRecord(RuntimeValueMaterializer.materialize(fetchClient), 'input.fetchClient');
+    return config;
+  }
+
+  private static emptyResponse(): Response {
+    const response = new Response(undefined, {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': 200
+    });
+    return response;
+  }
+
+  private static responseJson(data: JsonValueEntity.Type, status: number): Response {
+    const response = new Response(PlatformCalls.stringify(data), {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': status
+    });
+    return response;
+  }
+}
+
+ScenarioSuite.registerBy('operation', {
+  'entity': ConstructorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'FetchClient Constructor',
+  'runners': ConstructorRunners
 });

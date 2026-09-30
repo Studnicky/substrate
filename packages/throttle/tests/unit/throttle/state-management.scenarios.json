@@ -48,7 +48,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 10
+          "maximumConcurrent": 10
         },
         "clock": {
           "operationDurationMs": 1,
@@ -79,7 +79,7 @@
       "input": {
         "batch": {
           "itemCount": 10,
-          "maxConcurrent": 10
+          "maximumConcurrent": 10
         },
         "clock": {
           "operationDurationMs": 5,

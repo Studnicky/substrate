@@ -1,41 +1,63 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-/** The `StateMachine.loop.spec.ts` scenario case shape. `expected` stays an open bag — each shape reads a different subset, coerced at the call site, never a cast. */
+// plain-error-wraps
+const plainErrorWrapsSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'errorName': { 'type': 'string' }, 'expectedReason': { 'type': 'string' } }, 'required': ['errorName', 'expectedReason'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'plain-error-wraps' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const plainErrorWrapsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const), 'expectedReason': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName', 'expectedReason'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'plain-error-wraps' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// rejected-error-surfaces
+const rejectedErrorSurfacesSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'errorName': { 'type': 'string' }, 'eventType': { 'type': 'string' }, 'stateVariant': { 'type': 'string' } }, 'required': ['errorName', 'eventType', 'stateVariant'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'rejected-error-surfaces' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const rejectedErrorSurfacesNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const), 'eventType': SchemaNode.defineString({ 'type': 'string' } as const), 'stateVariant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName', 'eventType', 'stateVariant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'rejected-error-surfaces' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// terminated-access-hook
+const terminatedAccessHookSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'callCount': { 'type': 'number' }, 'callEventType': { 'type': 'string' }, 'callStateVariant': { 'type': 'string' } }, 'required': ['callCount', 'callEventType', 'callStateVariant'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'terminated-access-hook' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const terminatedAccessHookNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'callCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'callEventType': SchemaNode.defineString({ 'type': 'string' } as const), 'callStateVariant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['callCount', 'callEventType', 'callStateVariant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'terminated-access-hook' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// terminated-blocks-transition
+const terminatedBlocksTransitionSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'firstTransitionStateVariant': { 'type': 'string' }, 'secondErrorName': { 'type': 'string' }, 'secondEventType': { 'type': 'string' }, 'secondStateVariant': { 'type': 'string' } }, 'required': ['firstTransitionStateVariant', 'secondErrorName', 'secondEventType', 'secondStateVariant'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'terminated-blocks-transition' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const terminatedBlocksTransitionNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'firstTransitionStateVariant': SchemaNode.defineString({ 'type': 'string' } as const), 'secondErrorName': SchemaNode.defineString({ 'type': 'string' } as const), 'secondEventType': SchemaNode.defineString({ 'type': 'string' } as const), 'secondStateVariant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['firstTransitionStateVariant', 'secondErrorName', 'secondEventType', 'secondStateVariant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'terminated-blocks-transition' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// transitions-off-on
+const transitionsOffOnSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'stateVariant': { 'type': 'string' } }, 'required': ['stateVariant'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'transitions-off-on' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const transitionsOffOnNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'stateVariant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['stateVariant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'transitions-off-on' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// transitions-on-off
+const transitionsOnOffSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'stateVariant': { 'type': 'string' } }, 'required': ['stateVariant'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'transitions-on-off' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const transitionsOnOffNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'stateVariant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['stateVariant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'transitions-on-off' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// wraps-reducer-throw
+const wrapsReducerThrowSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'errorName': { 'type': 'string' } }, 'required': ['errorName'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'variant': { 'enum': ['on', 'off'] } }, 'required': ['variant'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'wraps-reducer-throw' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const wrapsReducerThrowNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'wraps-reducer-throw' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+/** Every distinct `shape` value the spec exercises, discriminated by the `shape` const field. */
 export namespace StateMachineScenarioCaseEntity {
   export const Schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': { 'minLength': 1, 'type': 'string' },
-      'expected': { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' },
-      'input': {
-        'additionalProperties': false,
-        'properties': { 'variant': { 'enum': ['on', 'off'] } },
-        'required': ['variant'],
-        'type': 'object'
-      },
-      'name': { 'minLength': 1, 'type': 'string' },
-      'shape': {
-        'enum': [
-          'transitions-off-on', 'transitions-on-off', 'wraps-reducer-throw', 'rejected-error-surfaces',
-          'plain-error-wraps', 'terminated-blocks-transition', 'terminated-access-hook'
-        ]
-      }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
+    'oneOf': [
+      plainErrorWrapsSchema,
+      rejectedErrorSurfacesSchema,
+      terminatedAccessHookSchema,
+      terminatedBlocksTransitionSchema,
+      transitionsOffOnSchema,
+      transitionsOnOffSchema,
+      wrapsReducerThrowSchema
+    ]
   } as const;
 
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['on', 'off'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum({}, [
-        'transitions-off-on', 'transitions-on-off', 'wraps-reducer-throw', 'rejected-error-surfaces',
-        'plain-error-wraps', 'terminated-blocks-transition', 'terminated-access-hook'
-      ] as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export const Node = SchemaNode.defineOneOf({}, [
+    plainErrorWrapsNode,
+    rejectedErrorSurfacesNode,
+    terminatedAccessHookNode,
+    terminatedBlocksTransitionNode,
+    transitionsOffOnNode,
+    transitionsOnOffNode,
+    wrapsReducerThrowNode
+  ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

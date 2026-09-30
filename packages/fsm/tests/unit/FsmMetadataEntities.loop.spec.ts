@@ -1,39 +1,45 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
 import {
   InterpreterHistoryRecordMetadataEntity,
   RegisteredInterpreterMetricsEntity
 } from '../../src/entities/index.js';
 import { FsmMetadataEntitiesScenarioCaseEntity } from './entities/FsmMetadataEntitiesScenarioCaseEntity.js';
-import scenarioGroups from './FsmMetadataEntities.scenarios.json' with { type: 'json' };
+import scenarioGroups from './FsmMetadataEntities.scenarios.json' with { 'type': 'json' };
 
-const validatorMap = {
-  'InterpreterHistoryRecordMetadataEntity': (value: unknown) => InterpreterHistoryRecordMetadataEntity.validate(value),
-  'RegisteredInterpreterMetricsEntity': (value: unknown) => RegisteredInterpreterMetricsEntity.validate(value)
-} as const;
+class FsmMetadataEntitiesRunners {
+  static 'history-timestamp-validation'(scenarioCase: ScenarioCaseOfType<FsmMetadataEntitiesScenarioCaseEntity.Type, 'history-timestamp-validation'>): void {
+    FsmMetadataEntitiesRunners.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  }
 
-type ScenarioCase = FsmMetadataEntitiesScenarioCaseEntity.Type;
+  static 'hook-error-count-validation'(scenarioCase: ScenarioCaseOfType<FsmMetadataEntitiesScenarioCaseEntity.Type, 'hook-error-count-validation'>): void {
+    FsmMetadataEntitiesRunners.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(FsmMetadataEntitiesScenarioCaseEntity.Schema, FsmMetadataEntitiesScenarioCaseEntity.Node);
-
-function runCase(scenarioCase: ScenarioCase): void {
-  const results = scenarioCase.input.validations.map((validation) => {
-    const result = validatorMap[validation.entity](validation.value);
-    assert.equal(result, validation.expected);
-    return result;
-  });
-
-  assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
+  private static validateAll(
+    validations: FsmMetadataEntitiesScenarioCaseEntity.Type['input']['validations'],
+    expectedResults: readonly boolean[]
+  ): void {
+    const results: boolean[] = [];
+    for (let index = 0; index < validations.length; index += 1) {
+      const validation = validations[index];
+      assert.ok(validation !== undefined);
+      const result = validation.entity === 'InterpreterHistoryRecordMetadataEntity'
+        ? InterpreterHistoryRecordMetadataEntity.validate(validation.value)
+        : RegisteredInterpreterMetricsEntity.validate(validation.value);
+      assert.equal(result, validation.expected);
+      results.push(result);
+    }
+    assert.deepStrictEqual(results, expectedResults);
+  }
 }
 
-void describe('FSM metadata entities', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': FsmMetadataEntitiesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'FSM metadata entities',
+  'runners': FsmMetadataEntitiesRunners
 });

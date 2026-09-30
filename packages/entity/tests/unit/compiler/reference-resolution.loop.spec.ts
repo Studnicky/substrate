@@ -1,19 +1,13 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { EntityValidateFunctionInterface } from '../../../src/interfaces/EntityValidateFunctionInterface.js';
-
 import { EntityClosureRegistry } from '../../../src/compiler/EntityClosureRegistry.js';
 
 const assertRegistry = EntityClosureRegistry.create(false);
 
-function compile<T>(schema: object, remotes?: ReadonlyMap<string, object | boolean>): EntityValidateFunctionInterface<T> {
-  return assertRegistry.compile<T>(schema, remotes);
-}
-
 void describe('reference resolution — base URI mechanics', () => {
   void it('nested $id changes the base for a relative $ref beneath it', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$id': 'http://example.com/root.json',
       'properties': {
         'foo': {
@@ -28,7 +22,7 @@ void describe('reference resolution — base URI mechanics', () => {
   });
 
   void it('a plain $anchor resolves scoped to its own base URI, not a document-wide flat name', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$defs': {
         'a': { '$id': 'child1', 'allOf': [{ '$anchor': 'shared', '$id': 'child2', 'type': 'number' }, { '$anchor': 'shared', 'type': 'string' }] }
       },
@@ -40,17 +34,19 @@ void describe('reference resolution — base URI mechanics', () => {
   });
 
   void it('a $ref cycle through self-referential data terminates instead of recursing forever', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$defs': { 'node': { 'properties': { 'next': { '$ref': '#/$defs/node' } }, 'type': 'object' } },
       '$ref': '#/$defs/node'
     });
     const cyclic: Record<string, unknown> = {};
     cyclic.next = cyclic;
-    assert.doesNotThrow(() => validate(cyclic));
+    assert.doesNotThrow(() => {
+      validate(cyclic);
+    });
   });
 
   void it('sequential distinct references to the same value both apply — no false-positive cycle', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$id': 'http://example.com/outer.json',
       '$ref': 'inner.json',
       'properties': {
@@ -69,7 +65,7 @@ void describe('reference resolution — base URI mechanics', () => {
 
 void describe('reference resolution — $dynamicRef', () => {
   void it('scans the dynamic scope outermost-inward, resolving to the first matching $dynamicAnchor', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$defs': {
         'itemType': { '$dynamicAnchor': 'itemType', 'type': 'number' },
         'list': {
@@ -87,7 +83,7 @@ void describe('reference resolution — $dynamicRef', () => {
   });
 
   void it('falls back to static $ref resolution when its own target has no matching $dynamicAnchor (bookending)', () => {
-    const validate = compile({
+    const validate = assertRegistry.compile({
       '$defs': {
         'list': {
           '$defs': { 'items': { '$anchor': 'items', 'type': 'string' } },
@@ -108,7 +104,7 @@ void describe('reference resolution — $dynamicRef', () => {
 void describe('reference resolution — remote registration', () => {
   void it('resolves a $ref to an externally-registered schema, keyed by its retrieval URI', () => {
     const remotes = new Map<string, object | boolean>([['http://example.com/remote-integer.json', { 'type': 'integer' }]]);
-    const validate = compile({ '$ref': 'http://example.com/remote-integer.json' }, remotes);
+    const validate = assertRegistry.compile({ '$ref': 'http://example.com/remote-integer.json' }, remotes);
     assert.equal(validate(1), true);
     assert.equal(validate('a'), false);
   });
@@ -117,7 +113,7 @@ void describe('reference resolution — remote registration', () => {
     const remotes = new Map<string, object | boolean>([
       ['http://example.com/remote-defs.json', { '$defs': { 'str': { 'type': 'string' } } }]
     ]);
-    const validate = compile({ '$ref': 'http://example.com/remote-defs.json#/$defs/str' }, remotes);
+    const validate = assertRegistry.compile({ '$ref': 'http://example.com/remote-defs.json#/$defs/str' }, remotes);
     assert.equal(validate('a'), true);
     assert.equal(validate(1), false);
   });

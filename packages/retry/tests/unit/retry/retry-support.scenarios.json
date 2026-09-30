@@ -130,7 +130,7 @@
         "baseDelay": 100,
         "batch": { "sampleCount": 200 }
       },
-      "expected": { "minDelay": 100 }
+      "expected": { "minimumDelay": 100 }
     },
     {
       "name": "retry-backoff-decorrelated-upper-bound",
@@ -140,7 +140,7 @@
         "baseDelay": 100,
         "batch": { "sampleCount": 420 }
       },
-      "expected": { "maxDelay": 3200 }
+      "expected": { "maximumDelay": 3200 }
     },
     {
       "name": "retry-backoff-decorrelated-varying",

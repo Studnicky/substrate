@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 const throttleInputSchema = {
@@ -35,16 +37,16 @@ const releasesSlotSchema = {
 } as const;
 
 const releasesSlotNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'recoveredResult': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['activeCount', 'recoveredResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'throttle': throttleInputNode
-      }, ['errorMessage', 'result', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'sync-throw-releases-slot' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'activeCount': SchemaNode.defineNumber({ 'type': 'number' } as const), 'recoveredResult': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['activeCount', 'recoveredResult'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'result': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'throttle': throttleInputNode
+  }, ['errorMessage', 'result', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'sync-throw-releases-slot' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const rejectHookSchema = {
   'additionalProperties': false,
@@ -65,16 +67,16 @@ const rejectHookSchema = {
 } as const;
 
 const rejectHookNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'failureMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'throttle': throttleInputNode
-      }, ['errorMessage', 'failureMessage', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'shape': SchemaNode.defineConst({}, 'sync-throw-reject-hook' as const)
-  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'errorMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'failureMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'throttle': throttleInputNode
+  }, ['errorMessage', 'failureMessage', 'throttle'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'shape': SchemaNode.defineConst({}, 'sync-throw-reject-hook' as const)
+}, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The two scenario case shapes `execute-sync-throw.loop.spec.ts` exercises. */
 export namespace ExecuteSyncThrowScenarioCaseEntity {
@@ -82,4 +84,7 @@ export namespace ExecuteSyncThrowScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [releasesSlotNode, rejectHookNode] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

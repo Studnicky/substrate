@@ -1,10 +1,112 @@
 {
   "cases": [
-    { "name": "error-instance", "description": "propagate rethrows an Error instance by identity", "input": { "shape": "error" } },
-    { "name": "type-error-instance", "description": "propagate rethrows a TypeError instance by identity", "input": { "shape": "type-error" } },
-    { "name": "string", "description": "propagate rethrows a string unchanged", "input": { "shape": "string" } },
-    { "name": "plain-object", "description": "propagate rethrows a plain object by identity", "input": { "shape": "object" } },
-    { "name": "undefined", "description": "propagate rethrows undefined unchanged", "input": { "shape": "undefined" } },
-    { "name": "null", "description": "propagate rethrows null unchanged", "input": { "shape": "null" } }
+    {
+      "description": "propagate rethrows an Error instance by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "error"
+      },
+      "name": "propagate-error-instance",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "propagate rethrows a TypeError instance by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "type-error"
+      },
+      "name": "propagate-type-error-instance",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "propagate rethrows a string unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "string"
+      },
+      "name": "propagate-string",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "propagate rethrows a plain object by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "object"
+      },
+      "name": "propagate-plain-object",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "propagate rethrows undefined unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "undefined"
+      },
+      "name": "propagate-undefined",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "propagate rethrows null unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "null"
+      },
+      "name": "propagate-null",
+      "shape": "propagate-rethrows"
+    },
+    {
+      "description": "rejection rejects with an Error instance by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "error"
+      },
+      "name": "rejection-error-instance",
+      "shape": "rejection-rejects"
+    },
+    {
+      "description": "rejection rejects with a TypeError instance by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "type-error"
+      },
+      "name": "rejection-type-error-instance",
+      "shape": "rejection-rejects"
+    },
+    {
+      "description": "rejection rejects with a string unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "string"
+      },
+      "name": "rejection-string",
+      "shape": "rejection-rejects"
+    },
+    {
+      "description": "rejection rejects with a plain object by identity",
+      "expected": {},
+      "input": {
+        "valueKind": "object"
+      },
+      "name": "rejection-plain-object",
+      "shape": "rejection-rejects"
+    },
+    {
+      "description": "rejection rejects with undefined unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "undefined"
+      },
+      "name": "rejection-undefined",
+      "shape": "rejection-rejects"
+    },
+    {
+      "description": "rejection rejects with null unchanged",
+      "expected": {},
+      "input": {
+        "valueKind": "null"
+      },
+      "name": "rejection-null",
+      "shape": "rejection-rejects"
+    }
   ]
 }

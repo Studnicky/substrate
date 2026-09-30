@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { BatchItemsDelayMsInputEntity } from './common/BatchItemsDelayMsInputEntity.js';
@@ -12,8 +14,8 @@ export namespace ProcessWaitsForBatchCompletionScenarioCaseEntity {
       'description': { 'minLength': 1, 'type': 'string' },
       'expected': {
         'additionalProperties': false,
-        'properties': { 'batchCount': { 'type': 'number' }, 'minGapMs': { 'type': 'number' } },
-        'required': ['batchCount', 'minGapMs'],
+        'properties': { 'batchCount': { 'type': 'number' }, 'minimumGapMs': { 'type': 'number' } },
+        'required': ['batchCount', 'minimumGapMs'],
         'type': 'object'
       },
       'input': BatchItemsDelayMsInputEntity.Schema,
@@ -25,14 +27,18 @@ export namespace ProcessWaitsForBatchCompletionScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'batchCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'minGapMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        }, ['batchCount', 'minGapMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': BatchItemsDelayMsInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'process-waits-for-batch-completion' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'batchCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
+      'minimumGapMs': SchemaNode.defineNumber({ 'type': 'number' } as const)
+    }, ['batchCount', 'minimumGapMs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': BatchItemsDelayMsInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'process-waits-for-batch-completion' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

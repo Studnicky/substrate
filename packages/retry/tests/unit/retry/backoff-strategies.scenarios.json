@@ -310,8 +310,8 @@
         "batch": {
           "sampleCount": 50
         },
-        "minMultiplier": 0.5,
-        "maxMultiplier": 1.5
+        "minimumMultiplier": 0.5,
+        "maximumMultiplier": 1.5
       },
       "expected": {
         "result": "within-range"
@@ -327,8 +327,8 @@
         "batch": {
           "sampleCount": 50
         },
-        "minMultiplier": 0.5,
-        "maxMultiplier": 1.5
+        "minimumMultiplier": 0.5,
+        "maximumMultiplier": 1.5
       },
       "expected": {
         "result": "within-range"
@@ -344,8 +344,8 @@
         "batch": {
           "sampleCount": 50
         },
-        "minMultiplier": 0.5,
-        "maxMultiplier": 1.5
+        "minimumMultiplier": 0.5,
+        "maximumMultiplier": 1.5
       },
       "expected": {
         "result": "within-range"
@@ -361,8 +361,8 @@
         "batch": {
           "sampleCount": 50
         },
-        "minMultiplier": 0.5,
-        "maxMultiplier": 1.5
+        "minimumMultiplier": 0.5,
+        "maximumMultiplier": 1.5
       },
       "expected": {
         "result": "within-range"
@@ -380,7 +380,7 @@
         }
       },
       "expected": {
-        "minDistinct": 2
+        "minimumDistinct": 2
       }
     },
     {
@@ -582,8 +582,8 @@
       "description": "decorrelated jitter stays within the expected range at later attempts",
       "shape": "decorrelated-range",
       "expected": {
-        "minResult": 100,
-        "maxResult": 2700
+        "minimumResult": 100,
+        "maximumResult": 2700
       },
       "input": {
         "attempt": 2,

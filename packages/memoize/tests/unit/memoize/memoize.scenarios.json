@@ -20,7 +20,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity",
+          "keyDeriverShape": "identity",
           "staleMs": 1,
           "ttlMs": 10
         }
@@ -38,7 +38,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -56,7 +56,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "number-string"
+          "keyDeriverShape": "number-string"
         }
       },
       "expected": {
@@ -74,7 +74,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity",
+          "keyDeriverShape": "identity",
           "ttlMs": 1000,
           "staleMs": 500
         }
@@ -94,7 +94,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {}
@@ -106,7 +106,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {}
@@ -118,7 +118,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -134,7 +134,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -148,7 +148,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -162,7 +162,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -183,7 +183,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -200,7 +200,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "compound"
+          "keyDeriverShape": "compound"
         }
       },
       "expected": {
@@ -217,7 +217,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -231,7 +231,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -249,7 +249,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -274,7 +274,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -294,7 +294,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -318,7 +318,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -339,7 +339,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2
@@ -360,7 +360,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 4
@@ -373,7 +373,7 @@
           "x@1:resolved-x",
           "y@2:resolved-y"
         ],
-        "missArgs": {
+        "missArguments": {
           "x": [
             "x",
             1
@@ -383,7 +383,7 @@
             2
           ]
         },
-        "coalescedArgs": {
+        "coalescedArguments": {
           "x": [
             "x",
             100
@@ -402,7 +402,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         }
       },
       "expected": {
@@ -417,7 +417,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "key": "empty"
       },
@@ -433,7 +433,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "failureMessage": "memoize compute failed",
         "failuresBeforeSuccess": 1,
@@ -459,7 +459,7 @@
       "input": {
         "memoize": {
           "capacity": 10,
-          "keyFnShape": "identity"
+          "keyDeriverShape": "identity"
         },
         "batch": {
           "callCount": 2

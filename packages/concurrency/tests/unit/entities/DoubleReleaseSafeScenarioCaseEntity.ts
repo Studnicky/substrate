@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { SemaphorePermitsInputEntity } from './common/SemaphorePermitsInputEntity.js';
@@ -20,11 +22,15 @@ export namespace DoubleReleaseSafeScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'availableAfterAcquire': SchemaNode.defineNumber({ 'type': 'number' } as const), 'availableAfterRelease': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['availableAfterAcquire', 'availableAfterRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SemaphorePermitsInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'double-release-safe' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'availableAfterAcquire': SchemaNode.defineNumber({ 'type': 'number' } as const), 'availableAfterRelease': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['availableAfterAcquire', 'availableAfterRelease'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SemaphorePermitsInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'double-release-safe' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

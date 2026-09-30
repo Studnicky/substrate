@@ -9,12 +9,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-invalid-format",
@@ -25,12 +25,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-missing-protocol",
@@ -41,12 +41,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-protocol-only",
@@ -57,12 +57,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-number",
@@ -73,12 +73,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-object",
@@ -89,12 +89,12 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseurl",
           "url"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-null",
@@ -105,11 +105,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "baseURL"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "baseurl-custom-protocol",
@@ -119,9 +119,8 @@
           "baseURL": "htp://invalid"
         }
       },
-      "expected": {
-        "shape": "create-ok"
-      }
+      "expected": {},
+      "shape": "create-ok"
     },
     {
       "name": "empty-request-url",
@@ -132,9 +131,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "spaces-in-url",
@@ -146,11 +145,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects",
         "messageIncludes": [
           "url"
         ]
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "whitespace-url",
@@ -162,11 +161,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects",
         "messageIncludes": [
           "url"
         ]
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "relative-url-without-baseurl",
@@ -178,11 +177,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects",
         "messageIncludes": [
           "url"
         ]
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "encoded-space-url",
@@ -196,9 +195,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "unicode-url",
@@ -212,9 +211,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "special-query-url",
@@ -228,9 +227,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "hash-fragment-url",
@@ -244,9 +243,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "long-url-1kb",
@@ -260,9 +259,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "long-url-2kb",
@@ -276,9 +275,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "long-url-8kb",
@@ -292,9 +291,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "auth-username-password",
@@ -306,11 +305,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects-native",
         "messageIncludes": [
           "credentials"
         ]
-      }
+      },
+      "shape": "rejects-native"
     },
     {
       "name": "auth-username-only",
@@ -322,11 +321,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects-native",
         "messageIncludes": [
           "credentials"
         ]
-      }
+      },
+      "shape": "rejects-native"
     },
     {
       "name": "auth-encoded-credentials",
@@ -338,11 +337,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects-native",
         "messageIncludes": [
           "credentials"
         ]
-      }
+      },
+      "shape": "rejects-native"
     },
     {
       "name": "relative-with-baseurl-leading-slash",
@@ -356,9 +355,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "relative-with-baseurl-no-leading-slash",
@@ -372,9 +371,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "relative-with-baseurl-trailing-slash",
@@ -388,9 +387,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "relative-with-baseurl-without-trailing-slash",
@@ -404,9 +403,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "relative-root-without-baseurl",
@@ -418,11 +417,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects",
         "messageIncludes": [
           "url"
         ]
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "relative-path-without-baseurl",
@@ -434,11 +433,11 @@
       },
       "expected": {
         "error": "TypeError",
-        "shape": "rejects",
         "messageIncludes": [
           "url"
         ]
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "ipv6-localhost",
@@ -449,9 +448,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "ipv6-full-address",
@@ -462,9 +461,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "protocol-file",
@@ -475,9 +474,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "protocol-ftp",
@@ -488,9 +487,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "protocol-custom",
@@ -501,9 +500,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "query-array-notation",
@@ -517,9 +516,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "query-nested-objects",
@@ -533,9 +532,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "query-special-characters",
@@ -549,9 +548,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "query-encoded-special-characters",
@@ -565,9 +564,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "query-empty-parameters",
@@ -581,9 +580,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "network-nonexistent-domain",
@@ -594,9 +593,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "network-connection-refused",
@@ -607,9 +606,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "network-unreachable-host",
@@ -620,9 +619,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "rejects"
-      }
+        "error": "Error"
+      },
+      "shape": "rejects"
     },
     {
       "name": "path-double-slashes",
@@ -636,9 +635,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 404
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "path-dot-segments",
@@ -652,9 +651,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "path-trailing-slash",
@@ -668,9 +667,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 404
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "path-root",
@@ -684,9 +683,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 404
-      }
+      },
+      "shape": "status"
     }
   ]
 }

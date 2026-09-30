@@ -1,201 +1,121 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
+import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { setTimeout } from 'node:timers/promises';
 
 import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/errors/index.js';
 import { Throttle } from '../../../src/throttle/index.js';
 import { LifecycleScenarioCaseEntity } from './entities/LifecycleScenarioCaseEntity.js';
-
-type ScenarioCase = LifecycleScenarioCaseEntity.Type;
-type ExpectedAbortResult = NonNullable<ScenarioCase['expected']['abort']>;
-type AbortResult = Required<ExpectedAbortResult>;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(LifecycleScenarioCaseEntity.Schema, LifecycleScenarioCaseEntity.Node);
-
-import scenarioGroups from './lifecycle.scenarios.json' with { type: 'json' };
+import { RejectingOperation } from './fixtures/RejectingOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import scenarioGroups from './lifecycle.scenarios.json' with { 'type': 'json' };
 
 class TrackingThrottle extends Throttle {}
 
-type BlockedPairInput = {
-  activeResult: string;
-  queuedResult: string;
-};
+class BlockedPair {
+  readonly active: Promise<string | undefined>;
 
-function throwActiveNotStarted(): never {
-  throw RuntimeError.create('active operation was not started');
-}
+  queuedStarted = false;
 
-async function settleLoop(ms: number): Promise<void> {
-  await new Promise<void>((resolve) => { setTimeout(resolve, ms); });
-}
+  readonly queued: Promise<string | undefined>;
 
-function createBlockedPair(
-  throttle: TrackingThrottle,
-  input: BlockedPairInput
-): {
-  active: Promise<string | undefined>;
-  queued: Promise<string | undefined>;
-  queuedStarted: () => boolean;
-  releaseActive: () => void;
-} {
-  let queuedStarted = false;
-  let releaseActive: () => void = throwActiveNotStarted;
-  const blocker = new Promise<void>((resolve) => { releaseActive = resolve; });
-  const active = throttle.execute(async () => {
-    await blocker;
-    return input.activeResult;
-  });
-  const queued = throttle.execute(async () => {
-    queuedStarted = true;
-    return input.queuedResult;
-  });
+  readonly #blocker = Promise.withResolvers<void>();
 
-  return {
-    active,
-    queued,
-    queuedStarted: () => queuedStarted,
-    releaseActive
-  };
-}
-
-function assertHookInvocation(error: HookInvocationError, expected: ScenarioCase['expected']): boolean {
-  assert.strictEqual(error.name, expected.errorName);
-  assert.ok(error.cause instanceof Error);
-  assert.strictEqual(error.cause.message, expected.causeMessage);
-  return true;
-}
-
-function requireAbortResult(value: ExpectedAbortResult | undefined, label: string): ExpectedAbortResult {
-  if (value === undefined) {
-    throw RuntimeError.create(`Missing expected ${label}`);
-  }
-  return value;
-}
-
-function assertAbortResult(actual: AbortResult, expected: ExpectedAbortResult): void {
-  if (expected.cancelled !== undefined) {
-    assert.strictEqual(actual.cancelled, expected.cancelled);
-  }
-  if (expected.completed !== undefined) {
-    assert.strictEqual(actual.completed, expected.completed);
-  }
-  if (expected.timedOut !== undefined) {
-    assert.strictEqual(actual.timedOut, expected.timedOut);
-  }
-}
-
-function requireBoolean(value: boolean | undefined, label: string): boolean {
-  if (value === undefined) {
-    throw RuntimeError.create(`Missing expected ${label}`);
-  }
-  return value;
-}
-
-function requireNumber(value: number | undefined, label: string): number {
-  if (value === undefined) {
-    throw RuntimeError.create(`Missing expected ${label}`);
-  }
-  return value;
-}
-
-function requireNumberInput(value: number | string | undefined, label: string): number {
-  if (typeof value !== 'number') {
-    throw RuntimeError.create(`Missing numeric input ${label}`);
-  }
-  return value;
-}
-
-function requireString(value: string | undefined, label: string): string {
-  if (value === undefined) {
-    throw RuntimeError.create(`Missing expected ${label}`);
-  }
-  return value;
-}
-
-function requireStringInput(value: number | string | undefined, label: string): string {
-  if (typeof value !== 'string') {
-    throw RuntimeError.create(`Missing string input ${label}`);
-  }
-  return value;
-}
-
-function blockedPairInput(input: ScenarioCase['input']): BlockedPairInput {
-  return {
-    activeResult: requireStringInput(input.activeResult, 'activeResult'),
-    queuedResult: requireStringInput(input.queuedResult, 'queuedResult')
-  };
-}
-
-function settleMs(input: ScenarioCase['input']): number {
-  return input.settleMs ?? 0;
-}
-
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'abort-timeout-timed-out': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
-    const active = throttle.execute(async () => {
-      await blocker;
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
+  constructor(throttle: TrackingThrottle, activeResult: string, queuedResult: string) {
+    this.active = throttle.execute(async () => {
+      await this.#blocker.promise;
+      return activeResult;
     });
-    await Promise.resolve();
+    this.queued = throttle.execute(() => {
+      this.queuedStarted = true;
+      const settled = Promise.resolve(queuedResult);
+      return settled;
+    });
+  }
+
+  releaseActive(): void {
+    this.#blocker.resolve();
+  }
+}
+
+class LifecycleRunners {
+  static async 'abort-after-abort-is-idempotent'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-after-abort-is-idempotent'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const first = await throttle.abort();
+    const second = await throttle.abort();
+    LifecycleRunners.assertAbortResult(first, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    LifecycleRunners.assertAbortResult(second, ScenarioValues.requireDefined(scenarioCase.expected.secondAbort, 'expected.secondAbort'));
+  }
+
+  static async 'abort-cancels-active-and-queued'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-cancels-active-and-queued'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const pair = new BlockedPair(throttle, ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'), ScenarioValues.requireString(scenarioCase.input.queuedResult, 'queuedResult'));
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    const result = await throttle.abort();
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    assert.strictEqual(await pair.active, undefined);
+    assert.strictEqual(await pair.queued, undefined);
+    assert.strictEqual(pair.queuedStarted, ScenarioValues.requireDefined(scenarioCase.expected.queuedStarted, 'expected.queuedStarted'));
+
+    pair.releaseActive();
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+    assert.strictEqual(throttle.getStats().totalExecuted, ScenarioValues.requireDefined(scenarioCase.expected.totalExecuted, 'expected.totalExecuted'));
+    assert.strictEqual(ScenarioValues.requireDefined(scenarioCase.expected.activeResolvedWithUndefined, 'expected.activeResolvedWithUndefined'), true);
+    assert.strictEqual(ScenarioValues.requireDefined(scenarioCase.expected.queuedResolvedWithUndefined, 'expected.queuedResolvedWithUndefined'), true);
+  }
+
+  static async 'abort-during-draining-cancels-active-and-queued'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-during-draining-cancels-active-and-queued'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const pair = new BlockedPair(throttle, ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'), ScenarioValues.requireString(scenarioCase.input.queuedResult, 'queuedResult'));
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    const drainPromise = throttle.drain();
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
     const result = await throttle.abort(scenarioCase.input.abortOptions);
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    release();
-    await active;
-  },
 
-  'abort-timeout-completes': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
-    const active = throttle.execute(async () => {
-      await blocker;
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    await Promise.resolve();
-    const abortPromise = throttle.abort(scenarioCase.input.abortOptions);
-    release();
-    const result = await abortPromise;
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    await active;
-  },
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    await drainPromise;
+    assert.strictEqual(await pair.active, undefined);
+    assert.strictEqual(await pair.queued, undefined);
+    assert.strictEqual(pair.queuedStarted, ScenarioValues.requireDefined(scenarioCase.expected.queuedStarted, 'expected.queuedStarted'));
 
-  'abort-immediate-with-active-work': async (scenarioCase) => {
+    pair.releaseActive();
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+    assert.strictEqual(throttle.getStats().totalExecuted, ScenarioValues.requireDefined(scenarioCase.expected.totalExecuted, 'expected.totalExecuted'));
+    assert.strictEqual(ScenarioValues.requireDefined(scenarioCase.expected.activeResolvedWithUndefined, 'expected.activeResolvedWithUndefined'), true);
+    assert.strictEqual(ScenarioValues.requireDefined(scenarioCase.expected.queuedResolvedWithUndefined, 'expected.queuedResolvedWithUndefined'), true);
+  }
+
+  static async 'abort-immediate-with-active-work'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-immediate-with-active-work'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
+    const blocker = Promise.withResolvers<void>();
     const active = throttle.execute(async () => {
-      await blocker;
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
     });
     await Promise.resolve();
     const result = await throttle.abort();
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    release();
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    blocker.resolve();
     await active;
-  },
+  }
 
-  'abort-zero-timeout-with-active-work': async (scenarioCase) => {
+  static async 'abort-on-complete-skips-grace-period'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-on-complete-skips-grace-period'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
-    const active = throttle.execute(async () => {
-      await blocker;
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    await Promise.resolve();
     const result = await throttle.abort(scenarioCase.input.abortOptions);
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    release();
-    await active;
-  },
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+  }
 
-  'abort-start-hook-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+  static async 'abort-start-hook-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-start-hook-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingThrottle extends TrackingThrottle {
       protected override onAbortStart(): void {
@@ -204,11 +124,11 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = ThrowingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
+    const blocker = Promise.withResolvers<void>();
     const active = throttle.execute(async () => {
-      await blocker;
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
     });
     await Promise.resolve();
 
@@ -218,70 +138,120 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
       return true;
     });
 
-    release();
+    blocker.resolve();
     await active;
-  },
+  }
 
-  'abort-after-abort-is-idempotent': async (scenarioCase) => {
+  static async 'abort-timeout-completes'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-timeout-completes'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    const first = await throttle.abort();
-    const second = await throttle.abort();
-    assertAbortResult(first, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    assertAbortResult(second, requireAbortResult(scenarioCase.expected.secondAbort, 'secondAbort'));
-  },
+    const blocker = Promise.withResolvers<void>();
+    const active = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    await Promise.resolve();
+    const abortPromise = throttle.abort(scenarioCase.input.abortOptions);
+    blocker.resolve();
+    const result = await abortPromise;
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    await active;
+  }
 
-  'abort-on-complete-skips-grace-period': async (scenarioCase) => {
+  static async 'abort-timeout-timed-out'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-timeout-timed-out'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const active = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    await Promise.resolve();
     const result = await throttle.abort(scenarioCase.input.abortOptions);
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-  },
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    blocker.resolve();
+    await active;
+  }
 
-  'abort-cancels-active-and-queued': async (scenarioCase) => {
+  static async 'abort-zero-timeout-with-active-work'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'abort-zero-timeout-with-active-work'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    const pair = createBlockedPair(throttle, blockedPairInput(scenarioCase.input));
-    await settleLoop(settleMs(scenarioCase.input));
-
+    const blocker = Promise.withResolvers<void>();
+    const active = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    await Promise.resolve();
     const result = await throttle.abort(scenarioCase.input.abortOptions);
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
-    assert.strictEqual(await pair.active, undefined);
-    assert.strictEqual(await pair.queued, undefined);
-    assert.strictEqual(pair.queuedStarted(), requireBoolean(scenarioCase.expected.queuedStarted, 'queuedStarted'));
+    LifecycleRunners.assertAbortResult(result, ScenarioValues.requireDefined(scenarioCase.expected.abort, 'expected.abort'));
+    blocker.resolve();
+    await active;
+  }
 
-    pair.releaseActive();
-    await settleLoop(settleMs(scenarioCase.input));
-
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-    assert.strictEqual(throttle.getStats().totalExecuted, requireNumber(scenarioCase.expected.totalExecuted, 'totalExecuted'));
-    assert.strictEqual(requireBoolean(scenarioCase.expected.activeResolvedWithUndefined, 'activeResolvedWithUndefined'), true);
-    assert.strictEqual(requireBoolean(scenarioCase.expected.queuedResolvedWithUndefined, 'queuedResolvedWithUndefined'), true);
-  },
-
-  'abort-during-draining-cancels-active-and-queued': async (scenarioCase) => {
+  static async 'drain-on-complete-returns-immediately'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'drain-on-complete-returns-immediately'>): Promise<void> {
     const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    const pair = createBlockedPair(throttle, blockedPairInput(scenarioCase.input));
-    await settleLoop(settleMs(scenarioCase.input));
+    await throttle.drain();
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+    await throttle.drain();
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
 
+  static async 'drain-reuses-completion-promise'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'drain-reuses-completion-promise'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const active = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    let firstDrainResolved = false;
+    let secondDrainResolved = false;
+    const firstDrain = throttle.drain().then(() => { firstDrainResolved = true; });
+    const secondDrain = throttle.drain().then(() => { secondDrainResolved = true; });
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    assert.strictEqual(firstDrainResolved, ScenarioValues.requireDefined(scenarioCase.expected.drainResolvedBeforeRelease, 'expected.drainResolvedBeforeRelease'));
+    assert.strictEqual(secondDrainResolved, ScenarioValues.requireDefined(scenarioCase.expected.drainResolvedBeforeRelease, 'expected.drainResolvedBeforeRelease'));
+    blocker.resolve();
+    assert.strictEqual(await active, ScenarioValues.requireDefined(scenarioCase.expected.result, 'expected.result'));
+    await Promise.all([firstDrain, secondDrain]);
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
+
+  static async 'drain-waits-for-active-and-queued'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'drain-waits-for-active-and-queued'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const first = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireNumber(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    const second = throttle.execute(ResolvingOperation.of(ScenarioValues.requireNumber(scenarioCase.input.queuedResult, 'queuedResult')));
+    await Promise.resolve();
     const drainPromise = throttle.drain();
-    await settleLoop(settleMs(scenarioCase.input));
-    const result = await throttle.abort(scenarioCase.input.abortOptions);
-
-    assertAbortResult(result, requireAbortResult(scenarioCase.expected.abort, 'abort'));
+    blocker.resolve();
     await drainPromise;
-    assert.strictEqual(await pair.active, undefined);
-    assert.strictEqual(await pair.queued, undefined);
-    assert.strictEqual(pair.queuedStarted(), requireBoolean(scenarioCase.expected.queuedStarted, 'queuedStarted'));
+    assert.deepStrictEqual([await first, await second], scenarioCase.expected.results);
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
 
-    pair.releaseActive();
-    await settleLoop(settleMs(scenarioCase.input));
+  static async 'execute-after-abort-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'execute-after-abort-throws'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    await throttle.abort();
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), ThrottleAbortedError);
+  }
 
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-    assert.strictEqual(throttle.getStats().totalExecuted, requireNumber(scenarioCase.expected.totalExecuted, 'totalExecuted'));
-    assert.strictEqual(requireBoolean(scenarioCase.expected.activeResolvedWithUndefined, 'activeResolvedWithUndefined'), true);
-    assert.strictEqual(requireBoolean(scenarioCase.expected.queuedResolvedWithUndefined, 'queuedResolvedWithUndefined'), true);
-  },
+  static async 'execute-during-draining-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'execute-during-draining-throws'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const draining = throttle.drain();
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), ThrottleDrainingError);
+    await draining;
+  }
 
-  'on-acquire-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+  static async 'on-acquire-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-acquire-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingAcquireThrottle extends TrackingThrottle {
       protected override onAcquire(): void {
@@ -290,63 +260,17 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = ThrowingAcquireThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
     });
-    assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
+    assert.strictEqual(throttle.getStats().activeCount, ScenarioValues.requireDefined(scenarioCase.expected.activeCount, 'expected.activeCount'));
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
 
-  'on-release-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
-
-    class ThrowingReleaseThrottle extends TrackingThrottle {
-      protected override onRelease(): void {
-        throw original;
-      }
-    }
-
-    const throttle = ThrowingReleaseThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.strictEqual(error.cause, original);
-      return true;
-    });
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
-
-  'on-contended-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
-
-    class ThrowingContendedThrottle extends TrackingThrottle {
-      protected override onContended(): void {
-        throw original;
-      }
-    }
-
-    const throttle = ThrowingContendedThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const active = throttle.execute(async () => {
-      await new Promise<void>((resolve) => { release = resolve; });
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    await settleLoop(settleMs(scenarioCase.input));
-
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
-      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
-    });
-
-    assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
-    assert.strictEqual(throttle.getStats().queuedCount, requireNumber(scenarioCase.expected.queuedCount, 'queuedCount'));
-    release();
-    assert.strictEqual(await active, requireString(scenarioCase.expected.activeResult, 'activeResult'));
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
-
-  'on-acquire-wait-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+  static async 'on-acquire-wait-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-acquire-wait-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingAcquireWaitThrottle extends TrackingThrottle {
       protected override onAcquireWait(): void {
@@ -355,27 +279,61 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = ThrowingAcquireWaitThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
+    const blocker = Promise.withResolvers<void>();
     const active = throttle.execute(async () => {
-      await new Promise<void>((resolve) => { release = resolve; });
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
     });
-    await settleLoop(settleMs(scenarioCase.input));
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
 
-    const queued = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
+    const queued = throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult')));
     await assert.rejects(queued, (error) => {
-      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
+      const caught: unknown = error;
+      const matches = caught instanceof HookInvocationError && LifecycleRunners.matchesHookInvocation(caught, scenarioCase.expected);
+      return matches;
     });
 
-    assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
-    assert.strictEqual(throttle.getStats().queuedCount, requireNumber(scenarioCase.expected.queuedCount, 'queuedCount'));
-    release();
-    assert.strictEqual(await active, requireString(scenarioCase.expected.activeResult, 'activeResult'));
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
+    assert.strictEqual(throttle.getStats().activeCount, ScenarioValues.requireDefined(scenarioCase.expected.activeCount, 'expected.activeCount'));
+    assert.strictEqual(throttle.getStats().queuedCount, ScenarioValues.requireDefined(scenarioCase.expected.queuedCount, 'expected.queuedCount'));
+    blocker.resolve();
+    assert.strictEqual(await active, ScenarioValues.requireDefined(scenarioCase.expected.activeResult, 'expected.activeResult'));
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
 
-  'on-reject-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+  static async 'on-contended-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-contended-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+
+    class ThrowingContendedThrottle extends TrackingThrottle {
+      protected override onContended(): void {
+        throw original;
+      }
+    }
+
+    const throttle = ThrowingContendedThrottle.create(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const active = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), (error) => {
+      const caught: unknown = error;
+      const matches = caught instanceof HookInvocationError && LifecycleRunners.matchesHookInvocation(caught, scenarioCase.expected);
+      return matches;
+    });
+
+    assert.strictEqual(throttle.getStats().activeCount, ScenarioValues.requireDefined(scenarioCase.expected.activeCount, 'expected.activeCount'));
+    assert.strictEqual(throttle.getStats().queuedCount, ScenarioValues.requireDefined(scenarioCase.expected.queuedCount, 'expected.queuedCount'));
+    blocker.resolve();
+    assert.strictEqual(await active, ScenarioValues.requireDefined(scenarioCase.expected.activeResult, 'expected.activeResult'));
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
+
+  static async 'on-reject-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-reject-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class ThrowingRejectThrottle extends TrackingThrottle {
       protected override onReject(): void {
@@ -384,138 +342,18 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = ThrowingRejectThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => {
-      throw RuntimeError.create(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
-    }), (error) => {
-      return error instanceof HookInvocationError && assertHookInvocation(error, scenarioCase.expected);
+    await assert.rejects(throttle.execute(RejectingOperation.of(ScenarioValues.requireString(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'))), (error) => {
+      const caught: unknown = error;
+      const matches = caught instanceof HookInvocationError && LifecycleRunners.matchesHookInvocation(caught, scenarioCase.expected);
+      return matches;
     });
 
-    assert.strictEqual(throttle.getStats().activeCount, requireNumber(scenarioCase.expected.activeCount, 'activeCount'));
-    assert.strictEqual(throttle.getStats().queuedCount, requireNumber(scenarioCase.expected.queuedCount, 'queuedCount'));
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
+    assert.strictEqual(throttle.getStats().activeCount, ScenarioValues.requireDefined(scenarioCase.expected.activeCount, 'expected.activeCount'));
+    assert.strictEqual(throttle.getStats().queuedCount, ScenarioValues.requireDefined(scenarioCase.expected.queuedCount, 'expected.queuedCount'));
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
 
-  'drain-waits-for-active-and-queued': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const blocker = new Promise<void>((resolve) => { release = resolve; });
-    const first = throttle.execute(async () => {
-      await blocker;
-      return requireNumberInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    const second = throttle.execute(async () => requireNumberInput(scenarioCase.input.queuedResult, 'queuedResult'));
-    await Promise.resolve();
-    const drainPromise = throttle.drain();
-    release();
-    await drainPromise;
-    assert.deepStrictEqual([await first, await second], scenarioCase.expected.results);
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
-
-  'drain-reuses-completion-promise': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    let release!: () => void;
-    const active = throttle.execute(async () => {
-      await new Promise<void>((resolve) => { release = resolve; });
-      return requireStringInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    await settleLoop(settleMs(scenarioCase.input));
-
-    let firstDrainResolved = false;
-    let secondDrainResolved = false;
-    const firstDrain = throttle.drain().then(() => { firstDrainResolved = true; });
-    const secondDrain = throttle.drain().then(() => { secondDrainResolved = true; });
-    await settleLoop(settleMs(scenarioCase.input));
-
-    assert.strictEqual(firstDrainResolved, requireBoolean(scenarioCase.expected.drainResolvedBeforeRelease, 'drainResolvedBeforeRelease'));
-    assert.strictEqual(secondDrainResolved, requireBoolean(scenarioCase.expected.drainResolvedBeforeRelease, 'drainResolvedBeforeRelease'));
-    release();
-    assert.strictEqual(await active, requireString(scenarioCase.expected.result, 'result'));
-    await Promise.all([firstDrain, secondDrain]);
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
-
-  'drain-on-complete-returns-immediately': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    await throttle.drain();
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-    await throttle.drain();
-    assert.strictEqual(throttle.isComplete(), requireBoolean(scenarioCase.expected.isComplete, 'isComplete'));
-  },
-
-  'queued-operation-completes-after-release': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    const order: string[] = [];
-    let releaseFirst!: () => void;
-    const first = throttle.execute(async () => {
-      order.push('first-start');
-      await new Promise<void>((resolve) => { releaseFirst = resolve; });
-      order.push('first-end');
-      return requireNumberInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    const second = throttle.execute(async () => {
-      order.push('second-start');
-      return requireNumberInput(scenarioCase.input.queuedResult, 'queuedResult');
-    });
-    await settleLoop(settleMs(scenarioCase.input));
-    assert.ok(releaseFirst !== undefined);
-    releaseFirst();
-    await Promise.all([first, second]);
-    assert.deepStrictEqual(order, scenarioCase.expected.order);
-  },
-
-  'on-window-slide-throws': async (scenarioCase) => {
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
-
-    class ThrowingWindowSlideThrottle extends TrackingThrottle {
-      protected override onWindowSlide(): void {
-        throw original;
-      }
-    }
-
-    const throttle = ThrowingWindowSlideThrottle.create(scenarioCase.input.throttle);
-    let releaseFirst!: () => void;
-    const first = throttle.execute(async () => {
-      await new Promise<void>((resolve) => { releaseFirst = resolve; });
-      return requireNumberInput(scenarioCase.input.activeResult, 'activeResult');
-    });
-    const second = throttle.execute(async () => requireNumberInput(scenarioCase.input.queuedResult, 'queuedResult'));
-    await settleLoop(settleMs(scenarioCase.input));
-    assert.ok(releaseFirst !== undefined);
-    releaseFirst();
-    await assert.rejects(second, (error) => {
-      assert.ok(error instanceof HookInvocationError);
-      assert.strictEqual(error.cause, original);
-      return true;
-    });
-    await first;
-  },
-
-  'execute-after-abort-throws': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    await throttle.abort();
-    await assert.rejects(async () => {
-      await throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-    }, ThrottleAbortedError);
-  },
-
-  'execute-during-draining-throws': async (scenarioCase) => {
-    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
-    const draining = throttle.drain();
-    await assert.rejects(async () => {
-      await throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-    }, ThrottleDrainingError);
-    await draining;
-  },
-
-  // The following four scenarios are the fix's core regression coverage: onRelease must
-  // fire EXACTLY once per completed operation, across every outcome branch (still busy,
-  // became idle, handoff granted) and every call site that leads to a release (success,
-  // rejection, acquire-hook-failure rollback). A count of anything other than 1 per
-  // release, or a total mismatched with the number of completed operations, means the
-  // OperationLifecycleMachine's single-effect-per-event guarantee has been violated.
-
-  'on-release-fires-exactly-once-still-busy': async (scenarioCase) => {
+  static async 'on-release-fires-exactly-once-became-idle'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-fires-exactly-once-became-idle'>): Promise<void> {
     const releaseCounts: number[] = [];
 
     class CountingThrottle extends TrackingThrottle {
@@ -525,33 +363,13 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = CountingThrottle.create(scenarioCase.input.throttle);
-    // concurrencyLimit: 2 — both operations acquire immediately, no queue, so each
-    // release lands in the "still busy" branch (the other operation stays active) except
-    // the very last one, which becomes idle. Both must still each fire onRelease once.
-    const first = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-    const second = throttle.execute(async () => requireStringInput(scenarioCase.input.queuedResult, 'queuedResult'));
-    await Promise.all([first, second]);
+    await throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult')));
 
-    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
-  },
-
-  'on-release-fires-exactly-once-became-idle': async (scenarioCase) => {
-    const releaseCounts: number[] = [];
-
-    class CountingThrottle extends TrackingThrottle {
-      protected override onRelease(): void {
-        releaseCounts.push(1);
-      }
-    }
-
-    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
-    await throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-
-    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+    assert.strictEqual(releaseCounts.length, ScenarioValues.requireDefined(scenarioCase.expected.releaseCount, 'expected.releaseCount'));
     assert.strictEqual(throttle.isComplete(), true);
-  },
+  }
 
-  'on-release-fires-exactly-once-handoff-granted': async (scenarioCase) => {
+  static async 'on-release-fires-exactly-once-handoff-granted'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-fires-exactly-once-handoff-granted'>): Promise<void> {
     const releaseCounts: number[] = [];
 
     class CountingThrottle extends TrackingThrottle {
@@ -564,33 +382,16 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     // concurrencyLimit: 1 — the leader occupies the only slot, the waiter queues behind
     // it. The leader's release hands the slot off to the waiter (handoff-granted), then
     // the waiter's own release becomes-idle. Both releases must fire onRelease once each.
-    const leader = throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult'));
-    const waiter = throttle.execute(async () => requireStringInput(scenarioCase.input.queuedResult, 'queuedResult'));
+    const leader = throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult')));
+    const waiter = throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.queuedResult, 'queuedResult')));
     await Promise.all([leader, waiter]);
 
-    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
-  },
+    assert.strictEqual(releaseCounts.length, ScenarioValues.requireDefined(scenarioCase.expected.releaseCount, 'expected.releaseCount'));
+  }
 
-  'on-release-fires-exactly-once-on-rejection': async (scenarioCase) => {
+  static async 'on-release-fires-exactly-once-on-acquire-rollback'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-fires-exactly-once-on-acquire-rollback'>): Promise<void> {
     const releaseCounts: number[] = [];
-
-    class CountingThrottle extends TrackingThrottle {
-      protected override onRelease(): void {
-        releaseCounts.push(1);
-      }
-    }
-
-    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => {
-      throw RuntimeError.create(requireStringInput(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'));
-    }));
-
-    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
-  },
-
-  'on-release-fires-exactly-once-on-acquire-rollback': async (scenarioCase) => {
-    const releaseCounts: number[] = [];
-    const original = RuntimeError.create(requireStringInput(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
 
     class CountingRollbackThrottle extends TrackingThrottle {
       protected override onAcquire(): void {
@@ -603,24 +404,144 @@ const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => P
     }
 
     const throttle = CountingRollbackThrottle.create(scenarioCase.input.throttle);
-    await assert.rejects(throttle.execute(async () => requireStringInput(scenarioCase.input.activeResult, 'activeResult')), (error) => {
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), (error) => {
       assert.ok(error instanceof HookInvocationError);
       assert.strictEqual(error.cause, original);
       return true;
     });
 
-    assert.strictEqual(releaseCounts.length, requireNumber(scenarioCase.expected.releaseCount, 'releaseCount'));
+    assert.strictEqual(releaseCounts.length, ScenarioValues.requireDefined(scenarioCase.expected.releaseCount, 'expected.releaseCount'));
   }
-};
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  static async 'on-release-fires-exactly-once-on-rejection'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-fires-exactly-once-on-rejection'>): Promise<void> {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    await assert.rejects(throttle.execute(RejectingOperation.of(ScenarioValues.requireString(scenarioCase.input.operationErrorMessage, 'operationErrorMessage'))));
+
+    assert.strictEqual(releaseCounts.length, ScenarioValues.requireDefined(scenarioCase.expected.releaseCount, 'expected.releaseCount'));
+  }
+
+  static async 'on-release-fires-exactly-once-still-busy'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-fires-exactly-once-still-busy'>): Promise<void> {
+    const releaseCounts: number[] = [];
+
+    class CountingThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        releaseCounts.push(1);
+      }
+    }
+
+    const throttle = CountingThrottle.create(scenarioCase.input.throttle);
+    // concurrencyLimit: 2 — both operations acquire immediately, no queue, so each
+    // release lands in the "still busy" branch (the other operation stays active) except
+    // the very last one, which becomes idle. Both must still each fire onRelease once.
+    const first = throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult')));
+    const second = throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.queuedResult, 'queuedResult')));
+    await Promise.all([first, second]);
+
+    assert.strictEqual(releaseCounts.length, ScenarioValues.requireDefined(scenarioCase.expected.releaseCount, 'expected.releaseCount'));
+  }
+
+  static async 'on-release-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-release-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+
+    class ThrowingReleaseThrottle extends TrackingThrottle {
+      protected override onRelease(): void {
+        throw original;
+      }
+    }
+
+    const throttle = ThrowingReleaseThrottle.create(scenarioCase.input.throttle);
+    await assert.rejects(throttle.execute(ResolvingOperation.of(ScenarioValues.requireString(scenarioCase.input.activeResult, 'activeResult'))), (error) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.cause, original);
+      return true;
+    });
+    assert.strictEqual(throttle.isComplete(), ScenarioValues.requireDefined(scenarioCase.expected.isComplete, 'expected.isComplete'));
+  }
+
+  static async 'on-window-slide-throws'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'on-window-slide-throws'>): Promise<void> {
+    const original = RuntimeError.create(ScenarioValues.requireString(scenarioCase.input.hookErrorMessage, 'hookErrorMessage'));
+
+    class ThrowingWindowSlideThrottle extends TrackingThrottle {
+      protected override onWindowSlide(): void {
+        throw original;
+      }
+    }
+
+    const throttle = ThrowingWindowSlideThrottle.create(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const first = throttle.execute(async () => {
+      await blocker.promise;
+      const resolvedValue = ScenarioValues.requireNumber(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    const second = throttle.execute(ResolvingOperation.of(ScenarioValues.requireNumber(scenarioCase.input.queuedResult, 'queuedResult')));
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+    blocker.resolve();
+    await assert.rejects(second, (error) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.cause, original);
+      return true;
+    });
+    await first;
+  }
+
+  static async 'queued-operation-completes-after-release'(scenarioCase: ScenarioCaseOfType<LifecycleScenarioCaseEntity.Type, 'queued-operation-completes-after-release'>): Promise<void> {
+    const throttle = TrackingThrottle.create(scenarioCase.input.throttle);
+    const order: string[] = [];
+    const blocker = Promise.withResolvers<void>();
+    const first = throttle.execute(async () => {
+      order.push('first-start');
+      await blocker.promise;
+      order.push('first-end');
+      const resolvedValue = ScenarioValues.requireNumber(scenarioCase.input.activeResult, 'activeResult');
+      return resolvedValue;
+    });
+    const second = throttle.execute(() => {
+      order.push('second-start');
+      const settled = Promise.resolve(ScenarioValues.requireNumber(scenarioCase.input.queuedResult, 'queuedResult'));
+      return settled;
+    });
+    await setTimeout(scenarioCase.input.settleMs ?? 0);
+    blocker.resolve();
+    await Promise.all([first, second]);
+    assert.deepStrictEqual(order, scenarioCase.expected.order);
+  }
+
+  private static assertAbortResult(
+    actual: { readonly 'cancelled': number; readonly 'completed': number; readonly 'timedOut': boolean },
+    expected: { readonly 'cancelled'?: number; readonly 'completed'?: number; readonly 'timedOut'?: boolean }
+  ): void {
+    if (expected.cancelled !== undefined) {
+      assert.strictEqual(actual.cancelled, expected.cancelled);
+    }
+    if (expected.completed !== undefined) {
+      assert.strictEqual(actual.completed, expected.completed);
+    }
+    if (expected.timedOut !== undefined) {
+      assert.strictEqual(actual.timedOut, expected.timedOut);
+    }
+  }
+
+  private static matchesHookInvocation(error: HookInvocationError, expected: { readonly 'causeMessage'?: string; readonly 'errorName'?: string }): boolean {
+    assert.strictEqual(error.name, expected.errorName);
+    assert.ok(error.cause instanceof Error);
+    assert.strictEqual(error.cause.message, expected.causeMessage);
+    const matches = true;
+    return matches;
+  }
 }
 
-void describe('Throttle lifecycle', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': LifecycleScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Throttle lifecycle',
+  'runners': LifecycleRunners
 });

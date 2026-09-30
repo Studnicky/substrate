@@ -1,81 +1,87 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-/** The `InterpreterHistory.loop.spec.ts` scenario case shape. `expected` stays an open bag — each shape reads a different subset, coerced at the call site, never a cast. */
+// deeply-isolated-history-records
+const deeplyIsolatedHistoryRecordsSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'eventValue': { 'type': 'number' }, 'fromValue': { 'type': 'number' }, 'toValue': { 'type': 'number' } }, 'required': ['eventValue', 'fromValue', 'toValue'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'eventDetails': { 'additionalProperties': false, 'properties': { 'value': { 'type': 'number' } }, 'required': ['value'], 'type': 'object' }, 'machineId': { 'type': 'string' }, 'replacementValues': { 'additionalProperties': false, 'properties': { 'event': { 'type': 'number' }, 'from': { 'type': 'number' }, 'to': { 'type': 'number' } }, 'required': ['event', 'from', 'to'], 'type': 'object' } }, 'required': ['capacity', 'eventDetails', 'machineId', 'replacementValues'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'deeply-isolated-history-records' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const deeplyIsolatedHistoryRecordsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'eventValue': SchemaNode.defineNumber({ 'type': 'number' } as const), 'fromValue': SchemaNode.defineNumber({ 'type': 'number' } as const), 'toValue': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['eventValue', 'fromValue', 'toValue'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'eventDetails': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'replacementValues': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineNumber({ 'type': 'number' } as const), 'from': SchemaNode.defineNumber({ 'type': 'number' } as const), 'to': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['event', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['capacity', 'eventDetails', 'machineId', 'replacementValues'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'deeply-isolated-history-records' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// empty-machine-id
+const emptyMachineIdSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'message': { 'type': 'string' } }, 'required': ['message'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' } }, 'required': ['capacity', 'machineId'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'empty-machine-id' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const emptyMachineIdNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'empty-machine-id' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// evicts-oldest-when-capacity-exceeded
+const evictsOldestWhenCapacityExceededSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'length': { 'type': 'number' }, 'records': { 'items': { 'additionalProperties': false, 'properties': { 'from': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' }, 'to': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' } }, 'required': ['from', 'to'], 'type': 'object' }, 'type': 'array' } }, 'required': ['length', 'records'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' }, 'steps': { 'type': 'number' } }, 'required': ['capacity', 'machineId', 'steps'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'evicts-oldest-when-capacity-exceeded' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const evictsOldestWhenCapacityExceededNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'length': SchemaNode.defineNumber({ 'type': 'number' } as const), 'records': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'to': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined) }, ['length', 'records'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'steps': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity', 'machineId', 'steps'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'evicts-oldest-when-capacity-exceeded' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// fresh-array-each-call
+const freshArrayEachCallSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'length': { 'type': 'number' }, 'sameReference': { 'type': 'boolean' } }, 'required': ['length', 'sameReference'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' }, 'steps': { 'type': 'number' } }, 'required': ['capacity', 'machineId', 'steps'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'fresh-array-each-call' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const freshArrayEachCallNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'length': SchemaNode.defineNumber({ 'type': 'number' } as const), 'sameReference': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['length', 'sameReference'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'steps': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity', 'machineId', 'steps'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'fresh-array-each-call' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// fully-functional-effect-interpreter
+const fullyFunctionalEffectInterpreterSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'finalState': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' }, 'initialState': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' }, 'logged': { 'items': { 'type': 'string' }, 'type': 'array' } }, 'required': ['finalState', 'initialState', 'logged'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' }, 'message': { 'type': 'string' } }, 'required': ['capacity', 'machineId', 'message'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'fully-functional-effect-interpreter' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const fullyFunctionalEffectInterpreterNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'finalState': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'initialState': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'logged': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['finalState', 'initialState', 'logged'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId', 'message'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'fully-functional-effect-interpreter' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// history-empty-before-transitions
+const historyEmptyBeforeTransitionsSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'historyLength': { 'type': 'number' }, 'initialState': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' } }, 'required': ['historyLength', 'initialState'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' } }, 'required': ['capacity', 'machineId'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'history-empty-before-transitions' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const historyEmptyBeforeTransitionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'historyLength': SchemaNode.defineNumber({ 'type': 'number' } as const), 'initialState': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['historyLength', 'initialState'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'history-empty-before-transitions' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// no-record-for-unchanged-state
+const noRecordForUnchangedStateSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'historyLength': { 'type': 'number' }, 'state': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' } }, 'required': ['historyLength', 'state'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' } }, 'required': ['capacity', 'machineId'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'no-record-for-unchanged-state' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const noRecordForUnchangedStateNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'historyLength': SchemaNode.defineNumber({ 'type': 'number' } as const), 'state': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['historyLength', 'state'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'no-record-for-unchanged-state' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// non-integer-capacity
+const nonIntegerCapacitySchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'message': { 'type': 'string' } }, 'required': ['message'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' } }, 'required': ['capacity', 'machineId'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'non-integer-capacity' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const nonIntegerCapacityNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'non-integer-capacity' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// non-positive-capacity
+const nonPositiveCapacitySchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'message': { 'type': 'string' } }, 'required': ['message'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' } }, 'required': ['capacity', 'machineId'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'non-positive-capacity' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const nonPositiveCapacityNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const) }, ['message'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'non-positive-capacity' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// records-transitions-in-order
+const recordsTransitionsInOrderSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'length': { 'type': 'number' }, 'records': { 'items': { 'additionalProperties': false, 'properties': { 'from': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' }, 'to': { 'additionalProperties': false, 'properties': { 'variant': { 'type': 'string' } }, 'required': ['variant'], 'type': 'object' } }, 'required': ['from', 'to'], 'type': 'object' }, 'type': 'array' } }, 'required': ['length', 'records'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' }, 'steps': { 'type': 'number' } }, 'required': ['capacity', 'machineId', 'steps'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'records-transitions-in-order' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const recordsTransitionsInOrderNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'length': SchemaNode.defineNumber({ 'type': 'number' } as const), 'records': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, { 'from': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'to': SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineString({ 'type': 'string' } as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} }), undefined) }, ['length', 'records'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'steps': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity', 'machineId', 'steps'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'records-transitions-in-order' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+// snapshot-isolated-from-later-transitions
+const snapshotIsolatedFromLaterTransitionsSchema = { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'finalLength': { 'type': 'number' }, 'snapshotLength': { 'type': 'number' } }, 'required': ['finalLength', 'snapshotLength'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'capacity': { 'type': 'number' }, 'machineId': { 'type': 'string' }, 'steps': { 'type': 'number' } }, 'required': ['capacity', 'machineId', 'steps'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'snapshot-isolated-from-later-transitions' } }, 'required': ['description', 'expected', 'input', 'name', 'shape'], 'type': 'object' } as const;
+const snapshotIsolatedFromLaterTransitionsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'finalLength': SchemaNode.defineNumber({ 'type': 'number' } as const), 'snapshotLength': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['finalLength', 'snapshotLength'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const), 'machineId': SchemaNode.defineString({ 'type': 'string' } as const), 'steps': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['capacity', 'machineId', 'steps'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'snapshot-isolated-from-later-transitions' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+
+/** Every distinct `shape` value the spec exercises, discriminated by the `shape` const field. */
 export namespace InterpreterHistoryScenarioCaseEntity {
-  const eventDetailsSchema = {
-    'additionalProperties': false,
-    'properties': { 'value': { 'type': 'number' } },
-    'required': ['value'],
-    'type': 'object'
-  } as const;
-
-  const replacementValuesSchema = {
-    'additionalProperties': false,
-    'properties': { 'event': { 'type': 'number' }, 'from': { 'type': 'number' }, 'to': { 'type': 'number' } },
-    'required': ['event', 'from', 'to'],
-    'type': 'object'
-  } as const;
-
   export const Schema = {
-    'additionalProperties': false,
-    'properties': {
-      'description': { 'minLength': 1, 'type': 'string' },
-      'expected': { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' },
-      'input': {
-        'additionalProperties': false,
-        'properties': {
-          'capacity': { 'type': 'number' },
-          'eventDetails': eventDetailsSchema,
-          'machineId': { 'type': 'string' },
-          'message': { 'type': 'string' },
-          'replacementValues': replacementValuesSchema,
-          'steps': { 'type': 'number' }
-        },
-        'required': ['capacity', 'machineId'],
-        'type': 'object'
-      },
-      'name': { 'minLength': 1, 'type': 'string' },
-      'shape': {
-        'enum': [
-          'empty-machine-id', 'non-positive-capacity', 'non-integer-capacity', 'history-empty-before-transitions',
-          'records-transitions-in-order', 'no-record-for-unchanged-state', 'evicts-oldest-when-capacity-exceeded',
-          'snapshot-isolated-from-later-transitions', 'fresh-array-each-call', 'deeply-isolated-history-records',
-          'fully-functional-effect-interpreter'
-        ]
-      }
-    },
-    'required': ['description', 'expected', 'input', 'name', 'shape'],
-    'type': 'object'
+    'oneOf': [
+      deeplyIsolatedHistoryRecordsSchema,
+      emptyMachineIdSchema,
+      evictsOldestWhenCapacityExceededSchema,
+      freshArrayEachCallSchema,
+      fullyFunctionalEffectInterpreterSchema,
+      historyEmptyBeforeTransitionsSchema,
+      noRecordForUnchangedStateSchema,
+      nonIntegerCapacitySchema,
+      nonPositiveCapacitySchema,
+      recordsTransitionsInOrderSchema,
+      snapshotIsolatedFromLaterTransitionsSchema
+    ]
   } as const;
 
-  const EventDetailsNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-  const ReplacementValuesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'event': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'from': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'to': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    }, ['event', 'from', 'to'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'capacity': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'eventDetails': EventDetailsNode,
-          'machineId': SchemaNode.defineString({ 'type': 'string' } as const),
-          'message': SchemaNode.defineString({ 'type': 'string' } as const),
-          'replacementValues': ReplacementValuesNode,
-          'steps': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        }, ['capacity', 'machineId'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum({}, [
-        'empty-machine-id', 'non-positive-capacity', 'non-integer-capacity', 'history-empty-before-transitions',
-        'records-transitions-in-order', 'no-record-for-unchanged-state', 'evicts-oldest-when-capacity-exceeded',
-        'snapshot-isolated-from-later-transitions', 'fresh-array-each-call', 'deeply-isolated-history-records',
-        'fully-functional-effect-interpreter'
-      ] as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export const Node = SchemaNode.defineOneOf({}, [
+    deeplyIsolatedHistoryRecordsNode,
+    emptyMachineIdNode,
+    evictsOldestWhenCapacityExceededNode,
+    freshArrayEachCallNode,
+    fullyFunctionalEffectInterpreterNode,
+    historyEmptyBeforeTransitionsNode,
+    noRecordForUnchangedStateNode,
+    nonIntegerCapacityNode,
+    nonPositiveCapacityNode,
+    recordsTransitionsInOrderNode,
+    snapshotIsolatedFromLaterTransitionsNode
+  ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

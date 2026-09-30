@@ -1,44 +1,65 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { LockPathHelpers } from '../../src/LockPathHelpers.js';
 import { LockPathHelpersScenarioCaseEntity } from './entities/LockPathHelpersScenarioCaseEntity.js';
-import scenarioGroups from './LockPathHelpers.scenarios.json' with { type: 'json' };
+import scenarioGroups from './LockPathHelpers.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = LockPathHelpersScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(LockPathHelpersScenarioCaseEntity.Schema, LockPathHelpersScenarioCaseEntity.Node);
-
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void> = {
-  'dirname-bare-relative': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.dirname(scenarioCase.input.path), scenarioCase.expected.value);
-  },
-  'dirname-relative-directory': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.dirname(scenarioCase.input.path), scenarioCase.expected.value);
-  },
-  'dirname-absolute-single': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.dirname(scenarioCase.input.path), scenarioCase.expected.value);
-  },
-  'dirname-absolute-multi': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.dirname(scenarioCase.input.path), scenarioCase.expected.value);
-  },
-  'basename-bare-relative': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.basename(scenarioCase.input.path), scenarioCase.expected.value);
-  },
-  'basename-nested': (scenarioCase) => {
-    assert.strictEqual(LockPathHelpers.basename(scenarioCase.input.path), scenarioCase.expected.value);
+class LockPathHelpersRunners {
+  static 'basename-bare-relative'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'basename-bare-relative'>
+  ): void {
+    const result = LockPathHelpers.basename(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'basename-nested'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'basename-nested'>
+  ): void {
+    const result = LockPathHelpers.basename(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
+  }
+
+  static 'dirname-absolute-multi'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'dirname-absolute-multi'>
+  ): void {
+    const result = LockPathHelpers.dirname(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
+  }
+
+  static 'dirname-absolute-single'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'dirname-absolute-single'>
+  ): void {
+    const result = LockPathHelpers.dirname(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
+  }
+
+  static 'dirname-bare-relative'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'dirname-bare-relative'>
+  ): void {
+    const result = LockPathHelpers.dirname(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
+  }
+
+  static 'dirname-relative-directory'(
+    scenarioCase: ScenarioCaseOfType<LockPathHelpersScenarioCaseEntity.Type, 'dirname-relative-directory'>
+  ): void {
+    const result = LockPathHelpers.dirname(scenarioCase.input.path);
+    const expected = scenarioCase.expected.value;
+    assert.strictEqual(result, expected);
+  }
 }
 
-void describe('LockPathHelpers', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': LockPathHelpersScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'LockPathHelpers',
+  'runners': LockPathHelpersRunners
 });

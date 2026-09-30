@@ -50,8 +50,8 @@
       "shape": "date-between-in-range",
       "input": {
         "dateValue": "1990-01-01T00:00:00.000Z",
-        "rangeMax": "2000-01-01T00:00:00.000Z",
-        "rangeMin": "1980-01-01T00:00:00.000Z"
+        "rangeMaximum": "2000-01-01T00:00:00.000Z",
+        "rangeMinimum": "1980-01-01T00:00:00.000Z"
       },
       "expected": {
         "valid": true
@@ -63,8 +63,8 @@
       "shape": "date-between-out-of-range",
       "input": {
         "dateValue": "1990-01-01T00:00:00.000Z",
-        "rangeMax": "1985-01-01T00:00:00.000Z",
-        "rangeMin": "1980-01-01T00:00:00.000Z"
+        "rangeMaximum": "1985-01-01T00:00:00.000Z",
+        "rangeMinimum": "1980-01-01T00:00:00.000Z"
       },
       "expected": {
         "valid": false

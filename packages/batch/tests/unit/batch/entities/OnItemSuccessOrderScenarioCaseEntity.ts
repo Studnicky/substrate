@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { BatchItemsInputEntity } from './common/BatchItemsInputEntity.js';
@@ -25,11 +27,15 @@ export namespace OnItemSuccessOrderScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['order'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': BatchItemsInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'on-item-success-order' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'order': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['order'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': BatchItemsInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'on-item-success-order' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

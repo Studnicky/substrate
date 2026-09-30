@@ -1,16 +1,15 @@
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { inlineArrowFunctions } from '../../../src/rules/v8/inlineArrowFunctions.js';
-import scenarioGroups from './inlineArrowFunctions.scenarios.json' with { type: 'json' };
+import scenarioGroups from './inlineArrowFunctions.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // `projectService`/`tsconfigRootDir` (not bare `sourceType: 'module'`) is required
 // here: the redesigned rule resolves `.forEach` and other per-element iteration
@@ -20,13 +19,13 @@ const repoRoot = resolve(import.meta.dirname, '../../../..');
 // on it would silently pass with zero errors regardless of what the rule
 // actually does — a vacuous test.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });

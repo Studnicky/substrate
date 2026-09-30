@@ -8,20 +8,9 @@
 
 import { Clock, VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 
+import type { ThrottleClockInputInterface } from './ThrottleClockInputInterface.js';
+
 import { Throttle } from '../../src/index.js';
-
-/**
- * Fixed per-operation timing driving a `VirtualClockThrottle`'s virtual
- * clock: `startMs` seeds the counter, `advanceOperationStart()` moves it by
- * `operationSpacingMs`, and `advanceOperationDuration()` moves it by
- * `operationDurationMs`.
- */
-export interface ThrottleClockInputInterface {
-  operationDurationMs: number;
-  operationSpacingMs: number;
-  startMs: number;
-}
-
 
 /**
  * `Throttle` subclass backed by a `VirtualTimeCounter`. `now()` reads the
@@ -35,7 +24,8 @@ export class VirtualClockThrottle extends Throttle {
     input: ThrottleClockInputInterface,
     config?: unknown
   ): VirtualClockThrottle {
-    return new this(config, input);
+    const throttle = new this(config, input);
+    return throttle;
   }
 
   readonly #clock: Clock;
@@ -48,7 +38,7 @@ export class VirtualClockThrottle extends Throttle {
   protected constructor(config: unknown, input: ThrottleClockInputInterface) {
     super(config);
     this.#input = input;
-    this.#counter = VirtualTimeCounter.create({ startMs: input.startMs });
+    this.#counter = VirtualTimeCounter.create({ 'startMs': input.startMs });
     this.#clock = Clock.create(VirtualClockProvider.create(this.#counter));
   }
 

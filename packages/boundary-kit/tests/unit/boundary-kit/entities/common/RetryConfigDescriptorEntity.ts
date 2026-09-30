@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { RetryClassifierDescriptorEntity } from './RetryClassifierDescriptorEntity.js';
@@ -17,8 +19,12 @@ export namespace RetryConfigDescriptorEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'errorClassifier': RetryClassifierDescriptorEntity.Node,
-      'maximumRetries': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'errorClassifier': RetryClassifierDescriptorEntity.Node,
+    'maximumRetries': SchemaNode.defineNumber({ 'type': 'number' } as const)
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The 15 scenario shapes `request-executor.loop.spec.ts` exercises. */
@@ -15,11 +17,11 @@ export namespace RequestExecutorScenarioCaseEntity {
     'type': 'object'
   } as const;
   const RequestExecutorInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'context': SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': SchemaNode.defineString({ 'type': 'string' } as const) }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'deadlineMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'retry': SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximumRetries': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
-    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'context': SchemaNode.defineObject({ 'type': 'object' } as const, { 'name': SchemaNode.defineString({ 'type': 'string' } as const) }, ['name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'deadlineMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
+    'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'type': 'string' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'retry': SchemaNode.defineObject({ 'type': 'object' } as const, { 'maximumRetries': SchemaNode.defineNumber({ 'type': 'number' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const arbitraryValuesArraySchema = { 'items': { 'additionalProperties': true, 'properties': {}, 'type': 'object' }, 'type': 'array' } as const;
   const ArbitraryValuesArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }), undefined);
@@ -378,181 +380,184 @@ export namespace RequestExecutorScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'accepted': SchemaNode.defineConst({}, true as const) }, ['accepted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': ArbitraryValuesArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'entity-validates-deadlines' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'accepted': SchemaNode.defineConst({}, true as const) }, ['accepted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': ArbitraryValuesArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'entity-validates-deadlines' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'accepted': SchemaNode.defineConst({}, false as const) }, ['accepted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': ArbitraryValuesArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'entity-rejects-invalid-deadline' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'accepted': SchemaNode.defineConst({}, false as const) }, ['accepted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': ArbitraryValuesArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'entity-rejects-invalid-deadline' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'requestMethod': SchemaNode.defineConst({}, 'GET' as const),
-            'requestUrl': SchemaNode.defineString({ 'type': 'string' } as const),
-            'responseText': SchemaNode.defineString({ 'type': 'string' } as const),
-            'result': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['requestMethod', 'requestUrl', 'responseText', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fetchInputUrl': SchemaNode.defineString({ 'type': 'string' } as const),
-            'fetchMethod': SchemaNode.defineConst({}, 'GET' as const),
-            'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode,
-            'requestPath': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['fetchInputUrl', 'fetchMethod', 'fetchResponseText', 'requestExecutor', 'requestPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'create-plain-config' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'requestMethod': SchemaNode.defineConst({}, 'GET' as const),
+        'requestUrl': SchemaNode.defineString({ 'type': 'string' } as const),
+        'responseText': SchemaNode.defineString({ 'type': 'string' } as const),
+        'result': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['requestMethod', 'requestUrl', 'responseText', 'result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fetchInputUrl': SchemaNode.defineString({ 'type': 'string' } as const),
+        'fetchMethod': SchemaNode.defineConst({}, 'GET' as const),
+        'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode,
+        'requestPath': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['fetchInputUrl', 'fetchMethod', 'fetchResponseText', 'requestExecutor', 'requestPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'create-plain-config' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'result': SchemaNode.defineString({ 'type': 'string' } as const),
-            'retryTotalRetries': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'sameFetchClient': SchemaNode.defineConst({}, true as const)
-          }, ['result', 'retryTotalRetries', 'sameFetchClient'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'requestExecutor': RequestExecutorInputNode, 'retryFailOnceMessage': SchemaNode.defineString({ 'type': 'string' } as const) }, ['requestExecutor', 'retryFailOnceMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'create-with-instances' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'result': SchemaNode.defineString({ 'type': 'string' } as const),
+        'retryTotalRetries': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'sameFetchClient': SchemaNode.defineConst({}, true as const)
+      }, ['result', 'retryTotalRetries', 'sameFetchClient'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'requestExecutor': RequestExecutorInputNode, 'retryFailOnceMessage': SchemaNode.defineString({ 'type': 'string' } as const) }, ['requestExecutor', 'retryFailOnceMessage'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'create-with-instances' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'responseText': SchemaNode.defineString({ 'type': 'string' } as const) }, ['responseStatus', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const), 'fetchUrl': SchemaNode.defineString({ 'type': 'string' } as const) }, ['fetchResponseText', 'fetchUrl'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'caller-owned-runtime-ports' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'responseText': SchemaNode.defineString({ 'type': 'string' } as const) }, ['responseStatus', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const), 'fetchUrl': SchemaNode.defineString({ 'type': 'string' } as const) }, ['fetchResponseText', 'fetchUrl'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'caller-owned-runtime-ports' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'observedRequestId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['observedRequestId'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'contextValue': SchemaNode.defineString({ 'type': 'string' } as const),
-            'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['contextValue', 'fetchResponseText', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'context-roundtrip' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'observedRequestId': SchemaNode.defineString({ 'type': 'string' } as const) }, ['observedRequestId'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'contextValue': SchemaNode.defineString({ 'type': 'string' } as const),
+        'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['contextValue', 'fetchResponseText', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'context-roundtrip' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'observedSeed': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['observedSeed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'contextSeed': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['contextSeed', 'fetchResponseText', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'context-seeded-values' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'observedSeed': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['observedSeed'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'contextSeed': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['contextSeed', 'fetchResponseText', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'context-seeded-values' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'aborted': SchemaNode.defineConst({}, true as const) }, ['aborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'abortAfterMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['abortAfterMs', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'cancellation-merged-signal' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'aborted': SchemaNode.defineConst({}, true as const) }, ['aborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'abortAfterMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['abortAfterMs', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'cancellation-merged-signal' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'signalAborted': SchemaNode.defineConst({}, false as const) }, ['responseStatus', 'signalAborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fetchDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode,
-            'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['fetchDelayMs', 'fetchPath', 'requestExecutor', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'cancellation-default-signal' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'signalAborted': SchemaNode.defineConst({}, false as const) }, ['responseStatus', 'signalAborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fetchDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode,
+        'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['fetchDelayMs', 'fetchPath', 'requestExecutor', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'cancellation-default-signal' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'signalAborted': SchemaNode.defineConst({}, false as const) }, ['responseStatus', 'signalAborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fetchDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode,
-            'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['fetchDelayMs', 'fetchPath', 'requestExecutor', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'cancellation-deadline-only' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const), 'signalAborted': SchemaNode.defineConst({}, false as const) }, ['responseStatus', 'signalAborted'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fetchDelayMs': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode,
+        'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['fetchDelayMs', 'fetchPath', 'requestExecutor', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'cancellation-deadline-only' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-            'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const)
-          }, ['hookNames', 'responseStatus'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fetchFailures': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['fetchFailures', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'hooks-bracket-retry-loop' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+        'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const)
+      }, ['hookNames', 'responseStatus'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fetchFailures': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['fetchFailures', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'hooks-bracket-retry-loop' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-            'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
-          }, ['errorMessage', 'hookNames'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const), 'requestExecutor': RequestExecutorInputNode }, ['errorMessage', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'hooks-bracket-error' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
+        'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+      }, ['errorMessage', 'hookNames'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const), 'requestExecutor': RequestExecutorInputNode }, ['errorMessage', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'hooks-bracket-error' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-            'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'hookErrorName': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['errorMessage', 'hookErrorCount', 'hookErrorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-            'hookFailureMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['errorMessage', 'hookFailureMessage', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'hooks-error-not-swallowed' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
+        'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'hookErrorName': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['errorMessage', 'hookErrorCount', 'hookErrorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
+        'hookFailureMessage': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['errorMessage', 'hookFailureMessage', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'hooks-error-not-swallowed' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['hookErrorCount', 'responseStatus', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const), 'fetchUrl': SchemaNode.defineString({ 'type': 'string' } as const) }, ['fetchResponseText', 'fetchUrl'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'hooks-noop-default' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'hookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'responseText': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['hookErrorCount', 'responseStatus', 'responseText'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fetchResponseText': SchemaNode.defineString({ 'type': 'string' } as const), 'fetchUrl': SchemaNode.defineString({ 'type': 'string' } as const) }, ['fetchResponseText', 'fetchUrl'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'hooks-noop-default' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'requestPaths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-            'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'responseStatuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-            'responseText': SchemaNode.defineString({ 'type': 'string' } as const),
-            'retryAttempts': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-            'scheduledRetries': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
-          }, ['requestPaths', 'responseStatus', 'responseStatuses', 'responseText', 'retryAttempts', 'scheduledRetries'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fetchFailures': SchemaNode.defineNumber({ 'type': 'number' } as const),
-            'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
-            'requestExecutor': RequestExecutorInputNode
-          }, ['fetchFailures', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'hooks-fire-through-executor' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      'description': SchemaNode.defineString({ 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'requestPaths': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+        'responseStatus': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'responseStatuses': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+        'responseText': SchemaNode.defineString({ 'type': 'string' } as const),
+        'retryAttempts': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+        'scheduledRetries': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+      }, ['requestPaths', 'responseStatus', 'responseStatuses', 'responseText', 'retryAttempts', 'scheduledRetries'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fetchFailures': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'fetchPath': SchemaNode.defineString({ 'type': 'string' } as const),
+        'requestExecutor': RequestExecutorInputNode
+      }, ['fetchFailures', 'fetchPath', 'requestExecutor'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'hooks-fire-through-executor' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

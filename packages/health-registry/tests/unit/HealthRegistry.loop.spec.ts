@@ -1,176 +1,170 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { HealthRegistry } from '../../src/HealthRegistry.js';
-import { HealthCheckOptionsEntity } from '../../src/entities/HealthCheckOptionsEntity.js';
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import timersPromises from 'node:timers/promises';
+
 import type { HealthCheckInterface } from '../../src/interfaces/HealthCheckInterface.js';
 import type { HealthCheckResultInterface } from '../../src/interfaces/HealthCheckResultInterface.js';
+import type { HealthCheckDefinitionEntity } from './entities/HealthCheckDefinitionEntity.js';
+
+import { HealthCheckOptionsEntity } from '../../src/entities/HealthCheckOptionsEntity.js';
+import { HealthRegistry } from '../../src/HealthRegistry.js';
 import { HealthRegistryScenarioCaseEntity } from './entities/HealthRegistryScenarioCaseEntity.js';
-import scenarioGroups from './HealthRegistry.scenarios.json' with { type: 'json' };
+import scenarioGroups from './HealthRegistry.scenarios.json' with { 'type': 'json' };
+import { UnhandledRejectionGuard } from './UnhandledRejectionGuard.js';
 
-const fileIntake = ScenarioFileCompiler.compileIntake(HealthRegistryScenarioCaseEntity.Schema, HealthRegistryScenarioCaseEntity.Node);
-
-function createUnhandledRejectionAssertion(message: string): () => void {
-  return () => { assert.fail(message); };
-}
-
-type ScenarioCase = HealthRegistryScenarioCaseEntity.Type;
-type HealthCheckDefinitionInterface = HealthRegistryScenarioCaseEntity.CheckDefinition;
-
-function createHealthResult(def: HealthCheckDefinitionInterface): HealthCheckResultInterface {
-  assert.ok(def.status !== undefined);
-  if (def.metadata !== undefined) {
-    return { status: def.status, metadata: def.metadata };
-  }
-  return { status: def.status };
-}
-
-function makeCheck(def: HealthCheckDefinitionInterface): HealthCheckInterface {
-  if (def.status !== undefined) {
-    return async () => {
-      return createHealthResult(def);
-    };
+class HealthRegistryRunners {
+  static async 'all-healthy'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'all-healthy'>): Promise<void> {
+    await HealthRegistryRunners.evaluateAndAssertResults(scenarioCase);
   }
 
-  if (def.outcome === 'throw') {
-    return async () => { throw RuntimeError.create('boom'); };
-  }
-
-  if (def.outcome === 'late-throw') {
-    return async () => {
-      assert.ok(def.delayMs !== undefined);
-      await new Promise((resolve) => setTimeout(resolve, def.delayMs));
-      throw RuntimeError.create('late health failure');
-    };
-  }
-
-  return async () => {
-    await new Promise((resolve) => setTimeout(resolve, def.delayMs ?? 200));
-    return { status: 'healthy' as const };
-  };
-}
-
-function createCheckOptions(def: HealthCheckDefinitionInterface): HealthCheckOptionsEntity.Type | undefined {
-  return def.timeoutMs === undefined ? undefined : HealthCheckOptionsEntity.intake({ 'timeoutMs': def.timeoutMs });
-}
-
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-  'all-healthy': async (scenarioCase) => {
-    const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
-    const { results, status } = await registry.evaluate();
-    assert.equal(status, scenarioCase.expected.status);
-    assert.deepEqual([...results.entries()].map(([name, result]) => ({ name, status: result.status })), scenarioCase.expected.results);
-  },
-  'empty-registry-healthy': async (scenarioCase) => {
+  static async 'empty-registry-healthy'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'empty-registry-healthy'>): Promise<void> {
     const registry = HealthRegistry.create();
     const { results, status } = await registry.evaluate();
     assert.equal(status, scenarioCase.expected.status);
     assert.equal(results.size, scenarioCase.expected.resultCount);
-  },
-  'has-and-list-reflect-registration': (scenarioCase) => {
+  }
+
+  static 'has-and-list-reflect-registration'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'has-and-list-reflect-registration'>): void {
     const registry = HealthRegistry.create();
     assert.equal(registry.has(scenarioCase.input.name), scenarioCase.expected.initialHas);
-    registry.register(scenarioCase.input.name, async () => ({ status: 'healthy' }));
+    registry.register(scenarioCase.input.name, () => {
+      const healthy = Promise.resolve({ 'status': 'healthy' as const });
+      return healthy;
+    });
     assert.equal(registry.has(scenarioCase.input.name), scenarioCase.expected.afterRegisterHas);
     assert.deepEqual(registry.list(), scenarioCase.expected.registeredNames);
     registry.unregister(scenarioCase.input.name);
     assert.equal(registry.has(scenarioCase.input.name), scenarioCase.expected.afterUnregisterHas);
     assert.deepEqual(registry.list(), []);
-  },
-  'one-degraded': async (scenarioCase) => {
+  }
+
+  static async 'one-degraded'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'one-degraded'>): Promise<void> {
+    await HealthRegistryRunners.evaluateAndAssertResults(scenarioCase);
+  }
+
+  static async 'one-unhealthy'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'one-unhealthy'>): Promise<void> {
+    await HealthRegistryRunners.evaluateAndAssertResults(scenarioCase);
+  }
+
+  static async 're-register-replaces-check'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 're-register-replaces-check'>): Promise<void> {
     const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
-    const { results, status } = await registry.evaluate();
-    assert.equal(status, scenarioCase.expected.status);
-    assert.deepEqual([...results.entries()].map(([name, result]) => ({ name, status: result.status })), scenarioCase.expected.results);
-  },
-  'one-unhealthy': async (scenarioCase) => {
-    const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
-    const { results, status } = await registry.evaluate();
-    assert.equal(status, scenarioCase.expected.status);
-    assert.deepEqual([...results.entries()].map(([name, result]) => ({ name, status: result.status })), scenarioCase.expected.results);
-  },
-  're-register-replaces-check': async (scenarioCase) => {
-    const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
+    HealthRegistryRunners.registerChecks(registry, scenarioCase.input.checks);
     const { status } = await registry.evaluate();
     assert.equal(status, scenarioCase.expected.status);
-  },
-  'rejecting-check-unhealthy': async (scenarioCase) => {
+  }
+
+  static async 'rejecting-check-unhealthy'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'rejecting-check-unhealthy'>): Promise<void> {
+    await HealthRegistryRunners.evaluateAndAssertResults(scenarioCase);
+  }
+
+  static async 'timed-out-late-rejection-owned'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'timed-out-late-rejection-owned'>): Promise<void> {
     const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
-    const { results, status } = await registry.evaluate();
-    assert.equal(status, scenarioCase.expected.status);
-    assert.deepEqual([...results.entries()].map(([name, result]) => ({ name, status: result.status })), scenarioCase.expected.results);
-  },
-  'timeout-check-unhealthy': async (scenarioCase) => {
-    const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
-    const { results, status } = await registry.evaluate();
-    assert.equal(status, scenarioCase.expected.status);
-    assert.equal(results.get(scenarioCase.input.checks[0]?.name ?? '')?.status, scenarioCase.expected.resultStatus);
-  },
-  'timed-out-late-rejection-owned': async (scenarioCase) => {
-    const registry = HealthRegistry.create();
-    const onUnhandledRejection = createUnhandledRejectionAssertion('timed-out health check produced an unhandled rejection');
-    process.on('unhandledRejection', onUnhandledRejection);
+    const guard = new UnhandledRejectionGuard('timed-out health check produced an unhandled rejection');
+    guard.install();
 
     try {
-      for (const check of scenarioCase.input.checks) {
-        registry.register(check.name, makeCheck(check), createCheckOptions(check));
-      }
+      HealthRegistryRunners.registerChecks(registry, scenarioCase.input.checks);
       const { results, status } = await registry.evaluate();
       assert.equal(status, scenarioCase.expected.status);
       assert.equal(results.get(scenarioCase.input.checks[0]?.name ?? '')?.status, scenarioCase.expected.resultStatus);
-      await new Promise((resolve) => setTimeout(resolve, (scenarioCase.input.checks[0]?.delayMs ?? 0) + 30));
-      await new Promise((resolve) => setImmediate(resolve));
+      await timersPromises.setTimeout((scenarioCase.input.checks[0]?.delayMs ?? 0) + 30);
+      await timersPromises.setImmediate();
       assert.equal(scenarioCase.expected.rejectionEvents, 0);
     } finally {
-      process.off('unhandledRejection', onUnhandledRejection);
+      guard.uninstall();
     }
-  },
-  'unregister-removes-check': async (scenarioCase) => {
+  }
+
+  static async 'timeout-check-unhealthy'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'timeout-check-unhealthy'>): Promise<void> {
     const registry = HealthRegistry.create();
-    for (const check of scenarioCase.input.checks) {
-      registry.register(check.name, makeCheck(check), createCheckOptions(check));
-    }
+    HealthRegistryRunners.registerChecks(registry, scenarioCase.input.checks);
+    const { results, status } = await registry.evaluate();
+    assert.equal(status, scenarioCase.expected.status);
+    assert.equal(results.get(scenarioCase.input.checks[0]?.name ?? '')?.status, scenarioCase.expected.resultStatus);
+  }
+
+  static async 'unregister-removes-check'(scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'unregister-removes-check'>): Promise<void> {
+    const registry = HealthRegistry.create();
+    HealthRegistryRunners.registerChecks(registry, scenarioCase.input.checks);
     registry.unregister(scenarioCase.input.unregister);
     const { results, status } = await registry.evaluate();
     assert.equal(status, scenarioCase.expected.status);
     assert.equal(results.size, scenarioCase.expected.remainingCount);
   }
-};
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  private static createCheck(definition: HealthCheckDefinitionEntity.Type): HealthCheckInterface {
+    if (definition.status !== undefined) {
+      return () => {
+        const result = Promise.resolve(HealthRegistryRunners.createHealthResult(definition));
+        return result;
+      };
+    }
+
+    if (definition.outcome === 'throw') {
+      return () => {
+        const rejection = Promise.reject(RuntimeError.create('boom'));
+        return rejection;
+      };
+    }
+
+    if (definition.outcome === 'late-throw') {
+      return async () => {
+        assert.ok(definition.delayMs !== undefined);
+        await timersPromises.setTimeout(definition.delayMs);
+        throw RuntimeError.create('late health failure');
+      };
+    }
+
+    return async () => {
+      await timersPromises.setTimeout(definition.delayMs ?? 200);
+      const result: HealthCheckResultInterface = { 'status': 'healthy' };
+      return result;
+    };
+  }
+
+  private static createCheckOptions(definition: HealthCheckDefinitionEntity.Type): HealthCheckOptionsEntity.Type | undefined {
+    const options = definition.timeoutMs === undefined ? undefined : HealthCheckOptionsEntity.intake({ 'timeoutMs': definition.timeoutMs });
+    return options;
+  }
+
+  private static createHealthResult(definition: HealthCheckDefinitionEntity.Type): HealthCheckResultInterface {
+    assert.ok(definition.status !== undefined);
+    if (definition.metadata !== undefined) {
+      return { 'metadata': definition.metadata, 'status': definition.status };
+    }
+    return { 'status': definition.status };
+  }
+
+  private static async evaluateAndAssertResults(
+    scenarioCase: ScenarioCaseOfType<HealthRegistryScenarioCaseEntity.Type, 'all-healthy' | 'one-degraded' | 'one-unhealthy' | 'rejecting-check-unhealthy'>
+  ): Promise<void> {
+    const registry = HealthRegistry.create();
+    HealthRegistryRunners.registerChecks(registry, scenarioCase.input.checks);
+    const { results, status } = await registry.evaluate();
+    assert.equal(status, scenarioCase.expected.status);
+    const summary: { 'name': string; 'status': HealthCheckResultInterface['status'] }[] = [];
+    for (const [name, result] of results) {
+      summary.push({ 'name': name, 'status': result.status });
+    }
+    assert.deepEqual(summary, scenarioCase.expected.results);
+  }
+
+  private static registerChecks(registry: HealthRegistry, checks: readonly HealthCheckDefinitionEntity.Type[]): void {
+    for (let index = 0; index < checks.length; index += 1) {
+      const check = checks[index];
+      if (check !== undefined) {
+        registry.register(check.name, HealthRegistryRunners.createCheck(check), HealthRegistryRunners.createCheckOptions(check));
+      }
+    }
+  }
 }
 
-void describe('HealthRegistry', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HealthRegistryScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'HealthRegistry',
+  'runners': HealthRegistryRunners
 });

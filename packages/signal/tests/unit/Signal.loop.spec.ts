@@ -1,269 +1,325 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
-import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
-import { VirtualScheduler } from '@studnicky/scheduler/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import { describe, it } from 'node:test';
-import { setTimeout as delay } from 'node:timers/promises';
+import timersPromises from 'node:timers/promises';
 
-
-
+import type { DeadlineTimerHandleInterface } from '../../src/interfaces/DeadlineTimerHandleInterface.js';
 import type { DeadlineTimerInterface } from '../../src/interfaces/DeadlineTimerInterface.js';
+import type { SignalComposeOptionsInterface } from '../../src/interfaces/SignalComposeOptionsInterface.js';
 
-import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { Signal, SignalError, SignalTimeoutError } from '../../src/index.js';
+import { RaceTimeout } from '../../src/RaceTimeout.js';
 import { SignalScenarioCaseEntity } from './entities/SignalScenarioCaseEntity.js';
-import scenarioGroups from './Signal.scenarios.json' with { type: 'json' };
+import scenarioGroups from './Signal.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(SignalScenarioCaseEntity.Schema, SignalScenarioCaseEntity.Node);
+/** Abort reason carried by every controller the tests abort. */
+class SignalTestAbortError extends BaseError {
+  public override readonly name: string = 'SignalTestAbortError';
 
-/**
- * `DeadlineTimerInterface` backed by a `VirtualScheduler` + paired `VirtualClockProvider`
- * sharing one `VirtualTimeCounter`. `scheduler.advance(ms)` drives it deterministically
- * instead of racing real timers.
- */
-function createVirtualTimers(): { scheduler: VirtualScheduler; timer: DeadlineTimerInterface; scheduledCount: () => number } {
-  const counter = VirtualTimeCounter.create({ 'startMs': 0 });
-  const clock = VirtualClockProvider.create(counter);
-  const scheduler = VirtualScheduler.create({ 'counter': counter });
-  let scheduledCount = 0;
-  const timer: DeadlineTimerInterface = {
-    'now': () => clock.now(),
-    'scheduleAt': (atMs, fire) => {
-      scheduledCount += 1;
-      const handle = scheduler.scheduleAt(atMs, () => {
-        scheduledCount -= 1;
-        fire();
-      });
-      return {
-        'cancel': (): void => {
-          if (scheduledCount > 0) {
-            scheduledCount -= 1;
-          }
-          handle.cancel();
-        }
-      };
-    }
-  };
-  return { scheduler, timer, 'scheduledCount': () => scheduledCount };
+  public constructor(message: string) {
+    super({
+      'code': 'signal.testAbort',
+      'message': message,
+      'retryable': false
+    });
+  }
 }
 
-type ComposeOptions = { deadlineMs?: number; signal?: AbortSignal };
-type ComposeSignalId = 'abort-controller' | 'provided';
-type SerializableComposeOptions = { deadlineMs?: number; signalId?: ComposeSignalId };
-type ComposeRuntime = { controllers: Record<ComposeSignalId, AbortController> };
+/** One scheduled callback of a `VirtualDeadlineTimer`. */
+class VirtualTimerTask implements DeadlineTimerHandleInterface {
+  public active = true;
+  public readonly atMs: number;
+  public readonly fire: () => void;
 
-type ScenarioCase = SignalScenarioCaseEntity.Type;
+  public constructor(atMs: number, fire: () => void) {
+    this.atMs = atMs;
+    this.fire = fire;
+  }
+
+  public cancel(): void {
+    this.active = false;
+  }
+}
+
+/**
+ * `DeadlineTimerInterface` driven by `advance(ms)`, so deadlines fire deterministically
+ * instead of racing real timers.
+ */
+class VirtualDeadlineTimer implements DeadlineTimerInterface {
+  #currentMs = 0;
+  readonly #tasks: VirtualTimerTask[] = [];
+
+  public advance(elapsedMs: number): void {
+    const targetMs = this.#currentMs + elapsedMs;
+    let next = this.#nextDue(targetMs);
+    while (next !== undefined) {
+      next.active = false;
+      this.#currentMs = Math.max(this.#currentMs, next.atMs);
+      next.fire();
+      next = this.#nextDue(targetMs);
+    }
+    this.#currentMs = targetMs;
+  }
+
+  public now(): number {
+    const currentMs = this.#currentMs;
+    return currentMs;
+  }
+
+  public pendingCount(): number {
+    let pending = 0;
+    for (let index = 0; index < this.#tasks.length; index += 1) {
+      if (this.#tasks[index]?.active === true) {
+        pending += 1;
+      }
+    }
+    return pending;
+  }
+
+  public scheduleAt(atMs: number, fire: () => void): DeadlineTimerHandleInterface {
+    const task = new VirtualTimerTask(atMs, fire);
+    this.#tasks.push(task);
+    return task;
+  }
+
+  #nextDue(targetMs: number): VirtualTimerTask | undefined {
+    let next: VirtualTimerTask | undefined;
+    for (let index = 0; index < this.#tasks.length; index += 1) {
+      const task = this.#tasks[index];
+      if (task?.active === true && task.atMs <= targetMs && (next === undefined || task.atMs < next.atMs)) {
+        next = task;
+      }
+    }
+    return next;
+  }
+}
+
+/** The two controllers a scenario's `signalId` selects between. */
+class ComposeRuntime {
+  public readonly abortController = new AbortController();
+  public readonly providedController = new AbortController();
+
+  public controllerFor(signalId: 'abort-controller' | 'provided'): AbortController {
+    const controller = signalId === 'provided' ? this.providedController : this.abortController;
+    return controller;
+  }
+}
+
+/** Mutable builder shape for `SignalComposeOptionsInterface`. */
+interface MutableComposeOptionsInterface {
+  'deadlineMs'?: number;
+  'signal'?: AbortSignal;
+}
+
+interface ComposeCallInterface {
+  readonly 'options': SignalComposeOptionsInterface;
+  readonly 'result': AbortSignal;
+}
+
+class ComposeOptionsFactory {
+  public static materialize(input: { readonly 'deadlineMs'?: number; readonly 'signalId'?: 'abort-controller' | 'provided' }, runtime: ComposeRuntime = new ComposeRuntime()): SignalComposeOptionsInterface {
+    const options: MutableComposeOptionsInterface = {};
+
+    if (input.deadlineMs !== undefined) {
+      options.deadlineMs = input.deadlineMs;
+    }
+
+    if (input.signalId !== undefined) {
+      options.signal = runtime.controllerFor(input.signalId).signal;
+    }
+
+    return options;
+  }
+}
 
 class RecordingSignal extends Signal {
   static override create(): RecordingSignal {
-    return new RecordingSignal();
+    const recording = new RecordingSignal();
+    return recording;
   }
-  public calls: Array<{ options: ComposeOptions; result: AbortSignal }> = [];
+  public calls: ComposeCallInterface[] = [];
 
-  protected override onCompose(options: ComposeOptions, result: AbortSignal): void {
-    this.calls.push({ options, result });
+  protected override onCompose(options: SignalComposeOptionsInterface, result: AbortSignal): void {
+    this.calls.push({ 'options': options, 'result': result });
   }
 }
 
-function createComposeRuntime(): ComposeRuntime {
-  return {
-    controllers: {
-      'abort-controller': new AbortController(),
-      provided: new AbortController()
+class SignalRunners {
+  static async 'async-on-compose-rejection-surfaces'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'async-on-compose-rejection-surfaces'>): Promise<void> {
+    const originalError = RuntimeError.create(scenarioCase.input.message);
+
+    class AsyncThrowingSignal extends Signal {
+      static override create(): AsyncThrowingSignal {
+        const instance = new AsyncThrowingSignal();
+        return instance;
+      }
+      protected override async onCompose(): Promise<void> {
+        await timersPromises.setTimeout(1);
+        throw originalError;
+      }
     }
-  };
-}
 
-const composeSignalMap: Record<ComposeSignalId, (runtime: ComposeRuntime) => AbortSignal> = {
-  'abort-controller': (runtime) => runtime.controllers['abort-controller'].signal,
-  provided: (runtime) => runtime.controllers.provided.signal
-};
-
-function materializeComposeOptions(input: SerializableComposeOptions, runtime?: ComposeRuntime): ComposeOptions {
-  const options: ComposeOptions = {};
-
-  if (input.deadlineMs !== undefined) {
-    options.deadlineMs = input.deadlineMs;
+    await assert.rejects(
+      AsyncThrowingSignal.create().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions)),
+      (caught): boolean => {
+        const thrown: unknown = caught;
+        assert.ok(thrown instanceof HookInvocationError);
+        SignalRunners.assertHookFailure(thrown, scenarioCase.expected.hookName, originalError, scenarioCase.expected.causeMessage);
+        return true;
+      }
+    );
   }
 
-  if (input.signalId !== undefined) {
-    options.signal = composeSignalMap[input.signalId](runtime ?? createComposeRuntime());
+  static async 'compose-deadline-fires'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'compose-deadline-fires'>): Promise<void> {
+    const timer = new VirtualDeadlineTimer();
+    const options = { ...ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions), 'timer': timer };
+    using composed = await Signal.create().compose(options);
+    const composedSignal = composed.signal;
+    assert.ok(composedSignal instanceof AbortSignal);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.initialAborted);
+    timer.advance(scenarioCase.input.waitMs);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.abortedAfterWait);
+    if (scenarioCase.expected.abortedAfterWait) {
+      const reason: unknown = composedSignal.reason;
+      assert.ok(reason instanceof SignalTimeoutError);
+      assert.equal(reason.code, 'signal.timeout');
+      assert.equal(reason.deadlineMs, scenarioCase.input.composeOptions.deadlineMs);
+    }
   }
 
-  return options;
-}
+  static async 'compose-empty-options'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'compose-empty-options'>): Promise<void> {
+    using composed = await Signal.create().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions));
+    const composedSignal = composed.signal;
+    assert.ok(composedSignal instanceof AbortSignal);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.aborted);
+  }
 
-async function runOnComposeRecording(
-  input: { composeOptions: SerializableComposeOptions },
-  expected: { callCount: 1; resultMatches: true }
-): Promise<void> {
-  const s = RecordingSignal.create();
-  const options = materializeComposeOptions(input.composeOptions);
-  using result = await s.compose(options);
-  assert.equal(s.calls.length, expected.callCount);
-  assert.equal(s.calls[0]?.options, options);
-  assert.equal(s.calls[0]?.result, result.signal);
-  assert.ok(s.calls[0]?.result instanceof AbortSignal);
-  assert.equal(result.signal.aborted, false);
-  assert.equal(result.signal === s.calls[0]?.result, expected.resultMatches);
-}
+  static async 'compose-invalid-deadline'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'compose-invalid-deadline'>): Promise<void> {
+    await assert.rejects(
+      Signal.create().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions)),
+      (caught): boolean => {
+        const thrown: unknown = caught;
+        assert.ok(thrown instanceof SignalError);
+        assert.ok(thrown.message.includes(scenarioCase.expected.errorMessageIncludes));
+        return true;
+      }
+    );
+  }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+  static async 'compose-provided-signal'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'compose-provided-signal'>): Promise<void> {
+    const runtime = new ComposeRuntime();
+    using composed = await Signal.create().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions, runtime));
+    const composedSignal = composed.signal;
+    const expectedSignal = runtime.controllerFor(scenarioCase.input.composeOptions.signalId).signal;
+    assert.ok(composedSignal === expectedSignal);
+    assert.equal(composedSignal === expectedSignal, scenarioCase.expected.sameSignal);
+  }
 
-const runnerMap: RunnerMap = {
-  'never-aborts': async (scenarioCase) => {
-    const sig = Signal.never();
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.aborted);
-  },
+  static async 'compose-signal-deadline-abort'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'compose-signal-deadline-abort'>): Promise<void> {
+    const runtime = new ComposeRuntime();
+    using composed = await Signal.create().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions, runtime));
+    const composedSignal = composed.signal;
+    assert.ok(composedSignal instanceof AbortSignal);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.initialAborted);
+    runtime.controllerFor(scenarioCase.input.composeOptions.signalId).abort(new SignalTestAbortError('scenario abort'));
+    assert.equal(composedSignal.aborted, scenarioCase.expected.abortedAfterAbort);
+  }
 
-  'never-distinct-instances': async (scenarioCase) => {
+  static async 'instance-empty-options'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'instance-empty-options'>): Promise<void> {
+    const instance = Signal.create();
+    using composed = await instance.compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions));
+    const composedSignal = composed.signal;
+    assert.ok(composedSignal instanceof AbortSignal);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.aborted);
+  }
+
+  static async 'instance-provided-signal'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'instance-provided-signal'>): Promise<void> {
+    const instance = Signal.create();
+    const runtime = new ComposeRuntime();
+    using composed = await instance.compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions, runtime));
+    const composedSignal = composed.signal;
+    const expectedSignal = runtime.controllerFor(scenarioCase.input.composeOptions.signalId).signal;
+    assert.ok(composedSignal === expectedSignal);
+    assert.equal(composedSignal === expectedSignal, scenarioCase.expected.sameSignal);
+  }
+
+  static 'never-aborts'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'never-aborts'>): void {
+    const neverSignal = Signal.never();
+    assert.ok(neverSignal instanceof AbortSignal);
+    assert.equal(neverSignal.aborted, scenarioCase.expected.aborted);
+  }
+
+  static 'never-distinct-instances'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'never-distinct-instances'>): void {
     const first = Signal.never();
     const second = Signal.never();
     assert.equal(first !== second, scenarioCase.expected.distinctInstances);
     assert.equal(first.aborted, scenarioCase.expected.firstAborted);
     assert.equal(second.aborted, scenarioCase.expected.secondAborted);
-  },
+  }
 
-  'compose-empty-options': async (scenarioCase) => {
-    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions));
-    const sig = composed.signal;
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.aborted);
-  },
+  static async 'on-compose-deadline-only'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'on-compose-deadline-only'>): Promise<void> {
+    await SignalRunners.runOnComposeRecording(scenarioCase);
+  }
 
-  'compose-provided-signal': async (scenarioCase) => {
-    const runtime = createComposeRuntime();
-    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
-    const sig = composed.signal;
-    const expectedSignal = composeSignalMap[scenarioCase.input.composeOptions.signalId](runtime);
-    assert.equal(sig, expectedSignal);
-    assert.equal(sig === expectedSignal, scenarioCase.expected.sameSignal);
-  },
+  static async 'on-compose-empty-options'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'on-compose-empty-options'>): Promise<void> {
+    await SignalRunners.runOnComposeRecording(scenarioCase);
+  }
 
-  'compose-signal-deadline-abort': async (scenarioCase) => {
-    const runtime = createComposeRuntime();
-    using composed = await Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
-    const sig = composed.signal;
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
-    runtime.controllers[scenarioCase.input.composeOptions.signalId].abort();
-    assert.equal(sig.aborted, scenarioCase.expected.abortedAfterAbort);
-  },
+  static async 'on-compose-signal-only'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'on-compose-signal-only'>): Promise<void> {
+    await SignalRunners.runOnComposeRecording(scenarioCase);
+  }
 
-  'compose-deadline-fires': async (scenarioCase) => {
-    const { scheduler, timer } = createVirtualTimers();
-    const options = { ...materializeComposeOptions(scenarioCase.input.composeOptions), timer };
-    using composed = await Signal.create().compose(options);
-    const sig = composed.signal;
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.initialAborted);
-    scheduler.advance(scenarioCase.input.waitMs);
-    assert.equal(sig.aborted, scenarioCase.expected.abortedAfterWait);
-    if (scenarioCase.expected.abortedAfterWait) {
-      assert.ok(sig.reason instanceof SignalTimeoutError);
-      assert.equal(sig.reason.code, 'signal.timeout');
-      assert.equal(sig.reason.deadlineMs, scenarioCase.input.composeOptions.deadlineMs);
-    }
-  },
+  static async 'race-timeout-already-aborted'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'race-timeout-already-aborted'>): Promise<void> {
+    const controller = new AbortController();
+    controller.abort(new SignalTestAbortError('aborted before waiting'));
+    const outcome = await RaceTimeout.wait(20, controller.signal);
+    assert.equal(outcome, scenarioCase.expected.outcome);
+  }
 
-  'compose-invalid-deadline': async (scenarioCase) => {
-    await assert.rejects(
-      Signal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err) => {
-        assert.ok(err instanceof SignalError);
-        assert.ok(err.message.includes(scenarioCase.expected.errorMessageIncludes));
-        return true;
-      }
-    );
-  },
+  static async 'race-timeout-no-signal'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'race-timeout-no-signal'>): Promise<void> {
+    const timer = new VirtualDeadlineTimer();
+    const raceTimeout = RaceTimeout.create({ 'timer': timer });
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, undefined);
+    timer.advance(scenarioCase.input.waitMs);
+    const outcome = await pending;
+    assert.equal(outcome, scenarioCase.expected.outcome);
+  }
 
-  'instance-empty-options': async (scenarioCase) => {
-    const s = Signal.create();
-    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
-    const sig = composed.signal;
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.aborted);
-  },
+  static async 'race-timeout-removes-listener'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'race-timeout-removes-listener'>): Promise<void> {
+    const timer = new VirtualDeadlineTimer();
+    const raceTimeout = RaceTimeout.create({ 'timer': timer });
+    const controller = new AbortController();
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
+    timer.advance(scenarioCase.input.waitMs);
+    const outcome = await pending;
+    assert.equal(outcome, scenarioCase.expected.outcome);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
+  }
 
-  'instance-provided-signal': async (scenarioCase) => {
-    const s = Signal.create();
-    const runtime = createComposeRuntime();
-    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions, runtime));
-    const sig = composed.signal;
-    const expectedSignal = composeSignalMap[scenarioCase.input.composeOptions.signalId](runtime);
-    assert.equal(sig, expectedSignal);
-    assert.equal(sig === expectedSignal, scenarioCase.expected.sameSignal);
-  },
+  static async 'race-timeout-removes-listener-on-abort'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'race-timeout-removes-listener-on-abort'>): Promise<void> {
+    const timer = new VirtualDeadlineTimer();
+    const raceTimeout = RaceTimeout.create({ 'timer': timer });
+    const controller = new AbortController();
+    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
+    controller.abort(new SignalTestAbortError('aborted while waiting'));
+    const outcome = await pending;
+    assert.equal(outcome, scenarioCase.expected.outcome);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
+  }
 
-  'on-compose-signal-only': async (scenarioCase) => {
-    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
-  },
+  static 'signal-error-construction'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'signal-error-construction'>): void {
+    const error = new SignalError(scenarioCase.input.message, RuntimeError.create('cause'));
+    assert.equal(error.code, scenarioCase.expected.code);
+  }
 
-  'on-compose-deadline-only': async (scenarioCase) => {
-    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
-  },
-
-  'on-compose-empty-options': async (scenarioCase) => {
-    await runOnComposeRecording(scenarioCase.input, scenarioCase.expected);
-  },
-
-  'throwing-on-compose-surfaces': async (scenarioCase) => {
-    const originalError = RuntimeError.create(scenarioCase.input.message);
-
-    class ThrowingSignal extends Signal {
-      static build(): ThrowingSignal {
-        return new ThrowingSignal();
-      }
-
-      protected override onCompose(): void {
-        throw originalError;
-      }
-    }
-
-    await assert.rejects(
-      ThrowingSignal.build().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err) => {
-        assert.ok(err instanceof HookInvocationError);
-        assert.equal(err.hookName, scenarioCase.expected.hookName);
-        assert.equal(err.cause, originalError);
-        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
-        return true;
-      }
-    );
-  },
-
-  'async-on-compose-rejection-surfaces': async (scenarioCase) => {
-    const originalError = RuntimeError.create(scenarioCase.input.message);
-
-    class AsyncThrowingSignal extends Signal {
-      static override create(): AsyncThrowingSignal {
-        return new AsyncThrowingSignal();
-      }
-      protected override async onCompose(): Promise<void> {
-        await delay(1);
-        throw originalError;
-      }
-    }
-
-    await assert.rejects(
-      AsyncThrowingSignal.create().compose(materializeComposeOptions(scenarioCase.input.composeOptions)),
-      (err) => {
-        assert.ok(err instanceof HookInvocationError);
-        assert.equal(err.hookName, scenarioCase.expected.hookName);
-        assert.equal(err.cause, originalError);
-        assert.equal(originalError.message, scenarioCase.expected.causeMessage);
-        return true;
-      }
-    );
-  },
-
-  'swallowing-hook-invoker': async (scenarioCase) => {
+  static async 'swallowing-hook-invoker'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'swallowing-hook-invoker'>): Promise<void> {
     class SwallowingHookInvoker extends HookInvoker {
       protected override onHookError(_hookName: string): void {}
     }
@@ -278,123 +334,128 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const s = new SwallowingSignal();
-    using composed = await s.compose(materializeComposeOptions(scenarioCase.input.composeOptions));
-    const sig = composed.signal;
-    assert.ok(sig instanceof AbortSignal);
-    assert.equal(sig.aborted, scenarioCase.expected.aborted);
-  },
-
-  'race-timeout-no-signal': async (scenarioCase) => {
-    const { scheduler, timer } = createVirtualTimers();
-    const raceTimeout = RaceTimeout.create({ timer });
-    const pending = raceTimeout.wait(scenarioCase.input.waitMs, undefined);
-    scheduler.advance(scenarioCase.input.waitMs);
-    const outcome = await pending;
-    assert.equal(outcome, scenarioCase.expected.outcome);
-  },
-
-  'race-timeout-removes-listener': async (scenarioCase) => {
-    const { scheduler, timer } = createVirtualTimers();
-    const raceTimeout = RaceTimeout.create({ timer });
-    const controller = new AbortController();
-    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
-    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
-    scheduler.advance(scenarioCase.input.waitMs);
-    const outcome = await pending;
-    assert.equal(outcome, scenarioCase.expected.outcome);
-    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
-  },
-
-  'race-timeout-removes-listener-on-abort': async (scenarioCase) => {
-    const { timer } = createVirtualTimers();
-    const raceTimeout = RaceTimeout.create({ timer });
-    const controller = new AbortController();
-    const pending = raceTimeout.wait(scenarioCase.input.waitMs, controller.signal);
-    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountBefore);
-    controller.abort();
-    const outcome = await pending;
-    assert.equal(outcome, scenarioCase.expected.outcome);
-    assert.equal(getEventListeners(controller.signal, 'abort').length, scenarioCase.expected.abortListenerCountAfter);
-  },
-
-  'race-timeout-already-aborted': async (scenarioCase) => {
-    const controller = new AbortController();
-    controller.abort();
-    const outcome = await RaceTimeout.wait(20, controller.signal);
-    assert.equal(outcome, scenarioCase.expected.outcome);
-  },
-
-  'signal-error-construction': async (scenarioCase) => {
-    const error = new SignalError(scenarioCase.input.message, RuntimeError.create('cause'));
-    assert.equal(error.code, scenarioCase.expected.code);
+    const instance = new SwallowingSignal();
+    using composed = await instance.compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions));
+    const composedSignal = composed.signal;
+    assert.ok(composedSignal instanceof AbortSignal);
+    assert.equal(composedSignal.aborted, scenarioCase.expected.aborted);
   }
-};
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
-}
+  static async 'throwing-on-compose-surfaces'(scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'throwing-on-compose-surfaces'>): Promise<void> {
+    const originalError = RuntimeError.create(scenarioCase.input.message);
 
-void describe('Signal', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
-});
-
-
-void describe('Signal composed resource', () => {
-  void it('dispose cancels the deadline timer', async () => {
-    const { timer, scheduledCount } = createVirtualTimers();
-    const composed = await Signal.create().compose({ 'deadlineMs': 100, timer });
-    assert.equal(scheduledCount(), 1);
-    composed.dispose();
-    assert.equal(scheduledCount(), 0);
-  });
-
-  void it('dispose is idempotent', async () => {
-    const { timer, scheduledCount } = createVirtualTimers();
-    const composed = await Signal.create().compose({ 'deadlineMs': 100, timer });
-    composed.dispose();
-    composed.dispose();
-    assert.equal(scheduledCount(), 0);
-  });
-
-  void it('abort automatically disposes the deadline timer', async () => {
-    const { timer, scheduledCount } = createVirtualTimers();
-    const controller = new AbortController();
-    const composed = await Signal.create().compose({ 'deadlineMs': 100, 'signal': controller.signal, timer });
-    assert.equal(scheduledCount(), 1);
-    controller.abort();
-    composed.dispose();
-    assert.equal(scheduledCount(), 0);
-  });
-
-  void it('hook failure disposes the deadline timer', async () => {
-    const { timer, scheduledCount } = createVirtualTimers();
-    class FailingSignal extends Signal {
-      static override create(): FailingSignal {
-        return new FailingSignal();
+    class ThrowingSignal extends Signal {
+      static build(): ThrowingSignal {
+        const instance = new ThrowingSignal();
+        return instance;
       }
+
       protected override onCompose(): void {
-        throw RuntimeError.create('compose hook failed');
+        throw originalError;
       }
     }
-    await assert.rejects(FailingSignal.create().compose({ 'deadlineMs': 100, timer }));
-    assert.equal(scheduledCount(), 0);
-  });
-});
 
-void describe('Signal deadline boundaries', () => {
-  const invalidDeadlines = [Number.POSITIVE_INFINITY, 2_147_483_648, 0.5] as const;
+    await assert.rejects(
+      ThrowingSignal.build().compose(ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions)),
+      (caught): boolean => {
+        const thrown: unknown = caught;
+        assert.ok(thrown instanceof HookInvocationError);
+        SignalRunners.assertHookFailure(thrown, scenarioCase.expected.hookName, originalError, scenarioCase.expected.causeMessage);
+        return true;
+      }
+    );
+  }
 
-  for (const deadlineMs of invalidDeadlines) {
-    void it(`rejects deadline ${deadlineMs} before creating a platform timeout`, async () => {
-      await assert.rejects(
-        Signal.create().compose({ deadlineMs }),
-        SignalError
-      );
+  static declaresComposedResource(): void {
+    void describe('Signal composed resource', () => {
+      void it('dispose cancels the deadline timer', async () => {
+        const timer = new VirtualDeadlineTimer();
+        const composed = await Signal.create().compose({ 'deadlineMs': 100, 'timer': timer });
+        assert.equal(timer.pendingCount(), 1);
+        composed.dispose();
+        assert.equal(timer.pendingCount(), 0);
+      });
+
+      void it('dispose is idempotent', async () => {
+        const timer = new VirtualDeadlineTimer();
+        const composed = await Signal.create().compose({ 'deadlineMs': 100, 'timer': timer });
+        composed.dispose();
+        composed.dispose();
+        assert.equal(timer.pendingCount(), 0);
+      });
+
+      void it('abort automatically disposes the deadline timer', async () => {
+        const timer = new VirtualDeadlineTimer();
+        const controller = new AbortController();
+        const composed = await Signal.create().compose({ 'deadlineMs': 100, 'signal': controller.signal, 'timer': timer });
+        assert.equal(timer.pendingCount(), 1);
+        controller.abort(new SignalTestAbortError('aborted by test'));
+        composed.dispose();
+        assert.equal(timer.pendingCount(), 0);
+      });
+
+      void it('hook failure disposes the deadline timer', async () => {
+        const timer = new VirtualDeadlineTimer();
+        class FailingSignal extends Signal {
+          static override create(): FailingSignal {
+            const instance = new FailingSignal();
+            return instance;
+          }
+          protected override onCompose(): void {
+            throw RuntimeError.create('compose hook failed');
+          }
+        }
+        await assert.rejects(FailingSignal.create().compose({ 'deadlineMs': 100, 'timer': timer }));
+        assert.equal(timer.pendingCount(), 0);
+      });
     });
   }
+
+  static declaresDeadlineBoundaries(): void {
+    void describe('Signal deadline boundaries', () => {
+      const invalidDeadlines = [Number.POSITIVE_INFINITY, 2_147_483_648, 0.5] as const;
+
+      for (let index = 0; index < invalidDeadlines.length; index += 1) {
+        const deadlineMs = invalidDeadlines[index];
+        if (typeof deadlineMs === 'number') {
+          void it(`rejects deadline ${deadlineMs} before creating a platform timeout`, async () => {
+            await assert.rejects(
+              Signal.create().compose({ 'deadlineMs': deadlineMs }),
+              SignalError
+            );
+          });
+        }
+      }
+    });
+  }
+
+  private static assertHookFailure(thrown: HookInvocationError, hookName: string, originalError: RuntimeError, causeMessage: string): void {
+    assert.equal(thrown.hookName, hookName);
+    assert.equal(thrown.cause, originalError);
+    assert.equal(originalError.message, causeMessage);
+  }
+
+  private static async runOnComposeRecording(
+    scenarioCase: ScenarioCaseOfType<SignalScenarioCaseEntity.Type, 'on-compose-deadline-only' | 'on-compose-empty-options' | 'on-compose-signal-only'>
+  ): Promise<void> {
+    const recording = RecordingSignal.create();
+    const options = ComposeOptionsFactory.materialize(scenarioCase.input.composeOptions);
+    using result = await recording.compose(options);
+    assert.equal(recording.calls.length, scenarioCase.expected.callCount);
+    assert.ok(recording.calls[0]?.options === options);
+    assert.ok(recording.calls[0]?.result === result.signal);
+    assert.ok(recording.calls[0]?.result instanceof AbortSignal);
+    assert.equal(result.signal.aborted, false);
+    assert.equal(result.signal === recording.calls[0]?.result, scenarioCase.expected.resultMatches);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': SignalScenarioCaseEntity,
+  'extraTests': SignalRunners.declaresComposedResource,
+  'file': scenarioGroups,
+  'name': 'Signal',
+  'runners': SignalRunners
 });
+
+SignalRunners.declaresDeadlineBoundaries();

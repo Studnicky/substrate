@@ -5,19 +5,33 @@ import { FilterTypeGuards } from '../../src/interfaces.js';
 import { ObjectOperators } from '../../src/operators/ObjectOperators.js';
 import { Plugin } from '../../src/plugins/Plugin.js';
 
-const optionalMode = (result = false): boolean => result;
-const restMode = (...results: boolean[]): boolean => results.some(Boolean);
+class FilterModeFixtures {
+  public static optionalMode(result = false): boolean {
+    const outcome = result === true;
+    return outcome;
+  }
+
+  public static requiredMode(result: boolean): boolean {
+    const outcome = result === true;
+    return outcome;
+  }
+
+  public static restMode(...results: boolean[]): boolean {
+    const outcome = results.includes(true);
+    return outcome;
+  }
+}
 
 class FixturePlugin extends Plugin {
   protected override readonly namespace: string = 'FixturePlugin';
 
   public override operators = {
-    'MATCH': (): boolean => true
+    'MATCH': (): boolean => {return true;}
   };
 }
 
-describe('filter runtime guards', () => {
-  it('accepts only complete array wildcard sentinels', () => {
+void describe('filter runtime guards', () => {
+  void it('accepts only complete array wildcard sentinels', () => {
     assert.equal(FilterTypeGuards.isArrayWildcardValue({ 'arrayWildcard': true }), false);
     assert.equal(FilterTypeGuards.isArrayWildcardValue({
       'array': {},
@@ -33,7 +47,7 @@ describe('filter runtime guards', () => {
     }), true);
   });
 
-  it('rejects malformed nested conditions and non-JSON filter values', () => {
+  void it('rejects malformed nested conditions and non-JSON filter values', () => {
     assert.equal(FilterTypeGuards.isFilterCondition({ 'path': 42 }), false);
     assert.equal(FilterTypeGuards.isFilterCondition({
       'conditions': [{ 'field': 42 }],
@@ -41,7 +55,7 @@ describe('filter runtime guards', () => {
     }), false);
     assert.equal(FilterTypeGuards.isFilterCondition({
       'path': 'metadata',
-      'value': new Map()
+      'value': new Map<string, string>()
     }), false);
     assert.equal(FilterTypeGuards.isFilterCondition({
       'conditions': [{ 'field': 'score', 'value': 10 }],
@@ -49,17 +63,17 @@ describe('filter runtime guards', () => {
     }), true);
   });
 
-  it('accepts callable filter modes without inferring a declaration arity', () => {
-    assert.equal(FilterTypeGuards.isFilterModeFunction(optionalMode), true);
-    assert.equal(FilterTypeGuards.isFilterModeFunction(restMode), true);
+  void it('accepts callable filter modes without inferring a declaration arity', () => {
+    assert.equal(FilterTypeGuards.isFilterModeFunction(FilterModeFixtures.optionalMode), true);
+    assert.equal(FilterTypeGuards.isFilterModeFunction(FilterModeFixtures.restMode), true);
     assert.equal(FilterTypeGuards.isFilterModeFunction({}), false);
   });
 
-  it('validates configuration members and nested condition contracts', () => {
+  void it('validates configuration members and nested condition contracts', () => {
     const validConfig: unknown = {
       'conditions': [{ 'path': 'status', 'value': 'active' }],
       'gate': 'CORE.AND',
-      'mode': (result = false): boolean => result,
+      'mode': FilterModeFixtures.optionalMode,
       'plugins': [new FixturePlugin()]
     };
     const malformedConfig: unknown = {
@@ -68,19 +82,19 @@ describe('filter runtime guards', () => {
         'gate': 'CORE.AND'
       }],
       'gate': 'CORE.AND',
-      'mode': (result: boolean): boolean => result
+      'mode': FilterModeFixtures.requiredMode
     };
 
     assert.equal(FilterTypeGuards.isValidFilterConfig(validConfig), true);
     assert.equal(FilterTypeGuards.isValidFilterConfig(malformedConfig), false);
-    assert.equal(FilterTypeGuards.isValidFilterConfig(new Map()), false);
+    assert.equal(FilterTypeGuards.isValidFilterConfig(new Map<string, string>()), false);
   });
 
-  it('requires JSON plain objects for object operators while supporting null prototypes', () => {
-    const nullPrototypeObject = Object.setPrototypeOf({ 'state': 'active' }, null);
+  void it('requires JSON plain objects for object operators while supporting null prototypes', () => {
+    const nullPrototypeObject: unknown = Object.setPrototypeOf({ 'state': 'active' }, null);
 
-    assert.equal(ObjectOperators.isPlainObjectValue(new Map()), false);
-    assert.equal(ObjectOperators.isPlainObjectValue(new Set()), false);
+    assert.equal(ObjectOperators.isPlainObjectValue(new Map<string, string>()), false);
+    assert.equal(ObjectOperators.isPlainObjectValue(new Set<string>()), false);
     assert.equal(ObjectOperators.isPlainObjectValue(nullPrototypeObject), true);
     assert.equal(ObjectOperators.handleHasProperty(nullPrototypeObject, 'state'), true);
   });

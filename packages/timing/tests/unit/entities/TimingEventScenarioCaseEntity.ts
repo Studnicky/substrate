@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { TIMING_STATUS } from '../../../src/constants/index.js';
@@ -40,10 +42,10 @@ export namespace TimingEventScenarioCaseEntity {
   } as const;
 
   const eventWithStatusInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'component': SchemaNode.defineString({ 'type': 'string' } as const),
-      'operation': SchemaNode.defineString({ 'type': 'string' } as const),
-      'status': SchemaNode.defineEnum({}, timingStatusValues)
-    }, ['component', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'component': SchemaNode.defineString({ 'type': 'string' } as const),
+    'operation': SchemaNode.defineString({ 'type': 'string' } as const),
+    'status': SchemaNode.defineEnum({}, timingStatusValues)
+  }, ['component', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -186,58 +188,61 @@ export namespace TimingEventScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': eventInputNode,
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'component-operation-format' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': eventInputNode,
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'component-operation-format' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': eventWithStatusInputNode,
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'domain-specific-status' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': eventWithStatusInputNode,
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'domain-specific-status' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'frozen': SchemaNode.defineConst({}, true as const) }, ['frozen'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': eventInputNode,
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'immutable-event-data' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'frozen': SchemaNode.defineConst({}, true as const) }, ['frozen'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': eventInputNode,
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'immutable-event-data' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': eventWithStatusInputNode,
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'includes-status' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': eventWithStatusInputNode,
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'includes-status' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'firstEvent': SchemaNode.defineString({ 'type': 'string' } as const),
-            'secondEvent': SchemaNode.defineString({ 'type': 'string' } as const)
-          }, ['firstEvent', 'secondEvent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': eventInputNode, 'second': eventInputNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'independent-event-values' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'firstEvent': SchemaNode.defineString({ 'type': 'string' } as const),
+        'secondEvent': SchemaNode.defineString({ 'type': 'string' } as const)
+      }, ['firstEvent', 'secondEvent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': eventInputNode, 'second': eventInputNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'independent-event-values' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'operation': SchemaNode.defineString({ 'type': 'string' } as const) }, ['operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'missing-component' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'operation': SchemaNode.defineString({ 'type': 'string' } as const) }, ['operation'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'missing-component' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': SchemaNode.defineString({ 'type': 'string' } as const) }, ['component'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'missing-operation' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['errorName'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'component': SchemaNode.defineString({ 'type': 'string' } as const) }, ['component'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'missing-operation' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
 
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

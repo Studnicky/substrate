@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { SystemInterface } from '../../../src/interfaces/SystemInterface.js';
+
 import { System } from '../../../src/browser/index.js';
 
 void describe('browser System', () => {

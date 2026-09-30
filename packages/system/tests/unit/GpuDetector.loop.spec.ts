@@ -1,47 +1,60 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { GpuDetector } from '../../src/modules/GpuDetector.js';
 import { GpuDetectorScenarioCaseEntity } from './entities/GpuDetectorScenarioCaseEntity.js';
-import scenarioGroups from './GpuDetector.scenarios.json' with { type: 'json' };
+import scenarioGroups from './GpuDetector.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(GpuDetectorScenarioCaseEntity.Schema, GpuDetectorScenarioCaseEntity.Node);
+class ScriptedGpuDependencies {
+  readonly #outcomes: Map<string, NonNullable<GpuDetectorScenarioCaseEntity.Type['input']['commands']>[string]>;
+  readonly #platform: 'darwin' | 'linux' | 'win32';
 
-function runCase(scenarioCase: GpuDetectorScenarioCaseEntity.Type): void {
-  const result = GpuDetector.detect({
-    'execFileSync': (command: string): Buffer => {
-      const outcome = scenarioCase.input.commands?.[command];
-      if (outcome === undefined) {
-        throw RuntimeError.create(`unexpected command: ${command}`);
-      }
-
-      if (typeof outcome.error === 'string') {
-        throw RuntimeError.create(outcome.error);
-      }
-
-      return Buffer.from(outcome.output ?? '');
-    },
-    'platform': () => scenarioCase.input.platform
-  });
-
-  if (scenarioCase.expected.result === 'null') {
-    assert.equal(result, null);
-    return;
+  constructor(input: GpuDetectorScenarioCaseEntity.Type['input']) {
+    this.#outcomes = new Map(Object.entries(input.commands ?? {}));
+    this.#platform = input.platform;
   }
 
-  assert.deepEqual(result, {
-    'computeApi': scenarioCase.expected.computeApi,
-    'name': scenarioCase.expected.name,
-    'vramMb': scenarioCase.expected.vramMb
-  });
+  execFileSync(command: string): Buffer {
+    const outcome = this.#outcomes.get(command);
+    if (outcome === undefined) {
+      throw RuntimeError.create(`unexpected command: ${command}`);
+    }
+
+    if (typeof outcome.error === 'string') {
+      throw RuntimeError.create(outcome.error);
+    }
+
+    const output = Buffer.from(outcome.output ?? '');
+    return output;
+  }
+
+  platform(): 'darwin' | 'linux' | 'win32' {
+    return this.#platform;
+  }
 }
 
-void describe('GpuDetector', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
-    });
+class GpuDetectorRunners {
+  static 'detect'(scenarioCase: ScenarioCaseOfType<GpuDetectorScenarioCaseEntity.Type, 'detect'>): void {
+    const result = GpuDetector.detect(new ScriptedGpuDependencies(scenarioCase.input));
+
+    if (scenarioCase.expected.result === 'null') {
+      assert.equal(result, null);
+    } else {
+      assert.deepEqual(result, {
+        'computeApi': scenarioCase.expected.computeApi,
+        'name': scenarioCase.expected.name,
+        'vramMb': scenarioCase.expected.vramMb
+      });
+    }
   }
+}
+
+ScenarioSuite.register({
+  'entity': GpuDetectorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'GpuDetector',
+  'runners': GpuDetectorRunners
 });

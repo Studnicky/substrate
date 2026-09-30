@@ -1,9 +1,8 @@
+import { Signal } from '@studnicky/signal/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-import { Signal } from '@studnicky/signal/node';
-import { setTimeout as sleep } from 'node:timers/promises';
+import { setTimeout } from 'node:timers/promises';
 
 import { WorkerPoolError } from '../../src/errors/WorkerPoolError.js';
 import { WorkerPool } from '../../src/WorkerPool.js';
@@ -14,7 +13,7 @@ class SlowComposeSignal extends Signal {
   }
 
   protected override async onCompose(): Promise<void> {
-    await sleep(300);
+    await setTimeout(300);
   }
 }
 
@@ -22,11 +21,12 @@ void describe('WorkerPool platform failures', () => {
   void it('rejects run() with a WorkerPoolError carrying the worker_threads error as cause when the worker script cannot load', async () => {
     const pool = WorkerPool.create<number, number>({ 'concurrency': 1, 'workerPath': '/nonexistent/worker.mjs' });
 
-    await assert.rejects(pool.run([1]), (error: unknown) => {
-      assert.ok(error instanceof WorkerPoolError);
-      assert.equal(error.code, 'workerPool.workerFailed');
-      assert.ok(error.cause instanceof Error);
-      assert.equal(error.message, error.cause.message);
+    await assert.rejects(pool.run([1]), (error) => {
+      const caught: unknown = error;
+      assert.ok(caught instanceof WorkerPoolError);
+      assert.equal(caught.code, 'workerPool.workerFailed');
+      assert.ok(caught.cause instanceof Error);
+      assert.equal(caught.message, caught.cause.message);
       return true;
     });
   });
@@ -38,10 +38,11 @@ void describe('WorkerPool platform failures', () => {
       'workerPath': '/nonexistent/worker.mjs'
     });
 
-    await assert.rejects(pool.run([1]), (error: unknown) => {
-      assert.ok(error instanceof WorkerPoolError);
-      assert.equal(error.code, 'workerPool.workerFailed');
-      assert.ok(error.cause instanceof Error);
+    await assert.rejects(pool.run([1]), (error) => {
+      const caught: unknown = error;
+      assert.ok(caught instanceof WorkerPoolError);
+      assert.equal(caught.code, 'workerPool.workerFailed');
+      assert.ok(caught.cause instanceof Error);
       return true;
     });
   });

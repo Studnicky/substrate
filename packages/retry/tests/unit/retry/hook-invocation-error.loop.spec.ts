@@ -1,60 +1,46 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { setImmediate } from 'node:timers/promises';
+
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 
 import { Retry } from '../../../src/retry/index.js';
 import { HookInvocationErrorScenarioCaseEntity } from '../entities/HookInvocationErrorScenarioCaseEntity.js';
-import scenarioGroups from './hook-invocation-error.scenarios.json' with { type: 'json' };
+import { AsyncHook } from './fixtures/AsyncHook.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import scenarioGroups from './hook-invocation-error.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(HookInvocationErrorScenarioCaseEntity.Schema, HookInvocationErrorScenarioCaseEntity.Node);
-
-type ScenarioCase = HookInvocationErrorScenarioCaseEntity.Type;
-
-type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'async-rejects-are-guarded': async (scenario) => {
+class HookInvocationErrorRunners {
+  static async 'async-rejects-are-guarded'(scenario: ScenarioCaseOfType<HookInvocationErrorScenarioCaseEntity.Type, 'async-rejects-are-guarded'>): Promise<void> {
     const { expected, input } = scenario;
     let unhandledRejectionCount = 0;
     const onUnhandledRejection = (): void => { unhandledRejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
 
-    class RejectingEnterCallRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override async enterCall(
-        _to: RetryCallStateEntity.Type,
-        _from: RetryCallStateEntity.Type
-      ): Promise<void> {
-        await Promise.resolve();
-        throw RuntimeError.create(String(input.message));
-      }
-    }
-
     try {
-      const retry = new RejectingEnterCallRetry(input.retry ?? {});
-      const result = await retry.execute(async () => String(input.result));
+      const retry = Retry.create(input.retry ?? {});
+      assert.strictEqual(Reflect.set(retry, 'enterCall', AsyncHook.rejecting(String(input.message))), true);
+      const result = await retry.execute(ResolvingOperation.of(String(input.result)));
 
-      await new Promise((resolve) => { setImmediate(resolve); });
-      await new Promise((resolve) => { setImmediate(resolve); });
+      await setImmediate();
+      await setImmediate();
 
       assert.strictEqual(result, String(expected.result));
       assert.strictEqual(unhandledRejectionCount, Number(expected.unhandledRejections));
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
-  },
-  'enter-call-swallows': async (scenario) => {
+  }
+
+  static async 'enter-call-swallows'(scenario: ScenarioCaseOfType<HookInvocationErrorScenarioCaseEntity.Type, 'enter-call-swallows'>): Promise<void> {
     const { expected, input } = scenario;
 
     class ThrowingEnterCallRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -64,14 +50,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingEnterCallRetry(input.retry ?? {});
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'hookinvoker-default-throws': async (scenario) => {
+  }
+
+  static 'hookinvoker-default-throws'(scenario: ScenarioCaseOfType<HookInvocationErrorScenarioCaseEntity.Type, 'hookinvoker-default-throws'>): void {
     const { expected, input } = scenario;
     const invoker = new HookInvoker();
     try {
-      await invoker.invoke(String(input.hookName), () => { throw RuntimeError.create(String(input.message)); });
+      invoker.invoke(String(input.hookName), () => { throw RuntimeError.create(String(input.message)); });
       assert.fail('HookInvoker.invoke must reject when its hook throws.');
     } catch (error) {
       assert.ok(error instanceof HookInvocationError);
@@ -81,16 +68,11 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       assert.strictEqual(error.cause.message, String(expected.causeMessage));
     }
   }
-};
-
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
 }
 
-void describe('Retry hook invocation errors', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HookInvocationErrorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Retry hook invocation errors',
+  'runners': HookInvocationErrorRunners
 });

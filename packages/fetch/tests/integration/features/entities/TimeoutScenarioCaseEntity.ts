@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The `timeout.loop.spec.ts` scenario case shape: one `oneOf` branch per `shape`. */
@@ -37,16 +39,36 @@ export namespace TimeoutScenarioCaseEntity {
   } as const;
   const CompletesWithoutTimeoutNode = SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': StatusExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithOptionalTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, 'completes-without-timeout' as const) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  function timeoutErrorBranch<TShape extends string>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': { ...caseFields, 'expected': timeoutErrorExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'request': requestWithTimeoutSchema }, 'required': ['request'], 'type': 'object' }, 'shape': { 'const': shape } },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function timeoutErrorBranchNode<TShape extends string>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': TimeoutErrorExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  class TimeoutScenarioCaseEntityBuilders {
+    static timeoutErrorBranch<TShape extends string>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': { ...caseFields, 'expected': timeoutErrorExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'request': requestWithTimeoutSchema }, 'required': ['request'], 'type': 'object' }, 'shape': { 'const': shape } },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static timeoutErrorBranchNode<TShape extends string>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': TimeoutErrorExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
+
+    static statusWithTimeoutBranch<TShape extends string>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': { ...caseFields, 'expected': statusExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'request': requestWithTimeoutSchema }, 'required': ['request'], 'type': 'object' }, 'shape': { 'const': shape } },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static statusWithTimeoutBranchNode<TShape extends string>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': StatusExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
   }
 
   const reportsTimeoutDetailsSchema = {
@@ -66,23 +88,11 @@ export namespace TimeoutScenarioCaseEntity {
     'type': 'object'
   } as const;
   const ReportsTimeoutDetailsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineConst({}, 'TimeoutError' as const), 'timeoutMs': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'urlIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['errorName', 'timeoutMs', 'urlIncludes'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'reports-timeout-details' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-  function statusWithTimeoutBranch<TShape extends string>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': { ...caseFields, 'expected': statusExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'request': requestWithTimeoutSchema }, 'required': ['request'], 'type': 'object' }, 'shape': { 'const': shape } },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function statusWithTimeoutBranchNode<TShape extends string>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': StatusExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  }
+    ...caseNodeFields,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'errorName': SchemaNode.defineConst({}, 'TimeoutError' as const), 'timeoutMs': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'urlIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['errorName', 'timeoutMs', 'urlIncludes'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'request': RequestWithTimeoutNode }, ['request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'reports-timeout-details' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const appliesDefaultTimeoutSchema = {
     'additionalProperties': false,
@@ -96,11 +106,11 @@ export namespace TimeoutScenarioCaseEntity {
     'type': 'object'
   } as const;
   const AppliesDefaultTimeoutNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': StatusExpectedNode,
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'clientTimeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'request': RequestWithOptionalTimeoutNode }, ['clientTimeout', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'applies-default-timeout' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    ...caseNodeFields,
+    'expected': StatusExpectedNode,
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'clientTimeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'request': RequestWithOptionalTimeoutNode }, ['clientTimeout', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'applies-default-timeout' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const requestOverridesDefaultTimeoutSchema = {
     'additionalProperties': false,
@@ -114,20 +124,20 @@ export namespace TimeoutScenarioCaseEntity {
     'type': 'object'
   } as const;
   const RequestOverridesDefaultTimeoutNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': StatusExpectedNode,
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'clientTimeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'request': RequestWithTimeoutNode }, ['clientTimeout', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'request-overrides-default-timeout' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    ...caseNodeFields,
+    'expected': StatusExpectedNode,
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'clientTimeout': SchemaNode.defineNumber({ 'exclusiveMinimum': 0, 'type': 'integer' } as const), 'request': RequestWithTimeoutNode }, ['clientTimeout', 'request'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'request-overrides-default-timeout' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
       completesWithoutTimeoutSchema,
-      timeoutErrorBranch('times-out-fast-request'),
+      TimeoutScenarioCaseEntityBuilders.timeoutErrorBranch('times-out-fast-request'),
       reportsTimeoutDetailsSchema,
-      statusWithTimeoutBranch('clears-timeout-after-success'),
-      timeoutErrorBranch('supports-timeout-in-get'),
-      statusWithTimeoutBranch('works-with-fast-requests'),
+      TimeoutScenarioCaseEntityBuilders.statusWithTimeoutBranch('clears-timeout-after-success'),
+      TimeoutScenarioCaseEntityBuilders.timeoutErrorBranch('supports-timeout-in-get'),
+      TimeoutScenarioCaseEntityBuilders.statusWithTimeoutBranch('works-with-fast-requests'),
       appliesDefaultTimeoutSchema,
       requestOverridesDefaultTimeoutSchema
     ]
@@ -135,13 +145,16 @@ export namespace TimeoutScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [
     CompletesWithoutTimeoutNode,
-    timeoutErrorBranchNode('times-out-fast-request'),
+    TimeoutScenarioCaseEntityBuilders.timeoutErrorBranchNode('times-out-fast-request'),
     ReportsTimeoutDetailsNode,
-    statusWithTimeoutBranchNode('clears-timeout-after-success'),
-    timeoutErrorBranchNode('supports-timeout-in-get'),
-    statusWithTimeoutBranchNode('works-with-fast-requests'),
+    TimeoutScenarioCaseEntityBuilders.statusWithTimeoutBranchNode('clears-timeout-after-success'),
+    TimeoutScenarioCaseEntityBuilders.timeoutErrorBranchNode('supports-timeout-in-get'),
+    TimeoutScenarioCaseEntityBuilders.statusWithTimeoutBranchNode('works-with-fast-requests'),
     AppliesDefaultTimeoutNode,
     RequestOverridesDefaultTimeoutNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

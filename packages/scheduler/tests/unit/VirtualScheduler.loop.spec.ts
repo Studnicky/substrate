@@ -1,32 +1,44 @@
-import { RuntimeError, HookInvocationError, HookInvoker } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-/**
- * Unit tests for `VirtualScheduler`.
- * Requires `@studnicky/clock` — `VirtualTimeCounter` and `VirtualClockProvider`.
- */
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
+import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
+import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
-import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
-import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
+import type { HeapTaskDescriptorEntity } from './entities/HeapTaskDescriptorEntity.js';
 
-import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
+import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { VirtualSchedulerScenarioCaseEntity } from './entities/VirtualSchedulerScenarioCaseEntity.js';
-import scenarioGroups from './VirtualScheduler.scenarios.json' with { type: 'json' };
+import scenarioGroups from './VirtualScheduler.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(VirtualSchedulerScenarioCaseEntity.Schema, VirtualSchedulerScenarioCaseEntity.Node);
+class FixedNowCounter {
+  readonly #nowMs: number;
 
-type ScenarioCase = VirtualSchedulerScenarioCaseEntity.Type;
-type HeapTaskDescriptor = VirtualSchedulerScenarioCaseEntity.HeapTaskDescriptor;
-type HeapTaskVariant = HeapTaskDescriptor['variant'];
-
-function requiredAuditNumber(value: number | undefined): number {
-  if (value === undefined) {
-    throw RuntimeError.create('Expected a numeric audit field');
+  public constructor(nowMs: number) {
+    this.#nowMs = nowMs;
   }
-  return value;
+
+  public advance(_delta: number): void {}
+
+  public nowMs(): number {
+    return this.#nowMs;
+  }
+}
+
+class ForeignThrower {
+  static rethrow(value: unknown): void {
+    const source = ForeignThrower.suspended();
+    source.next();
+    source.throw(value);
+  }
+
+  private static *suspended(): Generator<number> {
+    yield 1;
+  }
 }
 
 class FireRecord {
@@ -37,139 +49,402 @@ class FireRecord {
   }
 }
 
-type MutableHeapTask = {
-  atMs: number;
-  fire: () => void;
-  id: string;
-  intervalMs: number;
-  variant: HeapTaskVariant;
-};
+interface MutableHeapTaskInterface {
+  'atMs': number;
+  'fire': () => void;
+  'id': string;
+  'intervalMs': number;
+  'variant': HeapTaskDescriptorEntity.Type['variant'];
+}
 
-const heapTaskFireDispatch = {
-  noop: (): (() => void) => {
-    return (): void => { return; };
+class AuditVirtualScheduler extends VirtualScheduler {
+  public scheduleCount = 0;
+  public fireCount = 0;
+  public cancelCount = 0;
+  public cancelAllCount = 0;
+  public advanceCount = 0;
+
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
   }
-} satisfies Record<HeapTaskDescriptor['fire'], () => () => void>;
-const heapTaskMutationDispatch = {
-  atMs: (task: MutableHeapTask, mutation: NonNullable<HeapTaskDescriptor['mutation']>): void => {
-    if (mutation.atMs !== undefined) {
-      task.atMs = mutation.atMs;
-    }
-  },
-  id: (task: MutableHeapTask, mutation: NonNullable<HeapTaskDescriptor['mutation']>): void => {
-    if (mutation.id !== undefined) {
-      task.id = mutation.id;
-    }
+
+  public count(key: 'advanceCount' | 'cancelAllCount' | 'cancelCount' | 'fireCount' | 'scheduleCount'): number {
+    let total = this.scheduleCount;
+    if (key === 'advanceCount') { total = this.advanceCount; }
+    if (key === 'cancelAllCount') { total = this.cancelAllCount; }
+    if (key === 'cancelCount') { total = this.cancelCount; }
+    if (key === 'fireCount') { total = this.fireCount; }
+    return total;
   }
-} satisfies Record<keyof NonNullable<HeapTaskDescriptor['mutation']>, (task: MutableHeapTask, mutation: NonNullable<HeapTaskDescriptor['mutation']>) => void>;
 
-function createCounter(startMs: number): VirtualTimeCounter {
-  return VirtualTimeCounter.create({ startMs });
-}
+  protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
+    this.scheduleCount++;
+  }
 
-function createScheduler(startMs: number): VirtualScheduler {
-  return VirtualScheduler.create({ counter: createCounter(startMs) });
-}
+  protected override onFire(_id: string): void {
+    this.fireCount++;
+  }
 
-function materializeHeapTask(descriptor: HeapTaskDescriptor): MutableHeapTask {
-  return {
-    atMs: descriptor.atMs,
-    fire: heapTaskFireDispatch[descriptor.fire](),
-    id: descriptor.id,
-    intervalMs: descriptor.intervalMs,
-    variant: descriptor.variant
-  };
-}
+  protected override onCancel(_id: string): void {
+    this.cancelCount++;
+  }
 
-function applyHeapTaskMutation(task: MutableHeapTask, mutation: HeapTaskDescriptor['mutation'] = {}): void {
-  for (const applyMutation of Object.values(heapTaskMutationDispatch)) {
-    applyMutation(task, mutation);
+  protected override onCancelAll(): void {
+    this.cancelAllCount++;
+  }
+
+  protected override onAdvance(_deltaMs: number): void {
+    this.advanceCount++;
   }
 }
 
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
+class CounterAccessor extends VirtualScheduler {
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
 
-const runnerMap: RunnerMap = {
-  'virtual-timecounter': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'virtual-timecounter') { throw RuntimeError.create('unreachable: expected virtual-timecounter shape'); }
+  public getCounter(): Readonly<VirtualTimeCounter> {
+    return this.virtualCounter;
+  }
+}
+
+class CancelChecker extends VirtualScheduler {
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  public checkCancelled(id: string): boolean {
+    const result = this.isCancelled(id);
+    return result;
+  }
+}
+
+class SpyHeapScheduler extends VirtualScheduler {
+  public static heapCreatedCount = 0;
+
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override createHeap(): MinimumHeap {
+    SpyHeapScheduler.heapCreatedCount++;
+    const result = MinimumHeap.create();
+    return result;
+  }
+}
+
+class ErrorHookScheduler extends VirtualScheduler {
+  public fireErrorIds: string[] = [];
+  public fireErrorValues: Error[] = [];
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onFireError(id: string, error: Error): void {
+    this.fireErrorIds.push(id);
+    this.fireErrorValues.push(error);
+  }
+}
+
+class AsyncErrorHookScheduler extends VirtualScheduler {
+  public asyncErrorCount = 0;
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onFireError(_id: string, _error: Error): void {
+    this.asyncErrorCount++;
+  }
+}
+
+class FireCountingErrorScheduler extends VirtualScheduler {
+  public errors: Error[] = [];
+  public fireCount = 0;
+
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onFire(_id: string): void {
+    this.fireCount++;
+  }
+
+  protected override onFireError(_id: string, error: Error): void {
+    this.errors.push(error);
+  }
+}
+
+class RescheduleHookScheduler extends VirtualScheduler {
+  public rescheduleIds: string[] = [];
+  public rescheduleAtMs: number[] = [];
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onReschedule(id: string, atMs: number): void {
+    this.rescheduleIds.push(id);
+    this.rescheduleAtMs.push(atMs);
+  }
+}
+
+class IdleHookScheduler extends VirtualScheduler {
+  public idleCount = 0;
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onIdle(): void {
+    this.idleCount++;
+  }
+}
+
+class ThrowingScheduleScheduler extends VirtualScheduler {
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onSchedule(): void {
+    throw RuntimeError.create('onSchedule boom');
+  }
+}
+
+class ThrowingFireScheduler extends VirtualScheduler {
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onFire(): void {
+    throw RuntimeError.create('onFire boom');
+  }
+}
+
+class RecordingHookInvoker extends HookInvoker {
+  public receivedError: HookInvocationError | undefined;
+
+  protected override onHookError(hookName: string, cause: Error): void {
+    this.receivedError = new HookInvocationError(hookName, cause);
+  }
+}
+
+class ObservedThrowingFireScheduler extends VirtualScheduler {
+  protected override readonly hooks: HookInvoker;
+
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>, hooks: HookInvoker) {
+    super(injectedCounter);
+    this.hooks = hooks;
+  }
+
+  protected override onFire(): void {
+    throw RuntimeError.create('onFire boom');
+  }
+}
+
+class ThrowingRescheduleScheduler extends VirtualScheduler {
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onReschedule(): void {
+    throw RuntimeError.create('onReschedule boom');
+  }
+}
+
+class ThrowingFireErrorScheduler extends VirtualScheduler {
+  public fireErrorCount = 0;
+
+  public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
+    super(injectedCounter);
+  }
+
+  protected override onFireError(): void {
+    this.fireErrorCount++;
+    throw RuntimeError.create('onFireError boom');
+  }
+}
+
+class RecordingSwallowingInvoker extends HookInvoker {
+  public readonly recordedHookNames: string[] = [];
+  public readonly recordedCauses: Error[] = [];
+
+  protected override onHookError(hookName: string, cause: Error): void {
+    this.recordedHookNames.push(hookName);
+    this.recordedCauses.push(cause);
+  }
+}
+
+class AsyncRejectingFireScheduler extends VirtualScheduler {
+  protected override readonly hooks: HookInvoker;
+
+  private constructor(injectedCounter: Readonly<VirtualTimeCounter>, hooks: HookInvoker, rejectionError: RuntimeError) {
+    super(injectedCounter);
+    this.hooks = hooks;
+    this.#rejectionError = rejectionError;
+  }
+
+  readonly #rejectionError: RuntimeError;
+
+  public static make(injectedCounter: Readonly<VirtualTimeCounter>, hooks: HookInvoker, rejectionError: RuntimeError): AsyncRejectingFireScheduler {
+    const scheduler = new AsyncRejectingFireScheduler(injectedCounter, hooks, rejectionError);
+    Object.defineProperty(scheduler, 'onFire', { 'value': scheduler.rejectAfterTick });
+    return scheduler;
+  }
+
+  private async rejectAfterTick(): Promise<void> {
+    await Promise.resolve();
+    throw this.#rejectionError;
+  }
+}
+
+class VirtualSchedulerRunners {
+  static 'cancelAll-runAll'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'cancelAll-runAll'>): void {
     const { expected, input } = scenarioCase;
-    const { scheduler } = input;
-    for (const { start, advances, expectedNowMs } of scheduler.counterAdvanceScenarios) {
-      const counter = VirtualTimeCounter.create({ startMs: start });
-      for (const delta of advances) {
-        counter.advance(delta);
-      }
-      assert.strictEqual(counter.nowMs(), expectedNowMs);
+    const { batch, scheduler } = input;
+    const cancelSched = VirtualSchedulerRunners.createScheduler(scheduler.cancelAll.counterStartMs);
+    const rec = new FireRecord();
+    for (let index = 0; index < batch.cancelAllTaskCount; index++) {
+      cancelSched.scheduleAt(scheduler.cancelAll.atMs, () => {
+        rec.record();
+      });
     }
+    cancelSched.cancelAll();
+    cancelSched.advance(scheduler.cancelAll.advanceMs);
+    assert.strictEqual(rec.count, expected.cancelAllFireCount);
 
-    for (const { advance, start, expectedNowMs } of scheduler.edgeCases) {
-      const counter = VirtualTimeCounter.create({ startMs: start });
-      counter.advance(advance);
-      assert.strictEqual(counter.nowMs(), expectedNowMs);
+    const runAllSched = VirtualSchedulerRunners.createScheduler(scheduler.runAll.counterStartMs);
+    const runAllRec = new FireRecord();
+    for (let index = 0; index < batch.runAllTaskCount; index++) {
+      runAllSched.scheduleAt((index + 1) * scheduler.runAll.taskStepMs, () => {
+        runAllRec.record();
+      });
     }
+    runAllSched.runAll();
+    assert.strictEqual(runAllRec.count, expected.runAllFireCount);
+  }
 
-    assert.throws(() => {
-      VirtualTimeCounter.create({ startMs: scheduler.negativeStartMs });
+  static 'edge-cases'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'edge-cases'>): void {
+    const { expected, input } = scenarioCase;
+    const { batch } = input;
+    const edgeInput = input.scheduler;
+    const edgeExpected = expected;
+    const sched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    let fired = false;
+    const task = sched.scheduleAt(edgeInput.cancelledAtMs, () => {
+      fired = true;
     });
+    task.cancel();
+    sched.advance(edgeInput.cancelledAdvanceMs);
+    assert.strictEqual(fired, edgeExpected.cancelledFired);
+    assert.strictEqual(task.atMs, edgeExpected.cancelledTaskAtMs);
+    assert.ok(task.id.length > 0);
 
-    const counter = VirtualTimeCounter.create({ startMs: scheduler.finalCounterStartMs });
-    for (const delta of scheduler.finalCounterAdvances) {
-      counter.advance(delta);
+    const emptySched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    emptySched.cancelAll();
+    emptySched.advance(edgeInput.emptyAdvanceMs);
+
+    const skipSched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    const rec = new FireRecord();
+    const tasks: { readonly 'cancel': () => void }[] = [];
+    for (let index = 0; index < batch.skipCount; index++) {
+      const next = skipSched.scheduleAt((index + 1) * edgeInput.stepMs, () => {
+        rec.record();
+      });
+      tasks.push(next);
     }
-    assert.strictEqual(counter.nowMs(), expected.finalNowMs);
-    return;
-  },
+    const [first] = tasks;
+    first?.cancel();
+    skipSched.runAll();
+    assert.strictEqual(rec.count, edgeExpected.skippedCount);
 
-  'invalid-constructor': (): void => {
+    const runAllEmpty = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    const emptyRecord = new FireRecord();
+    runAllEmpty.runAll();
+    assert.strictEqual(emptyRecord.count, edgeExpected.emptyRecordCount);
+
+    const runUntilSched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    let aFired = false;
+    let bFired = false;
+    runUntilSched.scheduleAt(edgeInput.runUntilFirstAtMs, () => {
+      aFired = true;
+    });
+    runUntilSched.scheduleAt(edgeInput.runUntilSecondAtMs, () => {
+      bFired = true;
+    });
+    runUntilSched.runUntil(edgeInput.runUntilAtMs);
+    assert.strictEqual(aFired, edgeExpected.runUntilFirstFired);
+    assert.strictEqual(bFired, edgeExpected.runUntilSecondFired);
+
+    const intervalSched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    let count = 0;
+    intervalSched.scheduleEvery(edgeInput.intervalMs, () => {
+      count++;
+    });
+    intervalSched.advance(edgeInput.intervalAdvanceMs);
+    assert.strictEqual(count, edgeExpected.intervalCount);
+
+    const zeroSched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    let invalidIntervalErrorCount = 0;
+    for (const intervalMs of edgeInput.invalidIntervals) {
+      assert.throws(() => {
+        zeroSched.scheduleEvery(intervalMs, () => { return; });
+      });
+      invalidIntervalErrorCount++;
+    }
+    assert.strictEqual(invalidIntervalErrorCount, edgeExpected.invalidIntervalErrorCount);
+
+    const cancelledIntervalSched = VirtualSchedulerRunners.createScheduler(edgeInput.counterStartMs);
+    let intervalCount = 0;
+    const intervalTask = cancelledIntervalSched.scheduleEvery(edgeInput.intervalMs, () => {
+      intervalCount++;
+    });
+    cancelledIntervalSched.advance(edgeInput.cancelledIntervalFirstAdvanceMs);
+    intervalTask.cancel();
+    cancelledIntervalSched.advance(edgeInput.cancelledIntervalSecondAdvanceMs);
+    assert.strictEqual(intervalCount, edgeExpected.cancelledIntervalCount);
+  }
+
+  static 'invalid-constructor'(_scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'invalid-constructor'>): void {
     assert.strictEqual(VirtualTimeCounterEntity.validate({}), false);
-    return;
-  },
+  }
 
-  'invalid-interval': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'invalid-interval') { throw RuntimeError.create('unreachable: expected invalid-interval shape'); }
+  static 'invalid-interval'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'invalid-interval'>): void {
     const { scheduler } = scenarioCase.input;
-    const sched = createScheduler(scheduler.startMs);
+    const sched = VirtualSchedulerRunners.createScheduler(scheduler.startMs);
     for (const intervalMs of scheduler.invalidIntervals) {
       assert.throws(() => {
         sched.scheduleEvery(intervalMs, () => { return; });
       });
     }
-    return;
-  },
+  }
 
-  'minimum-heap': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'minimum-heap') { throw RuntimeError.create('unreachable: expected minimum-heap shape'); }
+  static 'minimum-heap'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'minimum-heap'>): void {
     const { expected, input } = scenarioCase;
     const [firstDescriptor, secondDescriptor] = input.scheduler.tasks;
-    const first = materializeHeapTask(firstDescriptor);
-    const second = materializeHeapTask(secondDescriptor);
+    const first = VirtualSchedulerRunners.materializeHeapTask(firstDescriptor);
+    const second = VirtualSchedulerRunners.materializeHeapTask(secondDescriptor);
     const heap = MinimumHeap.create();
 
     heap.insert(first);
     heap.insert(second);
-    applyHeapTaskMutation(first, firstDescriptor.mutation);
-    applyHeapTaskMutation(second, secondDescriptor.mutation);
+    VirtualSchedulerRunners.applyHeapTaskMutation(first, firstDescriptor.mutation);
+    VirtualSchedulerRunners.applyHeapTaskMutation(second, secondDescriptor.mutation);
 
     assert.strictEqual(heap.peekAtMs(), expected.peekAtMs);
     assert.deepStrictEqual(heap.removeMinimum(), {
-      atMs: expected.removedMinimum.atMs,
-      fire: first.fire,
-      id: expected.removedMinimum.id,
-      intervalMs: expected.removedMinimum.intervalMs,
-      variant: expected.removedMinimum.variant
+      'atMs': expected.removedMinimum.atMs,
+      'fire': first.fire,
+      'id': expected.removedMinimum.id,
+      'intervalMs': expected.removedMinimum.intervalMs,
+      'variant': expected.removedMinimum.variant
     });
     assert.strictEqual(heap.peekAtMs(), expected.secondPeekAtMs);
-    return;
-  },
+  }
 
-  'minimum-heap-drain-order': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'minimum-heap-drain-order') { throw RuntimeError.create('unreachable: expected minimum-heap-drain-order shape'); }
+  static 'minimum-heap-drain-order'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'minimum-heap-drain-order'>): void {
     const { expected, input } = scenarioCase;
     const heap = MinimumHeap.create();
 
     for (const task of input.scheduler.tasks) {
-      heap.insert(materializeHeapTask(task));
+      heap.insert(VirtualSchedulerRunners.materializeHeapTask(task));
     }
 
     const drainedAtMs: number[] = [];
@@ -186,16 +461,14 @@ const runnerMap: RunnerMap = {
     assert.deepStrictEqual(drainedIds, expected.drainedIds);
     assert.strictEqual(heap.peekAtMs() === undefined, expected.empty);
     assert.strictEqual(heap.removeMinimum(), undefined);
-    return;
-  },
+  }
 
-  scheduleAt: (scenarioCase): void => {
-    if (scenarioCase.shape !== 'scheduleAt') { throw RuntimeError.create('unreachable: expected scheduleAt shape'); }
+  static 'scheduleAt'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'scheduleAt'>): void {
     const { expected, input } = scenarioCase;
     const scheduleAtExpected = expected;
 
     for (const run of input.scheduler.runs) {
-      const sched = createScheduler(run.counterStartMs);
+      const sched = VirtualSchedulerRunners.createScheduler(run.counterStartMs);
       let fired = false;
       const task = sched.scheduleAt(run.atMs, () => {
         fired = true;
@@ -207,15 +480,13 @@ const runnerMap: RunnerMap = {
       assert.strictEqual(task.atMs, runExpected.atMs);
       assert.strictEqual(task.id.length > 0, runExpected.idNonEmpty);
     }
-    return;
-  },
+  }
 
-  scheduleEvery: (scenarioCase): void => {
-    if (scenarioCase.shape !== 'scheduleEvery') { throw RuntimeError.create('unreachable: expected scheduleEvery shape'); }
+  static 'scheduleEvery'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'scheduleEvery'>): void {
     const { expected, input } = scenarioCase;
 
     for (const run of input.scheduler.runs) {
-      const sched = createScheduler(run.counterStartMs);
+      const sched = VirtualSchedulerRunners.createScheduler(run.counterStartMs);
       let fireCount = 0;
       sched.scheduleEvery(run.intervalMs, () => {
         fireCount++;
@@ -223,125 +494,22 @@ const runnerMap: RunnerMap = {
       sched.advance(run.advanceMs);
       assert.strictEqual(fireCount, expected[run.expectedKey]);
     }
-    return;
-  },
+  }
 
-  'cancelAll-runAll': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'cancelAll-runAll') { throw RuntimeError.create('unreachable: expected cancelAll-runAll shape'); }
-    const { expected, input } = scenarioCase;
-    const { batch, scheduler } = input;
-    const cancelSched = createScheduler(scheduler.cancelAll.counterStartMs);
-    const rec = new FireRecord();
-    for (let index = 0; index < batch.cancelAllTaskCount; index++) {
-      cancelSched.scheduleAt(scheduler.cancelAll.atMs, () => {
-        rec.record();
-      });
-    }
-    cancelSched.cancelAll();
-    cancelSched.advance(scheduler.cancelAll.advanceMs);
-    assert.strictEqual(rec.count, expected.cancelAllFireCount);
+  static async 'subclass-seams'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): Promise<void> {
+    VirtualSchedulerRunners.verifyAuditSeams(scenarioCase);
+    VirtualSchedulerRunners.verifyAccessorSeams(scenarioCase);
+    await VirtualSchedulerRunners.verifyErrorSeams(scenarioCase);
+    VirtualSchedulerRunners.verifyIdleAndRescheduleSeams(scenarioCase);
+    VirtualSchedulerRunners.verifyThrowingHookSeams(scenarioCase);
+    await VirtualSchedulerRunners.verifyAsyncRejectionSeam(scenarioCase);
+  }
 
-    const runAllSched = createScheduler(scheduler.runAll.counterStartMs);
-    const runAllRec = new FireRecord();
-    for (let index = 0; index < batch.runAllTaskCount; index++) {
-      runAllSched.scheduleAt((index + 1) * scheduler.runAll.taskStepMs, () => {
-        runAllRec.record();
-      });
-    }
-    runAllSched.runAll();
-    assert.strictEqual(runAllRec.count, expected.runAllFireCount);
-    return;
-  },
-
-  'edge-cases': (scenarioCase): void => {
-    if (scenarioCase.shape !== 'edge-cases') { throw RuntimeError.create('unreachable: expected edge-cases shape'); }
-    const { expected, input } = scenarioCase;
-    const { batch } = input;
-    const edgeInput = input.scheduler;
-    const edgeExpected = expected;
-    const sched = createScheduler(edgeInput.counterStartMs);
-    let fired = false;
-    const task = sched.scheduleAt(edgeInput.cancelledAtMs, () => {
-      fired = true;
-    });
-    task.cancel();
-    sched.advance(edgeInput.cancelledAdvanceMs);
-    assert.strictEqual(fired, edgeExpected.cancelledFired);
-    assert.strictEqual(task.atMs, edgeExpected.cancelledTaskAtMs);
-    assert.ok(task.id.length > 0);
-
-    const emptySched = createScheduler(edgeInput.counterStartMs);
-    emptySched.cancelAll();
-    emptySched.advance(edgeInput.emptyAdvanceMs);
-
-    const skipSched = createScheduler(edgeInput.counterStartMs);
-    const rec = new FireRecord();
-    const tasks: { readonly cancel: () => void }[] = [];
-    for (let index = 0; index < batch.skipCount; index++) {
-      const next = skipSched.scheduleAt((index + 1) * edgeInput.stepMs, () => {
-        rec.record();
-      });
-      tasks.push(next);
-    }
-    const [first] = tasks;
-    first?.cancel();
-    skipSched.runAll();
-    assert.strictEqual(rec.count, edgeExpected.skippedCount);
-
-    const runAllEmpty = createScheduler(edgeInput.counterStartMs);
-    const emptyRecord = new FireRecord();
-    runAllEmpty.runAll();
-    assert.strictEqual(emptyRecord.count, edgeExpected.emptyRecordCount);
-
-    const runUntilSched = createScheduler(edgeInput.counterStartMs);
-    let aFired = false;
-    let bFired = false;
-    runUntilSched.scheduleAt(edgeInput.runUntilFirstAtMs, () => {
-      aFired = true;
-    });
-    runUntilSched.scheduleAt(edgeInput.runUntilSecondAtMs, () => {
-      bFired = true;
-    });
-    runUntilSched.runUntil(edgeInput.runUntilAtMs);
-    assert.strictEqual(aFired, edgeExpected.runUntilFirstFired);
-    assert.strictEqual(bFired, edgeExpected.runUntilSecondFired);
-
-    const intervalSched = createScheduler(edgeInput.counterStartMs);
-    let count = 0;
-    intervalSched.scheduleEvery(edgeInput.intervalMs, () => {
-      count++;
-    });
-    intervalSched.advance(edgeInput.intervalAdvanceMs);
-    assert.strictEqual(count, edgeExpected.intervalCount);
-
-    const zeroSched = createScheduler(edgeInput.counterStartMs);
-    let invalidIntervalErrorCount = 0;
-    for (const intervalMs of edgeInput.invalidIntervals) {
-      assert.throws(() => {
-        zeroSched.scheduleEvery(intervalMs, () => { return; });
-      });
-      invalidIntervalErrorCount++;
-    }
-    assert.strictEqual(invalidIntervalErrorCount, edgeExpected.invalidIntervalErrorCount);
-
-    const cancelledIntervalSched = createScheduler(edgeInput.counterStartMs);
-    let intervalCount = 0;
-    const intervalTask = cancelledIntervalSched.scheduleEvery(edgeInput.intervalMs, () => {
-      intervalCount++;
-    });
-    cancelledIntervalSched.advance(edgeInput.cancelledIntervalFirstAdvanceMs);
-    intervalTask.cancel();
-    cancelledIntervalSched.advance(edgeInput.cancelledIntervalSecondAdvanceMs);
-    assert.strictEqual(intervalCount, edgeExpected.cancelledIntervalCount);
-    return;
-  },
-
-  'unhappy-path': async (scenarioCase): Promise<void> => {
-    if (scenarioCase.shape !== 'unhappy-path') { throw RuntimeError.create('unreachable: expected unhappy-path shape'); }
+  static async 'unhappy-path'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'unhappy-path'>): Promise<void> {
     const { expected, input } = scenarioCase;
     const unhappyInput = input.scheduler;
     const unhappyExpected = expected;
-    const cancelledSched = createScheduler(unhappyInput.cancelledCounterStartMs);
+    const cancelledSched = VirtualSchedulerRunners.createScheduler(unhappyInput.cancelledCounterStartMs);
     let fired = false;
     const task = cancelledSched.scheduleAt(unhappyInput.cancelAtMs, () => {
       fired = true;
@@ -350,8 +518,8 @@ const runnerMap: RunnerMap = {
     cancelledSched.runAll();
     assert.strictEqual(fired, unhappyExpected.cancelledFired);
 
-    const advanceCounter = createCounter(unhappyInput.advanceCounterStartMs);
-    const advanceSched = VirtualScheduler.create({ counter: advanceCounter });
+    const advanceCounter = VirtualSchedulerRunners.createCounter(unhappyInput.advanceCounterStartMs);
+    const advanceSched = VirtualScheduler.create({ 'counter': advanceCounter });
     let advanceFired = false;
     advanceSched.scheduleAt(unhappyInput.advanceFiredAtMs, () => {
       advanceFired = true;
@@ -362,8 +530,8 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(advanceFired, unhappyExpected.advanceFired);
     assert.strictEqual(advanceCounter.nowMs(), unhappyExpected.advanceCounterNowMs);
 
-    const runUntilCounter = createCounter(unhappyInput.runUntilCounterStartMs);
-    const runUntilSched = VirtualScheduler.create({ counter: runUntilCounter });
+    const runUntilCounter = VirtualSchedulerRunners.createCounter(unhappyInput.runUntilCounterStartMs);
+    const runUntilSched = VirtualScheduler.create({ 'counter': runUntilCounter });
     runUntilSched.scheduleAt(unhappyInput.runUntilRejectAtMs, async () => {
       await Promise.resolve();
       throw RuntimeError.create('runUntil-reject');
@@ -372,8 +540,8 @@ const runnerMap: RunnerMap = {
     await Promise.resolve();
     await Promise.resolve();
 
-    const runAllCounter = createCounter(unhappyInput.runAllCounterStartMs);
-    const runAllSched = VirtualScheduler.create({ counter: runAllCounter });
+    const runAllCounter = VirtualSchedulerRunners.createCounter(unhappyInput.runAllCounterStartMs);
+    const runAllSched = VirtualScheduler.create({ 'counter': runAllCounter });
     runAllSched.scheduleAt(unhappyInput.runAllRejectAtMs, async () => {
       await Promise.resolve();
       throw RuntimeError.create('runAll-reject');
@@ -382,39 +550,17 @@ const runnerMap: RunnerMap = {
     await Promise.resolve();
     await Promise.resolve();
 
-    const provider = VirtualClockProvider.create({
-      advance: (_delta: number): void => {},
-      nowMs: (): number => unhappyInput.providerNowMs
-    });
+    const provider = VirtualClockProvider.create(new FixedNowCounter(unhappyInput.providerNowMs));
     assert.strictEqual(provider.now(), unhappyExpected.providerNowMs);
-    return;
-  },
+  }
 
-  'virtual-fire-error-loop': async (scenarioCase): Promise<void> => {
-    if (scenarioCase.shape !== 'virtual-fire-error-loop') { throw RuntimeError.create('unreachable: expected virtual-fire-error-loop shape'); }
+  static async 'virtual-fire-error-loop'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'virtual-fire-error-loop'>): Promise<void> {
     const fireErrorExpected = scenarioCase.expected;
     const fireErrorInput = scenarioCase.input.scheduler;
 
-    class ErrorHookScheduler extends VirtualScheduler {
-      public errors: Error[] = [];
-      public fireCount = 0;
-
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFire(_id: string): void {
-        this.fireCount++;
-      }
-
-      protected override onFireError(_id: string, error: Error): void {
-        this.errors.push(error);
-      }
-    }
-
     const runUntilSyncError = RuntimeError.create('runUntil sync fire failure');
-    const runUntilSyncCounter = createCounter(fireErrorInput.counterStartMs);
-    const runUntilSync = new ErrorHookScheduler(runUntilSyncCounter);
+    const runUntilSyncCounter = VirtualSchedulerRunners.createCounter(fireErrorInput.counterStartMs);
+    const runUntilSync = new FireCountingErrorScheduler(runUntilSyncCounter);
     runUntilSync.scheduleEvery(fireErrorInput.intervalMs, () => {
       throw runUntilSyncError;
     });
@@ -425,15 +571,18 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(runUntilSync.fireCount, fireErrorExpected.firedAfterIntervalFailure);
 
     const runUntilAsyncError = RuntimeError.create('runUntil async fire failure');
-    const runUntilAsync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
-    runUntilAsync.scheduleAt(fireErrorInput.atMs, () => Promise.reject(runUntilAsyncError));
+    const runUntilAsync = new FireCountingErrorScheduler(VirtualSchedulerRunners.createCounter(fireErrorInput.counterStartMs));
+    runUntilAsync.scheduleAt(fireErrorInput.atMs, () => {
+      const result = Promise.reject(runUntilAsyncError);
+      return result;
+    });
     runUntilAsync.runUntil(fireErrorInput.atMs);
     await Promise.resolve();
     await Promise.resolve();
     assert.deepStrictEqual(runUntilAsync.errors, [runUntilAsyncError]);
 
     const runAllSyncError = RuntimeError.create('runAll sync fire failure');
-    const runAllSync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
+    const runAllSync = new FireCountingErrorScheduler(VirtualSchedulerRunners.createCounter(fireErrorInput.counterStartMs));
     runAllSync.scheduleAt(fireErrorInput.atMs, () => {
       throw runAllSyncError;
     });
@@ -441,419 +590,300 @@ const runnerMap: RunnerMap = {
     assert.deepStrictEqual(runAllSync.errors, [runAllSyncError]);
 
     const runAllAsyncError = RuntimeError.create('runAll async fire failure');
-    const runAllAsync = new ErrorHookScheduler(createCounter(fireErrorInput.counterStartMs));
-    runAllAsync.scheduleAt(fireErrorInput.atMs, () => Promise.reject(runAllAsyncError));
+    const runAllAsync = new FireCountingErrorScheduler(VirtualSchedulerRunners.createCounter(fireErrorInput.counterStartMs));
+    runAllAsync.scheduleAt(fireErrorInput.atMs, () => {
+      const result = Promise.reject(runAllAsyncError);
+      return result;
+    });
     runAllAsync.runAll();
     await Promise.resolve();
     await Promise.resolve();
     assert.deepStrictEqual(runAllAsync.errors, [runAllAsyncError]);
     assert.strictEqual(fireErrorExpected.errorsPerScheduler, 1);
-    return;
-  },
+  }
 
-  'subclass-seams': async (scenarioCase): Promise<void> => {
-    if (scenarioCase.shape !== 'subclass-seams') { throw RuntimeError.create('unreachable: expected subclass-seams shape'); }
+  static 'virtual-timecounter'(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'virtual-timecounter'>): void {
+    const { expected, input } = scenarioCase;
+    const { scheduler } = input;
+    for (const { advances, expectedNowMs, start } of scheduler.counterAdvanceScenarios) {
+      const counter = VirtualTimeCounter.create({ 'startMs': start });
+      for (const delta of advances) {
+        counter.advance(delta);
+      }
+      assert.strictEqual(counter.nowMs(), expectedNowMs);
+    }
+
+    for (const { advance, expectedNowMs, start } of scheduler.edgeCases) {
+      const counter = VirtualTimeCounter.create({ 'startMs': start });
+      counter.advance(advance);
+      assert.strictEqual(counter.nowMs(), expectedNowMs);
+    }
+
+    assert.throws(() => {
+      VirtualTimeCounter.create({ 'startMs': scheduler.negativeStartMs });
+    });
+
+    const counter = VirtualTimeCounter.create({ 'startMs': scheduler.finalCounterStartMs });
+    for (const delta of scheduler.finalCounterAdvances) {
+      counter.advance(delta);
+    }
+    assert.strictEqual(counter.nowMs(), expected.finalNowMs);
+  }
+
+  static declaresExtraTests(): void {
+    void it('forwards cross-realm task errors to onFireError', () => {
+      class CrossRealmErrorScheduler extends VirtualScheduler {
+        public readonly errors: Error[] = [];
+
+        public constructor(counter: Readonly<VirtualTimeCounter>) {
+          super(counter);
+        }
+
+        protected override onFireError(_id: string, error: Error): void {
+          this.errors.push(error);
+        }
+      }
+
+      const error: unknown = runInNewContext('new Error("foreign worker failure")');
+      const scheduler = new CrossRealmErrorScheduler(VirtualSchedulerRunners.createCounter(0));
+      scheduler.scheduleAt(0, (): void => { ForeignThrower.rethrow(error); });
+      scheduler.runAll();
+
+      assert.strictEqual(scheduler.errors[0], error);
+    });
+  }
+
+  private static verifyAuditSeams(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): void {
     const { expected, input } = scenarioCase;
     const { batch } = input;
-    class AuditVirtualScheduler extends VirtualScheduler {
-      public scheduleCount = 0;
-      public fireCount = 0;
-      public cancelCount = 0;
-      public cancelAllCount = 0;
-      public advanceCount = 0;
-
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {
-        this.scheduleCount++;
-      }
-
-      protected override onFire(_id: string): void {
-        this.fireCount++;
-      }
-
-      protected override onCancel(_id: string): void {
-        this.cancelCount++;
-      }
-
-      protected override onCancelAll(): void {
-        this.cancelAllCount++;
-      }
-
-      protected override onAdvance(_deltaMs: number): void {
-        this.advanceCount++;
-      }
-    }
-
     const subclassInput = input.scheduler;
-    const subclassExpected = expected;
-    type AuditScenarioDescriptor = (typeof subclassInput)['auditScenarios'][number];
-    type AuditActionName = AuditScenarioDescriptor['action'];
-    type AuditCountKey = AuditScenarioDescriptor['expectedKey'];
-    const auditActionDispatch = {
-      advance: (sched, scenario): void => {
-        sched.advance(requiredAuditNumber(scenario.advanceMs));
-      },
-      schedule: (sched, scenario): void => {
-        sched.scheduleAt(requiredAuditNumber(scenario.atMs), () => { return; });
-      },
-      'schedule-and-advance': (sched, scenario): void => {
-        sched.scheduleAt(requiredAuditNumber(scenario.atMs), () => { return; });
-        sched.advance(requiredAuditNumber(scenario.advanceMs));
-      },
-      'schedule-and-cancel': (sched, scenario): void => {
-        const task = sched.scheduleAt(requiredAuditNumber(scenario.atMs), () => { return; });
-        task.cancel();
-      },
-      'schedule-and-cancel-all': (sched, scenario): void => {
-        sched.scheduleAt(requiredAuditNumber(scenario.atMs), () => { return; });
-        sched.cancelAll();
-      }
-    } satisfies Record<AuditActionName, (sched: AuditVirtualScheduler, scenario: AuditScenarioDescriptor) => void>;
-    const auditCountDispatch = {
-      advanceCount: (sched): number => sched.advanceCount,
-      cancelAllCount: (sched): number => sched.cancelAllCount,
-      cancelCount: (sched): number => sched.cancelCount,
-      fireCount: (sched): number => sched.fireCount,
-      scheduleCount: (sched): number => sched.scheduleCount
-    } satisfies Record<AuditCountKey, (sched: AuditVirtualScheduler) => number>;
-
-    for (const scenario of subclassInput.auditScenarios) {
-      const counter = createCounter(scenario.counterStartMs);
-      const sched = new AuditVirtualScheduler(counter);
-      auditActionDispatch[scenario.action](sched, scenario);
-      assert.strictEqual(auditCountDispatch[scenario.expectedKey](sched), subclassExpected[scenario.expectedKey]);
+    const auditScenarios = subclassInput.auditScenarios;
+    for (let index = 0; index < auditScenarios.length; index += 1) {
+      const scenario = auditScenarios[index];
+      assert.ok(scenario !== undefined);
+      const sched = new AuditVirtualScheduler(VirtualSchedulerRunners.createCounter(scenario.counterStartMs));
+      VirtualSchedulerRunners.performAuditAction(sched, scenario);
+      assert.strictEqual(sched.count(scenario.expectedKey), expected[scenario.expectedKey]);
     }
 
-    const repeatCounter = createCounter(subclassInput.counterStartMs);
-    const repeatSched = new AuditVirtualScheduler(repeatCounter);
+    const repeatSched = new AuditVirtualScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     const repeatTask = repeatSched.scheduleAt(subclassInput.cancelAtMs, () => { return; });
     for (let index = 0; index < batch.repeatCancelCount; index++) {
       repeatTask.cancel();
     }
     repeatSched.advance(subclassInput.advanceMs);
-    assert.strictEqual(repeatSched.cancelCount, subclassExpected.cancelRepeatCount);
-    assert.strictEqual(repeatSched.fireCount, subclassExpected.cancelRepeatFireCount);
+    assert.strictEqual(repeatSched.cancelCount, expected.cancelRepeatCount);
+    assert.strictEqual(repeatSched.fireCount, expected.cancelRepeatFireCount);
 
-    const cancelAfterFireCounter = createCounter(subclassInput.counterStartMs);
-    const cancelAfterFireSched = new AuditVirtualScheduler(cancelAfterFireCounter);
+    const cancelAfterFireSched = new AuditVirtualScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     const cancelAfterFireTask = cancelAfterFireSched.scheduleAt(subclassInput.cancelAfterFireAtMs, () => { return; });
     cancelAfterFireSched.advance(subclassInput.advanceMs);
     for (let index = 0; index < batch.repeatCancelCount; index++) {
       cancelAfterFireTask.cancel();
     }
-    assert.strictEqual(cancelAfterFireSched.fireCount, subclassExpected.cancelAfterFireFireCount);
-    assert.strictEqual(cancelAfterFireSched.cancelCount, subclassExpected.cancelAfterFireCancelCount);
+    assert.strictEqual(cancelAfterFireSched.fireCount, expected.cancelAfterFireFireCount);
+    assert.strictEqual(cancelAfterFireSched.cancelCount, expected.cancelAfterFireCancelCount);
+  }
 
-    class CounterAccessor extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      public getCounter(): Readonly<VirtualTimeCounter> {
-        return this.virtualCounter;
-      }
+  private static performAuditAction(
+    sched: AuditVirtualScheduler,
+    scenario: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>['input']['scheduler']['auditScenarios'][number]
+  ): void {
+    if (scenario.action === 'advance') {
+      sched.advance(VirtualSchedulerRunners.requiredAuditNumber(scenario.advanceMs));
     }
-    const counter = createCounter(subclassInput.counterStartMs);
-    const accessor = new CounterAccessor(counter);
-    assert.strictEqual(accessor.getCounter().nowMs(), subclassExpected.counterAccessorNowMs);
-
-    class CancelChecker extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      public checkCancelled(id: string): boolean {
-        return this.isCancelled(id);
-      }
+    if (scenario.action === 'schedule') {
+      sched.scheduleAt(VirtualSchedulerRunners.requiredAuditNumber(scenario.atMs), () => { return; });
     }
-    const cancelCounter = createCounter(subclassInput.counterStartMs);
-    const cancelChecker = new CancelChecker(cancelCounter);
+    if (scenario.action === 'schedule-and-advance') {
+      sched.scheduleAt(VirtualSchedulerRunners.requiredAuditNumber(scenario.atMs), () => { return; });
+      sched.advance(VirtualSchedulerRunners.requiredAuditNumber(scenario.advanceMs));
+    }
+    if (scenario.action === 'schedule-and-cancel') {
+      const task = sched.scheduleAt(VirtualSchedulerRunners.requiredAuditNumber(scenario.atMs), () => { return; });
+      task.cancel();
+    }
+    if (scenario.action === 'schedule-and-cancel-all') {
+      sched.scheduleAt(VirtualSchedulerRunners.requiredAuditNumber(scenario.atMs), () => { return; });
+      sched.cancelAll();
+    }
+  }
+
+  private static verifyAccessorSeams(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): void {
+    const { expected, input } = scenarioCase;
+    const subclassInput = input.scheduler;
+    const accessor = new CounterAccessor(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
+    assert.strictEqual(accessor.getCounter().nowMs(), expected.counterAccessorNowMs);
+
+    const cancelChecker = new CancelChecker(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     const cancelTask = cancelChecker.scheduleAt(subclassInput.cancelAtMs, () => { return; });
     cancelTask.cancel();
-    assert.strictEqual(cancelChecker.checkCancelled(cancelTask.id), subclassExpected.cancelCheckerCancelled);
+    assert.strictEqual(cancelChecker.checkCancelled(cancelTask.id), expected.cancelCheckerCancelled);
 
-    let heapCreatedCount = 0;
-    class SpyHeapScheduler extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override createHeap(): MinimumHeap {
-        heapCreatedCount++;
-        return MinimumHeap.create();
-      }
-    }
-    const heapCounter = createCounter(subclassInput.counterStartMs);
-    const heapSched = new SpyHeapScheduler(heapCounter);
-    assert.strictEqual(heapCreatedCount, subclassExpected.heapCreatedCount);
+    SpyHeapScheduler.heapCreatedCount = 0;
+    const heapSched = new SpyHeapScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
+    assert.strictEqual(SpyHeapScheduler.heapCreatedCount, expected.heapCreatedCount);
     let fired = false;
     heapSched.scheduleAt(subclassInput.heapAtMs, () => { fired = true; });
     heapSched.advance(subclassInput.advanceMs);
-    assert.strictEqual(fired, subclassExpected.heapFired);
+    assert.strictEqual(fired, expected.heapFired);
+  }
 
-    class ErrorHookScheduler extends VirtualScheduler {
-      public fireErrorIds: string[] = [];
-      public fireErrorValues: Error[] = [];
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFireError(id: string, error: Error): void {
-        this.fireErrorIds.push(id);
-        this.fireErrorValues.push(error);
-      }
-    }
-    const errorCounter = createCounter(subclassInput.counterStartMs);
-    const errorSched = new ErrorHookScheduler(errorCounter);
+  private static async verifyErrorSeams(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const subclassInput = input.scheduler;
+    const errorSched = new ErrorHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     const thrownError = RuntimeError.create('task boom');
     errorSched.scheduleAt(subclassInput.fireErrorAtMs, () => { throw thrownError; });
     errorSched.runAll();
-    assert.strictEqual(errorSched.fireErrorIds.length, subclassExpected.fireErrorCount);
+    assert.strictEqual(errorSched.fireErrorIds.length, expected.fireErrorCount);
     assert.strictEqual(errorSched.fireErrorValues[0], thrownError);
 
-    const advanceErrorCounter = createCounter(subclassInput.counterStartMs);
-    const advanceErrorSched = new ErrorHookScheduler(advanceErrorCounter);
+    const advanceErrorSched = new ErrorHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     advanceErrorSched.scheduleAt(subclassInput.fireErrorAtMs, () => { throw RuntimeError.create('sync throw'); });
     advanceErrorSched.advance(subclassInput.advanceMs);
-    assert.strictEqual(advanceErrorSched.fireErrorIds.length, subclassExpected.fireErrorCount);
+    assert.strictEqual(advanceErrorSched.fireErrorIds.length, expected.fireErrorCount);
 
-    class AsyncErrorHookScheduler extends VirtualScheduler {
-      public asyncErrorCount = 0;
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFireError(_id: string, _error: Error): void {
-        this.asyncErrorCount++;
-      }
-    }
-    const asyncCounter = createCounter(subclassInput.counterStartMs);
-    const asyncSched = new AsyncErrorHookScheduler(asyncCounter);
-    asyncSched.scheduleAt(subclassInput.fireRejectAtMs, async () => { throw RuntimeError.create('async reject'); });
+    const asyncSched = new AsyncErrorHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
+    asyncSched.scheduleAt(subclassInput.fireRejectAtMs, async () => { return await Promise.reject(RuntimeError.create('async reject')); });
     asyncSched.runAll();
     await Promise.resolve();
     await Promise.resolve();
-    assert.strictEqual(asyncSched.asyncErrorCount, subclassExpected.asyncErrorCount);
+    assert.strictEqual(asyncSched.asyncErrorCount, expected.asyncErrorCount);
+  }
 
-    class RescheduleHookScheduler extends VirtualScheduler {
-      public rescheduleIds: string[] = [];
-      public rescheduleAtMs: number[] = [];
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onReschedule(id: string, atMs: number): void {
-        this.rescheduleIds.push(id);
-        this.rescheduleAtMs.push(atMs);
-      }
-    }
-    const rescheduleCounter = createCounter(subclassInput.counterStartMs);
-    const rescheduleSched = new RescheduleHookScheduler(rescheduleCounter);
+  private static verifyIdleAndRescheduleSeams(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): void {
+    const { expected, input } = scenarioCase;
+    const subclassInput = input.scheduler;
+    const rescheduleSched = new RescheduleHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     rescheduleSched.scheduleEvery(subclassInput.intervalMs, () => { return; });
     rescheduleSched.advance(subclassInput.rescheduleAdvanceMs);
-    assert.strictEqual(rescheduleSched.rescheduleIds.length, subclassExpected.rescheduleCount);
-    assert.deepStrictEqual(rescheduleSched.rescheduleAtMs, subclassExpected.rescheduleAtMs);
+    assert.strictEqual(rescheduleSched.rescheduleIds.length, expected.rescheduleCount);
+    assert.deepStrictEqual(rescheduleSched.rescheduleAtMs, expected.rescheduleAtMs);
 
-    class IdleHookScheduler extends VirtualScheduler {
-      public idleCount = 0;
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onIdle(): void {
-        this.idleCount++;
-      }
-    }
-    const idleCounter = createCounter(subclassInput.counterStartMs);
-    const idleSched = new IdleHookScheduler(idleCounter);
+    const idleSched = new IdleHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     idleSched.scheduleAt(subclassInput.idleAtMs, () => { return; });
     idleSched.runAll();
-    assert.strictEqual(idleSched.idleCount, subclassExpected.idleCount);
-    const idleAdvanceCounter = createCounter(subclassInput.counterStartMs);
-    const idleAdvanceSched = new IdleHookScheduler(idleAdvanceCounter);
+    assert.strictEqual(idleSched.idleCount, expected.idleCount);
+    const idleAdvanceSched = new IdleHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     idleAdvanceSched.scheduleAt(subclassInput.idleAtMs, () => { return; });
     idleAdvanceSched.advance(subclassInput.idleAdvanceMs);
-    assert.strictEqual(idleAdvanceSched.idleCount, subclassExpected.idleCount);
-    const idleCancelCounter = createCounter(subclassInput.counterStartMs);
-    const idleCancelSched = new IdleHookScheduler(idleCancelCounter);
+    assert.strictEqual(idleAdvanceSched.idleCount, expected.idleCount);
+    const idleCancelSched = new IdleHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     idleCancelSched.scheduleAt(subclassInput.idleAtMs, () => { return; });
     idleCancelSched.cancelAll();
-    assert.strictEqual(idleCancelSched.idleCount, subclassExpected.idleCount);
-    const idlePartialCounter = createCounter(subclassInput.counterStartMs);
-    const idlePartialSched = new IdleHookScheduler(idlePartialCounter);
+    assert.strictEqual(idleCancelSched.idleCount, expected.idleCount);
+    const idlePartialSched = new IdleHookScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     idlePartialSched.scheduleAt(subclassInput.idleAtMs, () => { return; });
     idlePartialSched.scheduleAt(subclassInput.idleSecondAtMs, () => { return; });
     idlePartialSched.advance(subclassInput.idleAdvanceMs);
-    assert.strictEqual(idlePartialSched.idleCount, subclassExpected.idlePartialCount);
+    assert.strictEqual(idlePartialSched.idleCount, expected.idlePartialCount);
+  }
 
-    class ThrowingScheduleScheduler extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
+  private static verifyThrowingHookSeams(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): void {
+    const { expected, input } = scenarioCase;
+    const subclassInput = input.scheduler;
+    const throwingSchedule = new ThrowingScheduleScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
+    assert.strictEqual(throwingSchedule.scheduleAt(subclassInput.scheduleAtMs, () => { return; }).id.length > 0, expected.throwingScheduleIdNonEmpty);
 
-      protected override onSchedule(): void {
-        throw RuntimeError.create('onSchedule boom');
-      }
-    }
-    const throwingScheduleCounter = createCounter(subclassInput.counterStartMs);
-    const throwingSchedule = new ThrowingScheduleScheduler(throwingScheduleCounter);
-    assert.strictEqual(throwingSchedule.scheduleAt(subclassInput.scheduleAtMs, () => { return; }).id.length > 0, subclassExpected.throwingScheduleIdNonEmpty);
-
-    class ThrowingFireScheduler extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFire(): void {
-        throw RuntimeError.create('onFire boom');
-      }
-    }
-    const throwingFireCounter = createCounter(subclassInput.counterStartMs);
-    const throwingFire = new ThrowingFireScheduler(throwingFireCounter);
+    const throwingFire = new ThrowingFireScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     let firedTask = false;
     throwingFire.scheduleAt(subclassInput.scheduleAtMs, () => {
       firedTask = true;
     });
     throwingFire.advance(subclassInput.advanceMs);
-    assert.strictEqual(firedTask, subclassExpected.throwingFireFired);
+    assert.strictEqual(firedTask, expected.throwingFireFired);
 
-    let receivedError: HookInvocationError | undefined;
-    class RecordingHookInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: Error): void {
-        receivedError = new HookInvocationError(hookName, cause);
-      }
-    }
-    class ObservedThrowingFireScheduler extends VirtualScheduler {
-      protected override readonly hooks: HookInvoker = new RecordingHookInvoker();
-
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFire(): void {
-        throw RuntimeError.create('onFire boom');
-      }
-    }
-    const observedCounter = createCounter(subclassInput.counterStartMs);
-    const observed = new ObservedThrowingFireScheduler(observedCounter);
+    const recordingInvoker = new RecordingHookInvoker();
+    const observed = new ObservedThrowingFireScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs), recordingInvoker);
     observed.scheduleAt(subclassInput.scheduleAtMs, () => { return; });
     observed.advance(subclassInput.advanceMs);
+    const receivedError = recordingInvoker.receivedError;
     assert.ok(receivedError instanceof HookInvocationError);
-    assert.strictEqual(receivedError?.hookName, subclassExpected.observedHookName);
-    assert.ok(receivedError?.cause instanceof Error);
-    assert.strictEqual(receivedError?.cause.message, subclassExpected.observedCauseMessage);
+    assert.strictEqual(receivedError.hookName, expected.observedHookName);
+    assert.ok(receivedError.cause instanceof Error);
+    assert.strictEqual(receivedError.cause.message, expected.observedCauseMessage);
 
-    class ThrowingRescheduleScheduler extends VirtualScheduler {
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onReschedule(): void {
-        throw RuntimeError.create('onReschedule boom');
-      }
-    }
-    const throwingRescheduleCounter = createCounter(subclassInput.counterStartMs);
-    const throwingReschedule = new ThrowingRescheduleScheduler(throwingRescheduleCounter);
+    const throwingReschedule = new ThrowingRescheduleScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     let count = 0;
     throwingReschedule.scheduleEvery(subclassInput.intervalMs, () => {
       count++;
     });
     throwingReschedule.advance(subclassInput.rescheduleAdvanceMs);
-    assert.strictEqual(count, subclassExpected.throwingRescheduleFireCount);
+    assert.strictEqual(count, expected.throwingRescheduleFireCount);
 
-    class ThrowingFireErrorScheduler extends VirtualScheduler {
-      public fireErrorCount = 0;
-
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override onFireError(): void {
-        this.fireErrorCount++;
-        throw RuntimeError.create('onFireError boom');
-      }
-    }
-    const throwingFireErrorCounter = createCounter(subclassInput.counterStartMs);
-    const throwingFireError = new ThrowingFireErrorScheduler(throwingFireErrorCounter);
+    const throwingFireError = new ThrowingFireErrorScheduler(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs));
     throwingFireError.scheduleAt(subclassInput.fireErrorAtMs, () => { throw RuntimeError.create('task boom'); });
     throwingFireError.runAll();
-    assert.strictEqual(throwingFireError.fireErrorCount, subclassExpected.throwingFireErrorCount);
+    assert.strictEqual(throwingFireError.fireErrorCount, expected.throwingFireErrorCount);
+  }
 
-    const recordedHookNames: string[] = [];
-    const recordedCauses: Error[] = [];
-    class RecordingSwallowingInvoker extends HookInvoker {
-      protected override onHookError(hookName: string, cause: Error): void {
-        recordedHookNames.push(hookName);
-        recordedCauses.push(cause);
-      }
-    }
+  private static async verifyAsyncRejectionSeam(scenarioCase: ScenarioCaseOfType<VirtualSchedulerScenarioCaseEntity.Type, 'subclass-seams'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const subclassInput = input.scheduler;
+    const invoker = new RecordingSwallowingInvoker();
     const rejectionError = RuntimeError.create('async onFire rejection');
-    class AsyncRejectingFireScheduler extends VirtualScheduler {
-      protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
-
-      public constructor(injectedCounter: Readonly<VirtualTimeCounter>) {
-        super(injectedCounter);
-      }
-
-      protected override async onFire(_id: string): Promise<void> {
-        await Promise.resolve();
-        throw rejectionError;
-      }
-    }
     let rejectionEvents = 0;
     const onUnhandledRejection = (): void => {
       rejectionEvents++;
     };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const asyncFireCounter = createCounter(subclassInput.counterStartMs);
-      const asyncFire = new AsyncRejectingFireScheduler(asyncFireCounter);
+      const asyncFire = AsyncRejectingFireScheduler.make(VirtualSchedulerRunners.createCounter(subclassInput.counterStartMs), invoker, rejectionError);
       asyncFire.scheduleAt(subclassInput.scheduleAtMs, () => { return; });
       asyncFire.runAll();
       await Promise.resolve();
       await Promise.resolve();
-      assert.strictEqual(rejectionEvents, subclassExpected.rejectionEventsLength);
-      assert.deepStrictEqual(recordedHookNames, subclassExpected.recordedHookNames);
-      assert.strictEqual(recordedCauses[0], rejectionError);
+      assert.strictEqual(rejectionEvents, expected.rejectionEventsLength);
+      assert.deepStrictEqual(invoker.recordedHookNames, expected.recordedHookNames);
+      assert.strictEqual(invoker.recordedCauses[0], rejectionError);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
-    return;
   }
-};
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  private static requiredAuditNumber(value: number | undefined): number {
+    if (value === undefined) {
+      throw RuntimeError.create('Expected a numeric audit field');
+    }
+    return value;
+  }
+
+  private static createCounter(startMs: number): VirtualTimeCounter {
+    const result = VirtualTimeCounter.create({ 'startMs': startMs });
+    return result;
+  }
+
+  private static createScheduler(startMs: number): VirtualScheduler {
+    const result = VirtualScheduler.create({ 'counter': VirtualSchedulerRunners.createCounter(startMs) });
+    return result;
+  }
+
+  private static materializeHeapTask(descriptor: HeapTaskDescriptorEntity.Type): MutableHeapTaskInterface {
+    const task: MutableHeapTaskInterface = {
+      'atMs': descriptor.atMs,
+      'fire': (): void => { return; },
+      'id': descriptor.id,
+      'intervalMs': descriptor.intervalMs,
+      'variant': descriptor.variant
+    };
+    return task;
+  }
+
+  private static applyHeapTaskMutation(task: MutableHeapTaskInterface, mutation: HeapTaskDescriptorEntity.Type['mutation']): void {
+    if (mutation?.atMs !== undefined) {
+      task.atMs = mutation.atMs;
+    }
+    if (mutation?.id !== undefined) {
+      task.id = mutation.id;
+    }
+  }
 }
 
-void describe('VirtualScheduler', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
-
-  void it('forwards cross-realm task errors to onFireError', () => {
-    class CrossRealmErrorScheduler extends VirtualScheduler {
-      public readonly errors: Error[] = [];
-
-      public constructor(counter: Readonly<VirtualTimeCounter>) {
-        super(counter);
-      }
-
-      protected override onFireError(_id: string, error: Error): void {
-        this.errors.push(error);
-      }
-    }
-
-    const error = runInNewContext('new Error("foreign worker failure")');
-    const scheduler = new CrossRealmErrorScheduler(createCounter(0));
-    scheduler.scheduleAt(0, (): void => { throw error; });
-    scheduler.runAll();
-
-    assert.strictEqual(scheduler.errors[0], error);
-  });
+ScenarioSuite.register({
+  'entity': VirtualSchedulerScenarioCaseEntity,
+  'extraTests': VirtualSchedulerRunners.declaresExtraTests,
+  'file': scenarioGroups,
+  'name': 'VirtualScheduler',
+  'runners': VirtualSchedulerRunners
 });

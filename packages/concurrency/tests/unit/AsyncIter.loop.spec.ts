@@ -1,144 +1,153 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { AsyncIter } from '../../src/AsyncIter.js';
+import { ErrorCapture } from '../helpers/ErrorCapture.js';
+import scenarioGroups from './AsyncIter.scenarios.json' with { 'type': 'json' };
 import { AsyncIterScenarioCaseEntity } from './entities/AsyncIterScenarioCaseEntity.js';
-import scenarioGroups from './AsyncIter.scenarios.json' with { type: 'json' };
 
-async function collect<T>(gen: AsyncIterable<T>): Promise<T[]> {
-  const items: T[] = [];
-  for await (const item of gen) {
-    items.push(item);
+class AsyncIterRunners {
+  static async 'enrich-none'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'enrich-none'>): Promise<void> {
+    const items = await Array.fromAsync(
+      AsyncIter.enrich<{ 'id': number }, { 'label': string }, { 'id': number; 'label'?: string }>(
+        AsyncIterRunners.fromArray(scenarioCase.input.values),
+        async () => { return await Promise.resolve(null); },
+        (item, extra) => {
+          const enriched = { 'id': item.id, 'label': extra.label };
+          return enriched;
+        }
+      )
+    );
+    assert.deepStrictEqual(items, scenarioCase.expected.items);
   }
-  return items;
-}
 
-async function* fromArray<T>(arr: T[]): AsyncGenerator<T> {
-  for (const item of arr) {
-    yield item;
+  static async 'enrich-partial'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'enrich-partial'>): Promise<void> {
+    const items = await Array.fromAsync(
+      AsyncIter.enrich(
+        AsyncIterRunners.fromArray(scenarioCase.input.values),
+        async (item) => { return await Promise.resolve(item.id === 2 ? { 'label': 'found' } : null); },
+        (item, extra) => {
+          const enriched = { 'id': item.id, 'label': extra.label };
+          return enriched;
+        }
+      )
+    );
+    assert.deepStrictEqual(items, scenarioCase.expected.items);
   }
-}
 
-type ScenarioCase = AsyncIterScenarioCaseEntity.Type;
-type BatchInput = Extract<ScenarioCase, { shape: 'merge-high-volume' }>['input']['batch'];
-
-function makeNumberSources(values: number[][]): AsyncGenerator<number>[] {
-  return values.map((source) => fromArray(source));
-}
-
-function createNumberBatch(batch: BatchInput): number[] {
-  return Array.from({ length: batch.itemCount }, (_v, index) => index);
-}
-
-type ScenarioRunner<K extends ScenarioCase['shape']> = (
-  scenarioCase: Extract<ScenarioCase, { shape: K }>
-) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-  'enrich-none': async (scenarioCase) => {
-    const items = await collect(
-      AsyncIter.enrich<{ id: number }, { label: string }, { id: number; label?: string }>(
-        fromArray(scenarioCase.input.values),
-        async () => null,
-        (item, extra) => ({ id: item.id, label: extra.label })
-      )
-    );
-    assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'enrich-partial': async (scenarioCase) => {
-    const items = await collect(
+  static async 'enrich-value'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'enrich-value'>): Promise<void> {
+    const items = await Array.fromAsync(
       AsyncIter.enrich(
-        fromArray(scenarioCase.input.values),
-        async (item) => (item.id === 2 ? { label: 'found' } : null),
-        (item, extra) => ({ id: item.id, label: extra.label })
+        AsyncIterRunners.fromArray(scenarioCase.input.values),
+        async (item) => { return await Promise.resolve({ 'label': `label-${item.id}` }); },
+        (item, extra) => {
+          const enriched = { 'id': item.id, 'label': extra.label };
+          return enriched;
+        }
       )
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'enrich-value': async (scenarioCase) => {
-    const items = await collect(
-      AsyncIter.enrich(
-        fromArray(scenarioCase.input.values),
-        async (item) => ({ label: `label-${item.id}` }),
-        (item, extra) => ({ id: item.id, label: extra.label })
-      )
+  }
+
+  static async 'filter-all'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'filter-all'>): Promise<void> {
+    const items = await Array.fromAsync(AsyncIter.filter(AsyncIterRunners.fromArray(scenarioCase.input.values), () => { return true; }));
+    assert.deepStrictEqual(items, scenarioCase.expected.items);
+  }
+
+  static async 'filter-async'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'filter-async'>): Promise<void> {
+    const items = await Array.fromAsync(
+      AsyncIter.filter(AsyncIterRunners.fromArray(scenarioCase.input.values), async (value) => { return await Promise.resolve(value.length > scenarioCase.input.minLength); })
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'filter-all': async (scenarioCase) => {
-    const items = await collect(AsyncIter.filter(fromArray(scenarioCase.input.values), () => true));
-    assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'filter-async': async (scenarioCase) => {
-    const items = await collect(
-      AsyncIter.filter(fromArray(scenarioCase.input.values), async (s) => Promise.resolve(s.length > scenarioCase.input.minLength))
-    );
-    assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'filter-empty': async (scenarioCase) => {
-    const items = await collect(
-      AsyncIter.filter(fromArray(scenarioCase.input.values), (n) => {
-        return scenarioCase.input.predicate === 'even' ? n % 2 === 0 : true;
+  }
+
+  static async 'filter-empty'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'filter-empty'>): Promise<void> {
+    const items = await Array.fromAsync(
+      AsyncIter.filter(AsyncIterRunners.fromArray(scenarioCase.input.values), (value) => {
+        const keep = scenarioCase.input.predicate === 'even' ? value % 2 === 0 : true;
+        return keep;
       })
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'filter-sync': async (scenarioCase) => {
-    const items = await collect(
-      AsyncIter.filter(fromArray(scenarioCase.input.values), (n) => {
-        return scenarioCase.input.predicate === 'even' ? n % 2 === 0 : true;
+  }
+
+  static async 'filter-sync'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'filter-sync'>): Promise<void> {
+    const items = await Array.fromAsync(
+      AsyncIter.filter(AsyncIterRunners.fromArray(scenarioCase.input.values), (value) => {
+        const keep = scenarioCase.input.predicate === 'even' ? value % 2 === 0 : true;
+        return keep;
       })
     );
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'merge-empty': async (scenarioCase) => {
-    const items = await collect(AsyncIter.merge(...makeNumberSources(scenarioCase.input.sources)));
+  }
+
+  static async 'merge-empty'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'merge-empty'>): Promise<void> {
+    const items = await Array.fromAsync(AsyncIter.merge(...AsyncIterRunners.makeNumberSources(scenarioCase.input.sources)));
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'merge-high-volume': async (scenarioCase) => {
-    const source = createNumberBatch(scenarioCase.input.batch);
-    const items = await collect(AsyncIter.merge(fromArray(source)));
+  }
+
+  static async 'merge-high-volume'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'merge-high-volume'>): Promise<void> {
+    const source: number[] = [];
+    for (let index = 0; index < scenarioCase.input.batch.itemCount; index += 1) {
+      source.push(index);
+    }
+    const items = await Array.fromAsync(AsyncIter.merge(AsyncIterRunners.fromArray(source)));
     assert.strictEqual(items.length, scenarioCase.expected.length);
     assert.strictEqual(items[0], scenarioCase.expected.first);
     assert.strictEqual(items[items.length - 1], scenarioCase.expected.last);
-  },
-  'merge-propagates-error': async (scenarioCase) => {
-    async function* erroring(): AsyncGenerator<number> {
-      yield 1;
-      throw RuntimeError.create(scenarioCase.input.errorMessage);
-    }
-    await assert.rejects(
-      () => collect(AsyncIter.merge(erroring(), ...makeNumberSources(scenarioCase.input.sources))),
-      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- errorMessage is repo-authored fixture data, not attacker input
-      new RegExp(scenarioCase.expected.errorMessage)
+  }
+
+  static async 'merge-propagates-error'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'merge-propagates-error'>): Promise<void> {
+    const error = await ErrorCapture.rejection(
+      Array.fromAsync(AsyncIter.merge(AsyncIterRunners.erroring(scenarioCase.input.errorMessage), ...AsyncIterRunners.makeNumberSources(scenarioCase.input.sources)))
     );
-  },
-  'merge-single': async (scenarioCase) => {
-    const items = await collect(AsyncIter.merge(...makeNumberSources(scenarioCase.input.sources)));
+    assert.ok(error.message.includes(scenarioCase.expected.errorMessage));
+  }
+
+  static async 'merge-single'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'merge-single'>): Promise<void> {
+    const items = await Array.fromAsync(AsyncIter.merge(...AsyncIterRunners.makeNumberSources(scenarioCase.input.sources)));
     assert.deepStrictEqual(items, scenarioCase.expected.items);
-  },
-  'merge-two-sources': async (scenarioCase) => {
-    const items = await collect(AsyncIter.merge(...makeNumberSources(scenarioCase.input.sources)));
+  }
+
+  static async 'merge-two-sources'(scenarioCase: ScenarioCaseOfType<AsyncIterScenarioCaseEntity.Type, 'merge-two-sources'>): Promise<void> {
+    const items = await Array.fromAsync(AsyncIter.merge(...AsyncIterRunners.makeNumberSources(scenarioCase.input.sources)));
     assert.strictEqual(items.length, scenarioCase.expected.length);
-    for (const value of scenarioCase.expected.includes) {
-      assert.ok(items.includes(value));
+    const present = new Set(items);
+    const includes = scenarioCase.expected.includes;
+    for (let index = 0; index < includes.length; index += 1) {
+      assert.ok(present.has(Number(includes[index])));
     }
   }
-};
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  return runnerMap[scenarioCase.shape](scenarioCase);
+  private static async *erroring(errorMessage: string): AsyncGenerator<number> {
+    yield await Promise.resolve(1);
+    throw RuntimeError.create(errorMessage);
+  }
+
+  private static async *fromArray<T>(values: readonly T[]): AsyncGenerator<T> {
+    for (let index = 0; index < values.length; index += 1) {
+      const value = values[index];
+      if (value !== undefined) {
+        yield await Promise.resolve(value);
+      }
+    }
+  }
+
+  private static makeNumberSources(values: readonly (readonly number[])[]): AsyncGenerator<number>[] {
+    const sources = values.map((source) => {
+      const generator = AsyncIterRunners.fromArray(source);
+      return generator;
+    });
+    return sources;
+  }
 }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(AsyncIterScenarioCaseEntity.Schema, AsyncIterScenarioCaseEntity.Node);
-
-void describe('AsyncIter', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': AsyncIterScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'AsyncIter',
+  'runners': AsyncIterRunners
 });

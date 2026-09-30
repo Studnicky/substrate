@@ -3,22 +3,19 @@ import { describe, it } from 'node:test';
 
 import { Draft } from '../../../src/index.js';
 
-interface SparseListInterface {
-  'list': number[];
-  'other'?: boolean;
-}
-
-/** Builds a genuinely sparse array — index 1 is a hole, never assigned — without literal comma-hole syntax. */
-function sparseArray(): number[] {
-  const result: number[] = [];
-  result[0] = 1;
-  result[2] = 3;
-  return result;
+class SparseArrayFixture {
+  /** Builds a genuinely sparse array — index 1 is a hole, never assigned — without literal comma-hole syntax. */
+  static create(): number[] {
+    const result: number[] = [];
+    result[0] = 1;
+    result[2] = 3;
+    return result;
+  }
 }
 
 void describe('Draft sparse array holes', () => {
   void it('preserves holes in an untouched sparse array round-tripped through a draft', () => {
-    const base: SparseListInterface = { 'list': sparseArray() };
+    const base: { 'list': number[]; 'other'?: boolean } = { 'list': SparseArrayFixture.create() };
 
     const next = Draft.produce(base, (draft) => {
       draft.other = true;
@@ -32,7 +29,7 @@ void describe('Draft sparse array holes', () => {
   });
 
   void it('preserves holes in a sparse array whose sibling index was mutated', () => {
-    const base: SparseListInterface = { 'list': sparseArray() };
+    const base: { 'list': number[]; 'other'?: boolean } = { 'list': SparseArrayFixture.create() };
 
     const next = Draft.produce(base, (draft) => {
       draft.list[2] = 30;

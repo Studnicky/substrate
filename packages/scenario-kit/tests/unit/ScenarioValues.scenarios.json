@@ -1,0 +1,446 @@
+{
+  "cases": [
+    {
+      "name": "requireString-returns-0",
+      "description": "requireString returns an accepted value unchanged",
+      "shape": "requireString",
+      "input": {
+        "label": "field",
+        "value": "abc"
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": "abc"
+      }
+    },
+    {
+      "name": "requireString-returns-1",
+      "description": "requireString returns an accepted value unchanged",
+      "shape": "requireString",
+      "input": {
+        "label": "field",
+        "value": ""
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": ""
+      }
+    },
+    {
+      "name": "requireString-rejects-2",
+      "description": "requireString rejects a mismatched value, naming the label",
+      "shape": "requireString",
+      "input": {
+        "label": "field",
+        "value": 1
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be a string"
+      }
+    },
+    {
+      "name": "requireString-rejects-3",
+      "description": "requireString rejects null",
+      "shape": "requireString",
+      "input": {
+        "label": "field",
+        "value": null
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be a string"
+      }
+    },
+    {
+      "name": "requireNumber-returns-4",
+      "description": "requireNumber returns an accepted value unchanged",
+      "shape": "requireNumber",
+      "input": {
+        "label": "field",
+        "value": 3.5
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": 3.5
+      }
+    },
+    {
+      "name": "requireNumber-returns-5",
+      "description": "requireNumber returns an accepted value unchanged",
+      "shape": "requireNumber",
+      "input": {
+        "label": "field",
+        "value": 0
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": 0
+      }
+    },
+    {
+      "name": "requireNumber-rejects-6",
+      "description": "requireNumber rejects a mismatched value, naming the label",
+      "shape": "requireNumber",
+      "input": {
+        "label": "field",
+        "value": "3"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be a number"
+      }
+    },
+    {
+      "name": "requireFiniteNumber-returns-7",
+      "description": "requireFiniteNumber returns an accepted value unchanged",
+      "shape": "requireFiniteNumber",
+      "input": {
+        "label": "field",
+        "value": -2
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": -2
+      }
+    },
+    {
+      "name": "requireFiniteNumber-rejects-8",
+      "description": "requireFiniteNumber rejects a mismatched value, naming the label",
+      "shape": "requireFiniteNumber",
+      "input": {
+        "label": "field",
+        "value": "x"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be a finite number"
+      }
+    },
+    {
+      "name": "requireInteger-returns-9",
+      "description": "requireInteger returns an accepted value unchanged",
+      "shape": "requireInteger",
+      "input": {
+        "label": "field",
+        "value": 7
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": 7
+      }
+    },
+    {
+      "name": "requireInteger-rejects-10",
+      "description": "requireInteger rejects a mismatched value, naming the label",
+      "shape": "requireInteger",
+      "input": {
+        "label": "field",
+        "value": 1.5
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an integer"
+      }
+    },
+    {
+      "name": "requireInteger-rejects-11",
+      "description": "requireInteger rejects a mismatched value, naming the label",
+      "shape": "requireInteger",
+      "input": {
+        "label": "field",
+        "value": "7"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an integer"
+      }
+    },
+    {
+      "name": "requireBoolean-returns-12",
+      "description": "requireBoolean returns an accepted value unchanged",
+      "shape": "requireBoolean",
+      "input": {
+        "label": "field",
+        "value": false
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": false
+      }
+    },
+    {
+      "name": "requireBoolean-returns-13",
+      "description": "requireBoolean returns an accepted value unchanged",
+      "shape": "requireBoolean",
+      "input": {
+        "label": "field",
+        "value": true
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": true
+      }
+    },
+    {
+      "name": "requireBoolean-rejects-14",
+      "description": "requireBoolean rejects a mismatched value, naming the label",
+      "shape": "requireBoolean",
+      "input": {
+        "label": "field",
+        "value": "true"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be a boolean"
+      }
+    },
+    {
+      "name": "requireRecord-returns-15",
+      "description": "requireRecord returns an accepted value unchanged",
+      "shape": "requireRecord",
+      "input": {
+        "label": "field",
+        "value": {
+          "a": 1
+        }
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": {
+          "a": 1
+        }
+      }
+    },
+    {
+      "name": "requireRecord-rejects-16",
+      "description": "requireRecord rejects an array",
+      "shape": "requireRecord",
+      "input": {
+        "label": "field",
+        "value": [
+          1
+        ]
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an object"
+      }
+    },
+    {
+      "name": "requireRecord-rejects-17",
+      "description": "requireRecord rejects null",
+      "shape": "requireRecord",
+      "input": {
+        "label": "field",
+        "value": null
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an object"
+      }
+    },
+    {
+      "name": "requireArray-returns-18",
+      "description": "requireArray returns an accepted value unchanged",
+      "shape": "requireArray",
+      "input": {
+        "label": "field",
+        "value": [
+          1,
+          "a"
+        ]
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": [
+          1,
+          "a"
+        ]
+      }
+    },
+    {
+      "name": "requireArray-rejects-19",
+      "description": "requireArray rejects a mismatched value, naming the label",
+      "shape": "requireArray",
+      "input": {
+        "label": "field",
+        "value": {
+          "length": 0
+        }
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an array"
+      }
+    },
+    {
+      "name": "requireStringArray-returns-20",
+      "description": "requireStringArray returns an accepted value unchanged",
+      "shape": "requireStringArray",
+      "input": {
+        "label": "field",
+        "value": [
+          "a",
+          "b"
+        ]
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "name": "requireStringArray-rejects-21",
+      "description": "requireStringArray names the offending index",
+      "shape": "requireStringArray",
+      "input": {
+        "label": "field",
+        "value": [
+          "a",
+          2
+        ]
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field[1] must be a string"
+      }
+    },
+    {
+      "name": "requireStringArray-rejects-22",
+      "description": "requireStringArray rejects a mismatched value, naming the label",
+      "shape": "requireStringArray",
+      "input": {
+        "label": "field",
+        "value": "a"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an array"
+      }
+    },
+    {
+      "name": "requireNumberArray-returns-23",
+      "description": "requireNumberArray returns an accepted value unchanged",
+      "shape": "requireNumberArray",
+      "input": {
+        "label": "field",
+        "value": [
+          1,
+          2
+        ]
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "requireNumberArray-rejects-24",
+      "description": "requireNumberArray rejects a mismatched value, naming the label",
+      "shape": "requireNumberArray",
+      "input": {
+        "label": "field",
+        "value": [
+          1,
+          "2"
+        ]
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field[1] must be a number"
+      }
+    },
+    {
+      "name": "requireNumberArray-rejects-25",
+      "description": "requireNumberArray rejects a mismatched value, naming the label",
+      "shape": "requireNumberArray",
+      "input": {
+        "label": "field",
+        "value": null
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "field must be an array"
+      }
+    },
+    {
+      "name": "requireDefined-returns-26",
+      "description": "requireDefined returns falsy defined values",
+      "shape": "requireDefined",
+      "input": {
+        "label": "field",
+        "value": 0
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": 0
+      }
+    },
+    {
+      "name": "requireDefined-returns-27",
+      "description": "requireDefined treats null as defined",
+      "shape": "requireDefined",
+      "input": {
+        "label": "field",
+        "value": null
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": null
+      }
+    },
+    {
+      "name": "requireProperty-returns-28",
+      "description": "requireProperty returns the own property value",
+      "shape": "requireProperty",
+      "input": {
+        "label": "record",
+        "value": {
+          "a": 1
+        },
+        "key": "a"
+      },
+      "expected": {
+        "outcome": "returns",
+        "detail": 1
+      }
+    },
+    {
+      "name": "requireProperty-rejects-29",
+      "description": "requireProperty rejects an absent key",
+      "shape": "requireProperty",
+      "input": {
+        "label": "record",
+        "value": {
+          "a": 1
+        },
+        "key": "b"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "record.b is required"
+      }
+    },
+    {
+      "name": "requireProperty-rejects-inherited-30",
+      "description": "requireProperty ignores inherited properties",
+      "shape": "requireProperty",
+      "input": {
+        "label": "record",
+        "value": {},
+        "key": "toString"
+      },
+      "expected": {
+        "outcome": "rejects",
+        "detail": "record.toString is required"
+      }
+    }
+  ]
+}

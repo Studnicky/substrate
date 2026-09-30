@@ -1,3 +1,4 @@
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 import {
   describe, it
@@ -6,11 +7,12 @@ import {
 import type { OperationPipelineInterface } from '../../../src/interfaces/OperationPipelineInterface.js';
 
 import { OperationPipeline } from '../../../src/operation/OperationPipeline.js';
+import { ErrorCapture } from '../../helpers/ErrorCapture.js';
 
 void describe('OperationPipeline', () => {
   void it('enters interceptors in declared order and unwinds in reverse order', async () => {
     const order: string[] = [];
-    const pipeline = OperationPipeline.create<{ requestId: string }>([
+    const pipeline = OperationPipeline.create<{ 'requestId': string }>([
       async (context, next) => {
         order.push(`first:before:${context.requestId}`);
         const result = await next(context);
@@ -27,7 +29,7 @@ void describe('OperationPipeline', () => {
 
     const result = await pipeline.run({ 'requestId': 'request-1' }, async (context) => {
       order.push(`operation:${context.requestId}`);
-      return 'complete';
+      return await Promise.resolve('complete');
     });
 
     assert.strictEqual(result, 'complete');
@@ -44,57 +46,50 @@ void describe('OperationPipeline', () => {
     const expectedResult = { 'accepted': true };
     const pipeline: OperationPipelineInterface<string> = OperationPipeline.create<string>([]);
 
-    const result = await pipeline.run('request-2', async () => expectedResult);
+    const result = await pipeline.run('request-2', async () => {return await Promise.resolve(expectedResult);});
 
     assert.strictEqual(result, expectedResult);
   });
 
   void it('supports different result types for separate runs', async () => {
     const pipeline = OperationPipeline.create<string>([
-      (context, next) => next(context)
+      (context, next) => {
+        const forwarded = next(context);
+        return forwarded;
+      }
     ]);
 
-    const textResult = await pipeline.run('request-3', async () => 'complete');
-    const objectResult = await pipeline.run('request-4', async () => ({ 'accepted': true }));
+    const textResult = await pipeline.run('request-3', async () => {return await Promise.resolve('complete');});
+    const objectResult = await pipeline.run('request-4', async () => {return await Promise.resolve({ 'accepted': true });});
 
     assert.strictEqual(textResult, 'complete');
     assert.deepStrictEqual(objectResult, { 'accepted': true });
   });
 
   void it('rethrows the exact operation error', async () => {
-    const expectedError = new Error('operation failed');
+    const expectedError = RuntimeError.create('operation failed');
     const pipeline = OperationPipeline.create<string>([]);
 
-    await assert.rejects(async () => {
-      try {
-        await pipeline.run('request-5', async () => { throw expectedError; });
-      } catch (error) {
-        assert.strictEqual(error, expectedError);
-        throw error;
-      }
-    });
+    const captured = await ErrorCapture.rejection(pipeline.run('request-5', async () => { return await Promise.reject(expectedError); }));
+
+    assert.strictEqual(captured, expectedError);
   });
 
   void it('rethrows the exact interceptor error', async () => {
-    const expectedError = new Error('interceptor failed');
+    const expectedError = RuntimeError.create('interceptor failed');
     const pipeline = OperationPipeline.create<string>([
       () => { throw expectedError; }
     ]);
 
-    await assert.rejects(async () => {
-      try {
-        await pipeline.run('request-6', async () => 'unreachable');
-      } catch (error) {
-        assert.strictEqual(error, expectedError);
-        throw error;
-      }
-    });
+    const captured = await ErrorCapture.rejection(pipeline.run('request-6', async () => {return await Promise.resolve('unreachable');}));
+
+    assert.strictEqual(captured, expectedError);
   });
 
   void it('runs the supplied operation directly when it has no interceptors', async () => {
     const pipeline = OperationPipeline.create<number>([]);
 
-    const result = await pipeline.run(21, async (value) => value * 2);
+    const result = await pipeline.run(21, async (value) => {return await Promise.resolve(value * 2);});
 
     assert.strictEqual(result, 42);
   });

@@ -329,6 +329,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/context:
     dependencies:
@@ -376,6 +379,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/entity:
     dependencies:
@@ -612,6 +618,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/flag-evaluator:
     dependencies:
@@ -781,9 +790,15 @@ importers:
         specifier: 4.0.7
         version: 4.0.7
     devDependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@types/picomatch':
         specifier: 4.0.3
         version: 4.0.3
@@ -1105,6 +1120,9 @@ importers:
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/signal:
     dependencies:
@@ -1261,9 +1279,15 @@ importers:
         specifier: workspace:*
         version: link:../types
     devDependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
       '@studnicky/example-smoke-kit':
         specifier: workspace:*
         version: link:../example-smoke-kit
+      '@studnicky/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
 
   packages/types:
     dependencies:

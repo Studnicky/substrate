@@ -1,8 +1,10 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-import { CtxNumberStagesInputEntity } from './common/CtxNumberStagesInputEntity.js';
+import { ContextNumberStagesInputEntity } from './common/ContextNumberStagesInputEntity.js';
 
 /** The `throwing-on-stage-success` scenario case shape `PipelineSubclass.loop.spec.ts` exercises. */
 export namespace ThrowingOnStageSuccessScenarioCaseEntity {
@@ -13,12 +15,12 @@ export namespace ThrowingOnStageSuccessScenarioCaseEntity {
       'expected': {
         'additionalProperties': false,
         'properties': {
-      'result': { 'type': 'number' }
+          'result': { 'type': 'number' }
         },
         'required': ['result'],
         'type': 'object'
       },
-      'input': CtxNumberStagesInputEntity.Schema,
+      'input': ContextNumberStagesInputEntity.Schema,
       'name': { 'minLength': 1, 'type': 'string' },
       'shape': { 'const': 'throwing-on-stage-success' }
     },
@@ -27,13 +29,17 @@ export namespace ThrowingOnStageSuccessScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
       'result': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': CtxNumberStagesInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'throwing-on-stage-success' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    }, ['result'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': ContextNumberStagesInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'throwing-on-stage-success' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

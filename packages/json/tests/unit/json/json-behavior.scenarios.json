@@ -409,8 +409,9 @@
           "base": {
             "a": 1
           },
-          "addKey": "b",
-          "addValue": 2
+          "additions": {
+            "b": 2
+          }
         }
       },
       "expected": {

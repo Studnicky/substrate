@@ -1,29 +1,28 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { Predicates } from '../../src/predicates/Predicates.js';
-
 import { PredicatesNetworkAndVersioningScenarioCaseEntity } from './entities/PredicatesNetworkAndVersioningScenarioCaseEntity.js';
-import scenarioGroups from './predicates-network-and-versioning.scenarios.json' with { type: 'json' };
+import scenarioGroups from './predicates-network-and-versioning.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = PredicatesNetworkAndVersioningScenarioCaseEntity.Type;
-type ScenarioRunnerMap = Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => void>;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(PredicatesNetworkAndVersioningScenarioCaseEntity.Schema, PredicatesNetworkAndVersioningScenarioCaseEntity.Node);
-
-const runnerMap: ScenarioRunnerMap = {
-  'cidr-in-range': (scenarioCase) => {
-    const { ip, cidr } = scenarioCase.input;
+class PredicatesRunners {
+  static 'cidr-in-range'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'cidr-in-range'>): void {
+    const { cidr, ip } = scenarioCase.input;
     const result = Predicates.isIpInCidr(String(ip), String(cidr));
     assert.strictEqual(result, scenarioCase.expected.result);
-  },
-  'range-date-boundary': (scenarioCase) => {
-    const { value, minimum, maximum, boundary } = scenarioCase.input;
+  }
+
+  static 'range-date-boundary'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'range-date-boundary'>): void {
+    const { boundary, maximum, minimum, value } = scenarioCase.input;
     const options: { 'boundary'?: 'closed' | 'half-open' } = {};
 
-    if (boundary === 'closed' || boundary === 'half-open') {
-      options.boundary = boundary;
+    if (boundary === 'closed') {
+      options.boundary = 'closed';
+    }
+    if (boundary === 'half-open') {
+      options.boundary = 'half-open';
     }
 
     const result = Predicates.performRangeComparison(
@@ -34,20 +33,25 @@ const runnerMap: ScenarioRunnerMap = {
       options
     );
     assert.strictEqual(result, scenarioCase.expected.result);
-  },
-  'range-numeric-boundary': (scenarioCase) => {
-    const { value, minimum, maximum, boundary } = scenarioCase.input;
+  }
+
+  static 'range-numeric-boundary'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'range-numeric-boundary'>): void {
+    const { boundary, maximum, minimum, value } = scenarioCase.input;
     const options: { 'boundary'?: 'closed' | 'half-open' } = {};
 
-    if (boundary === 'closed' || boundary === 'half-open') {
-      options.boundary = boundary;
+    if (boundary === 'closed') {
+      options.boundary = 'closed';
+    }
+    if (boundary === 'half-open') {
+      options.boundary = 'half-open';
     }
 
     const result = Predicates.performRangeComparison(value, minimum, maximum, true, options);
     assert.strictEqual(result, scenarioCase.expected.result);
-  },
-  'range-string-case': (scenarioCase) => {
-    const { value, minimum, maximum, caseSensitive } = scenarioCase.input;
+  }
+
+  static 'range-string-case'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'range-string-case'>): void {
+    const { caseSensitive, maximum, minimum, value } = scenarioCase.input;
     const options: { 'caseSensitive'?: boolean } = {};
 
     if (typeof caseSensitive === 'boolean') {
@@ -56,33 +60,31 @@ const runnerMap: ScenarioRunnerMap = {
 
     const result = Predicates.performRangeComparison(value, minimum, maximum, true, options);
     assert.strictEqual(result, scenarioCase.expected.result);
-  },
-  'semver-compare-sign': (scenarioCase) => {
+  }
+
+  static 'semver-compare-sign'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'semver-compare-sign'>): void {
     const { first, second } = scenarioCase.input;
     const result = Predicates.compareSemverVersions(String(first), String(second));
     const sign = Math.sign(result);
     assert.strictEqual(sign, scenarioCase.expected.sign);
-  },
-  'semver-satisfies': (scenarioCase) => {
-    const { version, range } = scenarioCase.input;
+  }
+
+  static 'semver-satisfies'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'semver-satisfies'>): void {
+    const { range, version } = scenarioCase.input;
     const result = Predicates.satisfiesSemverRange(String(version), String(range));
     assert.strictEqual(result, scenarioCase.expected.result);
-  },
-  'strict-number': (scenarioCase) => {
+  }
+
+  static 'strict-number'(scenarioCase: ScenarioCaseOfType<PredicatesNetworkAndVersioningScenarioCaseEntity.Type, 'strict-number'>): void {
     const value = scenarioCase.input.nan === true ? Number.NaN : scenarioCase.input.value;
     const result = Predicates.asStrictNumber(value);
     assert.strictEqual(result ?? null, scenarioCase.expected.result);
   }
-};
-
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('Predicates network and versioning', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': PredicatesNetworkAndVersioningScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Predicates network and versioning',
+  'runners': PredicatesRunners
 });

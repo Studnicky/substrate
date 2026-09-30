@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { AsyncObserverHasNoEffectScenarioCaseEntity } from './AsyncObserverHasNoEffectScenarioCaseEntity.js';
@@ -18,17 +20,17 @@ import { ThrowingLifecycleObserverHasNoEffectScenarioCaseEntity } from './Throwi
 export namespace PipelineScenarioCaseEntity {
   export const Schema = {
     'oneOf': [
-    EmptyPipelineReturnsInputScenarioCaseEntity.Schema,
-    SingleAsyncStageAppliesScenarioCaseEntity.Schema,
-    SingleStageAppliesScenarioCaseEntity.Schema,
-    MultipleStagesApplyAllScenarioCaseEntity.Schema,
-    StagesIsDefensiveSnapshotScenarioCaseEntity.Schema,
-    MixedSyncAsyncStagesScenarioCaseEntity.Schema,
-    ObjectContextPassThroughScenarioCaseEntity.Schema,
-    ThrowingLifecycleObserverHasNoEffectScenarioCaseEntity.Schema,
-    DoesNotMutateOriginalInputScenarioCaseEntity.Schema,
-    AsyncObserverHasNoEffectScenarioCaseEntity.Schema,
-    HangingObserverHasNoEffectScenarioCaseEntity.Schema
+      EmptyPipelineReturnsInputScenarioCaseEntity.Schema,
+      SingleAsyncStageAppliesScenarioCaseEntity.Schema,
+      SingleStageAppliesScenarioCaseEntity.Schema,
+      MultipleStagesApplyAllScenarioCaseEntity.Schema,
+      StagesIsDefensiveSnapshotScenarioCaseEntity.Schema,
+      MixedSyncAsyncStagesScenarioCaseEntity.Schema,
+      ObjectContextPassThroughScenarioCaseEntity.Schema,
+      ThrowingLifecycleObserverHasNoEffectScenarioCaseEntity.Schema,
+      DoesNotMutateOriginalInputScenarioCaseEntity.Schema,
+      AsyncObserverHasNoEffectScenarioCaseEntity.Schema,
+      HangingObserverHasNoEffectScenarioCaseEntity.Schema
     ]
   } as const;
 
@@ -46,4 +48,7 @@ export namespace PipelineScenarioCaseEntity {
     HangingObserverHasNoEffectScenarioCaseEntity.Node
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

@@ -1,265 +1,320 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { Batch } from '@studnicky/batch/node';
 import { ConfigurationError } from '@studnicky/config/node';
-
 import { SchemaIntakeError } from '@studnicky/entity/node';
+import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 
-import { Throttle } from '../../../src/index.js';
 import {
   AdaptiveConfigEntity,
   ThrottleConfigEntity,
   ValidatedAdaptiveConfigEntity,
   ValidatedThrottleConfigEntity
 } from '../../../src/entities/index.js';
+import { Throttle } from '../../../src/index.js';
 import { VirtualClockThrottle } from '../../helpers/VirtualClockThrottle.js';
+import scenarioGroups from './adaptive-config.scenarios.json' with { 'type': 'json' };
 import { AdaptiveConfigScenarioCaseEntity } from './entities/AdaptiveConfigScenarioCaseEntity.js';
-import scenarioGroups from './adaptive-config.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = AdaptiveConfigScenarioCaseEntity.Type;
-type ScenarioShape = ScenarioCase['shape'];
-type AdaptiveBatchInputInterface = NonNullable<ScenarioCase['input']['batch']>;
+class AdaptiveConfigRunners {
+  static async 'adaptive-adjust-hook-throws'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'adaptive-adjust-hook-throws'>): Promise<void> {
+    const observed: { 'newLimit': number; 'previousLimit': number; }[] = [];
+    const hookError = RuntimeError.create(scenarioCase.input.hookErrorMessage ?? 'adaptive adjust failed');
 
-const fileIntake = ScenarioFileCompiler.compileIntake(AdaptiveConfigScenarioCaseEntity.Schema, AdaptiveConfigScenarioCaseEntity.Node);
+    class ObservedAdaptiveThrottle extends VirtualClockThrottle {
+      protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
+        observed.push({ 'newLimit': newLimit, 'previousLimit': previousLimit });
+      }
+    }
 
-function decodeThrottleConfig(config: ScenarioCase['input']['throttle']): Parameters<typeof Throttle.create>[0] {
-  if (config === undefined) {
-    return undefined;
-  }
+    class ThrowingAdaptiveThrottle extends ObservedAdaptiveThrottle {
+      protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
+        super.onAdaptiveAdjust(previousLimit, newLimit);
+        throw hookError;
+      }
+    }
 
-  return JSON.parse(JSON.stringify(config));
-}
-
-function getThrottleConfigRecord(scenarioCase: ScenarioCase): Record<string, unknown> {
-  return scenarioCase.input.throttle ?? {};
-}
-
-function createScenarioThrottle(scenarioCase: ScenarioCase): Throttle {
-  return Throttle.create(decodeThrottleConfig(scenarioCase.input.throttle));
-}
-
-function createScenarioBatch<TResult>(input: AdaptiveBatchInputInterface): Batch<TResult> {
-  return Batch.create<TResult>(input.maxConcurrent);
-}
-
-async function executeAdaptiveSamples(
-  throttle: VirtualClockThrottle,
-  input: ScenarioCase['input']
-): Promise<void> {
-  const { batch } = input;
-  assert.ok(batch !== undefined);
-
-  const items = Array.from({ length: batch.itemCount }, (_unused, index) => index);
-  const workload = createScenarioBatch<string | undefined>(batch);
-
-  let executed = 0;
-  for await (const results of workload.process(items, async (index) => {
-    throttle.advanceOperationStart();
-    return await throttle.execute(async () => {
-      throttle.advanceOperationDuration();
-      return `result-${String(index)}`;
+    const clock = ScenarioValues.requireDefined(scenarioCase.input.clock, 'input.clock');
+    const throttle = ThrowingAdaptiveThrottle.createWithClock(clock, AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    await assert.rejects(AdaptiveConfigRunners.executeAdaptiveSamples(throttle, scenarioCase.input.batch), (error) => {
+      assert.ok(error instanceof HookInvocationError);
+      assert.strictEqual(error.cause, hookError);
+      assert.strictEqual(error.name, scenarioCase.expected.error);
+      assert.strictEqual(hookError.message, scenarioCase.expected.hookErrorMessage);
+      return true;
     });
-  })) {
-    executed += results.length;
-  }
-  assert.strictEqual(executed, batch.itemCount);
-}
-
-function assertAdaptiveObservation(
-  scenarioCase: ScenarioCase,
-  observed: Array<{ previousLimit: number; newLimit: number }>,
-  throttle: Throttle
-): void {
-  if (scenarioCase.expected.adjustmentDirection === 'up') {
-    assert.ok(observed.length >= 1);
-    assert.ok(observed[0] !== undefined);
-    assert.ok(observed[0].newLimit > observed[0].previousLimit);
-  } else if (scenarioCase.expected.adjustmentDirection === 'down') {
-    assert.ok(observed.length >= 1);
-    assert.ok(observed[0] !== undefined);
-    assert.ok(observed[0].newLimit < observed[0].previousLimit);
-  } else if (scenarioCase.expected.adjustmentDirection === 'none') {
-    assert.strictEqual(observed.length, 0);
+    assert.strictEqual(throttle.isComplete(), true);
   }
 
-  if (scenarioCase.expected.concurrencyLimit !== undefined) {
-    assert.strictEqual(throttle.getStats().concurrencyLimit, scenarioCase.expected.concurrencyLimit);
+  static async 'adaptive-no-change'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'adaptive-no-change'>): Promise<void> {
+    const observed: { 'newLimit': number; 'previousLimit': number; }[] = [];
+
+    class ObservedAdaptiveThrottle extends VirtualClockThrottle {
+      protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
+        observed.push({ 'newLimit': newLimit, 'previousLimit': previousLimit });
+      }
+    }
+
+    const clock = ScenarioValues.requireDefined(scenarioCase.input.clock, 'input.clock');
+    const throttle = ObservedAdaptiveThrottle.createWithClock(clock, AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    await AdaptiveConfigRunners.executeAdaptiveSamples(throttle, scenarioCase.input.batch);
+    AdaptiveConfigRunners.assertAdaptiveObservation(scenarioCase.expected, observed, throttle);
   }
-}
 
-function assertValidAllFields(scenarioCase: ScenarioCase): void {
-  const throttle = createScenarioThrottle(scenarioCase);
-  const stats = throttle.getStats();
-  const expectedAdaptive = scenarioCase.expected.adaptive;
-  assert.ok(expectedAdaptive !== undefined);
-  assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.concurrencyLimit, scenarioCase.expected.concurrencyLimit);
-  assert.strictEqual(stats.adaptive.enabled, expectedAdaptive.enabled);
-  assert.strictEqual(stats.adaptive.minimumConcurrency, expectedAdaptive.minimumConcurrency);
-  assert.strictEqual(stats.adaptive.maximumConcurrency, expectedAdaptive.maximumConcurrency);
-  assert.strictEqual(stats.adaptive.targetLatencyMs, expectedAdaptive.targetLatencyMs);
-}
+  static async 'adaptive-scales-down'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'adaptive-scales-down'>): Promise<void> {
+    const observed: { 'newLimit': number; 'previousLimit': number; }[] = [];
 
-function assertValidRequiredFields(scenarioCase: ScenarioCase): void {
-  const throttle = createScenarioThrottle(scenarioCase);
-  const stats = throttle.getStats();
-  assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
-  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
-}
+    class ObservedAdaptiveThrottle extends VirtualClockThrottle {
+      protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
+        observed.push({ 'newLimit': newLimit, 'previousLimit': previousLimit });
+      }
+    }
 
-function assertValidDisabledNoExtraFields(scenarioCase: ScenarioCase): void {
-  const throttle = createScenarioThrottle(scenarioCase);
-  const stats = throttle.getStats();
-  if (stats.adaptive !== undefined) {
-    assert.strictEqual(stats.adaptive.enabled, scenarioCase.expected.enabled);
+    const clock = ScenarioValues.requireDefined(scenarioCase.input.clock, 'input.clock');
+    const throttle = ObservedAdaptiveThrottle.createWithClock(clock, AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    await AdaptiveConfigRunners.executeAdaptiveSamples(throttle, scenarioCase.input.batch);
+    AdaptiveConfigRunners.assertAdaptiveObservation(scenarioCase.expected, observed, throttle);
   }
-}
 
-function assertValidDisabledDefaultedConfig(scenarioCase: ScenarioCase): void {
-  const disabledConfig = scenarioCase.input.disabledConfig ?? {};
-  assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(disabledConfig), scenarioCase.expected.validated);
-  assert.strictEqual(
-    ValidatedThrottleConfigEntity.validate({ ...scenarioCase.input.throttle, adaptive: disabledConfig }),
-    scenarioCase.expected.throttleValidated
-  );
-  assert.throws(() => {
-    return ValidatedAdaptiveConfigEntity.intake({ ...disabledConfig, enabled: true });
-  }, SchemaIntakeError);
-  assert.strictEqual(scenarioCase.expected.rejectEnabledTrue, true);
-}
+  static async 'adaptive-scales-up'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'adaptive-scales-up'>): Promise<void> {
+    const observed: { 'newLimit': number; 'previousLimit': number; }[] = [];
 
-function assertThrottleConfigEntityRejects(scenarioCase: ScenarioCase): void {
-  assert.throws(() => {
-    return ThrottleConfigEntity.intake(getThrottleConfigRecord(scenarioCase));
-  }, SchemaIntakeError);
-}
+    class ObservedAdaptiveThrottle extends VirtualClockThrottle {
+      protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
+        observed.push({ 'newLimit': newLimit, 'previousLimit': previousLimit });
+      }
+    }
 
-function assertThrottleCreateRejects(scenarioCase: ScenarioCase): void {
-  assert.throws(() => {
-    return Throttle.create(decodeThrottleConfig(scenarioCase.input.throttle));
-  }, ConfigurationError);
-}
+    const clock = ScenarioValues.requireDefined(scenarioCase.input.clock, 'input.clock');
+    const throttle = ObservedAdaptiveThrottle.createWithClock(clock, AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    await AdaptiveConfigRunners.executeAdaptiveSamples(throttle, scenarioCase.input.batch);
+    AdaptiveConfigRunners.assertAdaptiveObservation(scenarioCase.expected, observed, throttle);
+  }
 
-function assertAdaptiveEmptyRejects(scenarioCase: ScenarioCase): void {
-  const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
-  assert.throws(() => { return ValidatedThrottleConfigEntity.intake(throttleConfig); }, SchemaIntakeError);
-}
+  static 'default-max-concurrency'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'default-max-concurrency'>): void {
+    const throttle = Throttle.create(AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    const stats = throttle.getStats();
+    assert.ok(stats.adaptive !== undefined);
+    assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
+  }
 
-function assertAdaptiveStepSizeRejects(scenarioCase: ScenarioCase): void {
-  const throttleConfig = getThrottleConfigRecord(scenarioCase);
-  assert.throws(() => { return AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
-  assertThrottleCreateRejects(scenarioCase);
-}
+  static 'default-min-concurrency'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'default-min-concurrency'>): void {
+    const throttle = Throttle.create(AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    const stats = throttle.getStats();
+    assert.ok(stats.adaptive !== undefined);
+    assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
+  }
 
-async function assertAdaptiveRuntimeObserved(scenarioCase: ScenarioCase): Promise<void> {
-  const observed: Array<{ previousLimit: number; newLimit: number }> = [];
+  static 'reject-adaptive-empty'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-adaptive-empty'>): void {
+    const throttleConfig = scenarioCase.input.throttle ?? {};
+    assert.throws(() => { AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
+    assert.throws(() => { ValidatedThrottleConfigEntity.intake(throttleConfig); }, SchemaIntakeError);
+  }
 
-  class ObservedAdaptiveThrottle extends VirtualClockThrottle {
-    protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
-      observed.push({ previousLimit, newLimit });
+  static 'reject-adaptive-step-size-string'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-adaptive-step-size-string'>): void {
+    const throttleConfig = scenarioCase.input.throttle ?? {};
+    assert.throws(() => { AdaptiveConfigEntity.intake(throttleConfig.adaptive); }, SchemaIntakeError);
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-adjustment-interval-less-than-100'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-adjustment-interval-less-than-100'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-concurrency-above-max'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-concurrency-above-max'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-concurrency-below-min'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-concurrency-below-min'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-min-concurrency-less-than-one'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-min-concurrency-less-than-one'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-min-greater-than-max'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-min-greater-than-max'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-missing-target-latency'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-missing-target-latency'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-integer-adjustment-interval'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-integer-adjustment-interval'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-integer-min-concurrency'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-integer-min-concurrency'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-integer-sample-window'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-integer-sample-window'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-integer-step-size'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-integer-step-size'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-positive-scale-up'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-positive-scale-up'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-positive-target-latency'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-positive-target-latency'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-sample-window-less-than-10'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-sample-window-less-than-10'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-scale-up-not-less-than-scale-down'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-scale-up-not-less-than-scale-down'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-step-size-less-than-one'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-step-size-less-than-one'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-unknown-key'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-unknown-key'>): void {
+    AdaptiveConfigRunners.assertThrottleCreateRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-missing-enabled'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-missing-enabled'>): void {
+    AdaptiveConfigRunners.assertThrottleConfigEntityRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-boolean-enabled'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-boolean-enabled'>): void {
+    AdaptiveConfigRunners.assertThrottleConfigEntityRejects(scenarioCase.input.throttle);
+  }
+
+  static 'reject-non-object-adaptive'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'reject-non-object-adaptive'>): void {
+    AdaptiveConfigRunners.assertThrottleConfigEntityRejects(scenarioCase.input.throttle);
+  }
+
+  static 'valid-all-fields'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'valid-all-fields'>): void {
+    const throttle = Throttle.create(AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    const stats = throttle.getStats();
+    const expectedAdaptive = ScenarioValues.requireDefined(scenarioCase.expected.adaptive, 'expected.adaptive');
+    assert.ok(stats.adaptive !== undefined);
+    assert.strictEqual(stats.concurrencyLimit, scenarioCase.expected.concurrencyLimit);
+    assert.strictEqual(stats.adaptive.enabled, expectedAdaptive.enabled);
+    assert.strictEqual(stats.adaptive.minimumConcurrency, expectedAdaptive.minimumConcurrency);
+    assert.strictEqual(stats.adaptive.maximumConcurrency, expectedAdaptive.maximumConcurrency);
+    assert.strictEqual(stats.adaptive.targetLatencyMs, expectedAdaptive.targetLatencyMs);
+  }
+
+  static 'valid-disabled-defaulted-config'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'valid-disabled-defaulted-config'>): void {
+    const disabledConfig = scenarioCase.input.disabledConfig ?? {};
+    assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(disabledConfig), scenarioCase.expected.validated);
+    assert.strictEqual(
+      ValidatedThrottleConfigEntity.validate({ ...scenarioCase.input.throttle, 'adaptive': disabledConfig }),
+      scenarioCase.expected.throttleValidated
+    );
+    assert.throws(() => {
+      ValidatedAdaptiveConfigEntity.intake({ ...disabledConfig, 'enabled': true });
+    }, SchemaIntakeError);
+    assert.strictEqual(scenarioCase.expected.rejectEnabledTrue, true);
+  }
+
+  static 'valid-disabled-no-extra-fields'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'valid-disabled-no-extra-fields'>): void {
+    const throttle = Throttle.create(AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    const stats = throttle.getStats();
+    if (stats.adaptive !== undefined) {
+      assert.strictEqual(stats.adaptive.enabled, scenarioCase.expected.enabled);
     }
   }
 
-  assert.ok(scenarioCase.input.clock !== undefined);
-  const throttle = ObservedAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
-  await executeAdaptiveSamples(throttle, scenarioCase.input);
-  assertAdaptiveObservation(scenarioCase, observed, throttle);
-}
+  static 'valid-required-fields'(scenarioCase: ScenarioCaseOfType<AdaptiveConfigScenarioCaseEntity.Type, 'valid-required-fields'>): void {
+    const throttle = Throttle.create(AdaptiveConfigRunners.cloneConfig(scenarioCase.input.throttle));
+    const stats = throttle.getStats();
+    assert.ok(stats.adaptive !== undefined);
+    assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
+    assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
+  }
 
-async function assertAdaptiveRuntimeHookThrows(scenarioCase: ScenarioCase): Promise<void> {
-  const observed: Array<{ previousLimit: number; newLimit: number }> = [];
-  const hookError = RuntimeError.create(scenarioCase.input.hookErrorMessage ?? 'adaptive adjust failed');
+  private static assertAdaptiveObservation(
+    expected: AdaptiveConfigScenarioCaseEntity.Type['expected'],
+    observed: readonly { 'newLimit': number; 'previousLimit': number; }[],
+    throttle: Throttle
+  ): void {
+    const first = observed[0];
+    if (expected.adjustmentDirection === 'up') {
+      assert.ok(observed.length >= 1);
+      assert.ok(first !== undefined);
+      assert.ok(first.newLimit > first.previousLimit);
+    } else if (expected.adjustmentDirection === 'down') {
+      assert.ok(observed.length >= 1);
+      assert.ok(first !== undefined);
+      assert.ok(first.newLimit < first.previousLimit);
+    } else if (expected.adjustmentDirection === 'none') {
+      assert.strictEqual(observed.length, 0);
+    }
 
-  class ObservedAdaptiveThrottle extends VirtualClockThrottle {
-    protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
-      observed.push({ previousLimit, newLimit });
+    if (expected.concurrencyLimit !== undefined) {
+      assert.strictEqual(throttle.getStats().concurrencyLimit, expected.concurrencyLimit);
     }
   }
 
-  class ThrowingAdaptiveThrottle extends ObservedAdaptiveThrottle {
-    protected override onAdaptiveAdjust(previousLimit: number, newLimit: number): void {
-      super.onAdaptiveAdjust(previousLimit, newLimit);
-      throw hookError;
+  private static assertThrottleConfigEntityRejects(config: AdaptiveConfigScenarioCaseEntity.Type['input']['throttle']): void {
+    assert.throws(() => { ThrottleConfigEntity.intake(config ?? {}); }, SchemaIntakeError);
+  }
+
+  private static assertThrottleCreateRejects(config: AdaptiveConfigScenarioCaseEntity.Type['input']['throttle']): void {
+    assert.throws(() => { Throttle.create(AdaptiveConfigRunners.cloneConfig(config)); }, ConfigurationError);
+  }
+
+  private static cloneConfig(config: AdaptiveConfigScenarioCaseEntity.Type['input']['throttle']): Parameters<typeof Throttle.create>[0] {
+    try {
+      const cloned = structuredClone(config);
+      return cloned;
+    } catch (cause) {
+      throw RuntimeError.create('Scenario throttle configuration is not structured-cloneable', { 'cause': cause });
     }
   }
 
-  assert.ok(scenarioCase.input.clock !== undefined);
-  const throttle = ThrowingAdaptiveThrottle.createWithClock(scenarioCase.input.clock, decodeThrottleConfig(scenarioCase.input.throttle));
-  await assert.rejects(async () => {
-    await executeAdaptiveSamples(throttle, scenarioCase.input);
-  }, (error) => {
-    assert.ok(error instanceof HookInvocationError);
-    assert.strictEqual(error.cause, hookError);
-    assert.strictEqual(error.name, scenarioCase.expected.error);
-    assert.strictEqual(hookError.message, scenarioCase.expected.hookErrorMessage);
-    return true;
-  });
-  assert.strictEqual(throttle.isComplete(), true);
-}
+  private static async executeAdaptiveSamples(
+    throttle: VirtualClockThrottle,
+    batch: AdaptiveConfigScenarioCaseEntity.Type['input']['batch']
+  ): Promise<void> {
+    const definedBatch = ScenarioValues.requireDefined(batch, 'input.batch');
+    const items: number[] = [];
+    for (let index = 0; index < definedBatch.itemCount; index += 1) {
+      items.push(index);
+    }
+    const workload = Batch.create<string | undefined>(definedBatch.maximumConcurrent);
+    const worker = AdaptiveConfigRunners.createSampleWorker(throttle);
 
-function assertDefaultMinConcurrency(scenarioCase: ScenarioCase): void {
-  const throttle = createScenarioThrottle(scenarioCase);
-  const stats = throttle.getStats();
-  assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.minimumConcurrency, scenarioCase.expected.minimumConcurrency);
-}
-
-function assertDefaultMaxConcurrency(scenarioCase: ScenarioCase): void {
-  const throttle = createScenarioThrottle(scenarioCase);
-  const stats = throttle.getStats();
-  assert.ok(stats.adaptive !== undefined);
-  assert.strictEqual(stats.adaptive.maximumConcurrency, scenarioCase.expected.maximumConcurrency);
-}
-
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
-  'adaptive-adjust-hook-throws': assertAdaptiveRuntimeHookThrows,
-  'adaptive-no-change': assertAdaptiveRuntimeObserved,
-  'adaptive-scales-down': assertAdaptiveRuntimeObserved,
-  'adaptive-scales-up': assertAdaptiveRuntimeObserved,
-  'default-max-concurrency': assertDefaultMaxConcurrency,
-  'default-min-concurrency': assertDefaultMinConcurrency,
-  'reject-adaptive-empty': assertAdaptiveEmptyRejects,
-  'reject-adaptive-step-size-string': assertAdaptiveStepSizeRejects,
-  'reject-adjustment-interval-less-than-100': assertThrottleCreateRejects,
-  'reject-concurrency-above-max': assertThrottleCreateRejects,
-  'reject-concurrency-below-min': assertThrottleCreateRejects,
-  'reject-min-concurrency-less-than-one': assertThrottleCreateRejects,
-  'reject-min-greater-than-max': assertThrottleCreateRejects,
-  'reject-missing-enabled': assertThrottleConfigEntityRejects,
-  'reject-missing-target-latency': assertThrottleCreateRejects,
-  'reject-non-boolean-enabled': assertThrottleConfigEntityRejects,
-  'reject-non-integer-adjustment-interval': assertThrottleCreateRejects,
-  'reject-non-integer-min-concurrency': assertThrottleCreateRejects,
-  'reject-non-integer-sample-window': assertThrottleCreateRejects,
-  'reject-non-integer-step-size': assertThrottleCreateRejects,
-  'reject-non-object-adaptive': assertThrottleConfigEntityRejects,
-  'reject-non-positive-scale-up': assertThrottleCreateRejects,
-  'reject-non-positive-target-latency': assertThrottleCreateRejects,
-  'reject-sample-window-less-than-10': assertThrottleCreateRejects,
-  'reject-scale-up-not-less-than-scale-down': assertThrottleCreateRejects,
-  'reject-step-size-less-than-one': assertThrottleCreateRejects,
-  'reject-unknown-key': assertThrottleCreateRejects,
-  'valid-all-fields': assertValidAllFields,
-  'valid-disabled-defaulted-config': assertValidDisabledDefaultedConfig,
-  'valid-disabled-no-extra-fields': assertValidDisabledNoExtraFields,
-  'valid-required-fields': assertValidRequiredFields
-};
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('Throttle adaptive config', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
+    let executed = 0;
+    for await (const results of workload.process(items, worker)) {
+      executed += results.length;
+    }
+    assert.strictEqual(executed, definedBatch.itemCount);
   }
+
+  private static createSampleWorker(throttle: VirtualClockThrottle): (index: number) => Promise<string | undefined> {
+    const worker = async (index: number): Promise<string | undefined> => {
+      throttle.advanceOperationStart();
+      const executed = await throttle.execute(() => {
+        throttle.advanceOperationDuration();
+        const settled = Promise.resolve(`result-${String(index)}`);
+        return settled;
+      });
+      return executed;
+    };
+    return worker;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': AdaptiveConfigScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Throttle adaptive config',
+  'runners': AdaptiveConfigRunners
 });
 
 const VALID_ENABLED_ADAPTIVE_CONFIG = {
@@ -278,13 +333,13 @@ void describe('ValidatedAdaptiveConfigEntity anyOf of closed branches', () => {
   void it('rejects a payload no single branch fully accepts: enabled true with a disabled-only targetLatencyMs', () => {
     const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'targetLatencyMs': 0 };
     assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
-    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+    assert.throws(() => { ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
   });
 
   void it('rejects a payload no single branch fully accepts: an additional property neither closed branch admits', () => {
     const payload = { ...VALID_ENABLED_ADAPTIVE_CONFIG, 'unknownField': 'unexpected' };
     assert.strictEqual(ValidatedAdaptiveConfigEntity.validate(payload), false);
-    assert.throws(() => { return ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
+    assert.throws(() => { ValidatedAdaptiveConfigEntity.intake(payload); }, SchemaIntakeError);
   });
 
   void it('accepts a payload the enabled branch fully accepts', () => {

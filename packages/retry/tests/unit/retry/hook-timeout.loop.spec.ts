@@ -1,54 +1,29 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { setTimeout } from 'node:timers/promises';
+
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
+import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
 
 import { Retry } from '../../../src/retry/index.js';
 import { HookTimeoutScenarioCaseEntity } from '../entities/HookTimeoutScenarioCaseEntity.js';
-import scenarioGroups from './hook-timeout.scenarios.json' with { type: 'json' };
+import { AsyncHook } from './fixtures/AsyncHook.js';
+import { DelayedOperation } from './fixtures/DelayedOperation.js';
+import { FailingOperation } from './fixtures/FailingOperation.js';
+import { FlakyOperation } from './fixtures/FlakyOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import { RetryClassifier } from './fixtures/RetryClassifier.js';
+import scenarioGroups from './hook-timeout.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(HookTimeoutScenarioCaseEntity.Schema, HookTimeoutScenarioCaseEntity.Node);
-
-type ScenarioCase = HookTimeoutScenarioCaseEntity.Type;
-
-type RetryScenarioInput = ScenarioCase['input'];
-
-type AttemptOutcome = 'failure' | 'success';
-
-type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
-
-function resolveAttemptOutcome(attempts: number, input: RetryScenarioInput): AttemptOutcome {
-  return attempts <= Number(input.batch?.failureCountBeforeSuccess ?? 0) ? 'failure' : 'success';
-}
-
-async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioInput): Promise<{ attempts: number; result: string }> {
-  let attempts = 0;
-
-  const result = await retry.execute(async () => {
-    attempts += 1;
-
-    const attemptMap: Record<AttemptOutcome, () => string> = {
-      'failure': () => {
-        throw RuntimeError.create(String(input.errorMessage));
-      },
-      'success': () => String(input.result)
-    };
-
-    return attemptMap[resolveAttemptOutcome(attempts, input)]();
-  });
-
-  return { attempts, result };
-}
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'enter-call-unset': async (scenario) => {
+class HookTimeoutRunners {
+  static async 'enter-call-unset'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'enter-call-unset'>): Promise<void> {
     const { expected, input } = scenario;
 
     class ThrowingEnterCallRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
@@ -58,133 +33,86 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     }
 
     const retry = new ThrowingEnterCallRetry(input.retry ?? {});
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'fast-hook': async (scenario) => {
+  }
+
+  static async 'fast-hook'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'fast-hook'>): Promise<void> {
     const { expected, input } = scenario;
 
-    class FastHookRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override async onAttempt(): Promise<void> {
-        await new Promise<void>((resolve) => { setTimeout(resolve, 1); });
-      }
-    }
-
-    const retry = new FastHookRetry(input.retry ?? {});
-    const result = await retry.execute(async () => {
-      await new Promise<void>((resolve) => { setTimeout(resolve, Number(input.delayMs)); });
-      return String(input.result);
-    });
+    const retry = Retry.create(input.retry ?? {});
+    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.delayed(1)), true);
+    const result = await retry.execute(DelayedOperation.of(Number(input.delayMs), String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'hung-attempt-with-timeout': async (scenario) => {
+  }
+
+  static async 'hung-attempt-with-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-attempt-with-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    class HangingAttemptRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override onAttempt(): Promise<void> {
-        return new Promise<void>(() => {});
-      }
-    }
-
-    const retry = new HangingAttemptRetry(input.retry ?? {});
+    const retry = Retry.create(input.retry ?? {});
+    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.hanging), true);
     const startedAt = Date.now();
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     const elapsedMs = Date.now() - startedAt;
 
     assert.strictEqual(result, String(expected.result));
     assert.ok(elapsedMs < Number(expected.elapsedLessThanMs));
-  },
-  'hung-attempt-without-timeout': async (scenario) => {
+  }
+
+  static async 'hung-attempt-without-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-attempt-without-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    class HangingAttemptRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override onAttempt(): Promise<void> {
-        return new Promise<void>(() => {});
-      }
-    }
-
-    const retry = new HangingAttemptRetry(input.retry ?? {});
+    const retry = Retry.create(input.retry ?? {});
+    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.hanging), true);
+    const timedOutMarker = 'timed-out';
     const raceResult = await Promise.race([
-      retry.execute(async () => String(input.result ?? 'ok')),
-      new Promise<'timed-out'>((resolve) => { setTimeout(() => { resolve('timed-out'); }, 100); })
+      retry.execute(ResolvingOperation.of(String(input.result ?? 'ok'))),
+      setTimeout(100, timedOutMarker)
     ]);
 
     assert.strictEqual(raceResult, String(expected.raceResult));
-  },
-  'hung-give-up-with-timeout': async (scenario) => {
+  }
+
+  static async 'hung-give-up-with-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-give-up-with-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    class HangingGiveUpRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override onGiveUp(): Promise<void> {
-        return new Promise<void>(() => {});
-      }
-    }
-
-    const retry = new HangingGiveUpRetry({
-      errorClassifier: () => ({ reason: 'fatal', retryable: false }),
+    const retry = Retry.create({
+      'errorClassifier': RetryClassifier.nonRetryable,
       ...input.retry
     });
+    assert.strictEqual(Reflect.set(retry, 'onGiveUp', AsyncHook.hanging), true);
 
     const startedAt = Date.now();
     await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }),
+      retry.execute(new FailingOperation(String(input.errorMessage)).run),
       { 'name': String(expected.errorShape) }
     );
     const elapsedMs = Date.now() - startedAt;
 
     assert.ok(elapsedMs < Number(expected.elapsedLessThanMs));
-  },
-  'hung-retry-scheduled': async (scenario) => {
+  }
+
+  static async 'hung-retry-scheduled'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-retry-scheduled'>): Promise<void> {
     const { expected, input } = scenario;
 
-    class HangingRetryScheduledRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
-        super(config ?? {});
-      }
-
-      protected override onRetryScheduled(): Promise<void> {
-        return new Promise<void>(() => {});
-      }
-    }
-
-    const retry = new HangingRetryScheduledRetry({
-      errorClassifier: () => ({ retryable: true }),
+    const retry = Retry.create({
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
+    assert.strictEqual(Reflect.set(retry, 'onRetryScheduled', AsyncHook.hanging), true);
     const startedAt = Date.now();
-    const { attempts, result } = await executeUntilConfiguredSuccess(retry, input);
+    const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.errorMessage), String(input.result));
     const elapsedMs = Date.now() - startedAt;
 
     assert.strictEqual(result, String(expected.result));
     assert.strictEqual(attempts, Number(expected.attempts));
     assert.ok(elapsedMs < Number(expected.elapsedLessThanMs));
   }
-};
-
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
 }
 
-void describe('Retry hook timeouts', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HookTimeoutScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Retry hook timeouts',
+  'runners': HookTimeoutRunners
 });

@@ -3,17 +3,9 @@ import { describe, it } from 'node:test';
 
 import type { ApplyArrayConstraintBrandsType } from '../../../../src/types/index.js';
 import type { NodeStaticType } from '../../../../src/types/NodeStaticType.js';
+import type { AssertType, EqualType, IsAssignableType, RefuteType } from './type-level-assert.js';
+
 import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
-import type { Assert, Equal } from './type-level-assert.js';
-
-type EqualType<X, Y> = (<T>() => T extends X ? 1 : 2) extends (<T>() => T extends Y ? 1 : 2) ? true : false;
-type IsAssignableType<A, B> = A extends B ? true : false;
-type ExpectFalseType<T extends false> = T;
-
-/** Compiles only if `value` structurally satisfies `T` — the type-level half of each case below. */
-function assertAssignable<T>(value: T): void {
-  void value;
-}
 
 // TS4023 regression: a `Node` combining an array/object count brand with an ADDITIONAL
 // unconstrained generic (the item/property static type) failed declaration emit because
@@ -25,44 +17,37 @@ function assertAssignable<T>(value: T): void {
 // cross-brand checks rather than the double-negation `EqualType` trick, which the compiler
 // resolves unreliably against these deferred generic-alias intersections.
 
-const maxItemsThreeItemNode = SchemaNode.defineString({ 'type': 'string' } as const);
-const maxItemsThreeNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 3 } as const, maxItemsThreeItemNode, undefined);
-const maxItemsFourNode = SchemaNode.defineArray({ 'type': 'array', 'maxItems': 4 } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
-type MaxItemsThreeStaticType = NodeStaticType<typeof maxItemsThreeNode>;
-type MaxItemsFourStaticType = NodeStaticType<typeof maxItemsFourNode>;
+const maximumItemsThreeItemNode = SchemaNode.defineString({ 'type': 'string' } as const);
+const maximumItemsThreeNodeType = SchemaNode.defineArray({ 'maxItems': 3, 'type': 'array' } as const, maximumItemsThreeItemNode, undefined);
+const maximumItemsFourNodeType = SchemaNode.defineArray({ 'maxItems': 4, 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
 
-// The brand is real (not erased to a plain array) and it carries its own literal argument.
-type ArrayBrandExistsCheck = ExpectFalseType<EqualType<MaxItemsThreeStaticType, string[]>>;
-type ArrayBrandCarriesLiteralCheck = ExpectFalseType<IsAssignableType<MaxItemsFourStaticType, MaxItemsThreeStaticType>>;
+const uniqueNodeType = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
 
-const uniqueNode = SchemaNode.defineArray({ 'type': 'array', 'uniqueItems': true } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined);
-type UniqueStaticType = NodeStaticType<typeof uniqueNode>;
-type UniqueBrandExistsCheck = ExpectFalseType<EqualType<UniqueStaticType, number[]>>;
-
-const minPropertiesOneNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 1 } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
-const minPropertiesTwoNode = SchemaNode.defineObject({ 'type': 'object', 'minProperties': 2 } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
-type MinPropertiesOneStaticType = NodeStaticType<typeof minPropertiesOneNode>;
-type MinPropertiesTwoStaticType = NodeStaticType<typeof minPropertiesTwoNode>;
-
-type ObjectBrandCarriesLiteralCheck = ExpectFalseType<IsAssignableType<MinPropertiesTwoStaticType, MinPropertiesOneStaticType>>;
-
-// A maxItems-3 string array is exactly the array constraint brands intersected with a plain string array.
-type MaxItemsThreeExpectedType = ApplyArrayConstraintBrandsType<{ 'type': 'array'; 'maxItems': 3 }> & NodeStaticType<typeof maxItemsThreeItemNode>[];
-type MaxItemsThreeShapeCheck = Assert<Equal<MaxItemsThreeStaticType, MaxItemsThreeExpectedType>>;
+const minimumPropertiesOneNodeType = SchemaNode.defineObject({ 'minProperties': 1, 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+const minimumPropertiesTwoNodeType = SchemaNode.defineObject({ 'minProperties': 2, 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 void describe('array/object constraint brands after the TS4023 fix', () => {
   void it('type-checks the brand-distinctness cases above (enforced by tsc -b)', () => {
-    const checks: [ArrayBrandExistsCheck, ArrayBrandCarriesLiteralCheck, UniqueBrandExistsCheck, ObjectBrandCarriesLiteralCheck] = [false, false, false, false];
+    const checks: [
+      // The brand is real (not erased to a plain array) and it carries its own literal argument.
+      RefuteType<EqualType<NodeStaticType<typeof maximumItemsThreeNodeType>, string[]>>,
+      RefuteType<IsAssignableType<NodeStaticType<typeof maximumItemsFourNodeType>, NodeStaticType<typeof maximumItemsThreeNodeType>>>,
+      RefuteType<EqualType<NodeStaticType<typeof uniqueNodeType>, number[]>>,
+      RefuteType<IsAssignableType<NodeStaticType<typeof minimumPropertiesTwoNodeType>, NodeStaticType<typeof minimumPropertiesOneNodeType>>>
+    ] = [false, false, false, false];
 
-    assert.ok(checks.every((check) => check === false));
+    assert.ok(checks.every((check) => {
+      const isRefuted = check === false;
+      return isRefuted;
+    }));
   });
 
   void it('a value shaped for maxItems 3 assigns as a plain string array', () => {
-    const check: MaxItemsThreeShapeCheck = true;
+    // A maxItems-3 string array is exactly the array constraint brands intersected with a plain string array.
+    const check: AssertType<EqualType<NodeStaticType<typeof maximumItemsThreeNodeType>, ApplyArrayConstraintBrandsType<{ 'maxItems': 3; 'type': 'array'; }> & NodeStaticType<typeof maximumItemsThreeItemNode>[]>> = true;
     const three: string[] = ['a', 'b'];
 
     assert.ok(check);
-    assertAssignable<string[]>(three);
     assert.deepEqual(three, ['a', 'b']);
   });
 });

@@ -1,31 +1,27 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/index.js';
 import { ActiveOperationStateEntity, ThrottleAbortOptionsEntity } from '../../../src/entities/index.js';
+import { ThrottleAbortedError, ThrottleDrainingError } from '../../../src/index.js';
 import { EntityContractsScenarioCaseEntity } from './entities/EntityContractsScenarioCaseEntity.js';
-import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
+import scenarioGroups from './entity-contracts.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = EntityContractsScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(EntityContractsScenarioCaseEntity.Schema, EntityContractsScenarioCaseEntity.Node);
-
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-  'abort-options': (scenarioCase) => {
+class EntityContractsRunners {
+  static 'abort-options'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'abort-options'>): void {
     const { expected, input } = scenarioCase;
     assert.equal(ThrottleAbortOptionsEntity.validate(input.valid), Boolean(expected.valid));
     assert.equal(ThrottleAbortOptionsEntity.validate(input.invalid), Boolean(expected.invalid));
-  },
-  'active-operation-state': (scenarioCase) => {
+  }
+
+  static 'active-operation-state'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'active-operation-state'>): void {
     const { expected, input } = scenarioCase;
     assert.equal(ActiveOperationStateEntity.validate(input.valid), Boolean(expected.valid));
     assert.equal(ActiveOperationStateEntity.validate(input.invalid), Boolean(expected.invalid));
-  },
-  'error-constructors': (scenarioCase) => {
+  }
+
+  static 'error-constructors'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-constructors'>): void {
     const aborted = new ThrottleAbortedError(scenarioCase.input.aborted.message, scenarioCase.input.aborted.timeoutMs);
     const draining = new ThrottleDrainingError(scenarioCase.input.draining.message);
     assert.equal(aborted.code, scenarioCase.expected.aborted.code);
@@ -34,16 +30,11 @@ const runnerMap: RunnerMap = {
     assert.equal(draining.code, scenarioCase.expected.draining.code);
     assert.equal(draining.message, scenarioCase.expected.draining.message);
   }
-};
-
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('Throttle entity contracts', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': EntityContractsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Throttle entity contracts',
+  'runners': EntityContractsRunners
 });
