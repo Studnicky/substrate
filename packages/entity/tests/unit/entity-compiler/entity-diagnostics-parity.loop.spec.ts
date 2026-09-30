@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { BaseError } from '@studnicky/types/node';
+
 import { EntityCompiler as NodeEntityCompiler } from '../../../src/node/index.js';
 import { EntityCompiler as BrowserEntityCompiler } from '../../../src/browser/index.js';
 
@@ -36,11 +38,10 @@ void describe('EntityDiagnostics parity across node and browser registries', () 
       'type': 'object'
     };
 
-    class StatusError extends Error {
-      public status: number;
+    class StatusError extends BaseError {
+      public override readonly name: string = 'StatusError';
       public constructor(message: string, status: number) {
-        super(message);
-        this.status = status;
+        super({ 'code': 'test.status', 'message': message, 'status': status });
       }
     }
     const value = new StatusError('boom', 503);

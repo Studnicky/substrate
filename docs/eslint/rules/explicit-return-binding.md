@@ -13,6 +13,18 @@ It does not report a bare identifier, literal, `this`, member read, `new` expres
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
+## Interaction with `arrow-body-style`
+
+This repository enables core `arrow-body-style` with `'always'`. Its autofix rewrites an expression-bodied arrow `() => compute()` into `() => { return compute(); }`, which this rule then reports. The rewrite is behavior-preserving; `eslint --fix` stops at that form, and the binding is written by hand:
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+const run = (): number => {
+  const result = compute();
+  return result;
+};
+```
+
 ## Survey basis
 
 The house style is that a return which does work names its result before handing it back. No existing rule enforces this: all 97 `@stylistic` rules and all 146 rules configured in `eslint.config.ts` fail to match this shape. `sonarjs/prefer-immediate-return` enforces the opposite (it flags `const result = f(); return result;` and suggests inlining); it is not enabled in this config, and this rule supersedes it within the scope described above.

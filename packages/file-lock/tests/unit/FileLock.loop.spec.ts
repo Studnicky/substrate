@@ -1,5 +1,6 @@
 import { RuntimeError } from '@studnicky/errors/node';
 import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -34,10 +35,12 @@ class FileLockTestHelpers {
   }
 }
 
-/** A minimal Node-style filesystem error: only `code` and `message` matter to `FileRenameLock`'s `'code' in error` check. */
-class FaultyFileSystemError extends Error {
-  public constructor(public readonly code: string, message: string) {
-    super(message);
+/** A filesystem failure carrying a Node-style `code`: only `code` and `message` matter to `FileRenameLock`'s `'code' in error` check. */
+class FaultyFileSystemError extends BaseError {
+  public override readonly name: string = 'FaultyFileSystemError';
+
+  public constructor(code: string, message: string) {
+    super({ 'code': code, 'message': message });
   }
 }
 
