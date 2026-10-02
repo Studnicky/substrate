@@ -57,7 +57,11 @@ void describe('EntityCompiler schema boundaries', () => {
     const input = { 'port': 8080 };
 
     assert.equal(first, second);
+    const initialErrors = first.errors;
+    assert.equal(initialErrors, undefined);
     assert.equal(first(input), true);
+    const successfulErrors = first.errors;
+    assert.equal(successfulErrors, null);
     assert.deepEqual(input, { 'port': 8080 });
     assert.equal(first({ 'port': '8080' }), false);
     const errors = first.errors;
