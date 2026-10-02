@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { AfterStageGetsStageOutputScenarioCaseEntity } from './AfterStageGetsStageOutputScenarioCaseEntity.js';
@@ -38,37 +40,37 @@ import { TracingPipelineResultScenarioCaseEntity } from './TracingPipelineResult
 export namespace PipelineSubclassScenarioCaseEntity {
   export const Schema = {
     'oneOf': [
-    BeforeAfterOrderScenarioCaseEntity.Schema,
-    NoHooksNoStagesScenarioCaseEntity.Schema,
-    SingleStageBeforeAfterScenarioCaseEntity.Schema,
-    TracingPipelineResultScenarioCaseEntity.Schema,
-    BeforeStageGetsPriorOutputScenarioCaseEntity.Schema,
-    AfterStageGetsStageOutputScenarioCaseEntity.Schema,
-    RunStartBeforeStagesScenarioCaseEntity.Schema,
-    RunCompleteAfterStagesScenarioCaseEntity.Schema,
-    RunStartOriginalValueScenarioCaseEntity.Schema,
-    RunStartObserverLeavesFirstStageInputScenarioCaseEntity.Schema,
-    RunCompleteObserverLeavesResultIntactScenarioCaseEntity.Schema,
-    HooksCalledWithNoStagesScenarioCaseEntity.Schema,
-    ProtectedFnsLengthScenarioCaseEntity.Schema,
-    StageStartOrderScenarioCaseEntity.Schema,
-    StageSuccessOutputScenarioCaseEntity.Schema,
-    StageStartAfterBeforeStageScenarioCaseEntity.Schema,
-    StageSuccessBeforeAfterStageScenarioCaseEntity.Schema,
-    StageErrorOnThrowScenarioCaseEntity.Schema,
-    StageErrorNotOnSuccessScenarioCaseEntity.Schema,
-    RunErrorOnThrowScenarioCaseEntity.Schema,
-    RunErrorReceivesOriginalStageErrorScenarioCaseEntity.Schema,
-    StageErrorBeforeRunErrorScenarioCaseEntity.Schema,
-    NoStageHooksWithEmptyPipelineScenarioCaseEntity.Schema,
-    ThrowingOnStageStartScenarioCaseEntity.Schema,
-    ThrowingOnStageSuccessScenarioCaseEntity.Schema,
-    ThrowingOnStageErrorScenarioCaseEntity.Schema,
-    ThrowingOnRunErrorScenarioCaseEntity.Schema,
-    BeforeStageThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
-    AfterStageThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
-    OnRunStartThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
-    OnRunCompleteThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema
+      BeforeAfterOrderScenarioCaseEntity.Schema,
+      NoHooksNoStagesScenarioCaseEntity.Schema,
+      SingleStageBeforeAfterScenarioCaseEntity.Schema,
+      TracingPipelineResultScenarioCaseEntity.Schema,
+      BeforeStageGetsPriorOutputScenarioCaseEntity.Schema,
+      AfterStageGetsStageOutputScenarioCaseEntity.Schema,
+      RunStartBeforeStagesScenarioCaseEntity.Schema,
+      RunCompleteAfterStagesScenarioCaseEntity.Schema,
+      RunStartOriginalValueScenarioCaseEntity.Schema,
+      RunStartObserverLeavesFirstStageInputScenarioCaseEntity.Schema,
+      RunCompleteObserverLeavesResultIntactScenarioCaseEntity.Schema,
+      HooksCalledWithNoStagesScenarioCaseEntity.Schema,
+      ProtectedFnsLengthScenarioCaseEntity.Schema,
+      StageStartOrderScenarioCaseEntity.Schema,
+      StageSuccessOutputScenarioCaseEntity.Schema,
+      StageStartAfterBeforeStageScenarioCaseEntity.Schema,
+      StageSuccessBeforeAfterStageScenarioCaseEntity.Schema,
+      StageErrorOnThrowScenarioCaseEntity.Schema,
+      StageErrorNotOnSuccessScenarioCaseEntity.Schema,
+      RunErrorOnThrowScenarioCaseEntity.Schema,
+      RunErrorReceivesOriginalStageErrorScenarioCaseEntity.Schema,
+      StageErrorBeforeRunErrorScenarioCaseEntity.Schema,
+      NoStageHooksWithEmptyPipelineScenarioCaseEntity.Schema,
+      ThrowingOnStageStartScenarioCaseEntity.Schema,
+      ThrowingOnStageSuccessScenarioCaseEntity.Schema,
+      ThrowingOnStageErrorScenarioCaseEntity.Schema,
+      ThrowingOnRunErrorScenarioCaseEntity.Schema,
+      BeforeStageThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
+      AfterStageThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
+      OnRunStartThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema,
+      OnRunCompleteThrowDoesNotTriggerRunErrorScenarioCaseEntity.Schema
     ]
   } as const;
 
@@ -106,4 +108,7 @@ export namespace PipelineSubclassScenarioCaseEntity {
     OnRunCompleteThrowDoesNotTriggerRunErrorScenarioCaseEntity.Node
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

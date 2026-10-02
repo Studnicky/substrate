@@ -1,88 +1,99 @@
-import { ScenarioFileCompiler } from "@studnicky/scenario-kit/node";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { SampleBuffer } from "../../../src/sample-buffer/SampleBuffer.js";
-import { SampleBufferError } from "../../../src/errors/SampleBufferError.js";
-import { SampleBufferScenarioCaseEntity } from "../entities/SampleBufferScenarioCaseEntity.js";
-import scenarioGroups from "./sample-buffer.scenarios.json" with { type: "json" };
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
 
-type ScenarioShape = SampleBufferScenarioCaseEntity.Type["shape"];
-type RunnerMap = {
-  [K in ScenarioShape]: (scenarioCase: SampleBufferScenarioCaseEntity.Type & { shape: K }) => void;
-};
+import { SampleBufferError } from '../../../src/errors/SampleBufferError.js';
+import { SampleBuffer } from '../../../src/sample-buffer/SampleBuffer.js';
+import { SampleBufferScenarioCaseEntity } from '../entities/SampleBufferScenarioCaseEntity.js';
+import scenarioGroups from './sample-buffer.scenarios.json' with { 'type': 'json' };
 
-const runnerMap: RunnerMap = {
-  "capacity-error": (scenarioCase) => {
+class SampleBufferRunners {
+  static 'capacity-error'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'capacity-error'>): void {
     assert.throws(
-      () => SampleBuffer.create(scenarioCase.input.sampleBuffer),
-      (err) => {
-        assert.ok(err instanceof SampleBufferError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        return true;
+      () => {
+        SampleBuffer.create(scenarioCase.input.sampleBuffer);
       },
+      (thrown) => {
+        const error: unknown = thrown;
+        assert.ok(error instanceof SampleBufferError);
+        assert.equal(error.constructor.name, scenarioCase.expected.errorName);
+        return true;
+      }
     );
-  },
-  "clear-resets": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.pushes);
-    buf.clear();
-    assert.equal(buf.length, scenarioCase.expected.length);
-    assert.equal(buf.isFull, scenarioCase.expected.full);
+  }
+
+  static 'clear-resets'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'clear-resets'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.pushes);
+    buffer.clear();
+    assert.equal(buffer.length, scenarioCase.expected.length);
+    assert.equal(buffer.isFull, scenarioCase.expected.full);
     assert.equal(
-      buf.percentile(scenarioCase.input.pct),
-      scenarioCase.expected.percentile ?? undefined,
+      buffer.percentile(scenarioCase.input.pct),
+      scenarioCase.expected.percentile ?? undefined
     );
-  },
-  construction: (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    assert.equal(buf.length, scenarioCase.expected.length);
-    assert.equal(buf.isFull, scenarioCase.expected.full);
-  },
-  "invalid-multi-error": (scenarioCase) => {
+  }
+
+  static 'construction'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'construction'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    assert.equal(buffer.length, scenarioCase.expected.length);
+    assert.equal(buffer.isFull, scenarioCase.expected.full);
+  }
+
+  static 'invalid-multi-error'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'invalid-multi-error'>): void {
     assert.throws(
-      () => SampleBuffer.create(scenarioCase.input.sampleBuffer),
-      (err) => {
-        assert.ok(err instanceof SampleBufferError);
-        assert.equal(err.constructor.name, scenarioCase.expected.errorName);
-        for (const fragment of scenarioCase.expected.messageIncludes) {
-          assert.ok(err.message.includes(fragment));
+      () => {
+        SampleBuffer.create(scenarioCase.input.sampleBuffer);
+      },
+      (thrown) => {
+        const error: unknown = thrown;
+        assert.ok(error instanceof SampleBufferError);
+        assert.equal(error.constructor.name, scenarioCase.expected.errorName);
+        const fragments = scenarioCase.expected.messageIncludes;
+        for (let index = 0; index < fragments.length; index += 1) {
+          assert.ok(error.message.includes(String(fragments[index])));
         }
         return true;
-      },
+      }
     );
-  },
-  "is-full": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.pushes);
-    assert.equal(buf.isFull, scenarioCase.expected.full);
-  },
-  "maintains-length": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.pushes);
-    assert.equal(buf.length, scenarioCase.expected.length);
-    assert.equal(buf.isFull, scenarioCase.expected.isFull);
-  },
-  "overwrites-oldest": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.pushes);
-    assert.equal(buf.length, scenarioCase.expected.length);
-    assert.equal(buf.isFull, scenarioCase.expected.isFull);
+  }
+
+  static 'is-full'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'is-full'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.pushes);
+    assert.equal(buffer.isFull, scenarioCase.expected.full);
+  }
+
+  static 'maintains-length'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'maintains-length'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.pushes);
+    assert.equal(buffer.length, scenarioCase.expected.length);
+    assert.equal(buffer.isFull, scenarioCase.expected.isFull);
+  }
+
+  static 'overwrites-oldest'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'overwrites-oldest'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.pushes);
+    assert.equal(buffer.length, scenarioCase.expected.length);
+    assert.equal(buffer.isFull, scenarioCase.expected.isFull);
     assert.equal(
-      buf.percentile(scenarioCase.input.pct),
-      scenarioCase.expected.percentile,
+      buffer.percentile(scenarioCase.input.pct),
+      scenarioCase.expected.percentile
     );
-  },
-  percentile: (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.samples);
+  }
+
+  static 'percentile'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'percentile'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.samples);
     assert.equal(
-      buf.percentile(scenarioCase.input.pct),
-      scenarioCase.expected.percentile ?? undefined,
+      buffer.percentile(scenarioCase.input.pct),
+      scenarioCase.expected.percentile ?? undefined
     );
-  },
-  "percentile-batch": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+  }
+
+  static 'percentile-batch'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'percentile-batch'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
     const sampleLimit =
       scenarioCase.input.startValue + scenarioCase.input.batch.sampleCount;
     for (
@@ -90,73 +101,63 @@ const runnerMap: RunnerMap = {
       value < sampleLimit;
       value += 1
     ) {
-      buf.push(value);
+      buffer.push(value);
     }
     assert.equal(
-      buf.percentile(scenarioCase.input.pct),
-      scenarioCase.expected.percentile,
+      buffer.percentile(scenarioCase.input.pct),
+      scenarioCase.expected.percentile
     );
-  },
-  "push-lengths": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    for (let i = 0; i < scenarioCase.input.pushes.length; i += 1) {
-      buf.push(scenarioCase.input.pushes[i]!);
-      assert.equal(buf.length, scenarioCase.expected.lengths[i]);
+  }
+
+  static 'push-lengths'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'push-lengths'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    const pushes = scenarioCase.input.pushes;
+    for (let index = 0; index < pushes.length; index += 1) {
+      buffer.push(Number(pushes[index]));
+      assert.equal(buffer.length, scenarioCase.expected.lengths[index]);
     }
-  },
-  "recalculate-after-push": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.pushes);
-    const percentileBefore = buf.percentile(scenarioCase.input.pct);
-    buf.push(scenarioCase.input.pushAfter);
-    const percentileAfter = buf.percentile(scenarioCase.input.pct);
+  }
+
+  static 'recalculate-after-push'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'recalculate-after-push'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.pushes);
+    const percentileBefore = buffer.percentile(scenarioCase.input.pct);
+    buffer.push(scenarioCase.input.pushAfter);
+    const percentileAfter = buffer.percentile(scenarioCase.input.pct);
     assert.ok(
       percentileAfter !== undefined && percentileBefore !== undefined,
-      "percentiles should be defined",
+      'percentiles should be defined'
     );
     assert.ok(
       percentileAfter > percentileBefore,
-      "percentile should increase after adding high value",
+      'percentile should increase after adding high value'
     );
     assert.equal(percentileBefore, scenarioCase.expected.percentileBefore);
     assert.equal(percentileAfter, scenarioCase.expected.percentileAfter);
-  },
-  "reuse-after-clear": (scenarioCase) => {
-    const buf = SampleBuffer.create(scenarioCase.input.sampleBuffer);
-    pushValues(buf, scenarioCase.input.firstPushes);
-    buf.clear();
-    pushValues(buf, scenarioCase.input.secondPushes);
-    assert.equal(buf.length, scenarioCase.expected.length);
+  }
+
+  static 'reuse-after-clear'(scenarioCase: ScenarioCaseOfType<SampleBufferScenarioCaseEntity.Type, 'reuse-after-clear'>): void {
+    const buffer = SampleBuffer.create(scenarioCase.input.sampleBuffer);
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.firstPushes);
+    buffer.clear();
+    SampleBufferRunners.pushValues(buffer, scenarioCase.input.secondPushes);
+    assert.equal(buffer.length, scenarioCase.expected.length);
     assert.equal(
-      buf.percentile(scenarioCase.input.pct),
-      scenarioCase.expected.percentile,
+      buffer.percentile(scenarioCase.input.pct),
+      scenarioCase.expected.percentile
     );
-  },
-};
+  }
 
-function dispatchCase<K extends ScenarioShape>(
-  shape: K,
-  scenarioCase: SampleBufferScenarioCaseEntity.Type & { shape: K },
-): void {
-  runnerMap[shape](scenarioCase);
-}
-
-function runCase(scenarioCase: SampleBufferScenarioCaseEntity.Type): void {
-  dispatchCase(scenarioCase.shape, scenarioCase);
-}
-
-function pushValues(buffer: SampleBuffer, values: readonly number[]): void {
-  for (const value of values) {
-    buffer.push(value);
+  private static pushValues(buffer: SampleBuffer, values: readonly number[]): void {
+    for (let index = 0; index < values.length; index += 1) {
+      buffer.push(Number(values[index]));
+    }
   }
 }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(SampleBufferScenarioCaseEntity.Schema, SampleBufferScenarioCaseEntity.Node);
-
-void describe("SampleBuffer", () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': SampleBufferScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'SampleBuffer',
+  'runners': SampleBufferRunners
 });

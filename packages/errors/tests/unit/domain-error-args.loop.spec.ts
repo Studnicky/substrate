@@ -1,147 +1,133 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+import type { BaseErrorArgumentsInterface } from '@studnicky/types/browser';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+
+import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
 
 import { DomainErrorArgumentList } from '../../src/errors/DomainErrorArgumentList.js';
-import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
-import { DomainErrorArgsScenarioCaseEntity } from './entities/DomainErrorArgsScenarioCaseEntity.js';
-import scenarioGroups from './domain-error-args.scenarios.json' with { type: 'json' };
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import scenarioGroups from './domain-error-args.scenarios.json' with { 'type': 'json' };
+import { DomainErrorArgumentListScenarioCaseEntity } from './entities/DomainErrorArgumentListScenarioCaseEntity.js';
 
 abstract class StubFileLockError extends BaseError {
-  protected constructor(args: Readonly<BaseErrorArgumentsInterface>) {
-    super(args);
+  protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {
+    super(argumentList);
+  }
+}
+
+class StubFileLockOptions {
+  static build(error: DomainErrorArgumentListScenarioCaseEntity.Type['input']['error']): DomainErrorOptionsInterface<DomainErrorArgumentListScenarioCaseEntity.Type['input']['error']['fields']> {
+    const result = {
+      'cause': error.options.causeMessage === undefined ? undefined : RuntimeError.create(error.options.causeMessage),
+      'code': error.options.code,
+      'correlationId': error.options.correlationId,
+      'message': (fields: Readonly<DomainErrorArgumentListScenarioCaseEntity.Type['input']['error']['fields']>): string => {
+        const message = error.options.message ?? StubFileLockOptions.describe(error.options.messageTemplate, fields);
+        return message;
+      },
+      'metadata': error.options.metadata,
+      'retryable': error.options.retryable
+    };
+    return result;
+  }
+
+  private static describe(template: string | undefined, fields: Readonly<DomainErrorArgumentListScenarioCaseEntity.Type['input']['error']['fields']>): string {
+    const result = template === 'file-lock-timeout'
+      ? `Timed out acquiring lock on "${fields.path}" after ${String(fields.timeoutMs)}ms`
+      : '';
+    return result;
   }
 }
 
 class StubFileLockTimeoutError extends StubFileLockError {
   public override readonly name: string = 'StubFileLockTimeoutError';
 
-  readonly path!: string;
-  readonly timeoutMs!: number;
+  readonly path: string;
+  readonly timeoutMs: number;
 
-  constructor(error: StubFileLockErrorInputInterface) {
-    const fields = error.fields;
-    super(DomainErrorArgumentList.build(fields, buildStubFileLockOptions(error)));
-    Object.assign(this, fields);
+  constructor(error: DomainErrorArgumentListScenarioCaseEntity.Type['input']['error']) {
+    super(DomainErrorArgumentList.build(error.fields, StubFileLockOptions.build(error)));
+    this.path = error.fields.path;
+    this.timeoutMs = error.fields.timeoutMs;
   }
 }
 
-interface StubFileLockFieldsInterface extends Record<string, unknown> {
-  path: string;
-  timeoutMs: number;
-}
+class DomainErrorArgumentListRunners {
+  static 'assigns-fields'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'assigns-fields'>): void {
+    const { expected, input } = scenarioCase;
+    const error = new StubFileLockTimeoutError(input.error);
+    assert.strictEqual(error.path, String(expected.path));
+    assert.strictEqual(error.timeoutMs, Number(expected.timeoutMs));
+  }
 
-interface StubFileLockOptionsInputInterface {
-  causeMessage?: string;
-  code: string;
-  correlationId?: string;
-  message?: string;
-  messageTemplate?: 'file-lock-timeout';
-  metadata?: Readonly<Record<string, string | number | boolean | null>>;
-  retryable?: boolean;
-}
+  static 'forwards-code-retryable'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'forwards-code-retryable'>): void {
+    const { expected, input } = scenarioCase;
+    const error = new StubFileLockTimeoutError(input.error);
+    assert.strictEqual(error.code, String(expected.code));
+    assert.strictEqual(error.retryable, Boolean(expected.retryable));
+  }
 
-interface StubFileLockErrorInputInterface {
-  fields: StubFileLockFieldsInterface;
-  options: StubFileLockOptionsInputInterface;
-}
+  static 'includes-optional-fields'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'includes-optional-fields'>): void {
+    const { expected, input } = scenarioCase;
+    const options = StubFileLockOptions.build(input.error);
+    const argumentList = DomainErrorArgumentList.build(input.error.fields, options);
+    assert.strictEqual(argumentList.cause, options.cause);
+    assert.strictEqual(argumentList.correlationId, String(expected.correlationId));
+    assert.strictEqual(argumentList.retryable, Boolean(expected.retryable));
+    assert.strictEqual(argumentList.metadata?.attempt, expected.metadata?.attempt);
+  }
 
-type ScenarioCase = DomainErrorArgsScenarioCaseEntity.Type;
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+  static 'message-callback'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'message-callback'>): void {
+    const { expected, input } = scenarioCase;
+    const error = new StubFileLockTimeoutError(input.error);
+    assert.strictEqual(error.message, String(expected.message));
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(DomainErrorArgsScenarioCaseEntity.Schema, DomainErrorArgsScenarioCaseEntity.Node);
-
-function buildStubFileLockOptions(error: StubFileLockErrorInputInterface): DomainErrorOptionsInterface<StubFileLockFieldsInterface> {
-  return {
-    cause: error.options.causeMessage === undefined ? undefined : RuntimeError.create(error.options.causeMessage),
-    code: error.options.code,
-    correlationId: error.options.correlationId,
-    message: (fields) => error.options.message ?? buildStubFileLockMessage(error.options.messageTemplate, fields),
-    metadata: error.options.metadata,
-    retryable: error.options.retryable
-  };
-}
-
-const messageTemplateMap = {
-  'file-lock-timeout': (fields: Readonly<StubFileLockFieldsInterface>) => `Timed out acquiring lock on "${fields.path}" after ${String(fields.timeoutMs)}ms`
-} satisfies Record<NonNullable<StubFileLockOptionsInputInterface['messageTemplate']>, (fields: Readonly<StubFileLockFieldsInterface>) => string>;
-
-function buildStubFileLockMessage(template: StubFileLockOptionsInputInterface['messageTemplate'], fields: Readonly<StubFileLockFieldsInterface>): string {
-  return template === undefined ? '' : messageTemplateMap[template](fields);
-}
-
-const runnerMap = {
-  'assigns-fields': (scenario) => {
-    const { expected, input } = scenario;
-    const err = new StubFileLockTimeoutError(input.error);
-    assert.strictEqual(err.path, String(expected.path));
-    assert.strictEqual(err.timeoutMs, Number(expected.timeoutMs));
-  },
-  'forwards-code-retryable': (scenario) => {
-    const { expected, input } = scenario;
-    const err = new StubFileLockTimeoutError(input.error);
-    assert.strictEqual(err.code, String(expected.code));
-    assert.strictEqual(err.retryable, Boolean(expected.retryable));
-  },
-  'includes-optional-fields': (scenario) => {
-    const { expected, input } = scenario;
-    const options = buildStubFileLockOptions(input.error);
-    const args = DomainErrorArgumentList.build(input.error.fields, options);
-    assert.strictEqual(args.cause, options.cause);
-    assert.strictEqual(args.correlationId, String(expected.correlationId));
-    assert.strictEqual(args.retryable, Boolean(expected.retryable));
-    assert.strictEqual(args.metadata?.attempt, expected.metadata?.attempt);
-  },
-  'message-callback': (scenario) => {
-    const { expected, input } = scenario;
-    const err = new StubFileLockTimeoutError(input.error);
-    assert.strictEqual(err.message, String(expected.message));
-  },
-  'name-resolves': (scenario) => {
-    const { expected, input } = scenario;
+  static 'name-resolves'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'name-resolves'>): void {
+    const { expected, input } = scenarioCase;
     assert.strictEqual(new StubFileLockTimeoutError(input.error).name, String(expected.name));
-  },
-  'omits-optional-fields': (scenario) => {
-    const { expected, input } = scenario;
-    const args = DomainErrorArgumentList.build(input.error.fields, buildStubFileLockOptions(input.error));
-    assert.strictEqual('cause' in args, Boolean(expected.hasCause));
-    assert.strictEqual('correlationId' in args, Boolean(expected.hasCorrelationId));
-    assert.strictEqual('metadata' in args, Boolean(expected.hasMetadata));
-    assert.strictEqual('retryable' in args, Boolean(expected.hasRetryable));
-  },
-  'preserves-instanceof': (scenario) => {
-    const { input } = scenario;
-    const err = new StubFileLockTimeoutError(input.error);
-    assert.ok(err instanceof Error);
-    assert.ok(err instanceof BaseError);
-    assert.ok(err instanceof StubFileLockError);
-    assert.ok(err instanceof StubFileLockTimeoutError);
-  },
-  'same-fields-object': (scenario) => {
-    const { input } = scenario;
+  }
+
+  static 'omits-optional-fields'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'omits-optional-fields'>): void {
+    const { expected, input } = scenarioCase;
+    const argumentList = DomainErrorArgumentList.build(input.error.fields, StubFileLockOptions.build(input.error));
+    assert.strictEqual('cause' in argumentList, Boolean(expected.hasCause));
+    assert.strictEqual('correlationId' in argumentList, Boolean(expected.hasCorrelationId));
+    assert.strictEqual('metadata' in argumentList, Boolean(expected.hasMetadata));
+    assert.strictEqual('retryable' in argumentList, Boolean(expected.hasRetryable));
+  }
+
+  static 'preserves-instanceof'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'preserves-instanceof'>): void {
+    const { input } = scenarioCase;
+    const error = new StubFileLockTimeoutError(input.error);
+    assert.ok(error instanceof Error);
+    assert.ok(error instanceof BaseError);
+    assert.ok(error instanceof StubFileLockError);
+    assert.ok(error instanceof StubFileLockTimeoutError);
+  }
+
+  static 'same-fields-object'(scenarioCase: ScenarioCaseOfType<DomainErrorArgumentListScenarioCaseEntity.Type, 'same-fields-object'>): void {
+    const { input } = scenarioCase;
     const fields = input.error.fields;
     let received: Readonly<typeof fields> | undefined;
     DomainErrorArgumentList.build(fields, {
-      ...buildStubFileLockOptions(input.error),
-      message: (f) => {
-        received = f;
-        return input.error.options.message ?? '';
+      ...StubFileLockOptions.build(input.error),
+      'message': (receivedFields) => {
+        received = receivedFields;
+        const message = input.error.options.message ?? '';
+        return message;
       }
     });
     assert.strictEqual(received, fields);
   }
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
-
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
 }
 
-void describe('DomainErrorArgumentList.build()', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': DomainErrorArgumentListScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'DomainErrorArgumentList.build()',
+  'runners': DomainErrorArgumentListRunners
 });

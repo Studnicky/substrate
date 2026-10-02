@@ -8,8 +8,9 @@ import { ExampleSmokeRunner } from '../../src/ExampleSmokeRunner.js';
 
 void describe('ExampleSmokeRunner platform failures', () => {
   void it('surfaces an unreadable worker parent file as an ExampleSmokeError with the fs error as cause', async () => {
-    await assert.rejects(
-      ExampleSmokeRunner.runScenario(
+    let caught: unknown;
+    try {
+      await ExampleSmokeRunner.runScenario(
         ExampleScenarioEntity.intake({
           'description': 'worker entry with a missing parent',
           'expected': { 'referencedByParent': true },
@@ -18,14 +19,14 @@ void describe('ExampleSmokeRunner platform failures', () => {
           'shape': 'worker-entry'
         }),
         { 'packageName': 'example', 'specUrl': import.meta.url }
-      ),
-      (error: unknown) => {
-        assert.ok(error instanceof ExampleSmokeError);
-        assert.equal(error.code, 'exampleSmoke.fileUnreadable');
-        assert.ok(Predicates.isObject(error.cause));
-        assert.equal(error.cause.code, 'ENOENT');
-        return true;
-      }
-    );
+      );
+    } catch (error) {
+      caught = error;
+    }
+    assert.ok(caught instanceof ExampleSmokeError);
+    assert.equal(caught.code, 'exampleSmoke.fileUnreadable');
+    const cause: unknown = caught.cause;
+    assert.ok(Predicates.isObject(cause));
+    assert.equal(cause.code, 'ENOENT');
   });
 });

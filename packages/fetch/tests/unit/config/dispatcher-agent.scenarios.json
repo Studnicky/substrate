@@ -21,7 +21,8 @@
           "maxOrigins": "__INFINITY__",
           "connect": "__UNDEFINED__"
         }
-      }
+      },
+      "shape": "builds-agent"
     },
     {
       "name": "sparse-config",
@@ -47,7 +48,8 @@
           "maxOrigins": "__INFINITY__",
           "connect": "__UNDEFINED__"
         }
-      }
+      },
+      "shape": "builds-agent"
     },
     {
       "name": "comprehensive-config",
@@ -99,7 +101,8 @@
           "maxOrigins": 3,
           "connect": "__UNDEFINED__"
         }
-      }
+      },
+      "shape": "builds-agent"
     }
   ]
 }

@@ -11,7 +11,8 @@
         "key": "account-42",
         "maximumQueueSize": 3
       },
-      "name": "captures key and queue size"
+      "name": "captures key and queue size",
+      "shape": "captures-key-and-queue-size"
     }
   ]
 }

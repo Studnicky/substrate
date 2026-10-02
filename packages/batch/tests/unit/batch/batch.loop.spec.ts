@@ -1,221 +1,215 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { Batch } from '../../../src/batch/Batch.js';
 import { DEFAULT_BATCH_MAXIMUM_CONCURRENT } from '../../../src/constants/index.js';
-import { collectBatches, delay } from '../../helpers/index.js';
+import { BatchCollector } from '../../helpers/BatchCollector.js';
+import { Delay } from '../../helpers/Delay.js';
+import scenarioGroups from './batch.scenarios.json' with { 'type': 'json' };
 import { BatchScenarioCaseEntity } from './entities/BatchScenarioCaseEntity.js';
-import scenarioGroups from './batch.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = BatchScenarioCaseEntity.Type;
-type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
-type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
-
-function createScenarioBatch<TResult = unknown>(input: { batch: { maxConcurrent?: number } }): Batch<TResult> {
-  return Batch.create<TResult>(input.batch.maxConcurrent);
-}
-
-function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
-  assert.equal(error.message.includes(expectedMessage), true);
-}
-
-const runnerMap: RunnerMap = {
-  'process-empty': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const batches: number[][] = [];
-    for await (const batch of createScenarioBatch<number>(input).process(input.items, async (item) => item * 2)) {
-      batches.push(batch);
-    }
-    assert.deepStrictEqual(batches, expected.batches);
-  },
-
-  'process-single-batch': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const batches: number[][] = [];
-    for await (const batch of createScenarioBatch<number>(input).process(input.items, async (item) => item * 2)) {
-      batches.push(batch);
-    }
-    assert.deepStrictEqual(batches, expected.batches);
-  },
-
-  'process-single-batch-concurrent': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const executionOrder: number[] = [];
-    for await (const batch of createScenarioBatch<number>(input).process(
-      input.items,
-      async (item) => {
-        executionOrder.push(item);
-        await delay(input.delayMs);
-        return item * 2;
-      }
-    )) {
-      assert.deepStrictEqual(batch, input.items.map((n) => n * 2));
-    }
-    assert.strictEqual(executionOrder.length, expected.executionCount);
-  },
-
-  'process-multi-batch': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const batches: number[][] = [];
-    for await (const batch of createScenarioBatch<number>(input).process(
-      input.items,
-      async (item) => {
-        await delay(input.delayMs);
-        return item * 2;
-      }
-    )) {
-      batches.push(batch);
-    }
-    assert.deepStrictEqual(batches, expected.batches);
-  },
-
-  'process-invalid-max-concurrent': (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    assert.throws(() => { createScenarioBatch<number>(input); }, (error: Error) => {
-      assertErrorMessageIncludes(error, expected.message);
-      return true;
-    });
-  },
-
-  'process-order': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const generator = createScenarioBatch<number>(input).process(
-      input.items,
-      async (item) => {
-        const index = input.items.indexOf(item);
-        await delay(input.delays[index]!);
-        return item * 10;
-      }
-    );
-    const allResults = await collectBatches(generator);
-    assert.deepStrictEqual(allResults, expected.results);
-  },
-
-  'process-default-max-concurrent': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    assert.strictEqual(DEFAULT_BATCH_MAXIMUM_CONCURRENT, expected.defaultMaxConcurrent);
-    let maxConcurrentObserved = 0;
+class BatchRunners {
+  static async 'process-default-max-concurrent'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-default-max-concurrent'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    assert.strictEqual(DEFAULT_BATCH_MAXIMUM_CONCURRENT, expected.defaultMaximumConcurrent);
+    let maximumConcurrentObserved = 0;
     let currentConcurrent = 0;
-    for await (const batch of createScenarioBatch<number>(input).process(
-      input.items,
-      async (item) => {
-        currentConcurrent += 1;
-        if (currentConcurrent > maxConcurrentObserved) {
-          maxConcurrentObserved = currentConcurrent;
-        }
-        await delay(10);
-        currentConcurrent -= 1;
-        return item;
+    const observe = async (item: number): Promise<number> => {
+      currentConcurrent += 1;
+      if (currentConcurrent > maximumConcurrentObserved) {
+        maximumConcurrentObserved = currentConcurrent;
       }
-    )) {
+      await Delay.ms(10);
+      currentConcurrent -= 1;
+      return item;
+    };
+    for await (const batch of BatchRunners.createScenarioBatch<number>(input).process(input.items, observe)) {
       assert.ok(batch.length > 0);
     }
-    assert.strictEqual(maxConcurrentObserved, expected.maxConcurrentObserved);
-  },
+    assert.strictEqual(maximumConcurrentObserved, expected.maximumConcurrentObserved);
+  }
 
-  'process-waits-for-batch-completion': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const maxConcurrent = input.batch.maxConcurrent;
-    if (maxConcurrent === undefined) {
-      throw RuntimeError.create('Scenario input.batch.maxConcurrent is required');
+  static async 'process-empty'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-empty'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const batches = await Array.fromAsync(BatchRunners.createScenarioBatch<number>(input).process(input.items, BatchRunners.doubleItem));
+    assert.deepStrictEqual(batches, expected.batches);
+  }
+
+  static 'process-invalid-max-concurrent'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-invalid-max-concurrent'>): void {
+    const { expected, input } = scenarioCase;
+    assert.throws(() => {
+      BatchRunners.createScenarioBatch<number>(input);
+    }, (thrown) => {
+      const error: unknown = thrown;
+      assert.ok(error instanceof Error);
+      BatchRunners.assertErrorMessageIncludes(error, expected.message);
+      return true;
+    });
+  }
+
+  static async 'process-multi-batch'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-multi-batch'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const delayedDouble = async (item: number): Promise<number> => {
+      await Delay.ms(input.delayMs);
+      const doubled = item * 2;
+      return doubled;
+    };
+    const batches = await Array.fromAsync(BatchRunners.createScenarioBatch<number>(input).process(input.items, delayedDouble));
+    assert.deepStrictEqual(batches, expected.batches);
+  }
+
+  static async 'process-order'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-order'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const delayedTenfold = async (item: number): Promise<number> => {
+      const index = input.items.indexOf(item);
+      await Delay.ms(Number(input.delays[index]));
+      const scaled = item * 10;
+      return scaled;
+    };
+    const generator = BatchRunners.createScenarioBatch<number>(input).process(input.items, delayedTenfold);
+    const allResults = await BatchCollector.collect(generator);
+    assert.deepStrictEqual(allResults, expected.results);
+  }
+
+  static async 'process-propagates-errors'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-propagates-errors'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const failOnErrorItem = async (item: number): Promise<number> => {
+      const settled = await Promise.resolve(item);
+      if (settled === input.errorItem) {
+        throw RuntimeError.create(input.errorMessage);
+      }
+      return settled;
+    };
+    const consumeGenerator = async (): Promise<void> => {
+      for await (const batch of BatchRunners.createScenarioBatch<number>(input).process(input.items, failOnErrorItem)) {
+        assert.ok(Array.isArray(batch));
+      }
+    };
+    await assert.rejects(consumeGenerator, (thrown) => {
+      const error: unknown = thrown;
+      assert.ok(error instanceof Error);
+      BatchRunners.assertErrorMessageIncludes(error, expected.rejectedMessage);
+      return true;
+    });
+  }
+
+  static async 'process-returns-results'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-returns-results'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const batch = BatchRunners.createScenarioBatch<number>(input);
+    const results = await BatchCollector.collect(batch.process(input.items, BatchRunners.doubleItem));
+    assert.deepStrictEqual(results, expected.results);
+  }
+
+  static async 'process-settled-returns-results'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-settled-returns-results'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const batch = BatchRunners.createScenarioBatch<number>(input);
+    const results = await BatchCollector.collect(batch.processSettled(input.items, BatchRunners.doubleItem));
+    const values: (number | undefined)[] = [];
+    for (let index = 0; index < results.length; index += 1) {
+      const result = results[index];
+      assert.ok(result !== undefined);
+      assert.strictEqual(result.status, 'fulfilled');
+      values.push(result.status === 'fulfilled' ? result.value : undefined);
     }
+    assert.deepStrictEqual(values, expected.results);
+  }
+
+  static async 'process-single-batch'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-single-batch'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const batches = await Array.fromAsync(BatchRunners.createScenarioBatch<number>(input).process(input.items, BatchRunners.doubleItem));
+    assert.deepStrictEqual(batches, expected.batches);
+  }
+
+  static async 'process-single-batch-concurrent'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-single-batch-concurrent'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const executionOrder: number[] = [];
+    const expectedBatch: number[] = [];
+    for (let index = 0; index < input.items.length; index += 1) {
+      expectedBatch.push(Number(input.items[index]) * 2);
+    }
+    const recordAndDouble = async (item: number): Promise<number> => {
+      executionOrder.push(item);
+      await Delay.ms(input.delayMs);
+      const doubled = item * 2;
+      return doubled;
+    };
+    for await (const batch of BatchRunners.createScenarioBatch<number>(input).process(input.items, recordAndDouble)) {
+      assert.deepStrictEqual(batch, expectedBatch);
+    }
+    assert.strictEqual(executionOrder.length, expected.executionCount);
+  }
+
+  static async 'process-stops-on-first-error'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-stops-on-first-error'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const processed: number[] = [];
+    const batchesReceived: number[][] = [];
+    const recordAndFail = async (item: number): Promise<number> => {
+      processed.push(item);
+      await Delay.ms(10);
+      if (item === input.errorItem) {
+        throw RuntimeError.create(input.errorMessage);
+      }
+      return item;
+    };
+
+    const consumeGenerator = async (): Promise<void> => {
+      for await (const batch of BatchRunners.createScenarioBatch<number>(input).process(input.items, recordAndFail)) {
+        batchesReceived.push(batch);
+      }
+    };
+
+    await assert.rejects(consumeGenerator, (thrown) => {
+      const error: unknown = thrown;
+      assert.ok(error instanceof Error);
+      BatchRunners.assertErrorMessageIncludes(error, expected.rejectedMessage);
+      return true;
+    });
+    assert.deepStrictEqual(processed, expected.processed);
+    assert.deepStrictEqual(batchesReceived, expected.batches);
+  }
+
+  static async 'process-waits-for-batch-completion'(scenarioCase: ScenarioCaseOfType<BatchScenarioCaseEntity.Type, 'process-waits-for-batch-completion'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const maximumConcurrent = input.batch.maximumConcurrent;
+    assert.ok(maximumConcurrent !== undefined, 'Scenario input.batch.maximumConcurrent is required');
     const batchTimestamps: number[] = [];
     const startTime = Date.now();
-    for await (const batch of createScenarioBatch<number>(input).process(input.items, async (item) => {
-      await delay(input.delayMs);
+    const delayedIdentity = async (item: number): Promise<number> => {
+      await Delay.ms(input.delayMs);
       return item;
-    })) {
-      assert.strictEqual(batch.length, maxConcurrent);
+    };
+    for await (const batch of BatchRunners.createScenarioBatch<number>(input).process(input.items, delayedIdentity)) {
+      assert.strictEqual(batch.length, maximumConcurrent);
       batchTimestamps.push(Date.now() - startTime);
     }
     assert.strictEqual(batchTimestamps.length, expected.batchCount);
     const first = batchTimestamps[0];
     const second = batchTimestamps[1];
-    if (first === undefined || second === undefined) {
-      throw RuntimeError.create('Expected two batch timestamps');
-    }
-    assert.ok(second - first >= expected.minGapMs);
-  },
-
-  'process-propagates-errors': (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const consumeGenerator = async (): Promise<void> => {
-      for await (const batch of createScenarioBatch<number>(input).process(input.items, async (item) => {
-        if (item === input.errorItem) {
-          throw RuntimeError.create(input.errorMessage);
-        }
-        return item;
-      })) {
-        assert.ok(Array.isArray(batch));
-      }
-    };
-    return assert.rejects(consumeGenerator, (error: Error) => {
-      assertErrorMessageIncludes(error, expected.rejectedMessage);
-      return true;
-    });
-  },
-
-  'process-stops-on-first-error': (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const processed: number[] = [];
-    const batchesReceived: number[][] = [];
-
-    const consumeGenerator = async (): Promise<void> => {
-      for await (const batch of createScenarioBatch<number>(input).process(input.items, async (item) => {
-        processed.push(item);
-        await delay(10);
-        if (item === input.errorItem) {
-          throw RuntimeError.create(input.errorMessage);
-        }
-        return item;
-      })) {
-        batchesReceived.push(batch);
-      }
-    };
-
-    return assert.rejects(consumeGenerator, (error: Error) => {
-      assertErrorMessageIncludes(error, expected.rejectedMessage);
-      return true;
-    }).then(() => {
-      assert.deepStrictEqual(processed, expected.processed);
-      assert.deepStrictEqual(batchesReceived, expected.batches);
-    });
-  },
-
-  'process-returns-results': (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const batch = createScenarioBatch<number>(input);
-    return collectBatches(batch.process(input.items, async (n) => n * 2)).then((results) => {
-      assert.deepStrictEqual(results, expected.results);
-    });
-  },
-
-  'process-settled-returns-results': (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const batch = createScenarioBatch<number>(input);
-    return collectBatches(batch.processSettled(input.items, async (n) => n * 2)).then((results) => {
-      const values = results.map((result) => {
-        assert.strictEqual(result.status, 'fulfilled');
-        return result.status === 'fulfilled' ? result.value : undefined;
-      });
-      assert.deepStrictEqual(values, expected.results);
-    });
+    assert.ok(first !== undefined && second !== undefined, 'Expected two batch timestamps');
+    assert.ok(second - first >= expected.minimumGapMs);
   }
-};
 
-function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> | void {
-  return runnerMap[scenarioCase.shape](scenarioCase);
+  private static assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
+    assert.equal(error.message.includes(expectedMessage), true);
+  }
+
+  private static createScenarioBatch<TResult = unknown>(input: { 'batch': { 'maximumConcurrent'?: number } }): Batch<TResult> {
+    const batch = Batch.create<TResult>(input.batch.maximumConcurrent);
+    return batch;
+  }
+
+  private static async doubleItem(item: number): Promise<number> {
+    const doubled = await Promise.resolve(item * 2);
+    return doubled;
+  }
 }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(BatchScenarioCaseEntity.Schema, BatchScenarioCaseEntity.Node);
-
-void describe('Batch', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': BatchScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Batch',
+  'runners': BatchRunners
 });

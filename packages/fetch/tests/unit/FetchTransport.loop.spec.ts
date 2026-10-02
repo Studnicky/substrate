@@ -1,72 +1,46 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { after, describe, it } from 'node:test';
 
 import { FetchTransport } from '../../src/modules/FetchTransport.js';
-
+import { PlatformCalls } from '../helpers/PlatformCalls.js';
 import { FetchTransportScenarioCaseEntity } from './entities/FetchTransportScenarioCaseEntity.js';
-import scenarioGroups from './FetchTransport.scenarios.json' with { type: 'json' };
+import scenarioGroups from './FetchTransport.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = FetchTransportScenarioCaseEntity.Type;
-type FetchExpected = Extract<ScenarioCase['expected'], { init: unknown }>;
-type UndiciExpected = Extract<ScenarioCase['expected'], { responseBody: unknown }>;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(FetchTransportScenarioCaseEntity.Schema, FetchTransportScenarioCaseEntity.Node);
-
-function requireFetchExpected(expected: ScenarioCase['expected']): FetchExpected {
-  if (!('init' in expected)) {
-    throw RuntimeError.create('Expected a fetch-transport scenario with init/input');
-  }
-  return expected;
-}
-
-function requireUndiciExpected(expected: ScenarioCase['expected']): UndiciExpected {
-  if (!('responseBody' in expected)) {
-    throw RuntimeError.create('Expected an undici-transport scenario with responseBody');
-  }
-  return expected;
-}
-
-const originalFetch = globalThis.fetch;
-
-void after(() => {
-  globalThis.fetch = originalFetch;
-});
-
-function createTestTransportResponse(input: string, init: Record<string, unknown>): Response {
-  return new Response(JSON.stringify({ input, method: init.method }), {
-    'headers': { 'Content-Type': 'application/json' },
-    'status': 200
-  });
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  if (scenarioCase.operation === 'uses-native-fetch') {
-    const expected = requireFetchExpected(scenarioCase.expected);
+class FetchTransportRunners {
+  static async 'uses-native-fetch'(scenarioCase: ScenarioCaseOfType<FetchTransportScenarioCaseEntity.Type, 'uses-native-fetch', 'operation'>): Promise<void> {
+    const { expected } = scenarioCase;
     const expectedResponse = new Response('native response');
+    const originalFetch = globalThis.fetch;
     let receivedUrl = '';
     let receivedInit: RequestInit | undefined;
 
-    globalThis.fetch = async (input, init): Promise<Response> => {
+    globalThis.fetch = (input, init): Promise<Response> => {
       receivedUrl = String(input);
       receivedInit = init;
-      return expectedResponse;
+      const settled = Promise.resolve(expectedResponse);
+      return settled;
     };
 
-    const response = await FetchTransport.fetch(expected.input, expected.init);
-    assert.equal(response, expectedResponse);
-    assert.equal(receivedUrl, expected.input);
-    assert.deepEqual(receivedInit, expected.init);
-    return;
+    try {
+      const response = await FetchTransport.fetch(expected.input, expected.init);
+      assert.ok(response === expectedResponse);
+      assert.equal(receivedUrl, expected.input);
+      assert.deepEqual(receivedInit, expected.init);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   }
 
-  if (scenarioCase.operation === 'uses-test-transport') {
-    const expected = requireFetchExpected(scenarioCase.expected);
+  static async 'uses-test-transport'(scenarioCase: ScenarioCaseOfType<FetchTransportScenarioCaseEntity.Type, 'uses-test-transport', 'operation'>): Promise<void> {
+    const { expected } = scenarioCase;
     const testTransport = {
       '__substrateFetchTransport': true,
-      fetch: async (input: string, init: Record<string, unknown>): Promise<Response> => {
-        return createTestTransportResponse(input, init);
+      'fetch': (input: string, init: { 'method'?: string }): Promise<Response> => {
+        const response = FetchTransportRunners.createTestTransportResponse(input, init.method);
+        const settled = Promise.resolve(response);
+        return settled;
       }
     };
 
@@ -76,20 +50,33 @@ async function runCase(scenarioCase: ScenarioCase): Promise<void> {
     });
 
     assert.strictEqual(response.status, 200);
-    assert.equal(await response.text(), JSON.stringify({ input: expected.input, method: expected.init.method }));
-    return;
+    assert.equal(await response.text(), PlatformCalls.stringify({ 'input': expected.input, 'method': expected.init.method }));
   }
 
-  const expected = requireUndiciExpected(scenarioCase.expected);
-  const dispatcher = scenarioCase.operation === 'uses-undici-fetch-null-dispatcher' ? null : {};
-  const response = await FetchTransport.fetch(`data:text/plain,${encodeURIComponent(expected.responseBody)}`, { 'dispatcher': dispatcher });
-  assert.equal(await response.text(), expected.responseBody);
+  static async 'uses-undici-fetch'(scenarioCase: ScenarioCaseOfType<FetchTransportScenarioCaseEntity.Type, 'uses-undici-fetch', 'operation'>): Promise<void> {
+    const { expected } = scenarioCase;
+    const response = await FetchTransport.fetch(`data:text/plain,${PlatformCalls.encodeComponent(expected.responseBody)}`, { 'dispatcher': {} });
+    assert.equal(await response.text(), expected.responseBody);
+  }
+
+  static async 'uses-undici-fetch-null-dispatcher'(scenarioCase: ScenarioCaseOfType<FetchTransportScenarioCaseEntity.Type, 'uses-undici-fetch-null-dispatcher', 'operation'>): Promise<void> {
+    const { expected } = scenarioCase;
+    const response = await FetchTransport.fetch(`data:text/plain,${PlatformCalls.encodeComponent(expected.responseBody)}`, { 'dispatcher': null });
+    assert.equal(await response.text(), expected.responseBody);
+  }
+
+  private static createTestTransportResponse(input: string, method: string | undefined): Response {
+    const response = new Response(PlatformCalls.stringify({ 'input': input, 'method': method }), {
+      'headers': { 'Content-Type': 'application/json' },
+      'status': 200
+    });
+    return response;
+  }
 }
 
-void describe('node fetch transport', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.registerBy('operation', {
+  'entity': FetchTransportScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'node fetch transport',
+  'runners': FetchTransportRunners
 });

@@ -1,46 +1,41 @@
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { EventBus } from '@studnicky/event-bus/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
 
 import type { BoundedDispatcherTopicMapInterface } from '../../../src/interfaces/index.js';
 
 import { BoundedDispatcher } from '../../../src/index.js';
 import { GettersScenarioCaseEntity } from '../entities/GettersScenarioCaseEntity.js';
+import scenarioGroups from './getters.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './getters.scenarios.json' with { type: 'json' };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(GettersScenarioCaseEntity.Schema, GettersScenarioCaseEntity.Node);
-
-type ScenarioCase = GettersScenarioCaseEntity.Type;
-
-const runnerMap: { [K in ScenarioCase['shape']]: (scenario: Extract<ScenarioCase, { shape: K }>) => void } = {
-  'getBus-default': (scenario) => {
+class GettersCaseRunner {
+  static 'getBus-default'(
+    scenarioCase: ScenarioCaseOfType<GettersScenarioCaseEntity.Type, 'getBus-default'>
+  ): void {
     const dispatcher = BoundedDispatcher.create();
-    const { expected, input } = scenario;
+    const { expected, input } = scenarioCase;
     assert.ok(dispatcher.getBus() instanceof EventBus);
-    assert.strictEqual(dispatcher.getBus().constructor.name, String(expected.busShape));
+    assert.strictEqual(dispatcher.getBus().constructor.name, expected.busShape);
     assert.strictEqual(input.busShape, expected.busShape);
-  },
-  'getBus-preserves-instance': (scenario) => {
-    const bus = EventBus.create<BoundedDispatcherTopicMapInterface>();
-    const { expected, input } = scenario;
-    const dispatcher = BoundedDispatcher.create({ bus });
-    assert.strictEqual(dispatcher.getBus(), bus);
-    assert.strictEqual(Boolean(expected.sameInstance), true);
-    assert.strictEqual(Boolean(input.sameInstance), true);
   }
-};
 
-function runCase<K extends ScenarioCase['shape']>(scenario: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenario.shape](scenario);
+  static 'getBus-preserves-instance'(
+    scenarioCase: ScenarioCaseOfType<GettersScenarioCaseEntity.Type, 'getBus-preserves-instance'>
+  ): void {
+    const bus = EventBus.create<BoundedDispatcherTopicMapInterface>();
+    const { expected, input } = scenarioCase;
+    const dispatcher = BoundedDispatcher.create({ 'bus': bus });
+    assert.ok(Object.is(dispatcher.getBus(), bus));
+    assert.strictEqual(expected.sameInstance, true);
+    assert.strictEqual(input.sameInstance, true);
+  }
 }
 
-void describe('BoundedDispatcher getBus()', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': GettersScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'BoundedDispatcher getBus()',
+  'runners': GettersCaseRunner
 });

@@ -44,7 +44,8 @@ const SOURCE_GLOB = import.meta.glob<Record<string, unknown>>(
     '!../../../../packages/example-smoke-kit/src/index.ts',
     '!../../../../packages/example-smoke-kit/src/ExampleSmokeRunner.ts',
     '!../../../../packages/worker-pool/src/WorkerPool.ts',
-    '!../../../../packages/worker-pool/src/node/**'
+    '!../../../../packages/worker-pool/src/node/**',
+    '!../../../../packages/scenario-kit/src/node/**'
   ]
 );
 

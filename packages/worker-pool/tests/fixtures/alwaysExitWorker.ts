@@ -1,9 +1,16 @@
+import { RuntimeError } from '@studnicky/errors/node';
 import { parentPort } from 'node:worker_threads';
 
-if (parentPort === null) {
-  throw new Error('alwaysExitWorker must run in a worker thread');
+class AlwaysExitWorker {
+  static start(): void {
+    if (parentPort === null) {
+      throw RuntimeError.create('alwaysExitWorker must run in a worker thread');
+    }
+
+    parentPort.on('message', () => {
+      process.exit(0);
+    });
+  }
 }
 
-parentPort.on('message', () => {
-  process.exit(0);
-});
+AlwaysExitWorker.start();

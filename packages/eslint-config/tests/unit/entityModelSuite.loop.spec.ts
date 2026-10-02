@@ -1,294 +1,371 @@
+import { RuntimeError } from '@studnicky/errors/node';
+import { Predicates } from '@studnicky/types/node';
+import { Linter } from 'eslint';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
-
-import { Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 
-import { Predicates } from '@studnicky/types/node';
-
 import { entityModelSuite } from '../../src/suites/entityModelSuite.js';
-import scenarioGroups from './entityModelSuite.scenarios.json' with { type: 'json' };
+import scenarioGroups from './entityModelSuite.scenarios.json' with { 'type': 'json' };
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+class MessageSummary {
+  readonly 'messageId': string | null;
 
-const languageOptions = {
-  parser: tseslint.parser,
-  parserOptions: {
-    projectService: {
-      allowDefaultProject: ['*.ts', 'packages/eslint-config/tests/fixtures/relocated/src/models/*.ts', 'packages/retry/src/models/*.ts'],
-      maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20
-    },
-    tsconfigRootDir: repoRoot
+  readonly 'ruleId': string | null;
+
+  constructor(messageId: string | null, ruleId: string | null) {
+    this.messageId = messageId;
+    this.ruleId = ruleId;
   }
-};
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        rules: Linter.Config['rules'];
-      };
-      input: {
-        rules: Linter.Config['rules'];
-      };
-      shape: 'preserves-entity-rules';
-      name: string;
+  static fromLinter(message: Linter.LintMessage): MessageSummary {
+    const summary = new MessageSummary(message.messageId ?? null, message.ruleId ?? null);
+
+    return summary;
+  }
+}
+
+class CodeInput {
+  readonly 'code': string;
+
+  readonly 'filename': string;
+
+  constructor(code: string, filename: string) {
+    this.code = code;
+    this.filename = filename;
+  }
+}
+
+class OutputSummary {
+  readonly 'filename': string;
+
+  readonly 'messages': readonly MessageSummary[];
+
+  constructor(filename: string, messages: readonly MessageSummary[]) {
+    this.filename = filename;
+    this.messages = messages;
+  }
+}
+
+class ScenarioIntake {
+  static codeInput(raw: unknown): CodeInput {
+    const record = ScenarioIntake.record(raw, 'scenario input', raw);
+    const input = new CodeInput(
+      ScenarioIntake.text(record.code, 'scenario input', raw),
+      ScenarioIntake.text(record.filename, 'scenario input', raw)
+    );
+
+    return input;
+  }
+
+  static codeInputs(raw: unknown, label: string): CodeInput[] {
+    const entries = ScenarioIntake.list(raw, label);
+    const inputs: CodeInput[] = [];
+
+    for (let index = 0; index < entries.length; index += 1) {
+      inputs.push(ScenarioIntake.codeInput(entries[index]));
     }
-  | {
-      description: string;
-      expected: {
-        messages: Array<{ messageId: string | null; ruleId: string | null }>;
-      };
-      input: {
-        code: string;
-        filename: string;
-      };
-      shape: 'blocks-inline-disable';
-      name: string;
+
+    return inputs;
+  }
+
+  static describe(value: unknown): string {
+    try {
+      const description = JSON.stringify(value);
+
+      return description;
+    } catch (cause) {
+      throw RuntimeError.create('Cannot serialize a malformed scenario fragment', { 'cause': cause });
     }
-  | {
-      description: string;
-      expected: {
-        messages: Array<{ messageId: string | null; ruleId: string | null }>;
-      };
-      input: {
-        code: string;
-        filename: string;
-      };
-      shape: 'overrides-prefer-function-type';
-      name: string;
+  }
+
+  static list(value: unknown, label: string): readonly unknown[] {
+    if (Predicates.isArray(value)) {
+      return value;
     }
-  | {
-      description: string;
-      expected: {
-        outputs: Array<{
-          filename: string;
-          messages: Array<{ messageId: string | null; ruleId: string | null }>;
-        }>;
-      };
-      input: {
-        scenarios: Array<{
-          code: string;
-          filename: string;
-        }>;
-      };
-      shape: 'assigns-owning-rule';
-      name: string;
-    };
-
-const SCENARIO_SHAPES = new Set(['preserves-entity-rules', 'blocks-inline-disable', 'overrides-prefer-function-type', 'assigns-owning-rule']);
-
-function isScenarioShape(value: unknown): value is ScenarioCase['shape'] {
-  return typeof value === 'string' && SCENARIO_SHAPES.has(value);
-}
-
-function isRuleSeverity(value: unknown): value is Linter.RuleSeverity {
-  return value === 0 || value === 1 || value === 2 || value === 'off' || value === 'warn' || value === 'error';
-}
-
-function isRuleEntry(value: unknown): value is Linter.RuleEntry {
-  if (isRuleSeverity(value)) {
-    return true;
+    throw RuntimeError.create(`malformed ${label}: ${ScenarioIntake.describe(value)}`);
   }
-  return Array.isArray(value) && isRuleSeverity(value.at(0));
-}
 
-function intakeRules(raw: unknown): Linter.Config['rules'] {
-  if (!Predicates.isObject(raw)) {
-    throw new TypeError(`malformed rules record: ${JSON.stringify(raw)}`);
-  }
-  const result: Record<string, Linter.RuleEntry> = {};
-  for (const [name, entry] of Object.entries(raw)) {
-    if (!isRuleEntry(entry)) {
-      throw new TypeError(`malformed rule entry for ${name}: ${JSON.stringify(entry)}`);
+  static message(raw: unknown): MessageSummary {
+    const record = ScenarioIntake.record(raw, 'scenario message', raw);
+    const { messageId, ruleId } = record;
+
+    if ((messageId === null || typeof messageId === 'string') && (ruleId === null || typeof ruleId === 'string')) {
+      const summary = new MessageSummary(messageId, ruleId);
+
+      return summary;
     }
-    result[name] = entry;
+    throw RuntimeError.create(`malformed scenario message: ${ScenarioIntake.describe(raw)}`);
   }
-  return result;
-}
 
-function intakeMessage(raw: unknown): { messageId: string | null; ruleId: string | null } {
-  if (!Predicates.isObject(raw) || (raw.messageId !== null && typeof raw.messageId !== 'string') || (raw.ruleId !== null && typeof raw.ruleId !== 'string')) {
-    throw new TypeError(`malformed scenario message: ${JSON.stringify(raw)}`);
-  }
-  return { 'messageId': raw.messageId, 'ruleId': raw.ruleId };
-}
+  static messages(raw: unknown): MessageSummary[] {
+    const entries = ScenarioIntake.list(raw, 'scenario messages');
+    const summaries: MessageSummary[] = [];
 
-function intakeMessages(raw: unknown): Array<{ messageId: string | null; ruleId: string | null }> {
-  if (!Array.isArray(raw)) {
-    throw new TypeError(`malformed scenario messages: ${JSON.stringify(raw)}`);
-  }
-  return raw.map(intakeMessage);
-}
-
-function intakeCodeInput(raw: unknown): { code: string; filename: string } {
-  if (!Predicates.isObject(raw) || typeof raw.code !== 'string' || typeof raw.filename !== 'string') {
-    throw new TypeError(`malformed scenario input: ${JSON.stringify(raw)}`);
-  }
-  return { 'code': raw.code, 'filename': raw.filename };
-}
-
-const SCENARIO_PAYLOAD_INTAKE: Record<ScenarioCase['shape'], (name: string, description: string, rawInput: unknown, rawExpected: unknown) => ScenarioCase> = {
-  'assigns-owning-rule': (name, description, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawInput) || !Array.isArray(rawInput.scenarios)) {
-      throw new TypeError(`malformed assigns-owning-rule input: ${JSON.stringify(rawInput)}`);
+    for (let index = 0; index < entries.length; index += 1) {
+      summaries.push(ScenarioIntake.message(entries[index]));
     }
-    if (!Predicates.isObject(rawExpected) || !Array.isArray(rawExpected.outputs)) {
-      throw new TypeError(`malformed assigns-owning-rule expected: ${JSON.stringify(rawExpected)}`);
+
+    return summaries;
+  }
+
+  static record(value: unknown, label: string, owner: unknown): Record<string, unknown> {
+    if (Predicates.isObject(value)) {
+      return value;
     }
-    return {
-      'description': description,
-      'expected': {
-        'outputs': rawExpected.outputs.map((raw) => {
-          if (!Predicates.isObject(raw) || typeof raw.filename !== 'string') {
-            throw new TypeError(`malformed assigns-owning-rule output: ${JSON.stringify(raw)}`);
-          }
-          return { 'filename': raw.filename, 'messages': intakeMessages(raw.messages) };
-        })
+    throw RuntimeError.create(`malformed ${label}: ${ScenarioIntake.describe(owner)}`);
+  }
+
+  static rules(raw: unknown): Linter.Config['rules'] {
+    const record = ScenarioIntake.record(raw, 'rules record', raw);
+
+    if (ScenarioIntake.isRulesRecord(record)) {
+      return record;
+    }
+    throw RuntimeError.create(`malformed rules record: ${ScenarioIntake.describe(raw)}`);
+  }
+
+  static text(value: unknown, label: string, owner: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    throw RuntimeError.create(`malformed ${label}: ${ScenarioIntake.describe(owner)}`);
+  }
+
+  private static isRuleEntry(value: unknown): value is Linter.RuleEntry {
+    const isEntry = ScenarioIntake.isRuleSeverity(value) || (Predicates.isArray(value) && ScenarioIntake.isRuleSeverity(value.at(0)));
+
+    return isEntry;
+  }
+
+  private static isRulesRecord(value: Record<string, unknown>): value is Partial<Record<string, Linter.RuleEntry>> {
+    const entries = Object.values(value);
+    let isRules = true;
+
+    for (let index = 0; index < entries.length; index += 1) {
+      isRules = isRules && ScenarioIntake.isRuleEntry(entries[index]);
+    }
+
+    return isRules;
+  }
+
+  private static isRuleSeverity(value: unknown): value is Linter.RuleSeverity {
+    const isSeverity = value === 0 || value === 1 || value === 2 || value === 'off' || value === 'warn' || value === 'error';
+
+    return isSeverity;
+  }
+}
+
+class EntityModelLinting {
+  static readonly 'languageOptions': Linter.LanguageOptions = {
+    'parser': tseslint.parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts', 'packages/eslint-config/tests/fixtures/relocated/src/models/*.ts', 'packages/retry/src/models/*.ts'],
+        'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 20
       },
-      'input': { 'scenarios': rawInput.scenarios.map(intakeCodeInput) },
-      'name': name,
-      'shape': 'assigns-owning-rule'
-    };
-  },
-  'blocks-inline-disable': (name, description, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed blocks-inline-disable expected: ${JSON.stringify(rawExpected)}`);
+      'tsconfigRootDir': resolve(import.meta.dirname, '../../../..')
     }
-    return {
-      'description': description,
-      'expected': { 'messages': intakeMessages(rawExpected.messages) },
-      'input': intakeCodeInput(rawInput),
-      'name': name,
-      'shape': 'blocks-inline-disable'
-    };
-  },
-  'overrides-prefer-function-type': (name, description, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed overrides-prefer-function-type expected: ${JSON.stringify(rawExpected)}`);
-    }
-    return {
-      'description': description,
-      'expected': { 'messages': intakeMessages(rawExpected.messages) },
-      'input': intakeCodeInput(rawInput),
-      'name': name,
-      'shape': 'overrides-prefer-function-type'
-    };
-  },
-  'preserves-entity-rules': (name, description, rawInput, rawExpected) => {
-    if (!Predicates.isObject(rawInput)) {
-      throw new TypeError(`malformed preserves-entity-rules input: ${JSON.stringify(rawInput)}`);
-    }
-    if (!Predicates.isObject(rawExpected)) {
-      throw new TypeError(`malformed preserves-entity-rules expected: ${JSON.stringify(rawExpected)}`);
-    }
-    return {
-      'description': description,
-      'expected': { 'rules': intakeRules(rawExpected.rules) },
-      'input': { 'rules': intakeRules(rawInput.rules) },
-      'name': name,
-      'shape': 'preserves-entity-rules'
-    };
-  }
-};
+  };
 
-function intakeScenarioCase(raw: unknown): ScenarioCase {
-  if (!Predicates.isObject(raw) || typeof raw.name !== 'string' || typeof raw.description !== 'string' || !isScenarioShape(raw.shape)) {
-    throw new TypeError(`malformed entityModelSuite scenario entry: ${JSON.stringify(raw)}`);
+  static summarize(input: CodeInput, extraConfig: Linter.Config): MessageSummary[] {
+    const linter = new Linter();
+    const messages = linter.verify(
+      input.code,
+      [
+        {
+          'files': ['**/*.ts'],
+          'languageOptions': EntityModelLinting.languageOptions,
+          'plugins': { '@typescript-eslint': tseslint.plugin },
+          ...extraConfig
+        },
+        entityModelSuite
+      ],
+      { 'filename': input.filename }
+    );
+    const summaries: MessageSummary[] = [];
+
+    for (let index = 0; index < messages.length; index += 1) {
+      const message = messages[index];
+
+      if (message !== undefined) {
+        summaries.push(MessageSummary.fromLinter(message));
+      }
+    }
+
+    return summaries;
   }
-  return SCENARIO_PAYLOAD_INTAKE[raw.shape](raw.name, raw.description, raw.input, raw.expected);
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+abstract class EntityModelScenario {
+  readonly 'description': string;
 
-const runnerMap: RunnerMap = {
-  'assigns-owning-rule': (scenarioCase) => {
-    const actualOutputs = scenarioCase.input.scenarios.map((scenario) => {
-      const linter = new Linter();
-      const messages = linter.verify(
-        scenario.code,
-        [
-          {
-            files: ['**/*.ts'],
-            languageOptions,
-            plugins: { '@typescript-eslint': tseslint.plugin }
-          },
-          entityModelSuite
-        ],
-        { filename: scenario.filename }
-      );
+  readonly 'name': string;
 
-      return {
-        filename: scenario.filename,
-        messages: messages.map((message) => ({
-          'messageId': message.messageId ?? null,
-          'ruleId': message.ruleId ?? null
-        }))
-      };
-    });
-
-    assert.deepEqual(actualOutputs, scenarioCase.expected.outputs);
-  },
-  'blocks-inline-disable': (scenarioCase) => {
-    const linter = new Linter();
-    const messages = linter.verify(
-      scenarioCase.input.code,
-      [
-        {
-          files: ['**/*.ts'],
-          languageOptions,
-          plugins: { '@typescript-eslint': tseslint.plugin }
-        },
-        entityModelSuite
-      ],
-      { filename: scenarioCase.input.filename }
-    );
-
-    assert.deepEqual(messages.map((message) => ({
-      'messageId': message.messageId ?? null,
-      'ruleId': message.ruleId ?? null
-    })), scenarioCase.expected.messages);
-  },
-  'overrides-prefer-function-type': (scenarioCase) => {
-    const linter = new Linter();
-    const messages = linter.verify(
-      scenarioCase.input.code,
-      [
-        {
-          files: ['**/*.ts'],
-          languageOptions,
-          plugins: { '@typescript-eslint': tseslint.plugin },
-          rules: { '@typescript-eslint/prefer-function-type': 'error' }
-        },
-        entityModelSuite
-      ],
-      { filename: scenarioCase.input.filename }
-    );
-
-    assert.deepEqual(messages.map((message) => ({
-      'messageId': message.messageId ?? null,
-      'ruleId': message.ruleId ?? null
-    })), scenarioCase.expected.messages);
-  },
-  'preserves-entity-rules': (scenarioCase) => {
-    assert.deepEqual(scenarioCase.input.rules, scenarioCase.expected.rules);
-    assert.deepEqual(entityModelSuite.linterOptions, { noInlineConfig: true });
-    assert.deepEqual(entityModelSuite.rules, scenarioCase.expected.rules);
+  protected constructor(name: string, description: string) {
+    this.description = description;
+    this.name = name;
   }
-};
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static intake(raw: unknown): EntityModelScenario {
+    const entry = ScenarioIntake.record(raw, 'entityModelSuite scenario entry', raw);
+    const name = ScenarioIntake.text(entry.name, 'entityModelSuite scenario entry', raw);
+    const description = ScenarioIntake.text(entry.description, 'entityModelSuite scenario entry', raw);
+    const shape = ScenarioIntake.text(entry.shape, 'entityModelSuite scenario entry', raw);
+    let scenario: EntityModelScenario;
+
+    switch (shape) {
+      case 'assigns-owning-rule':
+        scenario = AssignsOwningRuleScenario.fromEntry(name, description, entry.input, entry.expected);
+        break;
+      case 'blocks-inline-disable':
+        scenario = BlocksInlineDisableScenario.fromEntry(name, description, entry.input, entry.expected);
+        break;
+      case 'overrides-prefer-function-type':
+        scenario = OverridesPreferFunctionTypeScenario.fromEntry(name, description, entry.input, entry.expected);
+        break;
+      case 'preserves-entity-rules':
+        scenario = PreservesEntityRulesScenario.fromEntry(name, description, entry.input, entry.expected);
+        break;
+      default:
+        throw RuntimeError.create(`malformed entityModelSuite scenario entry: ${ScenarioIntake.describe(raw)}`);
+    }
+
+    return scenario;
+  }
+
+  abstract run(): void;
+}
+
+class AssignsOwningRuleScenario extends EntityModelScenario {
+  readonly 'expectedOutputs': readonly OutputSummary[];
+
+  readonly 'inputs': readonly CodeInput[];
+
+  private constructor(name: string, description: string, inputs: readonly CodeInput[], expectedOutputs: readonly OutputSummary[]) {
+    super(name, description);
+    this.expectedOutputs = expectedOutputs;
+    this.inputs = inputs;
+  }
+
+  static fromEntry(name: string, description: string, rawInput: unknown, rawExpected: unknown): AssignsOwningRuleScenario {
+    const input = ScenarioIntake.record(rawInput, 'assigns-owning-rule input', rawInput);
+    const expected = ScenarioIntake.record(rawExpected, 'assigns-owning-rule expected', rawExpected);
+    const rawOutputs = ScenarioIntake.list(expected.outputs, 'assigns-owning-rule expected');
+    const outputs: OutputSummary[] = [];
+
+    for (let index = 0; index < rawOutputs.length; index += 1) {
+      const output = ScenarioIntake.record(rawOutputs[index], 'assigns-owning-rule output', rawOutputs[index]);
+
+      outputs.push(new OutputSummary(
+        ScenarioIntake.text(output.filename, 'assigns-owning-rule output', output),
+        ScenarioIntake.messages(output.messages)
+      ));
+    }
+
+    const scenario = new AssignsOwningRuleScenario(name, description, ScenarioIntake.codeInputs(input.scenarios, 'assigns-owning-rule input'), outputs);
+
+    return scenario;
+  }
+
+  run(): void {
+    const actualOutputs: OutputSummary[] = [];
+
+    for (let index = 0; index < this.inputs.length; index += 1) {
+      const input = this.inputs[index];
+
+      if (input !== undefined) {
+        actualOutputs.push(new OutputSummary(input.filename, EntityModelLinting.summarize(input, {})));
+      }
+    }
+
+    assert.deepEqual(actualOutputs, this.expectedOutputs);
+  }
+}
+
+class BlocksInlineDisableScenario extends EntityModelScenario {
+  readonly 'expectedMessages': readonly MessageSummary[];
+
+  readonly 'input': CodeInput;
+
+  private constructor(name: string, description: string, input: CodeInput, expectedMessages: readonly MessageSummary[]) {
+    super(name, description);
+    this.expectedMessages = expectedMessages;
+    this.input = input;
+  }
+
+  static fromEntry(name: string, description: string, rawInput: unknown, rawExpected: unknown): BlocksInlineDisableScenario {
+    const expected = ScenarioIntake.record(rawExpected, 'blocks-inline-disable expected', rawExpected);
+    const scenario = new BlocksInlineDisableScenario(name, description, ScenarioIntake.codeInput(rawInput), ScenarioIntake.messages(expected.messages));
+
+    return scenario;
+  }
+
+  run(): void {
+    assert.deepEqual(EntityModelLinting.summarize(this.input, {}), this.expectedMessages);
+  }
+}
+
+class OverridesPreferFunctionTypeScenario extends EntityModelScenario {
+  readonly 'expectedMessages': readonly MessageSummary[];
+
+  readonly 'input': CodeInput;
+
+  private constructor(name: string, description: string, input: CodeInput, expectedMessages: readonly MessageSummary[]) {
+    super(name, description);
+    this.expectedMessages = expectedMessages;
+    this.input = input;
+  }
+
+  static fromEntry(name: string, description: string, rawInput: unknown, rawExpected: unknown): OverridesPreferFunctionTypeScenario {
+    const expected = ScenarioIntake.record(rawExpected, 'overrides-prefer-function-type expected', rawExpected);
+    const scenario = new OverridesPreferFunctionTypeScenario(name, description, ScenarioIntake.codeInput(rawInput), ScenarioIntake.messages(expected.messages));
+
+    return scenario;
+  }
+
+  run(): void {
+    const messages = EntityModelLinting.summarize(this.input, { 'rules': { '@typescript-eslint/prefer-function-type': 'error' } });
+
+    assert.deepEqual(messages, this.expectedMessages);
+  }
+}
+
+class PreservesEntityRulesScenario extends EntityModelScenario {
+  readonly 'expectedRules': Linter.Config['rules'];
+
+  readonly 'inputRules': Linter.Config['rules'];
+
+  private constructor(name: string, description: string, inputRules: Linter.Config['rules'], expectedRules: Linter.Config['rules']) {
+    super(name, description);
+    this.expectedRules = expectedRules;
+    this.inputRules = inputRules;
+  }
+
+  static fromEntry(name: string, description: string, rawInput: unknown, rawExpected: unknown): PreservesEntityRulesScenario {
+    const input = ScenarioIntake.record(rawInput, 'preserves-entity-rules input', rawInput);
+    const expected = ScenarioIntake.record(rawExpected, 'preserves-entity-rules expected', rawExpected);
+    const scenario = new PreservesEntityRulesScenario(name, description, ScenarioIntake.rules(input.rules), ScenarioIntake.rules(expected.rules));
+
+    return scenario;
+  }
+
+  run(): void {
+    assert.deepEqual(this.inputRules, this.expectedRules);
+    assert.deepEqual(entityModelSuite.linterOptions, { 'noInlineConfig': true });
+    assert.deepEqual(entityModelSuite.rules, this.expectedRules);
+  }
 }
 
 void describe('entityModelSuite', () => {
-  for (const scenario of scenarioGroups.cases.map(intakeScenarioCase)) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
+  for (let index = 0; index < scenarioGroups.cases.length; index += 1) {
+    const rawCase: unknown = scenarioGroups.cases[index];
+
+    if (rawCase !== undefined) {
+      const scenario = EntityModelScenario.intake(rawCase);
+
+      void it(scenario.name, () => { scenario.run(); });
+    }
   }
 });

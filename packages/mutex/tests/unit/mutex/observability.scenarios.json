@@ -25,7 +25,7 @@
       },
       "expected": {
         "acquireEvents": 2,
-        "secondWaitTimeMsMin": 40
+        "secondWaitTimeMsMinimum": 40
       }
     },
     {
@@ -55,7 +55,7 @@
       },
       "expected": {
         "releaseEvents": 1,
-        "holdTimeMsMin": 40
+        "holdTimeMsMinimum": 40
       }
     },
     {
@@ -71,7 +71,7 @@
       },
       "expected": {
         "releaseEvents": 2,
-        "holdTimeMsMin": 20
+        "holdTimeMsMinimum": 20
       }
     },
     {

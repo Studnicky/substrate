@@ -193,9 +193,6 @@ p__studnicky_retry --> p__studnicky_types
 p__studnicky_sample_buffer --> p__studnicky_entity
 p__studnicky_sample_buffer --> p__studnicky_errors
 p__studnicky_sample_buffer --> p__studnicky_types
-p__studnicky_scenario_kit --> p__studnicky_entity
-p__studnicky_scenario_kit --> p__studnicky_errors
-p__studnicky_scenario_kit --> p__studnicky_types
 p__studnicky_scheduler --> p__studnicky_clock
 p__studnicky_scheduler --> p__studnicky_entity
 p__studnicky_scheduler --> p__studnicky_errors

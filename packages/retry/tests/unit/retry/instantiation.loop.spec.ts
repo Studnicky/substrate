@@ -1,8 +1,10 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { DefaultHttpErrorClassifier, RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { it } from 'node:test';
 
 import {
   MaximumRetriesExceededError,
@@ -11,57 +13,30 @@ import {
 } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import { InstantiationScenarioCaseEntity } from '../entities/InstantiationScenarioCaseEntity.js';
-import scenarioGroups from './instantiation.scenarios.json' with { type: 'json' };
+import { FlakyOperation } from './fixtures/FlakyOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import { RetryClassifier } from './fixtures/RetryClassifier.js';
+import scenarioGroups from './instantiation.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(InstantiationScenarioCaseEntity.Schema, InstantiationScenarioCaseEntity.Node);
-
-type RetryScenarioInput = InstantiationScenarioCaseEntity.Type['input'];
-
-type ScenarioCase = InstantiationScenarioCaseEntity.Type;
-
-type AttemptOutcome = 'failure' | 'success';
-
-type ScenarioRunner = (scenario: ScenarioCase) => Promise<void> | void;
-
-function resolveAttemptOutcome(attempts: number, input: RetryScenarioInput): AttemptOutcome {
-  return attempts <= Number(input.batch?.failureCountBeforeSuccess ?? 0) ? 'failure' : 'success';
-}
-
-async function executeUntilConfiguredSuccess(retry: Retry, input: RetryScenarioInput): Promise<{ attempts: number; result: string }> {
-  let attempts = 0;
-
-  const result = await retry.execute(async () => {
-    attempts += 1;
-
-    const attemptMap: Record<AttemptOutcome, () => string> = {
-      'failure': () => {
-        throw RuntimeError.create(String(input.errorMessage));
-      },
-      'success': () => String(input.recovered)
-    };
-
-    return attemptMap[resolveAttemptOutcome(attempts, input)]();
-  });
-
-  return { attempts, result };
-}
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'create-max-retries-5': (scenario) => {
-    const { input } = scenario;
-    assert.ok(Retry.create(input.retry) instanceof Retry);
-  },
-  'create-defaults': (_scenario) => {
+class InstantiationRunners {
+  static 'create-defaults'(): void {
     assert.ok(Retry.create() instanceof Retry);
-  },
-  'create-error-classifier-and-max-retries': (scenario) => {
-    const { input } = scenario;
+  }
+
+  static 'create-error-classifier-and-max-retries'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'create-error-classifier-and-max-retries'>): void {
+    const { input } = scenarioCase;
     assert.ok(
-      Retry.create({ errorClassifier: DefaultHttpErrorClassifier.create(), ...input.retry }) instanceof Retry
+      Retry.create({ 'errorClassifier': DefaultHttpErrorClassifier.create(), ...input.retry }) instanceof Retry
     );
-  },
-  'derived-errors-expose-detached-diagnostics': (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static 'create-max-retries-5'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'create-max-retries-5'>): void {
+    const { input } = scenarioCase;
+    assert.ok(Retry.create(input.retry) instanceof Retry);
+  }
+
+  static 'derived-errors-expose-detached-diagnostics'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'derived-errors-expose-detached-diagnostics'>): void {
+    const { expected, input } = scenarioCase;
     const source = RuntimeError.create(String(input.sourceMessage));
     const exhausted = new MaximumRetriesExceededError(String(input.exhaustedMessage), Number(input.attemptNumber), Number(input.retries), [source]);
     const nonRetryable = new NonRetryableError(String(input.rejectedMessage), source, String(input.fatalReason), Number(input.attemptNumber));
@@ -69,39 +44,43 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.notStrictEqual(exhausted.errors[0], source);
     assert.notStrictEqual(nonRetryable.originalError, source);
     assert.equal(nonRetryable.originalError.message, String(expected.sourceMessage));
-  },
-  'execute-retries-until-success': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'execute-retries-until-success'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'execute-retries-until-success'>): Promise<void> {
+    const { expected, input } = scenarioCase;
     const retry = Retry.create({
-      backoffStrategy: { baseDelayMs: 5, strategy: () => 1 },
-      errorClassifier: () => ({ retryable: true }),
+      'backoffStrategy': { 'baseDelayMs': 5, 'strategy': () => {return 1;} },
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
-    const { attempts, result } = await executeUntilConfiguredSuccess(retry, input);
+    const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.errorMessage), String(input.recovered));
 
     assert.equal(result, String(expected.result));
     assert.equal(attempts, Number(expected.attempts));
     assert.equal(retry.getStats().totalRetries, Number(expected.totalRetries));
-  },
-  'factory-equivalent': async (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static async 'factory-equivalent'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'factory-equivalent'>): Promise<void> {
+    const { expected, input } = scenarioCase;
     const viaCreate = Retry.create(input.retry);
     const viaFactory = Retry.create(input.retry);
 
-    const result1 = await viaCreate.execute(async () => String(input.result));
-    const result2 = await viaFactory.execute(async () => String(input.result));
+    const result1 = await viaCreate.execute(ResolvingOperation.of(String(input.result)));
+    const result2 = await viaFactory.execute(ResolvingOperation.of(String(input.result)));
 
     assert.deepStrictEqual([result1, result2], expected.results);
-  },
-  'max-retries-empty-errors-fallback': (scenario) => {
-    const { input } = scenario;
+  }
+
+  static 'max-retries-empty-errors-fallback'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'max-retries-empty-errors-fallback'>): void {
+    const { input } = scenarioCase;
     const error = new MaximumRetriesExceededError(String(input.failedMessage), Number(input.retries), Number(input.attemptNumber), []);
     assert.ok(error.cause instanceof Error);
     assert.equal(error.cause.message, String(input.fallbackMessage));
     assert.equal(error.maximumRetries, Number(input.retries));
-  },
-  'non-retryable-original-error-fallback': (scenario) => {
-    const { input } = scenario;
+  }
+
+  static 'non-retryable-original-error-fallback'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'non-retryable-original-error-fallback'>): void {
+    const { input } = scenarioCase;
 
     class EmptyErrorsNonRetryableError extends NonRetryableError {
       public override readonly name: string = 'EmptyErrorsNonRetryableError';
@@ -113,18 +92,19 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const error = new EmptyErrorsNonRetryableError(String(input.failedMessage), RuntimeError.create(String(input.sourceMessage)), String(input.fatalReason), Number(input.attemptNumber));
     assert.equal(error.originalError.message, String(input.fallbackMessage));
-  },
-  'retry-error-empty': (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static 'retry-error-empty'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-empty'>): void {
+    const { expected, input } = scenarioCase;
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber));
     assert.equal(retryError.cause, undefined);
     assert.equal(retryError.errors.length, Number(expected.errorCount));
     assert.equal(retryError.attempts, Number(input.attemptNumber));
-  },
-  'retry-error-preserves-error-name': (scenario) => {
-    const { expected, input } = scenario;
-    const source = new Error(String(input.sourceMessage));
-    source.name = String(input.errorName);
+  }
+
+  static 'retry-error-preserves-error-name'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-preserves-error-name'>): void {
+    const { expected, input } = scenarioCase;
+    const source = Object.assign(RuntimeError.create(String(input.sourceMessage)), { 'name': String(input.errorName) });
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': source });
     const [projectedError] = retryError.errors;
@@ -132,11 +112,11 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.ok(projectedError instanceof Error);
     assert.equal(projectedError.name, String(expected.errorName));
     assert.equal(retryError.cause?.name, String(expected.errorName));
-  },
-  'retry-error-preserves-history-error-name': (scenario) => {
-    const { expected, input } = scenario;
-    const source = new Error(String(input.sourceMessage));
-    source.name = String(input.errorName);
+  }
+
+  static 'retry-error-preserves-history-error-name'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-preserves-history-error-name'>): void {
+    const { expected, input } = scenarioCase;
+    const source = Object.assign(RuntimeError.create(String(input.sourceMessage)), { 'name': String(input.errorName) });
 
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'errors': [source] });
     const [projectedError] = retryError.errors;
@@ -144,11 +124,12 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.ok(projectedError instanceof Error);
     assert.equal(projectedError.name, String(expected.errorName));
     assert.equal(retryError.cause, undefined);
-  },
-  'retry-error-projections-are-detached': (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static 'retry-error-projections-are-detached'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-projections-are-detached'>): void {
+    const { expected, input } = scenarioCase;
     const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), {
-      cause: RuntimeError.create(String(input.outerMessage), { cause: RuntimeError.create(String(input.innerMessage)) })
+      'cause': RuntimeError.create(String(input.outerMessage), { 'cause': RuntimeError.create(String(input.innerMessage)) })
     });
     const [projectedError] = retryError.errors;
     const projectedCause = retryError.cause;
@@ -168,13 +149,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(nextError.cause.message, String(expected.innerMessage));
     assert.equal(retryError.cause?.message, String(expected.causeMessage));
     assert.equal(retryError.errors.length, Number(expected.errorCount));
-  },
-  'retry-error-rejects-non-error-diagnostics': (scenario) => {
-    const { input } = scenario;
+  }
+
+  static 'retry-error-rejects-non-error-diagnostics'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-rejects-non-error-diagnostics'>): void {
+    const { input } = scenarioCase;
     assert.strictEqual(Predicates.isError(String(input.invalidError)), false);
-  },
-  'retry-error-snapshot-clone-fallback': (scenario) => {
-    const { expected, input } = scenario;
+  }
+
+  static 'retry-error-snapshot-clone-fallback'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-snapshot-clone-fallback'>): void {
+    const { expected, input } = scenarioCase;
 
     class FallbackPrototype {
       readonly tag: string;
@@ -189,31 +172,32 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
 
     const prototype = new FallbackPrototype(String(input.tag));
 
-    const error = RuntimeError.create(String(input.failedMessage), { cause: undefined });
+    const error = RuntimeError.create(String(input.failedMessage), { 'cause': undefined });
     Reflect.set(error, 'prototypeData', prototype);
 
-    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: error });
+    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': error });
     const [projectedError] = retryError.errors;
     assert.ok(projectedError instanceof Error);
-    const projectedPrototypeData = Reflect.get(projectedError, 'prototypeData');
+    const projectedPrototypeData: unknown = Reflect.get(projectedError, 'prototypeData');
     assert.ok(typeof projectedPrototypeData === 'object' && projectedPrototypeData !== null);
     assert.ok('tag' in projectedPrototypeData && 'visit' in projectedPrototypeData);
 
     assert.equal(projectedPrototypeData.tag, String(expected.tag));
     assert.equal(typeof projectedPrototypeData.visit, String(expected.badType));
     assert.equal(retryError.errors.length, Number(expected.errorCount));
-  },
-  'retry-error-snapshot-cycles': (scenario) => {
-    const { expected, input } = scenario;
-    const detail = { message: String(input.detailMessage) };
-    const cause = RuntimeError.create(String(input.failedMessage), { cause: undefined });
+  }
+
+  static 'retry-error-snapshot-cycles'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-snapshot-cycles'>): void {
+    const { expected, input } = scenarioCase;
+    const detail = { 'message': String(input.detailMessage) };
+    const cause = RuntimeError.create(String(input.failedMessage), { 'cause': undefined });
     Reflect.set(detail, 'self', detail);
     Reflect.set(cause, 'detail', detail);
 
-    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause });
+    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': cause });
     const [projectedError] = retryError.errors;
     assert.ok(projectedError instanceof Error);
-    const projectedDetail = Reflect.get(projectedError, 'detail');
+    const projectedDetail: unknown = Reflect.get(projectedError, 'detail');
     assert.ok(typeof projectedDetail === 'object' && projectedDetail !== null);
     assert.ok('message' in projectedDetail && 'self' in projectedDetail);
 
@@ -221,14 +205,15 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(projectedDetail.message, String(expected.detailMessage));
     assert.strictEqual(projectedDetail.self, projectedDetail);
     assert.equal(retryError.errors.length, Number(expected.errorCount));
-  },
-  'retry-error-snapshots': (scenario) => {
-    const { expected, input } = scenario;
-    const details = { attempt: Number(input.attempt) };
-    const inner = Object.assign(RuntimeError.create(String(input.innerMessage)), { details });
-    const outer = RuntimeError.create(String(input.outerMessage), { cause: inner });
+  }
+
+  static 'retry-error-snapshots'(scenarioCase: ScenarioCaseOfType<InstantiationScenarioCaseEntity.Type, 'retry-error-snapshots'>): void {
+    const { expected, input } = scenarioCase;
+    const details = { 'attempt': Number(input.attempt) };
+    const inner = Object.assign(RuntimeError.create(String(input.innerMessage)), { 'details': details });
+    const outer = RuntimeError.create(String(input.outerMessage), { 'cause': inner });
     const inputErrors = [outer];
-    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { cause: outer, errors: inputErrors });
+    const retryError = new RetryError(String(input.failedMessage), Number(input.attemptNumber), { 'cause': outer, 'errors': inputErrors });
 
     inputErrors.push(RuntimeError.create(String(input.laterMessage)));
     outer.message = String(input.mutatedOuterMessage);
@@ -240,7 +225,7 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(first.message, String(expected.outerMessage));
     assert.ok(first.cause instanceof Error);
     assert.equal(first.cause.message, String(expected.innerMessage));
-    assert.deepEqual(Reflect.get(first.cause, 'details'), { attempt: Number(input.attempt) });
+    assert.deepEqual(Reflect.get(first.cause, 'details'), { 'attempt': Number(input.attempt) });
     assert.equal(retryError.errors.length, Number(expected.errorCount));
 
     const projectedCause = retryError.cause;
@@ -248,32 +233,30 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
     assert.equal(projectedCause.message, String(expected.causeMessage));
     assert.notStrictEqual(projectedCause, outer);
   }
-};
 
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
-}
+  static declareForwardsCanonicalErrorContext(): void {
+    void it('forwards canonical error context through RetryError options', () => {
+      const retryError = new RetryError('retry context', 1, {
+        'code': 'retry.context',
+        'correlationId': 'retry-correlation',
+        'instance': 'urn:retry:context',
+        'metadata': { 'attempt': 1 },
+        'status': 503
+      });
 
-void it('forwards canonical error context through RetryError options', () => {
-  const retryError = new RetryError('retry context', 1, {
-    'code': 'retry.context',
-    'correlationId': 'retry-correlation',
-    'instance': 'urn:retry:context',
-    'metadata': { 'attempt': 1 },
-    'status': 503
-  });
-
-  assert.equal(retryError.correlationId, 'retry-correlation');
-  assert.equal(retryError.instance, 'urn:retry:context');
-  assert.deepEqual(retryError.metadata, { 'attempt': 1 });
-  assert.equal(retryError.retryable, false);
-  assert.equal(retryError.status, 503);
-});
-
-void describe('Retry instantiation', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+      assert.equal(retryError.correlationId, 'retry-correlation');
+      assert.equal(retryError.instance, 'urn:retry:context');
+      assert.deepEqual(retryError.metadata, { 'attempt': 1 });
+      assert.equal(retryError.retryable, false);
+      assert.equal(retryError.status, 503);
     });
   }
+}
+
+ScenarioSuite.register({
+  'entity': InstantiationScenarioCaseEntity,
+  'extraTests': InstantiationRunners.declareForwardsCanonicalErrorContext,
+  'file': scenarioGroups,
+  'name': 'Retry instantiation',
+  'runners': InstantiationRunners
 });

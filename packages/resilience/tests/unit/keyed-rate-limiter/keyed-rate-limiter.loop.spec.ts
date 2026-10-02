@@ -1,38 +1,28 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { ResilienceConfigError } from '../../../src/errors/ResilienceConfigError.js';
-import { TokenBucketExhaustedError } from '../../../src/TokenBucketExhaustedError.js';
-
 import type { RateLimitConsumptionEntity } from '../../../src/entities/RateLimitConsumptionEntity.js';
 import type { RateLimitConsumptionInterface } from '../../../src/interfaces/RateLimitConsumptionInterface.js';
-
-import { KeyedRateLimiter, KeyedRateLimiterBoundaryError, KeyedRateLimiterConfigError } from '../../../src/keyed/index.js';
-import {
-  KeyedRateLimiterDefaultOptionsEntity,
-  KeyedRateLimiterRegistryOptionsEntity,
-  RateLimitRequestEntity
-} from '../../../src/keyed/entities/index.js';
 import type {
   KeyedRateLimiterCreateConfigInterface,
   KeyedRateLimiterStrategyConfigInterface,
   RateLimiterStrategyInterface
 } from '../../../src/keyed/interfaces/index.js';
 
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: ScenarioInput;
-  shape: string;
-  name: string;
-};
-
-type ScenarioInput = {
-  keyedRateLimiter?: Record<string, unknown>;
-  rateLimitRequest?: Record<string, unknown>;
-  registry?: Record<string, unknown>;
-};
+import { ResilienceConfigError } from '../../../src/errors/ResilienceConfigError.js';
+import {
+  KeyedRateLimiterDefaultOptionsEntity,
+  KeyedRateLimiterRegistryOptionsEntity,
+  RateLimitRequestEntity
+} from '../../../src/keyed/entities/index.js';
+import { KeyedRateLimiter, KeyedRateLimiterBoundaryError, KeyedRateLimiterConfigError } from '../../../src/keyed/index.js';
+import { TokenBucketExhaustedError } from '../../../src/TokenBucketExhaustedError.js';
+import { KeyedRateLimiterScenarioCaseEntity } from '../entities/KeyedRateLimiterScenarioCaseEntity.js';
+import scenarioGroups from './keyed-rate-limiter.scenarios.json' with { 'type': 'json' };
 
 class TrackingEvictionLimiter extends KeyedRateLimiter {
   static build(config: KeyedRateLimiterCreateConfigInterface): TrackingEvictionLimiter {
@@ -49,8 +39,6 @@ class TrackingEvictionLimiter extends KeyedRateLimiter {
     this.evicted.push(key);
   }
 }
-
-import scenarioGroups from './keyed-rate-limiter.scenarios.json' with { type: 'json' };
 
 class TrackingLimiter extends KeyedRateLimiter {
   static build(config: KeyedRateLimiterCreateConfigInterface): TrackingLimiter {
@@ -79,10 +67,11 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
   }
 
   async waitForToken(
-    options?: { signal?: AbortSignal; tokens?: number }
+    options?: { 'signal'?: AbortSignal; 'tokens'?: number }
   ): Promise<RateLimitConsumptionInterface> {
-    const tokens = options?.tokens ?? 1;
-    return this.consume(tokens);
+    await Promise.resolve();
+    const result = this.consume(options?.tokens ?? 1);
+    return result;
   }
 
   get remaining(): number {
@@ -90,323 +79,302 @@ class FakeFixedAllowance implements RateLimiterStrategyInterface {
   }
 }
 
-function keyedRateLimiterInput(input: ScenarioInput): Record<string, unknown> {
-  if (input.keyedRateLimiter === undefined) {
-    throw RuntimeError.create('Scenario input must provide keyedRateLimiter');
+class FixedResultStrategy implements RateLimiterStrategyInterface {
+  consume(): RateLimitConsumptionInterface {
+    const result = { 'consumedTokens': 1, 'remainingTokens': 0 };
+    return result;
   }
 
-  return input.keyedRateLimiter;
+  waitForToken(): Promise<RateLimitConsumptionInterface> {
+    const result = Promise.resolve({ 'consumedTokens': 1, 'remainingTokens': 0 });
+    return result;
+  }
 }
 
-function registryInput(input: ScenarioInput): Record<string, unknown> {
-  if (input.registry === undefined) {
-    throw RuntimeError.create('Scenario input must provide registry');
+class KeyedRateLimiterRunners {
+  static 'consume-default-result'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'consume-default-result'>): void {
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    const result = limiter.consume('user-result', scenarioCase.input.keyedRateLimiter.tokens);
+    assert.deepEqual(result, scenarioCase.expected.result);
   }
 
-  return input.registry;
-}
-
-function rateLimitRequestInput(input: ScenarioInput): Record<string, unknown> {
-  if (input.rateLimitRequest === undefined) {
-    throw RuntimeError.create('Scenario input must provide rateLimitRequest');
+  static 'consume-independent-keys'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'consume-independent-keys'>): void {
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a');
+    assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
+    limiter.consume('user-b');
   }
 
-  return input.rateLimitRequest;
-}
+  static 'consume-requested-tokens'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'consume-requested-tokens'>): void {
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-d', 5);
+    assert.throws(() => { limiter.consume('user-d', 1); }, TokenBucketExhaustedError);
+  }
 
-function keyedRateLimiterConfig(input: ScenarioInput, clock?: () => number): KeyedRateLimiterCreateConfigInterface {
-  const raw = keyedRateLimiterInput(input);
-  return {
-    burstSize: Number(raw.burstSize),
-    requestsPerSecond: Number(raw.requestsPerSecond),
-    ...(raw.maximumKeys === undefined ? {} : { maximumKeys: Number(raw.maximumKeys) }),
-    ...(raw.keyIdleTtlMs === undefined ? {} : { keyIdleTtlMs: Number(raw.keyIdleTtlMs) }),
-    ...(clock === undefined ? {} : { clock })
-  };
-}
+  static 'consume-same-key-exhausts'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'consume-same-key-exhausts'>): void {
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-c');
+    limiter.consume('user-c');
+    assert.throws(() => { limiter.consume('user-c'); }, TokenBucketExhaustedError);
+  }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { expected, input, shape } = scenarioCase;
-
-  const runnerMap: Record<ScenarioCase['shape'], () => Promise<void> | void> = {
-    'entities-valid': () => {
-      assert.equal(KeyedRateLimiterRegistryOptionsEntity.validate(registryInput(input)), expected.accepted);
-      assert.equal(RateLimitRequestEntity.validate(rateLimitRequestInput(input)), expected.accepted);
-      return;
-    },
-
-    'entities-invalid': () => {
-      assert.equal(KeyedRateLimiterRegistryOptionsEntity.validate(registryInput(input)), expected.accepted);
-      assert.equal(RateLimitRequestEntity.validate(rateLimitRequestInput(input)), expected.accepted);
-      return;
-    },
-
-    'consume-independent-keys': () => {
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a');
-      assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
-      limiter.consume('user-b');
-      return;
-    },
-
-    'consume-same-key-exhausts': () => {
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-c');
-      limiter.consume('user-c');
-      assert.throws(() => { limiter.consume('user-c'); }, TokenBucketExhaustedError);
-      return;
-    },
-
-    'consume-requested-tokens': () => {
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-d', 5);
-      assert.throws(() => { limiter.consume('user-d', 1); }, TokenBucketExhaustedError);
-      return;
-    },
-
-    'consume-strategy-created-once': () => {
-      let factoryCalls = 0;
-      const limiter = KeyedRateLimiter.create({
-        factory: () => {
-          factoryCalls += 1;
-          return {
-            consume(): RateLimitConsumptionInterface {
-              return { 'consumedTokens': 1, 'remainingTokens': 0 };
-            },
-            waitForToken(): Promise<RateLimitConsumptionInterface> {
-              return Promise.resolve({ 'consumedTokens': 1, 'remainingTokens': 0 });
-            }
-          };
-        }
-      });
-      const firstResult = limiter.consume('user-e');
-      const secondResult = limiter.consume('user-e');
-      assert.deepEqual(firstResult, expected.result);
-      assert.deepEqual(secondResult, expected.result);
-      assert.equal(factoryCalls, expected.factoryCalls);
-      return;
-    },
-
-    'getters-eviction-on-max-keys': () => {
-      const limiter = TrackingLimiter.build(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a');
-      limiter.consume('user-b');
-      limiter.consume('user-c');
-      limiter.consume('user-d');
-      assert.deepEqual(limiter.evicted, expected.evicted);
-      return;
-    },
-
-    'generic-fake-strategy': () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-        factory: () => new FakeFixedAllowance(Number(keyedRateLimiter.allowance))
-      });
-      const firstResult = limiter.consume('user-a');
-      const secondResult = limiter.consume('user-a');
-      assert.deepEqual(firstResult, expected.firstResult);
-      assert.deepEqual(secondResult, expected.secondResult);
-      assert.throws(() => { limiter.consume('user-a'); });
-      limiter.consume('user-b');
-      return;
-    },
-
-    'generic-wait-for-token': async () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-        factory: () => new FakeFixedAllowance(Number(keyedRateLimiter.allowance))
-      });
-      const result = await limiter.waitForToken('user-a');
-      assert.deepEqual(result, expected.result);
-      assert.throws(() => { limiter.consume('user-a'); });
-      return;
-    },
-
-    'generic-fractional-consumption-result': () => {
-      const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-        factory: () => new FakeFixedAllowance(2)
-      });
-      const result = limiter.consume('user-fractional', 1.5);
-      assert.deepEqual(result, expected.result);
-      return;
-    },
-
-    'generic-acquisition-observation': async () => {
-      const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
-
-      class ObservedGenericLimiter extends KeyedRateLimiter<FakeFixedAllowance> {
-        static build(config: KeyedRateLimiterStrategyConfigInterface<FakeFixedAllowance>): ObservedGenericLimiter {
-          return new ObservedGenericLimiter(super.createFactoryDependencies(config));
-        }
-        protected override onTokenAcquired(
-          key: string,
-          result: RateLimitConsumptionEntity.Type
-        ): void {
-          acquired.push({ key, result });
-        }
+  static 'consume-strategy-created-once'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'consume-strategy-created-once'>): void {
+    let factoryCalls = 0;
+    const limiter = KeyedRateLimiter.create({
+      'factory': () => {
+        factoryCalls += 1;
+        return new FixedResultStrategy();
       }
+    });
+    const firstResult = limiter.consume('user-e');
+    const secondResult = limiter.consume('user-e');
+    assert.deepEqual(firstResult, scenarioCase.expected.result);
+    assert.deepEqual(secondResult, scenarioCase.expected.result);
+    assert.equal(factoryCalls, scenarioCase.expected.factoryCalls);
+  }
 
-      const limiter = ObservedGenericLimiter.build({
-        factory: () => new FakeFixedAllowance(2)
-      });
-      limiter.consume('user-a');
-      await limiter.waitForToken('user-a');
-      assert.deepEqual(acquired, expected.acquired);
-      return;
-    },
+  static 'entities-invalid'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'entities-invalid'>): void {
+    assert.equal(KeyedRateLimiterRegistryOptionsEntity.validate(scenarioCase.input.registry), scenarioCase.expected.accepted);
+    assert.equal(RateLimitRequestEntity.validate(scenarioCase.input.rateLimitRequest), scenarioCase.expected.accepted);
+  }
 
-    'generic-cache-boundary': () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const creations = new Map<string, number>();
-      const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-        factory: (key) => {
-          creations.set(key, (creations.get(key) ?? 0) + 1);
-          return new FakeFixedAllowance(Number(keyedRateLimiter.allowance));
-        },
-        maximumKeys: Number(keyedRateLimiter.maximumKeys)
-      });
-      limiter.consume('user-a');
-      limiter.consume('user-b');
-      limiter.consume('user-a');
-      assert.deepEqual([...creations.entries()], expected.creations);
-      return;
-    },
+  static 'entities-valid'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'entities-valid'>): void {
+    assert.equal(KeyedRateLimiterRegistryOptionsEntity.validate(scenarioCase.input.registry), scenarioCase.expected.accepted);
+    assert.equal(RateLimitRequestEntity.validate(scenarioCase.input.rateLimitRequest), scenarioCase.expected.accepted);
+  }
 
-    'consume-default-result': () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      const result = limiter.consume('user-result', Number(keyedRateLimiter.tokens));
-      assert.deepEqual(result, expected.result);
-      return;
-    },
+  static 'evicts-idle-key-at-capacity'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'evicts-idle-key-at-capacity'>): void {
+    const limiter = TrackingEvictionLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a');
+    limiter.consume('user-b');
+    limiter.consume('user-c');
+    assert.deepEqual(limiter.created, scenarioCase.expected.created);
+    assert.deepEqual(limiter.evicted, scenarioCase.expected.evicted);
+  }
 
-    'wait-immediate': async () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      await limiter.waitForToken('user-a');
-      limiter.consume('user-a', Number(keyedRateLimiter.consumeTokens));
-      assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
-      return;
-    },
+  static 'generic-cache-boundary'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'generic-cache-boundary'>): void {
+    const { allowance, maximumKeys } = scenarioCase.input.keyedRateLimiter;
+    const creations = new Map<string, number>();
+    const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': (key) => {
+        creations.set(key, (creations.get(key) ?? 0) + 1);
+        return new FakeFixedAllowance(allowance);
+      },
+      'maximumKeys': maximumKeys
+    });
+    limiter.consume('user-a');
+    limiter.consume('user-b');
+    limiter.consume('user-a');
+    assert.deepEqual([...creations.entries()], scenarioCase.expected.creations);
+  }
 
-    'wait-refills-and-isolates': async () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      let time = 0;
-      const clock = (): number => time;
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, clock));
-      limiter.consume('user-b');
-      const advance = new Promise<void>((resolve) => {
-        setImmediate(() => { time = Number(keyedRateLimiter.advanceTimeMs); resolve(); });
-      });
-      const wait = limiter.waitForToken('user-b');
-      await Promise.all([advance, wait]);
-      limiter.consume('user-c');
-      return;
-    },
+  static 'generic-fake-strategy'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'generic-fake-strategy'>): void {
+    const { allowance } = scenarioCase.input.keyedRateLimiter;
+    const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': () => {return new FakeFixedAllowance(allowance);}
+    });
+    const firstResult = limiter.consume('user-a');
+    const secondResult = limiter.consume('user-a');
+    assert.deepEqual(firstResult, scenarioCase.expected.firstResult);
+    assert.deepEqual(secondResult, scenarioCase.expected.secondResult);
+    assert.throws(() => { limiter.consume('user-a'); });
+    limiter.consume('user-b');
+  }
 
-    'wait-abort-signal': async () => {
-      const controller = new AbortController();
-      const limiter = KeyedRateLimiter.create(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-d');
-      setImmediate(() => { controller.abort(RuntimeError.create('cancelled')); });
-      await assert.rejects(() => limiter.waitForToken('user-d', { signal: controller.signal }));
-      return;
-    },
+  static 'generic-fractional-consumption-result'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'generic-fractional-consumption-result'>): void {
+    const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': () => {return new FakeFixedAllowance(2);}
+    });
+    const result = limiter.consume('user-fractional', 1.5);
+    assert.deepEqual(result, scenarioCase.expected.result);
+  }
 
-    'evicts-idle-key-at-capacity': () => {
-      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a');
-      limiter.consume('user-b');
-      limiter.consume('user-c');
-      assert.deepEqual(limiter.created, expected.created);
-      assert.deepEqual(limiter.evicted, expected.evicted);
-      return;
-    },
+  static 'getters-eviction-on-max-keys'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'getters-eviction-on-max-keys'>): void {
+    const limiter = TrackingLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a');
+    limiter.consume('user-b');
+    limiter.consume('user-c');
+    limiter.consume('user-d');
+    assert.deepEqual(limiter.evicted, scenarioCase.expected.evicted);
+  }
 
-    'recreates-strategy-after-eviction': () => {
-      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a');
-      limiter.consume('user-b');
-      limiter.consume('user-c');
-      limiter.consume('user-a');
-      assert.deepEqual(limiter.created, expected.created);
-      assert.deepEqual(limiter.evicted, expected.evicted);
-      return;
-    },
+  static 'on-token-acquired'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'on-token-acquired'>): void {
+    const acquired: { 'key': string; 'result': RateLimitConsumptionEntity.Type }[] = [];
 
-    'idle-key-expires-and-rebuilds': async () => {
-      const keyedRateLimiter = keyedRateLimiterInput(input);
-      const limiter = TrackingEvictionLimiter.build(keyedRateLimiterConfig(input));
-      limiter.consume('user-a');
-      await new Promise<void>((resolve) => { setTimeout(resolve, Number(keyedRateLimiter.waitMs)); });
-      limiter.consume('user-a');
-      assert.deepEqual(limiter.evicted, expected.evicted);
-      assert.deepEqual(limiter.created, expected.created);
-      return;
-    },
-
-    'throwing-on-key-evicted': () => {
-      class ThrowingEvictedLimiter extends KeyedRateLimiter {
-        static build(config: KeyedRateLimiterCreateConfigInterface): ThrowingEvictedLimiter {
-          return new ThrowingEvictedLimiter(super.createDefaultDependencies(config));
-        }
-        readonly created: string[] = [];
-        readonly evicted: string[] = [];
-
-        protected override onKeyCreated(key: string): void {
-          this.created.push(key);
-        }
-
-        protected override onKeyEvicted(key: string): void {
-          this.evicted.push(key);
-          throw RuntimeError.create('onKeyEvicted boom');
-        }
+    class ObservedTokenAcquiredLimiter extends KeyedRateLimiter {
+      static build(config: KeyedRateLimiterCreateConfigInterface): ObservedTokenAcquiredLimiter {
+        const result = new ObservedTokenAcquiredLimiter(super.createDefaultDependencies(config));
+        return result;
       }
-
-      const limiter = ThrowingEvictedLimiter.build(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a');
-      limiter.consume('user-b');
-      limiter.consume('user-c');
-      limiter.consume('user-a');
-      assert.deepEqual(limiter.created, expected.created);
-      assert.deepEqual(limiter.evicted, expected.evicted);
-      return;
-    },
-
-    'on-token-acquired': () => {
-      const acquired: Array<{ key: string; result: RateLimitConsumptionEntity.Type }> = [];
-
-      class ObservedTokenAcquiredLimiter extends KeyedRateLimiter {
-        static build(config: KeyedRateLimiterCreateConfigInterface): ObservedTokenAcquiredLimiter {
-          return new ObservedTokenAcquiredLimiter(super.createDefaultDependencies(config));
-        }
-        protected override onTokenAcquired(key: string, result: RateLimitConsumptionEntity.Type): void {
-          acquired.push({ key, result });
-        }
+      protected override onTokenAcquired(key: string, result: RateLimitConsumptionEntity.Type): void {
+        acquired.push({ 'key': key, 'result': result });
       }
-
-      const limiter = ObservedTokenAcquiredLimiter.build(keyedRateLimiterConfig(input, () => 0));
-      limiter.consume('user-a', 1);
-      limiter.consume('user-a', 1);
-      assert.deepStrictEqual(acquired, expected.acquired);
-      return;
     }
-  };
 
-  const runner = runnerMap[shape];
-  if (runner === undefined) {
-    throw RuntimeError.create(`No runner registered for shape: ${shape}`);
+    const limiter = ObservedTokenAcquiredLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a', 1);
+    limiter.consume('user-a', 1);
+    assert.deepStrictEqual(acquired, scenarioCase.expected.acquired);
   }
-  await runner();
-}
 
-void describe('keyed-rate-limiter', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+  static 'recreates-strategy-after-eviction'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'recreates-strategy-after-eviction'>): void {
+    const limiter = TrackingEvictionLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a');
+    limiter.consume('user-b');
+    limiter.consume('user-c');
+    limiter.consume('user-a');
+    assert.deepEqual(limiter.created, scenarioCase.expected.created);
+    assert.deepEqual(limiter.evicted, scenarioCase.expected.evicted);
+  }
+
+  static 'throwing-on-key-evicted'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'throwing-on-key-evicted'>): void {
+    class ThrowingEvictedLimiter extends KeyedRateLimiter {
+      static build(config: KeyedRateLimiterCreateConfigInterface): ThrowingEvictedLimiter {
+        const result = new ThrowingEvictedLimiter(super.createDefaultDependencies(config));
+        return result;
+      }
+      readonly created: string[] = [];
+      readonly evicted: string[] = [];
+
+      protected override onKeyCreated(key: string): void {
+        this.created.push(key);
+      }
+
+      protected override onKeyEvicted(key: string): void {
+        this.evicted.push(key);
+        throw RuntimeError.create('onKeyEvicted boom');
+      }
+    }
+
+    const limiter = ThrowingEvictedLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-a');
+    limiter.consume('user-b');
+    limiter.consume('user-c');
+    limiter.consume('user-a');
+    assert.deepEqual(limiter.created, scenarioCase.expected.created);
+    assert.deepEqual(limiter.evicted, scenarioCase.expected.evicted);
+  }
+
+  static async 'generic-acquisition-observation'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'generic-acquisition-observation'>): Promise<void> {
+    const acquired: { 'key': string; 'result': RateLimitConsumptionEntity.Type }[] = [];
+
+    class ObservedGenericLimiter extends KeyedRateLimiter<FakeFixedAllowance> {
+      static build(config: KeyedRateLimiterStrategyConfigInterface<FakeFixedAllowance>): ObservedGenericLimiter {
+        const result = new ObservedGenericLimiter(super.createFactoryDependencies(config));
+        return result;
+      }
+      protected override onTokenAcquired(
+        key: string,
+        result: RateLimitConsumptionEntity.Type
+      ): void {
+        acquired.push({ 'key': key, 'result': result });
+      }
+    }
+
+    const limiter = ObservedGenericLimiter.build({
+      'factory': () => {return new FakeFixedAllowance(2);}
+    });
+    limiter.consume('user-a');
+    await limiter.waitForToken('user-a');
+    assert.deepEqual(acquired, scenarioCase.expected.acquired);
+  }
+
+  static async 'generic-wait-for-token'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'generic-wait-for-token'>): Promise<void> {
+    const { allowance } = scenarioCase.input.keyedRateLimiter;
+    const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': () => {return new FakeFixedAllowance(allowance);}
+    });
+    const result = await limiter.waitForToken('user-a');
+    assert.deepEqual(result, scenarioCase.expected.result);
+    assert.throws(() => { limiter.consume('user-a'); });
+  }
+
+  static async 'idle-key-expires-and-rebuilds'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'idle-key-expires-and-rebuilds'>): Promise<void> {
+    const limiter = TrackingEvictionLimiter.build(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter));
+    limiter.consume('user-a');
+    await new Promise<void>((resolve) => { setTimeout(resolve, scenarioCase.input.keyedRateLimiter.waitMs); });
+    limiter.consume('user-a');
+    assert.deepEqual(limiter.evicted, scenarioCase.expected.evicted);
+    assert.deepEqual(limiter.created, scenarioCase.expected.created);
+  }
+
+  static async 'wait-abort-signal'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'wait-abort-signal'>): Promise<void> {
+    const controller = new AbortController();
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    limiter.consume('user-d');
+    setImmediate(() => { controller.abort(RuntimeError.create('cancelled')); });
+    await assert.rejects(() => {
+      const waiting = limiter.waitForToken('user-d', { 'signal': controller.signal });
+      return waiting;
     });
   }
+
+  static async 'wait-immediate'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'wait-immediate'>): Promise<void> {
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return 0;}));
+    await limiter.waitForToken('user-a');
+    limiter.consume('user-a', scenarioCase.input.keyedRateLimiter.consumeTokens);
+    assert.throws(() => { limiter.consume('user-a'); }, TokenBucketExhaustedError);
+  }
+
+  static async 'wait-refills-and-isolates'(scenarioCase: ScenarioCaseOfType<KeyedRateLimiterScenarioCaseEntity.Type, 'wait-refills-and-isolates'>): Promise<void> {
+    let time = 0;
+    const limiter = KeyedRateLimiter.create(KeyedRateLimiterRunners.createConfig(scenarioCase.input.keyedRateLimiter, () => {return time;}));
+    limiter.consume('user-b');
+    const advance = new Promise<void>((resolve) => {
+      setImmediate(() => { time = scenarioCase.input.keyedRateLimiter.advanceTimeMs; resolve(); });
+    });
+    const wait = limiter.waitForToken('user-b');
+    await Promise.all([advance, wait]);
+    limiter.consume('user-c');
+  }
+
+  private static createConfig(raw: KeyedRateLimiterCreateConfigInterface, clock?: () => number): KeyedRateLimiterCreateConfigInterface {
+    const result: KeyedRateLimiterCreateConfigInterface = {
+      'burstSize': raw.burstSize,
+      'requestsPerSecond': raw.requestsPerSecond,
+      ...(raw.maximumKeys === undefined ? {} : { 'maximumKeys': raw.maximumKeys }),
+      ...(raw.keyIdleTtlMs === undefined ? {} : { 'keyIdleTtlMs': raw.keyIdleTtlMs }),
+      ...(clock === undefined ? {} : { 'clock': clock })
+    };
+    return result;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': KeyedRateLimiterScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'keyed-rate-limiter',
+  'runners': KeyedRateLimiterRunners
 });
+
+class MalformedStrategyScenarios {
+  static withoutConsume(): FakeFixedAllowance {
+    const strategy = new FakeFixedAllowance(1);
+    Reflect.set(strategy, 'consume', undefined);
+    return strategy;
+  }
+
+  static withoutWaitForToken(): FakeFixedAllowance {
+    const strategy = new FakeFixedAllowance(1);
+    Reflect.set(strategy, 'waitForToken', undefined);
+    return strategy;
+  }
+
+  static assertRejectedWithoutRetention(build: () => FakeFixedAllowance): void {
+    let factoryCalls = 0;
+    const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': () => {
+        factoryCalls += 1;
+        const result = build();
+        return result;
+      }
+    });
+
+    assert.throws(() => { limiter.consume('account'); }, KeyedRateLimiterBoundaryError);
+    assert.throws(() => { limiter.consume('account'); }, KeyedRateLimiterBoundaryError);
+    assert.equal(factoryCalls, 2);
+  }
+}
 
 void describe('KeyedRateLimiter default TokenBucket demand boundaries', () => {
   const invalidTokenDemands: readonly number[] = [
@@ -418,11 +386,15 @@ void describe('KeyedRateLimiter default TokenBucket demand boundaries', () => {
   ];
 
   void it('forwards invalid demands without corrupting key capacity', async () => {
-    for (const tokens of invalidTokenDemands) {
+    for (let index = 0; index < invalidTokenDemands.length; index += 1) {
+      const tokens = ScenarioValues.requireDefined(invalidTokenDemands[index], 'invalidTokenDemands[index]');
       const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
 
       assert.throws(() => { limiter.consume('account', tokens); }, KeyedRateLimiterBoundaryError);
-      await assert.rejects(() => limiter.waitForToken('account', { 'tokens': tokens }), KeyedRateLimiterBoundaryError);
+      await assert.rejects(() => {
+        const result = limiter.waitForToken('account', { 'tokens': tokens });
+        return result;
+      }, KeyedRateLimiterBoundaryError);
       assert.deepEqual(
         limiter.consume('account', 1.5),
         { 'consumedTokens': 1.5, 'remainingTokens': 1.5 }
@@ -443,7 +415,8 @@ void describe('KeyedRateLimiter default TokenBucket configuration boundaries', (
   ];
 
   void it('rejects non-finite TokenBucket configuration before a default strategy is created', () => {
-    for (const configuration of invalidConfigurations) {
+    for (let index = 0; index < invalidConfigurations.length; index += 1) {
+      const configuration = ScenarioValues.requireDefined(invalidConfigurations[index], 'invalidConfigurations[index]');
       assert.throws(() => { KeyedRateLimiter.create(configuration); }, KeyedRateLimiterConfigError);
     }
   });
@@ -461,7 +434,7 @@ void describe('KeyedRateLimiter unknown-property boundaries', () => {
       { 'unrecognizedRegistryOption': true }
     );
     const registryConfiguration = {
-      'factory': (): FakeFixedAllowance => new FakeFixedAllowance(1),
+      'factory': (): FakeFixedAllowance => {return new FakeFixedAllowance(1);},
       ...registryOptions
     };
 
@@ -473,19 +446,19 @@ void describe('KeyedRateLimiter unknown-property boundaries', () => {
 });
 
 
-void describe("KeyedRateLimiter clock boundaries", () => {
-  void it("validates a default clock before forwarding it to token buckets", () => {
-    const invalidConfiguration = { "burstSize": 1, "clock": 0, "requestsPerSecond": 1 };
+void describe('KeyedRateLimiter clock boundaries', () => {
+  void it('validates a default clock before forwarding it to token buckets', () => {
+    const invalidConfiguration = { 'burstSize': 1, 'clock': 0, 'requestsPerSecond': 1 };
     assert.strictEqual(KeyedRateLimiterDefaultOptionsEntity.validate(invalidConfiguration), false);
   });
 
-  void it("preserves the shared clock guard when a key creates its token bucket", () => {
+  void it('preserves the shared clock guard when a key creates its token bucket', () => {
     const limiter = KeyedRateLimiter.create({
-      "burstSize": 1,
-      "clock": (): number => Number.NaN,
-      "requestsPerSecond": 1
+      'burstSize': 1,
+      'clock': (): number => {return Number.NaN;},
+      'requestsPerSecond': 1
     });
-    assert.throws(() => { limiter.consume("account"); }, ResilienceConfigError);
+    assert.throws(() => { limiter.consume('account'); }, ResilienceConfigError);
   });
 });
 
@@ -495,53 +468,55 @@ void describe('KeyedRateLimiter public request and strategy boundaries', () => {
     const invalidKeys: readonly unknown[] = ['', 3, undefined];
     const invalidTokens: readonly number[] = [0, -1, Number.NaN, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
 
-    for (const key of invalidKeys) {
+    for (let index = 0; index < invalidKeys.length; index += 1) {
+      const key = invalidKeys[index];
       const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
       assert.strictEqual(RateLimitRequestEntity.validate({ 'key': key }), false);
       assert.deepEqual(limiter.consume('account'), { 'consumedTokens': 1, 'remainingTokens': 2 });
     }
 
-    for (const tokens of invalidTokens) {
+    for (let index = 0; index < invalidTokens.length; index += 1) {
+      const tokens = ScenarioValues.requireDefined(invalidTokens[index], 'invalidTokens[index]');
       const limiter = KeyedRateLimiter.create({ 'burstSize': 3, 'requestsPerSecond': 1 });
       assert.throws(() => { limiter.consume('account', tokens); }, KeyedRateLimiterBoundaryError);
-      await assert.rejects(() => limiter.waitForToken('account', { 'tokens': tokens }), KeyedRateLimiterBoundaryError);
+      await assert.rejects(() => {
+        const result = limiter.waitForToken('account', { 'tokens': tokens });
+        return result;
+      }, KeyedRateLimiterBoundaryError);
       assert.deepEqual(limiter.consume('account'), { 'consumedTokens': 1, 'remainingTokens': 2 });
     }
   });
 
   void it('rejects a malformed factory strategy without retaining it in the cache', () => {
-    const invalidMethods = ['consume', 'waitForToken'];
-
-    for (const invalidMethod of invalidMethods) {
-      let factoryCalls = 0;
-      const limiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-        factory: () => {
-          factoryCalls += 1;
-          const strategy = new FakeFixedAllowance(1);
-          Reflect.set(strategy, invalidMethod, undefined);
-          return strategy;
-        }
-      });
-
-      assert.throws(() => { limiter.consume('account'); }, KeyedRateLimiterBoundaryError);
-      assert.throws(() => { limiter.consume('account'); }, KeyedRateLimiterBoundaryError);
-      assert.equal(factoryCalls, 2);
-    }
+    MalformedStrategyScenarios.assertRejectedWithoutRetention(() => {
+      const result = MalformedStrategyScenarios.withoutConsume();
+      return result;
+    });
+    MalformedStrategyScenarios.assertRejectedWithoutRetention(() => {
+      const result = MalformedStrategyScenarios.withoutWaitForToken();
+      return result;
+    });
   });
 
   void it('rejects malformed consumption results from consume and waitForToken', async () => {
     const invalidConsumeStrategy = new FakeFixedAllowance(1);
-    Reflect.set(invalidConsumeStrategy, 'consume', () => ({ 'remainingTokens': 0 }));
+    Reflect.set(invalidConsumeStrategy, 'consume', () => {return { 'remainingTokens': 0 };});
     const consumeLimiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-      factory: () => invalidConsumeStrategy
+      'factory': () => {return invalidConsumeStrategy;}
     });
     assert.throws(() => { consumeLimiter.consume('account'); }, KeyedRateLimiterBoundaryError);
 
     const invalidWaitStrategy = new FakeFixedAllowance(1);
-    Reflect.set(invalidWaitStrategy, 'waitForToken', async () => ({ 'consumedTokens': 1 }));
-    const waitLimiter = KeyedRateLimiter.create<FakeFixedAllowance>({
-      factory: () => invalidWaitStrategy
+    Reflect.set(invalidWaitStrategy, 'waitForToken', () => {
+      const result = Promise.resolve({ 'consumedTokens': 1 });
+      return result;
     });
-    await assert.rejects(() => waitLimiter.waitForToken('account'), KeyedRateLimiterBoundaryError);
+    const waitLimiter = KeyedRateLimiter.create<FakeFixedAllowance>({
+      'factory': () => {return invalidWaitStrategy;}
+    });
+    await assert.rejects(() => {
+      const result = waitLimiter.waitForToken('account');
+      return result;
+    }, KeyedRateLimiterBoundaryError);
   });
 });

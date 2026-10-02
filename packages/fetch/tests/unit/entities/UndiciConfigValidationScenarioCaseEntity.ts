@@ -1,0 +1,18 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+
+import { BoundedJsonValueEntity } from '../../helpers/entities/BoundedJsonValueEntity.js';
+
+/** The `undici-config-validation.loop.spec.ts` scenario case shape: one branch per `outcome`. */
+export namespace UndiciConfigValidationScenarioCaseEntity {
+  export const Schema = { 'oneOf': [{ 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': {}, 'required': [], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'dispatcher': BoundedJsonValueEntity.Schema }, 'required': ['dispatcher'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'outcome': { 'const': 'ok' } }, 'required': ['description', 'expected', 'input', 'name', 'outcome'], 'type': 'object' }, { 'additionalProperties': false, 'properties': { 'description': { 'minLength': 1, 'type': 'string' }, 'expected': { 'additionalProperties': false, 'properties': { 'messageIncludes': { 'items': { 'type': 'string' }, 'type': 'array' } }, 'required': ['messageIncludes'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'dispatcher': BoundedJsonValueEntity.Schema }, 'required': ['dispatcher'], 'type': 'object' }, 'name': { 'minLength': 1, 'type': 'string' }, 'outcome': { 'const': 'throws' } }, 'required': ['description', 'expected', 'input', 'name', 'outcome'], 'type': 'object' }] } as const;
+
+  export const Node = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'dispatcher': BoundedJsonValueEntity.Node }, ['dispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'outcome': SchemaNode.defineConst({}, 'ok' as const) }, ['description', 'expected', 'input', 'name', 'outcome'] as const, { 'additionalProperties': false, 'patternProperties': {} }), SchemaNode.defineObject({ 'type': 'object' } as const, { 'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'messageIncludes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, ['messageIncludes'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'dispatcher': BoundedJsonValueEntity.Node }, ['dispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'outcome': SchemaNode.defineConst({}, 'throws' as const) }, ['description', 'expected', 'input', 'name', 'outcome'] as const, { 'additionalProperties': false, 'patternProperties': {} })] as const);
+  export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+}

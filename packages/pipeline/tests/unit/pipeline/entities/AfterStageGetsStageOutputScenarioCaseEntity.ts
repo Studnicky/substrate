@@ -1,8 +1,10 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
-import { CtxNumberStagesInputEntity } from './common/CtxNumberStagesInputEntity.js';
+import { ContextNumberStagesInputEntity } from './common/ContextNumberStagesInputEntity.js';
 
 /** The `after-stage-gets-stage-output` scenario case shape `PipelineSubclass.loop.spec.ts` exercises. */
 export namespace AfterStageGetsStageOutputScenarioCaseEntity {
@@ -13,12 +15,12 @@ export namespace AfterStageGetsStageOutputScenarioCaseEntity {
       'expected': {
         'additionalProperties': false,
         'properties': {
-      'receivedCtxAtAfter': { 'items': { 'type': 'number' }, 'type': 'array' }
+          'receivedContextAtAfter': { 'items': { 'type': 'number' }, 'type': 'array' }
         },
-        'required': ['receivedCtxAtAfter'],
+        'required': ['receivedContextAtAfter'],
         'type': 'object'
       },
-      'input': CtxNumberStagesInputEntity.Schema,
+      'input': ContextNumberStagesInputEntity.Schema,
       'name': { 'minLength': 1, 'type': 'string' },
       'shape': { 'const': 'after-stage-gets-stage-output' }
     },
@@ -27,13 +29,17 @@ export namespace AfterStageGetsStageOutputScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'receivedCtxAtAfter': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
-        }, ['receivedCtxAtAfter'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': CtxNumberStagesInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'after-stage-gets-stage-output' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'receivedContextAtAfter': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined)
+    }, ['receivedContextAtAfter'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': ContextNumberStagesInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'after-stage-gets-stage-output' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

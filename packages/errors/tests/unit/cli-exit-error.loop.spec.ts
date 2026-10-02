@@ -1,75 +1,58 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 
 import { CliExitError } from '../../src/errors/CliExitError.js';
+import scenarioGroups from './cli-exit-error.scenarios.json' with { 'type': 'json' };
 import { CliExitErrorScenarioCaseEntity } from './entities/CliExitErrorScenarioCaseEntity.js';
-import scenarioGroups from './cli-exit-error.scenarios.json' with { type: 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(CliExitErrorScenarioCaseEntity.Schema, CliExitErrorScenarioCaseEntity.Node);
+class CliExitErrorRunners {
+  static 'code-value'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'code-value'>): void {
+    const error = new CliExitError();
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+  }
 
-type ScenarioCase = CliExitErrorScenarioCaseEntity.Type;
-type ExitCodeInput = NonNullable<NonNullable<ScenarioCase['input']['error']>['exitCode']>;
+  static 'empty-message'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'empty-message'>): void {
+    const error = new CliExitError();
+    assert.strictEqual(error.message, scenarioCase.expected.message);
+  }
 
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-function isOmittedTag(value: ExitCodeInput): value is { '__shape': 'undefined' } {
-  return typeof value === 'object';
-}
-
-const runnerMap = {
-  'code-value': (scenarioCase) => {
-    const err = new CliExitError();
-    assert.strictEqual(err.code, scenarioCase.expected.code);
-  },
-
-  'empty-message': (scenarioCase) => {
-    const err = new CliExitError();
-    assert.strictEqual(err.message, scenarioCase.expected.message);
-  },
-
-  'exit-code': (scenarioCase) => {
+  static 'exit-code'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'exit-code'>): void {
     const rawExitCode = scenarioCase.input.error?.exitCode;
-    const err = rawExitCode === undefined || isOmittedTag(rawExitCode) ? new CliExitError() : new CliExitError(rawExitCode);
-    assert.strictEqual(err.exitCode, scenarioCase.expected.exitCode);
-  },
-
-  'instance-check': (_scenarioCase) => {
-    const err = new CliExitError();
-    assert.ok(err instanceof Error);
-    assert.ok(err instanceof BaseError);
-    assert.ok(err instanceof CliExitError);
-  },
-
-  'json-code': (scenarioCase) => {
-    const exitCode = scenarioCase.input.error?.exitCode;
-    const err = exitCode === undefined || isOmittedTag(exitCode) ? new CliExitError() : new CliExitError(exitCode);
-    const json = err.toJSON();
-    assert.strictEqual(json.code, scenarioCase.expected.code);
-  },
-
-  'name-value': (scenarioCase) => {
-    const err = new CliExitError();
-    assert.strictEqual(err.name, scenarioCase.expected.name);
-  },
-
-  'not-retryable': (scenarioCase) => {
-    const err = new CliExitError();
-    assert.strictEqual(err.retryable, scenarioCase.expected.retryable);
+    const error = typeof rawExitCode === 'number' ? new CliExitError(rawExitCode) : new CliExitError();
+    assert.strictEqual(error.exitCode, scenarioCase.expected.exitCode);
   }
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'instance-check'(): void {
+    const error = new CliExitError();
+    assert.ok(error instanceof Error);
+    assert.ok(error instanceof BaseError);
+    assert.ok(error instanceof CliExitError);
+  }
+
+  static 'json-code'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'json-code'>): void {
+    const exitCode = scenarioCase.input.error?.exitCode;
+    const error = typeof exitCode === 'number' ? new CliExitError(exitCode) : new CliExitError();
+    const json = error.toJSON();
+    assert.strictEqual(json.code, scenarioCase.expected.code);
+  }
+
+  static 'name-value'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'name-value'>): void {
+    const error = new CliExitError();
+    assert.strictEqual(error.name, scenarioCase.expected.name);
+  }
+
+  static 'not-retryable'(scenarioCase: ScenarioCaseOfType<CliExitErrorScenarioCaseEntity.Type, 'not-retryable'>): void {
+    const error = new CliExitError();
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+  }
 }
 
-void describe('CliExitError', () => {
-  const fileData = fileIntake(scenarioGroups);
-  for (const scenario of fileData.cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': CliExitErrorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'CliExitError',
+  'runners': CliExitErrorRunners
 });

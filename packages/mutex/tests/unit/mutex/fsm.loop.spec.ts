@@ -1,46 +1,49 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-import { setTimeout as delay } from 'node:timers/promises';
+import { setTimeout } from 'node:timers/promises';
 
 import { MutexKeyStateEntity } from '../../../src/entities/MutexKeyStateEntity.js';
 import { Mutex } from '../../../src/mutex/index.js';
 import { FsmScenarioCaseEntity } from './entities/FsmScenarioCaseEntity.js';
-import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
+import scenarioGroups from './fsm.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = FsmScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
-
-interface TransitionRecord {
-  from: MutexKeyStateEntity.Type;
-  key: string;
-  to: MutexKeyStateEntity.Type;
+interface TransitionRecordInterface {
+  readonly 'from': MutexKeyStateEntity.Type;
+  readonly 'key': string;
+  readonly 'to': MutexKeyStateEntity.Type;
 }
 
 class TrackingMutex extends Mutex<string> {
-  readonly transitions: TransitionRecord[] = [];
+  readonly transitions: TransitionRecordInterface[] = [];
 
   static tracked(): TrackingMutex {
-    return new TrackingMutex();
+    const tracked = new TrackingMutex();
+    return tracked;
   }
 
   protected override guardKey(from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
-    return super.guardKey(from, to);
+    const allowed = super.guardKey(from, to);
+    return allowed;
   }
 
   protected override onEnterKey(key: string, to: MutexKeyStateEntity.Type, from: MutexKeyStateEntity.Type): void {
-    this.transitions.push({ from, key, to });
+    this.transitions.push({ 'from': from, 'key': key, 'to': to });
   }
 }
 
 class ForcingMutex extends Mutex<string> {
   static build(): ForcingMutex {
-    return new ForcingMutex();
+    const forcing = new ForcingMutex();
+    return forcing;
   }
   protected override guardKey(_from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): boolean {
-    if (to === 'unlocked') return false;
-    return super.guardKey(_from, to);
+    let allowed = false;
+    if (to !== 'unlocked') {
+      allowed = super.guardKey(_from, to);
+    }
+    return allowed;
   }
 
   forceKeyTransition(key: string, to: MutexKeyStateEntity.Type): void {
@@ -48,48 +51,56 @@ class ForcingMutex extends Mutex<string> {
   }
 }
 
-type ScenarioCaseOf<Shape extends ScenarioCase['shape']> = Extract<ScenarioCase, { shape: Shape }>;
-
-const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void> | void } = {
-  'illegal-transition-throws': (scenarioCase) => {
+class FsmRunners {
+  static 'illegal-transition-throws'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'illegal-transition-throws'>): void {
     const mutex = ForcingMutex.build();
-    assert.throws(() => { mutex.forceKeyTransition(scenarioCase.input.key, 'unlocked'); }, /Illegal state transition/);
+    assert.throws(() => {
+      mutex.forceKeyTransition(scenarioCase.input.key, 'unlocked');
+    }, (error): boolean => {
+      const caught: unknown = error;
+      const isIllegalTransition = caught instanceof Error && caught.message.includes('Illegal state transition');
+      return isIllegalTransition;
+    });
     assert.equal(scenarioCase.expected.errorPattern, 'Illegal state transition');
-  },
-  'locked-to-queued': async (scenarioCase) => {
+  }
+
+  static async 'locked-to-queued'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'locked-to-queued'>): Promise<void> {
     const mutex = TrackingMutex.tracked();
     const firstRelease = await mutex.acquire(scenarioCase.input.key);
     const pendingAcquire = mutex.acquire(scenarioCase.input.key);
-    await delay(0);
-    const queuedTransition = mutex.transitions.find((t) => t.key === scenarioCase.input.key && t.from === scenarioCase.expected.from && t.to === scenarioCase.expected.to);
+    await setTimeout(0);
+    const queuedTransition = FsmRunners.findTransition(mutex, scenarioCase.input.key, scenarioCase.expected.from, scenarioCase.expected.to);
     assert.ok(queuedTransition !== undefined);
     firstRelease();
     const secondRelease = await pendingAcquire;
     secondRelease();
-    assert.equal(queuedTransition?.key, scenarioCase.expected.key);
-  },
-  'locked-to-unlocked': async (scenarioCase) => {
+    assert.equal(queuedTransition.key, scenarioCase.expected.key);
+  }
+
+  static async 'locked-to-unlocked'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'locked-to-unlocked'>): Promise<void> {
     const mutex = TrackingMutex.tracked();
     const release = await mutex.acquire(scenarioCase.input.key);
     release();
-    await delay(0);
-    const unlockedTransition = mutex.transitions.find((t) => t.key === scenarioCase.input.key && t.from === scenarioCase.expected.from && t.to === scenarioCase.expected.to);
+    await setTimeout(0);
+    const unlockedTransition = FsmRunners.findTransition(mutex, scenarioCase.input.key, scenarioCase.expected.from, scenarioCase.expected.to);
     assert.ok(unlockedTransition !== undefined);
-    assert.equal(unlockedTransition?.key, scenarioCase.expected.key);
-  },
-  'queued-to-locked': async (scenarioCase) => {
+    assert.equal(unlockedTransition.key, scenarioCase.expected.key);
+  }
+
+  static async 'queued-to-locked'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'queued-to-locked'>): Promise<void> {
     const mutex = TrackingMutex.tracked();
     const firstRelease = await mutex.acquire(scenarioCase.input.key);
     const pendingAcquire = mutex.acquire(scenarioCase.input.key);
-    await delay(0);
+    await setTimeout(0);
     firstRelease();
     const secondRelease = await pendingAcquire;
-    const handoffTransition = mutex.transitions.find((t) => t.key === scenarioCase.input.key && t.from === scenarioCase.expected.from && t.to === scenarioCase.expected.to);
+    const handoffTransition = FsmRunners.findTransition(mutex, scenarioCase.input.key, scenarioCase.expected.from, scenarioCase.expected.to);
     assert.ok(handoffTransition !== undefined);
     secondRelease();
-    assert.equal(handoffTransition?.key, scenarioCase.expected.key);
-  },
-  'unlocked-to-locked': async (scenarioCase) => {
+    assert.equal(handoffTransition.key, scenarioCase.expected.key);
+  }
+
+  static async 'unlocked-to-locked'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'unlocked-to-locked'>): Promise<void> {
     const mutex = TrackingMutex.tracked();
     const release = await mutex.acquire(scenarioCase.input.key);
     const first = mutex.transitions[0];
@@ -98,23 +109,27 @@ const runnerMap: { [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K
     assert.deepStrictEqual(first.from, scenarioCase.expected.from);
     assert.deepStrictEqual(first.to, scenarioCase.expected.to);
     release();
-  },
-  'validate-states': (scenarioCase) => {
-    for (const state of scenarioCase.input.states) {
-      assert.deepStrictEqual(MutexKeyStateEntity.validate(state), scenarioCase.expected.validStates);
+  }
+
+  static 'validate-states'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'validate-states'>): void {
+    for (let index = 0; index < scenarioCase.input.states.length; index += 1) {
+      assert.deepStrictEqual(MutexKeyStateEntity.validate(scenarioCase.input.states[index]), scenarioCase.expected.validStates);
     }
     assert.deepStrictEqual(MutexKeyStateEntity.validate(scenarioCase.input.invalidState), scenarioCase.expected.invalidState);
   }
-};
 
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  private static findTransition(mutex: TrackingMutex, key: string, from: MutexKeyStateEntity.Type, to: MutexKeyStateEntity.Type): TransitionRecordInterface | undefined {
+    const transition = mutex.transitions.find((candidate) => {
+      const matches = candidate.key === key && candidate.from === from && candidate.to === to;
+      return matches;
+    });
+    return transition;
+  }
 }
 
-void describe('Mutex FSM', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': FsmScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Mutex FSM',
+  'runners': FsmRunners
 });

@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The single scenario case shape `event-recorder.loop.spec.ts` exercises. */
@@ -20,9 +22,9 @@ export namespace EventRecorderScenarioCaseEntity {
   } as const;
 
   const recordedEventNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'nested': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineString({ 'type': 'string' } as const)
-    }, ['nested', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'nested': SchemaNode.defineObject({ 'type': 'object' } as const, { 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['value'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineString({ 'type': 'string' } as const)
+  }, ['nested', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'additionalProperties': false,
@@ -55,13 +57,17 @@ export namespace EventRecorderScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'detachedProjection': recordedEventNode, 'firstProjection': recordedEventNode }, ['detachedProjection', 'firstProjection'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'recorder': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': recordedEventNode }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-        }, ['recorder'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'detaches-recorded-events' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'detachedProjection': recordedEventNode, 'firstProjection': recordedEventNode }, ['detachedProjection', 'firstProjection'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'recorder': SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': recordedEventNode }, ['event'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['recorder'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'detaches-recorded-events' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

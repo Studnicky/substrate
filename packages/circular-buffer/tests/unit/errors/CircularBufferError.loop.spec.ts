@@ -1,59 +1,56 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { CircularBufferError } from '../../../src/errors/CircularBufferError.js';
 import { CircularBufferErrorScenarioCaseEntity } from '../entities/CircularBufferErrorScenarioCaseEntity.js';
-import scenarioGroups from './CircularBufferError.scenarios.json' with { type: 'json' };
+import scenarioGroups from './CircularBufferError.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferErrorScenarioCaseEntity.Schema, CircularBufferErrorScenarioCaseEntity.Node);
-
-type ScenarioCase = CircularBufferErrorScenarioCaseEntity.Type;
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-function assertBaseError(error: CircularBufferError, scenarioCase: ScenarioCase): void {
-  assert.equal(error.name, 'CircularBufferError');
-  assert.equal(error.code, scenarioCase.expected.code);
-  assert.equal(error.message, scenarioCase.expected.message);
-  assert.equal(error.retryable, scenarioCase.expected.retryable);
-}
-
-function assertDefaultConstruction(scenarioCase: ScenarioCase): void {
-  const error = new CircularBufferError(scenarioCase.input.message);
-  assertBaseError(error, scenarioCase);
-  assert.equal(error.cause, undefined);
-}
-
-function assertWithArgs(scenarioCase: ScenarioCase): void {
-  const error = new CircularBufferError(scenarioCase.input.message, scenarioCase.input.args);
-  assertBaseError(error, scenarioCase);
-  assert.equal(error.correlationId, scenarioCase.expected.correlationId);
-  assert.deepStrictEqual(error.metadata, scenarioCase.expected.metadata);
-}
-
-function assertWithCause(scenarioCase: ScenarioCase): void {
-  const error = new CircularBufferError(scenarioCase.input.message, scenarioCase.input.args);
-  assertBaseError(error, scenarioCase);
-  assert.equal(error.correlationId, scenarioCase.expected.correlationId);
-  assert.deepStrictEqual(error.metadata, scenarioCase.expected.metadata);
-  assert.equal(error.cause, scenarioCase.input.args?.cause);
-}
-
-const runnerMap = {
-  'default-construction': assertDefaultConstruction,
-  'with-args': assertWithArgs,
-  'with-cause': assertWithCause
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
-
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('CircularBufferError', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
+class CircularBufferErrorRunners {
+  static assertBaseError(error: CircularBufferError, scenarioCase: CircularBufferErrorScenarioCaseEntity.Type): void {
+    assert.equal(error.name, 'CircularBufferError');
+    assert.equal(error.code, scenarioCase.expected.code);
+    assert.equal(error.message, scenarioCase.expected.message);
+    assert.equal(error.retryable, scenarioCase.expected.retryable);
   }
+
+  static assertOptionalProperties(error: CircularBufferError, scenarioCase: CircularBufferErrorScenarioCaseEntity.Type): void {
+    const correlationId = scenarioCase.expected.correlationId;
+    if (correlationId === undefined) {
+      assert.equal(error.correlationId, undefined);
+    } else {
+      assert.equal(error.correlationId, ScenarioValues.requireString(correlationId, 'expected.correlationId'));
+    }
+    const metadata = scenarioCase.expected.metadata;
+    if (metadata === undefined) {
+      assert.equal(error.metadata, undefined);
+    } else {
+      assert.deepStrictEqual(error.metadata, ScenarioValues.requireRecord(metadata, 'expected.metadata'));
+    }
+  }
+
+  static 'default-construction'(scenarioCase: CircularBufferErrorScenarioCaseEntity.Type): void {
+    const error = new CircularBufferError(scenarioCase.input.message);
+    CircularBufferErrorRunners.assertBaseError(error, scenarioCase);
+    assert.equal(error.cause, undefined);
+  }
+
+  static 'with-args'(scenarioCase: CircularBufferErrorScenarioCaseEntity.Type): void {
+    const error = new CircularBufferError(scenarioCase.input.message, scenarioCase.input.args);
+    CircularBufferErrorRunners.assertBaseError(error, scenarioCase);
+    CircularBufferErrorRunners.assertOptionalProperties(error, scenarioCase);
+  }
+
+  static 'with-cause'(scenarioCase: CircularBufferErrorScenarioCaseEntity.Type): void {
+    const error = new CircularBufferError(scenarioCase.input.message, scenarioCase.input.args);
+    CircularBufferErrorRunners.assertBaseError(error, scenarioCase);
+    CircularBufferErrorRunners.assertOptionalProperties(error, scenarioCase);
+    assert.equal(error.cause === scenarioCase.input.args?.cause, true);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': CircularBufferErrorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'CircularBufferError',
+  'runners': CircularBufferErrorRunners
 });

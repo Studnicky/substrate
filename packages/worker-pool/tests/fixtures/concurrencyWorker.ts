@@ -9,37 +9,51 @@
  * Responds with a 'result' envelope carrying `value` unchanged once the artificial `ms` delay
  * (simulating work) elapses.
  */
+import type { MessagePort } from 'node:worker_threads';
+
+import { RuntimeError } from '@studnicky/errors/node';
+import { setTimeout } from 'node:timers/promises';
 import { parentPort } from 'node:worker_threads';
 
+import { WorkerReply } from './WorkerReply.js';
+
 interface ConcurrencyRequestInterface {
-  counts: SharedArrayBuffer;
-  ms: number;
-  value: unknown;
+  readonly 'counts': SharedArrayBuffer;
+  readonly 'ms': number;
+  readonly 'value': unknown;
 }
 
-if (parentPort === null) {
-  throw new Error('concurrencyWorker must run in a worker thread');
-}
-const port = parentPort;
+class ConcurrencyWorker {
+  static start(): void {
+    if (parentPort === null) {
+      throw RuntimeError.create('concurrencyWorker must run in a worker thread');
+    }
+    const port = parentPort;
 
-const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
-port.once('message', async (message: ConcurrencyRequestInterface) => {
-  const { counts, ms, value } = message;
-  const view = new Int32Array(counts);
-
-  const active = Atomics.add(view, 0, 1) + 1;
-
-  let observedMax = Atomics.load(view, 1);
-  while (active > observedMax) {
-    const previous = Atomics.compareExchange(view, 1, observedMax, active);
-    if (previous === observedMax) { break; }
-    observedMax = Atomics.load(view, 1);
+    port.once('message', (message: ConcurrencyRequestInterface) => {
+      void ConcurrencyWorker.handle(port, message);
+    });
   }
 
-  await delay(ms);
+  private static async handle(port: MessagePort, message: ConcurrencyRequestInterface): Promise<void> {
+    const { counts, ms, value } = message;
+    const view = new Int32Array(counts);
 
-  Atomics.sub(view, 0, 1);
+    const active = Atomics.add(view, 0, 1) + 1;
 
-  port.postMessage({ 'type': 'result', 'value': value });
-});
+    let observedMaximum = Atomics.load(view, 1);
+    while (active > observedMaximum) {
+      const previous = Atomics.compareExchange(view, 1, observedMaximum, active);
+      if (previous === observedMaximum) { break; }
+      observedMaximum = Atomics.load(view, 1);
+    }
+
+    await setTimeout(ms);
+
+    Atomics.sub(view, 0, 1);
+
+    WorkerReply.post(port, { 'type': 'result', 'value': value });
+  }
+}
+
+ConcurrencyWorker.start();

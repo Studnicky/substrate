@@ -3,12 +3,6 @@ import { describe, it } from 'node:test';
 
 import { Compose } from '../../../src/types/Compose.js';
 
-interface FixtureNodeStaticInterface {
-  'age': number;
-  'email': string;
-  'name': string;
-}
-
 void describe('Compose', () => {
   const node: { 'schema': { 'properties': Record<string, unknown>; 'required': readonly string[]; 'type': string } } = {
     'schema': {
@@ -23,28 +17,28 @@ void describe('Compose', () => {
   };
 
   void it('pick narrows properties and required to the given keys', () => {
-    const picked = Compose.pick<typeof node.schema, FixtureNodeStaticInterface, 'email' | 'name'>(node, ['name', 'email']);
+    const picked = Compose.pick<typeof node.schema, { 'age': number; 'email': string; 'name': string }, 'email' | 'name'>(node, ['name', 'email']);
 
     assert.deepEqual(Object.keys(picked.schema.properties), ['email', 'name']);
     assert.deepEqual(picked.schema.required, ['name', 'email']);
   });
 
   void it('omit removes the given keys from properties and required', () => {
-    const omitted = Compose.omit<typeof node.schema, FixtureNodeStaticInterface, 'email'>(node, ['email']);
+    const omitted = Compose.omit<typeof node.schema, { 'age': number; 'email': string; 'name': string }, 'email'>(node, ['email']);
 
     assert.deepEqual(Object.keys(omitted.schema.properties), ['age', 'name']);
     assert.deepEqual(omitted.schema.required, ['name']);
   });
 
   void it('partial empties the required array', () => {
-    const partial = Compose.partial<typeof node.schema, FixtureNodeStaticInterface>(node);
+    const partial = Compose.partial<typeof node.schema, { 'age': number; 'email': string; 'name': string }>(node);
 
     assert.deepEqual(partial.schema.required, []);
     assert.deepEqual(Object.keys(partial.schema.properties), ['age', 'email', 'name']);
   });
 
   void it('require lists every property key as required', () => {
-    const required = Compose.require<typeof node.schema, FixtureNodeStaticInterface>(node);
+    const required = Compose.require<typeof node.schema, { 'age': number; 'email': string; 'name': string }>(node);
 
     assert.deepEqual(required.schema.required.toSorted(), ['age', 'email', 'name']);
   });
@@ -60,7 +54,7 @@ void describe('Compose', () => {
 
     const extended = Compose.extend<
       typeof node.schema,
-      FixtureNodeStaticInterface,
+      { 'age': number; 'email': string; 'name': string },
       typeof extension.schema,
       { 'email': string; 'role': string }
     >(node, extension);

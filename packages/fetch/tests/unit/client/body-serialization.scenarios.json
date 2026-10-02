@@ -20,7 +20,8 @@
           "foo": "bar",
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "plain-object-put",
@@ -42,7 +43,8 @@
           "foo": "bar",
           "id": 1
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "plain-object-patch",
@@ -65,7 +67,8 @@
           "id": 1,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "nested-object-post",
@@ -93,7 +96,8 @@
           "id": 101,
           "name": "John"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "nested-object-put",
@@ -121,7 +125,8 @@
           "id": 1,
           "name": "John"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "nested-object-patch",
@@ -150,7 +155,8 @@
           "name": "John",
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "array-object-post",
@@ -180,7 +186,8 @@
           ],
           "title": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "array-object-put",
@@ -210,7 +217,8 @@
           ],
           "title": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "array-object-patch",
@@ -240,7 +248,8 @@
           ],
           "title": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "null-object-post",
@@ -262,7 +271,8 @@
           "id": 101,
           "name": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "null-object-put",
@@ -284,7 +294,8 @@
           "id": 1,
           "name": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "null-object-patch",
@@ -307,7 +318,8 @@
           "name": "test",
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-object-post",
@@ -324,7 +336,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-object-put",
@@ -341,7 +354,8 @@
         "json": {
           "id": 1
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-object-patch",
@@ -359,7 +373,8 @@
           "id": 1,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "boolean-object-post",
@@ -381,7 +396,8 @@
           "deleted": false,
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "boolean-object-put",
@@ -403,7 +419,8 @@
           "deleted": false,
           "id": 1
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "boolean-object-patch",
@@ -426,7 +443,8 @@
           "id": 1,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "number-object-post",
@@ -450,7 +468,8 @@
           "price": 19.99,
           "rating": 0
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "number-object-put",
@@ -474,7 +493,8 @@
           "price": 19.99,
           "rating": 0
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "number-object-patch",
@@ -499,7 +519,8 @@
           "rating": 0,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "string-primitive",
@@ -516,7 +537,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-string-primitive",
@@ -533,7 +555,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "number-primitive",
@@ -550,7 +573,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "zero-primitive",
@@ -567,7 +591,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "negative-number-primitive",
@@ -584,7 +609,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "float-primitive",
@@ -601,7 +627,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "boolean-true-primitive",
@@ -618,7 +645,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "boolean-false-primitive",
@@ -635,7 +663,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "null-primitive",
@@ -652,7 +681,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "undefined-primitive",
@@ -671,7 +701,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "buffer-binary",
@@ -691,7 +722,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "array-buffer-binary",
@@ -711,7 +743,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "uint8-array-binary",
@@ -731,7 +764,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-buffer-binary",
@@ -751,7 +785,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "large-buffer-binary",
@@ -772,7 +807,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "top-level-array",
@@ -796,7 +832,8 @@
           "2": 3,
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "array-of-objects",
@@ -826,7 +863,8 @@
           },
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "date-object",
@@ -849,7 +887,8 @@
           "createdAt": "2026-07-22T12:34:56.000Z",
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "mixed-types",
@@ -891,7 +930,8 @@
           "name": "test",
           "optional": null
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "large-json-object",
@@ -941,7 +981,8 @@
           "key14": "value14",
           "key15": "value15"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "deeply-nested-object",
@@ -981,7 +1022,8 @@
             }
           }
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "special-character-string",
@@ -1005,7 +1047,8 @@
           "quotes": "He said \"hello\"",
           "unicode": "\u4f60\u597d\u4e16\u754c"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "empty-array",
@@ -1022,7 +1065,8 @@
         "json": {
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "circular-reference",
@@ -1042,7 +1086,8 @@
           "circular"
         ],
         "name": "BodySerializationError"
-      }
+      },
+      "operation": "rejects"
     },
     {
       "name": "symbol-properties",
@@ -1063,7 +1108,8 @@
           "id": 101,
           "name": "test"
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "function-properties",
@@ -1084,7 +1130,8 @@
           "data": "test",
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "bigint-properties",
@@ -1107,7 +1154,8 @@
           "BigInt"
         ],
         "name": "BodySerializationError"
-      }
+      },
+      "operation": "rejects"
     },
     {
       "name": "undefined-properties",
@@ -1130,7 +1178,8 @@
           "defined": "value",
           "id": 101
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "consistent-post",
@@ -1152,7 +1201,8 @@
           "id": 101,
           "number": 42
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "consistent-put",
@@ -1174,7 +1224,8 @@
           "id": 1,
           "number": 42
         }
-      }
+      },
+      "operation": "succeeds"
     },
     {
       "name": "consistent-patch",
@@ -1197,7 +1248,8 @@
           "number": 42,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "succeeds"
     }
   ]
 }

@@ -2,12 +2,14 @@
   "cases": [
     {
       "name": "default-construction",
+      "shape": "basic",
       "description": "creates a non-retryable BaseError without a cause",
       "input": { "message": "runtime failure" },
       "expected": { "code": "errors.runtime", "hasCause": false, "retryable": false }
     },
     {
       "name": "cause-construction",
+      "shape": "basic",
       "description": "preserves an optional cause supplied through the options object",
       "input": { "message": "runtime failure", "causeMessage": "root cause" },
       "expected": { "code": "errors.runtime", "hasCause": true, "retryable": false }

@@ -1,26 +1,26 @@
+import { RuntimeError } from '@studnicky/errors/node';
+import parser from '@typescript-eslint/parser';
+import { Linter, RuleTester } from 'eslint';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import parser from '@typescript-eslint/parser';
-import { Linter, RuleTester } from 'eslint';
-
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
-import scenarioFile from './forOfArrays.scenarios.json' with { type: 'json' };
+import scenarioFile from './forOfArrays.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
@@ -30,33 +30,55 @@ const ruleTester = new RuleTester({
  * never resolves the top-level `ForOfStatement.right` node — the one branch a genuinely typed
  * parse can't otherwise exercise, since the real parser always maps every node it produces.
  */
-const unresolvedTsNodeParser: Linter.NonESTreeParser = {
-  parseForESLint(text, options) {
+class UnresolvedTypeChecker {
+  getTypeAtLocation(): object {
+    const type = {};
+    return type;
+  }
+
+  isArrayType(): boolean {
+    const isArray = false;
+    return isArray;
+  }
+
+  isTupleType(): boolean {
+    const isTuple = false;
+    return isTuple;
+  }
+}
+
+class UnresolvedProgram {
+  getTypeChecker(): UnresolvedTypeChecker {
+    const checker = new UnresolvedTypeChecker();
+    return checker;
+  }
+}
+
+class UnresolvedTsNodeParser {
+  static parseForESLint(text: string, options?: Parameters<typeof parser.parseForESLint>[1]) {
     const real = parser.parseForESLint(text, options);
-    const statement = real.ast.body.find((candidate) => candidate.type === 'ForOfStatement');
+    const statement = real.ast.body.find((candidate) => {
+      const matches = candidate.type === 'ForOfStatement';
+      return matches;
+    });
 
     if (statement === undefined) {
-      throw new TypeError(`expected a ForOfStatement somewhere in the program, got: ${JSON.stringify(real.ast.body)}`);
+      throw RuntimeError.create('expected a ForOfStatement somewhere in the program');
     }
 
-    return {
+    const result = {
       'ast': real.ast,
       'scopeManager': real.scopeManager,
       'services': {
         'esTreeNodeToTSNodeMap': new Map(),
-        'program': {
-          'getTypeChecker'() {
-            return {
-              'getTypeAtLocation'() { return {}; },
-              'isArrayType'() { return false; },
-              'isTupleType'() { return false; }
-            };
-          }
-        }
+        'program': new UnresolvedProgram()
       }
     };
+    return result;
   }
-};
+}
+
+const unresolvedTsNodeParser = { 'parseForESLint': UnresolvedTsNodeParser.parseForESLint };
 
 void describe('for-of-arrays', () => {
   void it('validates for-of-arrays source scenarios', () => {

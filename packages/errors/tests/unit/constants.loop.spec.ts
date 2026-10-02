@@ -1,7 +1,7 @@
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import {
   ErrorCode,
@@ -9,84 +9,16 @@ import {
   HttpStatus
 } from '../../src/constants/index.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import scenarioGroups from './constants.scenarios.json' with { 'type': 'json' };
 import { ConstantsScenarioCaseEntity } from './entities/ConstantsScenarioCaseEntity.js';
-import scenarioGroups from './constants.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = ConstantsScenarioCaseEntity.Type;
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(ConstantsScenarioCaseEntity.Schema, ConstantsScenarioCaseEntity.Node);
-
-function requireErrorInput(scenarioCase: ScenarioCase): NonNullable<ScenarioCase['input']['error']> {
-  const { error } = scenarioCase.input;
-  if (error === undefined) {
-    throw RuntimeError.create('Scenario input.error is required');
+class ConstantsRunners {
+  static 'defaults'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'defaults'>): void {
+    assert.deepStrictEqual(ErrorDefaults[ConstantsRunners.requireDefaultsScenario(scenarioCase)], scenarioCase.expected);
   }
-  return error;
-}
 
-function requireDefaultsScenario(scenarioCase: ScenarioCase): keyof typeof ErrorDefaults {
-  const { scenario } = scenarioCase.input;
-  if (scenario === undefined || !Object.hasOwn(ErrorDefaults, scenario)) {
-    throw RuntimeError.create('Scenario input.scenario must name a known ErrorDefaults entry');
-  }
-  return scenario;
-}
-
-function createScenarioModuleError(scenarioCase: ScenarioCase): ModuleError {
-  const { causeMessage, message, options } = requireErrorInput(scenarioCase);
-  return ModuleError.create(message, {
-    ...options,
-    ...(causeMessage === undefined ? {} : { cause: RuntimeError.create(causeMessage) })
-  });
-}
-
-const runModuleErrorAuthentication: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-  assert.strictEqual(error.status, scenarioCase.expected.status);
-  assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
-  assert.deepStrictEqual(error.context, scenarioCase.expected.context);
-};
-
-const runRetryable: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-};
-
-const runIntegrationContextOverride: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-  assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
-  assert.deepStrictEqual(error.context, scenarioCase.expected.context);
-};
-
-const runIntegrationCauseOverride: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  const causeMessage = error.cause instanceof Error ? error.cause.message : undefined;
-  assert.strictEqual(causeMessage, scenarioCase.expected.causeMessage);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-};
-
-const runIntegrationRetryableOverride: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-};
-
-const runIntegrationStatusCodeOverride: ScenarioRunner = (scenarioCase) => {
-  const error = createScenarioModuleError(scenarioCase);
-  assert.strictEqual(error.status, scenarioCase.expected.status);
-  assert.strictEqual(error.code, scenarioCase.expected.code);
-};
-
-const runnerMap: RunnerMap = {
-  'defaults': (scenarioCase) => {
-    assert.deepStrictEqual(ErrorDefaults[requireDefaultsScenario(scenarioCase)], scenarioCase.expected);
-  },
-  'error-code-values': (scenarioCase) => {
+  static 'error-code-values'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'error-code-values'>): void {
     assert.deepStrictEqual(scenarioCase.input, scenarioCase.expected);
     assert.deepStrictEqual(scenarioCase.expected, {
       'AUTHENTICATION_ERROR': ErrorCode.AUTHENTICATION_ERROR,
@@ -101,8 +33,9 @@ const runnerMap: RunnerMap = {
       'TIMEOUT_ERROR': ErrorCode.TIMEOUT_ERROR,
       'VALIDATION_ERROR': ErrorCode.VALIDATION_ERROR
     });
-  },
-  'http-status-client': (scenarioCase) => {
+  }
+
+  static 'http-status-client'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'http-status-client'>): void {
     assert.deepStrictEqual(scenarioCase.input, scenarioCase.expected);
     assert.deepStrictEqual(scenarioCase.expected, {
       'BAD_REQUEST': HttpStatus.BAD_REQUEST,
@@ -114,8 +47,9 @@ const runnerMap: RunnerMap = {
       'UNAUTHORIZED': HttpStatus.UNAUTHORIZED,
       'UNPROCESSABLE_ENTITY': HttpStatus.UNPROCESSABLE_ENTITY
     });
-  },
-  'http-status-server': (scenarioCase) => {
+  }
+
+  static 'http-status-server'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'http-status-server'>): void {
     assert.deepStrictEqual(scenarioCase.input, scenarioCase.expected);
     assert.deepStrictEqual(scenarioCase.expected, {
       'BAD_GATEWAY': HttpStatus.BAD_GATEWAY,
@@ -124,23 +58,77 @@ const runnerMap: RunnerMap = {
       'NOT_IMPLEMENTED': HttpStatus.NOT_IMPLEMENTED,
       'SERVICE_UNAVAILABLE': HttpStatus.SERVICE_UNAVAILABLE
     });
-  },
-  'integration-cause-override': runIntegrationCauseOverride,
-  'integration-context-override': runIntegrationContextOverride,
-  'integration-retryable-override': runIntegrationRetryableOverride,
-  'integration-status-code-override': runIntegrationStatusCodeOverride,
-  'module-error-authentication': runModuleErrorAuthentication,
-  'retryable': runRetryable
-};
+  }
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'integration-cause-override'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'integration-cause-override'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    const causeMessage = error.cause instanceof Error ? error.cause.message : undefined;
+    assert.strictEqual(causeMessage, scenarioCase.expected.causeMessage);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+  }
+
+  static 'integration-context-override'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'integration-context-override'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+    assert.deepStrictEqual(error.context, scenarioCase.expected.context);
+  }
+
+  static 'integration-retryable-override'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'integration-retryable-override'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+  }
+
+  static 'integration-status-code-override'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'integration-status-code-override'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    assert.strictEqual(error.status, scenarioCase.expected.status);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+  }
+
+  static 'module-error-authentication'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'module-error-authentication'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+    assert.strictEqual(error.status, scenarioCase.expected.status);
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+    assert.deepStrictEqual(error.context, scenarioCase.expected.context);
+  }
+
+  static 'retryable'(scenarioCase: ScenarioCaseOfType<ConstantsScenarioCaseEntity.Type, 'retryable'>): void {
+    const error = ConstantsRunners.createScenarioModuleError(scenarioCase);
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+  }
+
+  private static requireErrorInput(scenarioCase: ConstantsScenarioCaseEntity.Type): NonNullable<ConstantsScenarioCaseEntity.Type['input']['error']> {
+    const { error } = scenarioCase.input;
+    if (error === undefined) {
+      throw RuntimeError.create('Scenario input.error is required');
+    }
+    return error;
+  }
+
+  private static requireDefaultsScenario(scenarioCase: ConstantsScenarioCaseEntity.Type): keyof typeof ErrorDefaults {
+    const { scenario } = scenarioCase.input;
+    if (scenario === undefined || !Object.hasOwn(ErrorDefaults, scenario)) {
+      throw RuntimeError.create('Scenario input.scenario must name a known ErrorDefaults entry');
+    }
+    return scenario;
+  }
+
+  private static createScenarioModuleError(scenarioCase: ConstantsScenarioCaseEntity.Type): ModuleError {
+    const { causeMessage, message, options } = ConstantsRunners.requireErrorInput(scenarioCase);
+    const result = ModuleError.create(message, {
+      ...options,
+      ...(causeMessage === undefined ? {} : { 'cause': RuntimeError.create(causeMessage) })
+    });
+    return result;
+  }
 }
 
-void describe('Error constants', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ConstantsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Error constants',
+  'runners': ConstantsRunners
 });

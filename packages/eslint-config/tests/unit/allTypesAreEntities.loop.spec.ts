@@ -1,23 +1,22 @@
-import { describe, it } from 'node:test';
-import { resolve } from 'node:path';
-
-import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { allTypesAreEntities } from '../../src/rules/allTypesAreEntities.js';
-import scenarioGroups from './allTypesAreEntities.scenarios.json' with { type: 'json' };
+import scenarioGroups from './allTypesAreEntities.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: [
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': [
           '*.ts',
           'eslint.config.mjs',
           'packages/eslint-config/src/rules/*.ts',
@@ -32,9 +31,9 @@ const ruleTester = new RuleTester({
           'packages/retry/src/types/*.ts',
           'packages/retry/tests/unit/*.test.ts'
         ],
-        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30
+        'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 30
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });

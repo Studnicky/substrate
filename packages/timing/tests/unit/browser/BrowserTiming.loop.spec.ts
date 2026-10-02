@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { TimingInterface } from '../../../src/interfaces/TimingInterface.js';
-import { TimingEvent } from '../../../src/modules/TimingEvent.js';
+
 import { BrowserTiming } from '../../../src/browser/index.js';
+import { TimingEvent } from '../../../src/modules/TimingEvent.js';
 
 void describe('BrowserTiming', () => {
   void it('satisfies the shared timing contract through the Performance API', () => {

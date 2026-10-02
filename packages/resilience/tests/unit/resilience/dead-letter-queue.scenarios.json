@@ -1,0 +1,378 @@
+{
+  "cases": [
+    {
+      "name": "resilience-dlq-invalid-capacity",
+      "description": "DeadLetterQueue rejects capacity <= 0",
+      "shape": "dlq-invalid-capacity",
+      "input": {
+        "resilience": {
+          "capacity": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-dlq-enqueue",
+      "description": "DeadLetterQueue enqueue increments size and stores fields",
+      "shape": "dlq-enqueue",
+      "input": {
+        "resilience": {
+          "defaultItem": "msg",
+          "defaultReason": "parse-error",
+          "withClockMs": 42,
+          "secondItem": "payload",
+          "secondReason": "decode-failed",
+          "secondErrorMessage": "boom"
+        }
+      },
+      "expected": {
+        "size": 1,
+        "sizeWithError": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-enqueue-errors",
+      "description": "DeadLetterQueue enqueue rejects full, closed, and aborted states",
+      "shape": "dlq-enqueue-errors",
+      "input": {
+        "resilience": {
+          "capacity": 2,
+          "scenarios": [
+            "full",
+            "closed",
+            "aborted"
+          ]
+        }
+      },
+      "expected": {
+        "errors": [
+          "DeadLetterQueueFullError",
+          "DeadLetterQueueClosedError",
+          "DeadLetterQueueAbortedError"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-aborted-signal",
+      "description": "DeadLetterQueue rejects enqueue when created aborted",
+      "shape": "dlq-aborted-signal",
+      "input": {
+        "resilience": {
+          "aborted": true,
+          "item": "x",
+          "reason": "reason"
+        }
+      },
+      "expected": {
+        "error": "DeadLetterQueueAbortedError"
+      }
+    },
+    {
+      "name": "resilience-dlq-size",
+      "description": "DeadLetterQueue size reflects queue state",
+      "shape": "dlq-size",
+      "input": {
+        "resilience": {
+          "initial": 0,
+          "enqueue": "a",
+          "reason": "r",
+          "drainOnce": true
+        }
+      },
+      "expected": {
+        "sizeBefore": 0,
+        "sizeAfterDrain": 0
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-fifo",
+      "description": "DeadLetterQueue drains in FIFO order",
+      "shape": "dlq-drain-fifo",
+      "input": {
+        "resilience": {
+          "items": [
+            "first",
+            "second"
+          ],
+          "reason": "r",
+          "closeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drained": [
+          "first",
+          "second"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-close",
+      "description": "DeadLetterQueue drain ends after close",
+      "shape": "dlq-drain-close",
+      "input": {
+        "resilience": {
+          "items": [
+            "a"
+          ],
+          "reason": "r",
+          "closeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drainedCount": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-abort",
+      "description": "DeadLetterQueue drain ends after abort",
+      "shape": "dlq-drain-abort",
+      "input": {
+        "resilience": {
+          "items": [
+            1
+          ],
+          "reason": "r",
+          "abortAfterTick": true
+        }
+      },
+      "expected": {
+        "drainedCount": 1
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-wake",
+      "description": "DeadLetterQueue drain wakes when enqueue adds items",
+      "shape": "dlq-drain-wake",
+      "input": {
+        "resilience": {
+          "items": [
+            "x",
+            "y"
+          ],
+          "reason": "r",
+          "wakeAfterEnqueue": true
+        }
+      },
+      "expected": {
+        "drained": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-entry-fields",
+      "description": "DeadLetterQueue drain entries contain the correct fields",
+      "shape": "dlq-entry-fields",
+      "input": {
+        "resilience": {
+          "item": "payload",
+          "reason": "my-reason",
+          "errorMessage": "test",
+          "clockMs": 999
+        }
+      },
+      "expected": {
+        "item": "payload",
+        "reason": "my-reason",
+        "enqueuedAtMs": 999,
+        "hasId": true
+      }
+    },
+    {
+      "name": "resilience-dlq-single-consumer",
+      "description": "DeadLetterQueue second drain replaces the first waiter",
+      "shape": "dlq-single-consumer",
+      "input": {
+        "resilience": {
+          "items": [
+            "x"
+          ],
+          "reason": "r",
+          "secondConsumer": true
+        }
+      },
+      "expected": {
+        "firstCollector": [],
+        "secondCollector": [
+          "x"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-fanout",
+      "description": "DeadLetterQueue override supports fan-out waiters",
+      "shape": "dlq-fanout",
+      "input": {
+        "resilience": {
+          "items": [
+            "x",
+            "y"
+          ],
+          "reason": "r",
+          "fanout": true
+        }
+      },
+      "expected": {
+        "combined": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-drain-abort-signal",
+      "description": "DeadLetterQueue drain aborts when the signal fires",
+      "shape": "dlq-drain-abort-signal",
+      "input": {
+        "resilience": {
+          "aborted": true,
+          "items": [],
+          "reason": "r"
+        }
+      },
+      "expected": {
+        "collected": 0
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-enqueue",
+      "description": "DeadLetterQueue onEnqueue fires with the item",
+      "shape": "dlq-observed-enqueue",
+      "input": {
+        "resilience": {
+          "item": "hello",
+          "reason": "test-reason"
+        }
+      },
+      "expected": {
+        "events": [
+          {
+            "type": "enqueue",
+            "item": "hello"
+          }
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-dequeue",
+      "description": "DeadLetterQueue onDequeue fires when drain yields",
+      "shape": "dlq-observed-dequeue",
+      "input": {
+        "resilience": {
+          "item": "x",
+          "reason": "reason"
+        }
+      },
+      "expected": {
+        "eventsContain": {
+          "type": "dequeue",
+          "item": "x"
+        }
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-overflow",
+      "description": "DeadLetterQueue onOverflow fires before DeadLetterQueueFullError",
+      "shape": "dlq-observed-overflow",
+      "input": {
+        "resilience": {
+          "capacity": 1,
+          "items": [
+            "first",
+            "second"
+          ]
+        }
+      },
+      "expected": {
+        "eventsContain": "overflow"
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-close",
+      "description": "DeadLetterQueue onClose fires when close is called",
+      "shape": "dlq-observed-close",
+      "input": {
+        "resilience": {
+          "closed": true
+        }
+      },
+      "expected": {
+        "eventsContain": "close"
+      }
+    },
+    {
+      "name": "resilience-dlq-observed-abort",
+      "description": "DeadLetterQueue onAbort fires when abort is called",
+      "shape": "dlq-observed-abort",
+      "input": {
+        "resilience": {
+          "aborted": true
+        }
+      },
+      "expected": {
+        "eventsContain": "abort"
+      }
+    },
+    {
+      "name": "resilience-dlq-hook-swallows",
+      "description": "DeadLetterQueue throwing hooks do not replace canonical results",
+      "shape": "dlq-hook-swallows",
+      "input": {
+        "resilience": {
+          "items": [
+            "payload"
+          ],
+          "reason": "reason",
+          "overflowCapacity": 1
+        }
+      },
+      "expected": {
+        "size": 1,
+        "closed": true,
+        "abortedRejects": true
+      }
+    },
+    {
+      "name": "resilience-dlq-async-hook-isolation",
+      "description": "DeadLetterQueue async hook failures stay isolated",
+      "shape": "dlq-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "first": "first async onEnqueue boom",
+          "second": "second async onEnqueue boom"
+        }
+      },
+      "expected": {
+        "rejectionEvents": 0,
+        "hookErrorCount": 1,
+        "hookName": "onEnqueue"
+      }
+    },
+    {
+      "name": "resilience-entity-dlq-entry",
+      "description": "DeadLetterQueueEntryMetadataEntity validates complete and invalid metadata",
+      "shape": "entity-dlq-entry",
+      "input": {
+        "resilience": {
+          "valid": {
+            "enqueuedAtMs": 0,
+            "id": "entry-1",
+            "reason": "processing failed"
+          },
+          "invalid": {
+            "enqueuedAtMs": 0,
+            "id": "",
+            "reason": ""
+          }
+        }
+      },
+      "expected": {
+        "valid": true,
+        "invalid": false
+      }
+    }
+  ]
+}

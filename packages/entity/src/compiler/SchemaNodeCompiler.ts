@@ -203,6 +203,23 @@ export class SchemaNodeCompiler {
   private static combine(clauses: readonly CompiledNodeInterface[]): CompiledNodeInterface {
     if (clauses.length === 0) { return SchemaNodeCompiler.ALWAYS_TRUE_NODE; }
     if (clauses.length === 1) { return clauses[0]!; }
+    if (clauses.length === 2) {
+      const firstClause = clauses[0]!;
+      const secondClause = clauses[1]!;
+      const check: CompiledNodeInterface['check'] = (value, context, evaluated) => {
+        if (!firstClause.check(value, context, evaluated)) { return false; }
+        const result = secondClause.check(value, context, evaluated);
+        return result;
+      };
+      const collect: CompiledNodeInterface['collect'] = (value, context, instancePath, schemaPath, evaluated) => {
+        const errors: EntityValidationErrorInterface[] = [];
+        errors.push(...firstClause.collect(value, context, instancePath, schemaPath, evaluated));
+        errors.push(...secondClause.collect(value, context, instancePath, schemaPath, evaluated));
+        return errors;
+      };
+      const result = { 'check': check, 'collect': collect };
+      return result;
+    }
     const check: CompiledNodeInterface['check'] = (value, context, evaluated) => {
       const count = clauses.length;
       for (let index = 0; index < count; index += 1) {

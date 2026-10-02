@@ -1,38 +1,70 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { MutexKeyTransitionEventEntity, MutexQueueEntryEntity } from '../../src/entities/index.js';
+import scenarioGroups from './entities.scenarios.json' with { 'type': 'json' };
 import { MutexQueueEntryScenarioCaseEntity } from './entities/MutexQueueEntryScenarioCaseEntity.js';
-import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
-
-type ScenarioCase = MutexQueueEntryScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(MutexQueueEntryScenarioCaseEntity.Schema, MutexQueueEntryScenarioCaseEntity.Node);
-
-function runCase(scenarioCase: ScenarioCase): void {
-  const results = scenarioCase.input.validations.map((validation) => {
-    const result = MutexQueueEntryEntity.validate(validation.value);
-    assert.equal(result, validation.expected);
-    return result;
-  });
-
-  assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
-}
 
 void describe('mutex key transition event entity', () => {
   void it('validates complete transition events and rejects incomplete or unknown fields', () => {
-    assert.equal(MutexKeyTransitionEventEntity.validate({ 'to': 'locked', 'type': 'transitionTo' }), true);
-    assert.equal(MutexKeyTransitionEventEntity.validate({ 'type': 'transitionTo' }), false);
-    assert.equal(MutexKeyTransitionEventEntity.validate({ 'to': 'invalid', 'type': 'transitionTo' }), false);
-    assert.equal(MutexKeyTransitionEventEntity.validate({ 'ignored': true, 'to': 'locked', 'type': 'transitionTo' }), false);
+    const completeTransition: unknown = { 'to': 'locked', 'type': 'transitionTo' };
+    const incompleteTransition: unknown = { 'type': 'transitionTo' };
+    const invalidToTransition: unknown = { 'to': 'invalid', 'type': 'transitionTo' };
+    const extraFieldsTransition: unknown = {
+      'ignored': true,
+      'to': 'locked',
+      'type': 'transitionTo'
+    };
+
+    const isCompleteValid = MutexKeyTransitionEventEntity.validate(completeTransition);
+    assert.strictEqual(isCompleteValid, true);
+    const isIncompleteValid = MutexKeyTransitionEventEntity.validate(incompleteTransition);
+    assert.strictEqual(isIncompleteValid, false);
+    const isInvalidToValid = MutexKeyTransitionEventEntity.validate(invalidToTransition);
+    assert.strictEqual(isInvalidToValid, false);
+    const isExtraFieldsValid = MutexKeyTransitionEventEntity.validate(extraFieldsTransition);
+    assert.strictEqual(isExtraFieldsValid, false);
   });
 });
 
-void describe('mutex queue entry entity', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
+class MutexQueueEntryRunners {
+  static 'non-negative'(
+    scenarioCase: ScenarioCaseOfType<MutexQueueEntryScenarioCaseEntity.Type, 'non-negative'>
+  ): void {
+    MutexQueueEntryRunners.assertValidations(scenarioCase.input.validations, scenarioCase.expected.validationResults);
   }
+
+  static 'negative'(
+    scenarioCase: ScenarioCaseOfType<MutexQueueEntryScenarioCaseEntity.Type, 'negative'>
+  ): void {
+    MutexQueueEntryRunners.assertValidations(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  }
+
+  private static assertValidations(
+    validations: MutexQueueEntryScenarioCaseEntity.Type['input']['validations'],
+    expectedResults: MutexQueueEntryScenarioCaseEntity.Type['expected']['validationResults']
+  ): void {
+    const results: boolean[] = [];
+    for (let index = 0; index < validations.length; index += 1) {
+      const validation = validations[index];
+      if (validation !== undefined) {
+        const candidate: unknown = validation.value;
+        const isValid = MutexQueueEntryEntity.validate(candidate);
+        assert.strictEqual(isValid, validation.expected);
+        results.push(isValid);
+      }
+    }
+
+    assert.deepStrictEqual(results, expectedResults);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': MutexQueueEntryScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'mutex queue entry entity',
+  'runners': MutexQueueEntryRunners
 });

@@ -13,56 +13,79 @@
  *   - If `error` is set, posts an 'error' envelope with that string instead of a result.
  *   - Otherwise posts a 'result' envelope with `value` unchanged.
  */
+import type { MessagePort } from 'node:worker_threads';
+
+import { RuntimeError } from '@studnicky/errors/node';
+import { setTimeout } from 'node:timers/promises';
 import { parentPort } from 'node:worker_threads';
 
+import { WorkerReply } from './WorkerReply.js';
+
 interface EchoRequestInterface {
-  barrier?: SharedArrayBuffer;
-  barrierTarget?: number;
-  error?: string;
-  ms?: number;
-  value: unknown;
+  readonly 'barrier'?: SharedArrayBuffer;
+  readonly 'barrierTarget'?: number;
+  readonly 'error'?: string;
+  readonly 'ms'?: number;
+  readonly 'value': unknown;
 }
 
-if (parentPort === null) {
-  throw new Error('echoWorker must run in a worker thread');
-}
-const port = parentPort;
+class EchoWorker {
+  private static readonly barrierTimeoutMs = 5000;
 
-const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-const barrierTimeoutMs = 5000;
+  static start(): void {
+    if (parentPort === null) {
+      throw RuntimeError.create('echoWorker must run in a worker thread');
+    }
+    const port = parentPort;
 
-function awaitBarrier(barrier: SharedArrayBuffer, target: number): void {
-  const view = new Int32Array(barrier);
-  const deadline = Date.now() + barrierTimeoutMs;
+    port.once('message', (message: EchoRequestInterface) => {
+      void EchoWorker.handle(port, message);
+    });
+  }
 
-  let current = Atomics.load(view, 0);
-  while (current < target) {
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) { break; }
-    Atomics.wait(view, 0, current, remaining);
-    current = Atomics.load(view, 0);
+  private static awaitBarrier(barrier: SharedArrayBuffer, target: number): void {
+    const view = new Int32Array(barrier);
+    const deadline = Date.now() + EchoWorker.barrierTimeoutMs;
+
+    let current = Atomics.load(view, 0);
+    while (current < target) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) { break; }
+      Atomics.wait(view, 0, current, remaining);
+      current = Atomics.load(view, 0);
+    }
+  }
+
+  private static describeValue(value: unknown): string {
+    try {
+      const serialized = JSON.stringify(value);
+      return serialized;
+    } catch (cause) {
+      throw RuntimeError.create('Echo worker value is not JSON-serializable.', { 'cause': cause });
+    }
+  }
+
+  private static async handle(port: MessagePort, message: EchoRequestInterface): Promise<void> {
+    const { barrier, barrierTarget, error, ms, value } = message;
+
+    WorkerReply.post(port, { 'message': `received ${EchoWorker.describeValue(value)}`, 'type': 'log' });
+
+    if (typeof ms === 'number' && ms > 0) {
+      await setTimeout(ms);
+    }
+
+    WorkerReply.post(port, { 'percent': 100, 'type': 'progress' });
+
+    if (barrier instanceof SharedArrayBuffer && typeof barrierTarget === 'number') {
+      EchoWorker.awaitBarrier(barrier, barrierTarget);
+    }
+
+    if (typeof error === 'string') {
+      WorkerReply.post(port, { 'error': error, 'type': 'error' });
+    } else {
+      WorkerReply.post(port, { 'type': 'result', 'value': value });
+    }
   }
 }
 
-port.once('message', async (message: EchoRequestInterface) => {
-  const { value, ms, error, barrier, barrierTarget } = message;
-
-  port.postMessage({ 'type': 'log', 'message': `received ${JSON.stringify(value)}` });
-
-  if (typeof ms === 'number' && ms > 0) {
-    await delay(ms);
-  }
-
-  port.postMessage({ 'type': 'progress', 'percent': 100 });
-
-  if (barrier instanceof SharedArrayBuffer && typeof barrierTarget === 'number') {
-    awaitBarrier(barrier, barrierTarget);
-  }
-
-  if (typeof error === 'string') {
-    port.postMessage({ 'type': 'error', 'error': error });
-    return;
-  }
-
-  port.postMessage({ 'type': 'result', 'value': value });
-});
+EchoWorker.start();

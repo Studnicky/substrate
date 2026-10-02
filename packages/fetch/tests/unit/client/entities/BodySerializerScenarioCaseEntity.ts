@@ -1,6 +1,7 @@
-import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { BoundedJsonValueEntity } from '../../../helpers/entities/BoundedJsonValueEntity.js';
@@ -15,16 +16,21 @@ export namespace BodySerializerScenarioCaseEntity {
   const decisionExpectedSchema = { 'additionalProperties': false, 'properties': { 'decision': { 'type': 'boolean' } }, 'required': ['decision'], 'type': 'object' } as const;
   const DecisionExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'decision': SchemaNode.defineBoolean({ 'type': 'boolean' } as const) }, ['decision'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  function decisionBranch<TShape extends string>(shape: TShape, bodySchema: object) {
-    return {
-      'additionalProperties': false,
-      'properties': { ...caseFields, 'expected': decisionExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'body': bodySchema }, 'required': ['body'], 'type': 'object' }, 'shape': { 'const': shape } },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function decisionBranchNode<TShape extends string, TBodyNode extends SchemaNodeInterface<unknown, unknown>>(shape: TShape, bodyNode: TBodyNode) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': DecisionExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'body': bodyNode }, ['body'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  class BodySerializerScenarioCaseEntityBuilders {
+    static decisionBranch<TShape extends string>(shape: TShape, bodySchema: object) {
+      const result = {
+        'additionalProperties': false,
+        'properties': { ...caseFields, 'expected': decisionExpectedSchema, 'input': { 'additionalProperties': false, 'properties': { 'body': bodySchema }, 'required': ['body'], 'type': 'object' }, 'shape': { 'const': shape } },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static decisionBranchNode<TShape extends string, TBodyNode extends SchemaNodeInterface<unknown, unknown>>(shape: TShape, bodyNode: TBodyNode) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': DecisionExpectedNode, 'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'body': bodyNode }, ['body'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'shape': SchemaNode.defineConst({}, shape) }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
   }
 
   const arrayBodySchema = { 'items': { 'type': 'number' }, 'type': 'array' } as const;
@@ -47,10 +53,10 @@ export namespace BodySerializerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const ViewInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'shape': SchemaNode.defineConst({}, 'data-view-visible-range' as const),
-      'source': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined),
-      'view': SchemaNode.defineObject({ 'type': 'object' } as const, { 'byteLength': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'byteOffset': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['byteLength', 'byteOffset'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-    }, ['shape', 'source', 'view'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'shape': SchemaNode.defineConst({}, 'data-view-visible-range' as const),
+    'source': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined),
+    'view': SchemaNode.defineObject({ 'type': 'object' } as const, { 'byteLength': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'byteOffset': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, ['byteLength', 'byteOffset'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+  }, ['shape', 'source', 'view'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const viewExpectedSchema = {
     'additionalProperties': false,
     'properties': { 'bytes': { 'items': { 'type': 'integer' }, 'type': 'array' }, 'constructorName': { 'const': 'Uint8Array' } },
@@ -80,10 +86,10 @@ export namespace BodySerializerScenarioCaseEntity {
     'type': 'object'
   } as const;
   const TypedArrayExpectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'bytes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined),
-      'constructorName': SchemaNode.defineConst({}, 'Uint8Array' as const),
-      'remainsDetachedAfterSourceMutation': SchemaNode.defineConst({}, true as const)
-    }, ['bytes', 'constructorName', 'remainsDetachedAfterSourceMutation'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'bytes': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined),
+    'constructorName': SchemaNode.defineConst({}, 'Uint8Array' as const),
+    'remainsDetachedAfterSourceMutation': SchemaNode.defineConst({}, true as const)
+  }, ['bytes', 'constructorName', 'remainsDetachedAfterSourceMutation'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const typedArrayByteRangeSchema = {
     'additionalProperties': false,
     'properties': { ...caseFields, 'expected': typedArrayExpectedSchema, 'input': typedArrayInputSchema, 'shape': { 'const': 'typed-array-byte-range' } },
@@ -94,22 +100,25 @@ export namespace BodySerializerScenarioCaseEntity {
 
   export const Schema = {
     'oneOf': [
-      decisionBranch('needs-json-content-type-array', arrayBodySchema),
-      decisionBranch('needs-json-content-type-buffer', bufferBodySchema),
-      decisionBranch('needs-json-content-type-object', objectBodySchema),
-      decisionBranch('needs-json-content-type-primitive', primitiveBodySchema),
+      BodySerializerScenarioCaseEntityBuilders.decisionBranch('needs-json-content-type-array', arrayBodySchema),
+      BodySerializerScenarioCaseEntityBuilders.decisionBranch('needs-json-content-type-buffer', bufferBodySchema),
+      BodySerializerScenarioCaseEntityBuilders.decisionBranch('needs-json-content-type-object', objectBodySchema),
+      BodySerializerScenarioCaseEntityBuilders.decisionBranch('needs-json-content-type-primitive', primitiveBodySchema),
       dataViewVisibleRangeSchema,
       typedArrayByteRangeSchema
     ]
   } as const;
 
   export const Node = SchemaNode.defineOneOf({}, [
-    decisionBranchNode('needs-json-content-type-array', ArrayBodyNode),
-    decisionBranchNode('needs-json-content-type-buffer', BufferBodyNode),
-    decisionBranchNode('needs-json-content-type-object', ObjectBodyNode),
-    decisionBranchNode('needs-json-content-type-primitive', PrimitiveBodyNode),
+    BodySerializerScenarioCaseEntityBuilders.decisionBranchNode('needs-json-content-type-array', ArrayBodyNode),
+    BodySerializerScenarioCaseEntityBuilders.decisionBranchNode('needs-json-content-type-buffer', BufferBodyNode),
+    BodySerializerScenarioCaseEntityBuilders.decisionBranchNode('needs-json-content-type-object', ObjectBodyNode),
+    BodySerializerScenarioCaseEntityBuilders.decisionBranchNode('needs-json-content-type-primitive', PrimitiveBodyNode),
     DataViewVisibleRangeNode,
     TypedArrayByteRangeNode
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

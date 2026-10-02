@@ -1,81 +1,40 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-import { setTimeout as delay } from 'node:timers/promises';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { setTimeout } from 'node:timers/promises';
 
 import { Mutex } from '../../../src/mutex/index.js';
+import scenarioGroups from './coalescing.scenarios.json' with { 'type': 'json' };
 import { CoalescingScenarioCaseEntity } from './entities/CoalescingScenarioCaseEntity.js';
-import scenarioGroups from './coalescing.scenarios.json' with { type: 'json' };
 
-
-
-type ScenarioCase = CoalescingScenarioCaseEntity.Type;
-type ScenarioInputWithMutex = { mutex?: { enableCoalescing?: boolean } };
-type BatchInput = { callerCount?: number; perKeyCount?: number };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(CoalescingScenarioCaseEntity.Schema, CoalescingScenarioCaseEntity.Node);
-
-function createScenarioMutex(input: ScenarioInputWithMutex): Mutex<string> {
-  return Mutex.create<string>(input.mutex);
-}
-
-function requireCallerCount(batch: BatchInput): number {
-  if (batch.callerCount === undefined) {
-    throw RuntimeError.create('Scenario batch.callerCount is required');
-  }
-  return batch.callerCount;
-}
-
-function requirePerKeyCount(batch: BatchInput): number {
-  if (batch.perKeyCount === undefined) {
-    throw RuntimeError.create('Scenario batch.perKeyCount is required');
-  }
-  return batch.perKeyCount;
-}
-
-function createExclusiveCallBatch<T>(
-  callerCount: number,
-  run: () => Promise<T>
-): Promise<T>[] {
-  return Array.from({ length: callerCount }, () => run());
-}
-
-function requireDefined<T>(value: T | undefined, fieldPath: string): T {
-  if (value === undefined) {
-    throw RuntimeError.create(`Missing mutex coalescing scenario field: ${fieldPath}`);
-  }
-  return value;
-}
-
-type ScenarioCaseOf<Shape extends ScenarioCase['shape']> = Extract<ScenarioCase, { shape: Shape }>;
-
-const runnerMap: {
-  [K in ScenarioCase['shape']]: (scenarioCase: ScenarioCaseOf<K>) => Promise<void>
-} = {
-  'allows-new-execution-after-complete': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+class CoalescingRunners {
+  static async 'allows-new-execution-after-complete'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'allows-new-execution-after-complete'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let executionCount = 0;
-    const operation = async (): Promise<number> => {
-      executionCount++;
-      return executionCount;
+    const operation = (): Promise<number> => {
+      executionCount += 1;
+      const settled = Promise.resolve(executionCount);
+      return settled;
     };
     const result1 = await mutex.runExclusive(scenarioCase.input.key, operation);
     const result2 = await mutex.runExclusive(scenarioCase.input.key, operation);
     assert.strictEqual(result1, scenarioCase.expected.results[0]);
     assert.strictEqual(result2, scenarioCase.expected.results[1]);
     assert.strictEqual(executionCount, scenarioCase.expected.executionCount);
-  },
-  'allows-retry-after-error': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'allows-retry-after-error'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'allows-retry-after-error'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let callCount = 0;
-    const operation = async (): Promise<string> => {
-      callCount++;
+    const operation = (): Promise<string> => {
+      callCount += 1;
+      let outcome = Promise.resolve(scenarioCase.input.successResult);
       if (callCount === 1) {
-        throw RuntimeError.create(scenarioCase.input.firstErrorMessage);
+        outcome = Promise.reject(RuntimeError.create(scenarioCase.input.firstErrorMessage));
       }
-      return scenarioCase.input.successResult;
+      return outcome;
     };
     try {
       await mutex.runExclusive(scenarioCase.input.key, operation);
@@ -84,27 +43,30 @@ const runnerMap: {
     const result = await mutex.runExclusive(scenarioCase.input.key, operation);
     assert.strictEqual(result, scenarioCase.expected.result);
     assert.strictEqual(callCount, scenarioCase.expected.callCount);
-  },
-  'clear-allows-new-operations': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'clear-allows-new-operations'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'clear-allows-new-operations'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     const result1 = await mutex.runExclusive(scenarioCase.input.key, async () => {
-      await delay(scenarioCase.input.delayMs);
+      await setTimeout(scenarioCase.input.delayMs);
       return scenarioCase.expected.firstResult;
     });
     assert.strictEqual(result1, scenarioCase.expected.firstResult);
     mutex.clear();
     const result2 = await mutex.runExclusive(scenarioCase.input.key, async () => {
-      await delay(scenarioCase.input.delayMs);
+      await setTimeout(scenarioCase.input.delayMs);
       return scenarioCase.expected.secondResult;
     });
     assert.strictEqual(result2, scenarioCase.expected.secondResult);
-  },
-  'clear-resets-coalescing-state': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'clear-resets-coalescing-state'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'clear-resets-coalescing-state'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let calls = 0;
-    const operation = async (): Promise<string> => {
-      calls++;
-      return `result-${calls}`;
+    const operation = (): Promise<string> => {
+      calls += 1;
+      const settled = Promise.resolve(`result-${calls}`);
+      return settled;
     };
     const result1 = await mutex.runExclusive(scenarioCase.input.key, operation);
     mutex.clear();
@@ -112,144 +74,163 @@ const runnerMap: {
     assert.strictEqual(result1, scenarioCase.expected.results[0]);
     assert.strictEqual(result2, scenarioCase.expected.results[1]);
     assert.strictEqual(calls, scenarioCase.expected.calls);
-  },
-  'coalesces-per-key': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
-    const executionCounts = { key1: 0, key2: 0 };
-    class Op {
-      static for(key: 'key1' | 'key2') {
-        return async (): Promise<string> => {
-          executionCounts[key]++;
-          await delay(scenarioCase.input.delayMs);
-          return `${key}-result`;
-        };
-      }
+  }
+
+  static async 'coalesces-per-key'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'coalesces-per-key'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
+    const executionCounts = new Map<string, number>([['key1', 0], ['key2', 0]]);
+    const perKeyCount = ScenarioValues.requireDefined(scenarioCase.input.batch.perKeyCount, 'batch.perKeyCount');
+    const calls: Promise<unknown>[] = [];
+    for (let index = 0; index < scenarioCase.input.keys.length; index += 1) {
+      const key = ScenarioValues.requireDefined(scenarioCase.input.keys[index], 'keys[index]');
+      const operation = CoalescingRunners.createCountingOperation(executionCounts, key, scenarioCase.input.delayMs);
+      calls.push(...CoalescingRunners.createExclusiveCallBatch(perKeyCount, () => {
+        const pending = mutex.runExclusive(key, operation);
+        return pending;
+      }));
     }
-    const perKeyCount = requirePerKeyCount(scenarioCase.input.batch);
-    const calls = scenarioCase.input.keys.flatMap((key: 'key1' | 'key2') => createExclusiveCallBatch(
-      perKeyCount,
-      () => mutex.runExclusive(key, Op.for(key))
-    ));
     const results = await Promise.all(calls);
-    assert.strictEqual(executionCounts.key1, scenarioCase.expected.executionCounts.key1);
-    assert.strictEqual(executionCounts.key2, scenarioCase.expected.executionCounts.key2);
+    assert.strictEqual(executionCounts.get('key1'), scenarioCase.expected.executionCounts.key1);
+    assert.strictEqual(executionCounts.get('key2'), scenarioCase.expected.executionCounts.key2);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
-  },
-  'no-share-by-default': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'no-share-by-default'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'no-share-by-default'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let executionCount = 0;
     const operation = async (): Promise<string> => {
-      executionCount++;
-      await delay(scenarioCase.input.delayMs);
+      executionCount += 1;
+      await setTimeout(scenarioCase.input.delayMs);
       return `result-${executionCount}`;
     };
-    const calls = createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, operation)
+    const calls = CoalescingRunners.createExclusiveCallBatch(
+      ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'),
+      () => {
+        const pending = mutex.runExclusive(scenarioCase.input.key, operation);
+        return pending;
+      }
     );
     const results = await Promise.all(calls);
     assert.strictEqual(executionCount, scenarioCase.expected.executionCount);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
-  },
-  'propagates-errors': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'propagates-errors'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'propagates-errors'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let executionCount = 0;
     const failingOperation = async (): Promise<string> => {
-      executionCount++;
-      await delay(scenarioCase.input.delayMs);
+      executionCount += 1;
+      await setTimeout(scenarioCase.input.delayMs);
       throw RuntimeError.create(scenarioCase.input.errorMessage);
     };
-    const results = await Promise.allSettled(createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, failingOperation)
+    const results = await Promise.allSettled(CoalescingRunners.createExclusiveCallBatch(
+      ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'),
+      () => {
+        const pending = mutex.runExclusive(scenarioCase.input.key, failingOperation);
+        return pending;
+      }
     ));
     assert.strictEqual(executionCount, scenarioCase.expected.executionCount);
-    const first = requireDefined(results[0], 'results[0]');
-    const second = requireDefined(results[1], 'results[1]');
-    const third = requireDefined(results[2], 'results[2]');
-    if (first.status !== 'rejected') { throw RuntimeError.create('expected results[0] to be rejected'); }
+    const first = ScenarioValues.requireDefined(results[0], 'results[0]');
+    const second = ScenarioValues.requireDefined(results[1], 'results[1]');
+    const third = ScenarioValues.requireDefined(results[2], 'results[2]');
+    if (first.status === 'rejected') {
+      assert.strictEqual(first.reason.message, scenarioCase.expected.rejectionMessage);
+    } else {
+      throw RuntimeError.create('expected results[0] to be rejected');
+    }
     assert.strictEqual(second.status, 'rejected');
     assert.strictEqual(third.status, 'rejected');
-    assert.strictEqual(first.reason.message, scenarioCase.expected.rejectionMessage);
-  },
-  'shares-result': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'shares-result'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'shares-result'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     let executionCount = 0;
     const operation = async (): Promise<string> => {
-      executionCount++;
-      await delay(scenarioCase.input.delayMs);
+      executionCount += 1;
+      await setTimeout(scenarioCase.input.delayMs);
       return scenarioCase.input.result;
     };
-    const results = await Promise.all(createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, operation)
+    const results = await Promise.all(CoalescingRunners.createExclusiveCallBatch(
+      ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'),
+      () => {
+        const pending = mutex.runExclusive(scenarioCase.input.key, operation);
+        return pending;
+      }
     ));
     assert.strictEqual(executionCount, scenarioCase.expected.executionCount);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
-  },
-  'stats-coalescedCount-disabled': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
-    const operation = async (): Promise<string> => {
-      await delay(scenarioCase.input.delayMs);
-      return 'result';
-    };
-    const calls = createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, operation)
-    );
-    await Promise.all(calls);
+  }
+
+  static async 'stats-coalescedCount-disabled'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'stats-coalescedCount-disabled'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
+    await CoalescingRunners.runDelayedBatch(mutex, scenarioCase.input.key, scenarioCase.input.delayMs, ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'));
     const stats = mutex.getStats();
     assert.strictEqual(stats.coalescedCount, scenarioCase.expected.coalescedCount);
     assert.strictEqual(stats.totalExecuted, scenarioCase.expected.totalExecuted);
-  },
-  'stats-coalescedCount-enabled': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
-    const operation = async (): Promise<string> => {
-      await delay(scenarioCase.input.delayMs);
-      return 'result';
-    };
-    const calls = createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, operation)
-    );
-    await Promise.all(calls);
+  }
+
+  static async 'stats-coalescedCount-enabled'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'stats-coalescedCount-enabled'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
+    await CoalescingRunners.runDelayedBatch(mutex, scenarioCase.input.key, scenarioCase.input.delayMs, ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'));
     const stats = mutex.getStats();
     assert.strictEqual(stats.coalescedCount, scenarioCase.expected.coalescedCount);
     assert.strictEqual(stats.totalExecuted, scenarioCase.expected.totalExecuted);
-  },
-  'stats-coalescedCount-joined': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
-    const operation = async (): Promise<string> => {
-      await delay(scenarioCase.input.delayMs);
-      return 'result';
-    };
-    await Promise.all(createExclusiveCallBatch(
-      requireCallerCount(scenarioCase.input.batch),
-      () => mutex.runExclusive(scenarioCase.input.key, operation)
-    ));
+  }
+
+  static async 'stats-coalescedCount-joined'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'stats-coalescedCount-joined'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
+    await CoalescingRunners.runDelayedBatch(mutex, scenarioCase.input.key, scenarioCase.input.delayMs, ScenarioValues.requireDefined(scenarioCase.input.batch.callerCount, 'batch.callerCount'));
     assert.strictEqual(mutex.getStats().coalescedCount, scenarioCase.expected.coalescedCount);
-  },
-  'validates-each-caller-result': async (scenarioCase) => {
-    const mutex = createScenarioMutex(scenarioCase.input);
+  }
+
+  static async 'validates-each-caller-result'(scenarioCase: ScenarioCaseOfType<CoalescingScenarioCaseEntity.Type, 'validates-each-caller-result'>): Promise<void> {
+    const mutex = Mutex.create<string>(scenarioCase.input.mutex);
     const numberResult = mutex.runExclusive(scenarioCase.input.key, async () => {
-      await delay(scenarioCase.input.delayMs);
+      await setTimeout(scenarioCase.input.delayMs);
       return scenarioCase.input.numberResult;
     });
-    const joinedResult = mutex.runExclusive(scenarioCase.input.key, () => scenarioCase.input.stringResult);
+    const joinedResult = mutex.runExclusive(scenarioCase.input.key, () => {
+      const stringResult = scenarioCase.input.stringResult;
+      return stringResult;
+    });
 
     assert.strictEqual(await numberResult, scenarioCase.expected.numberResult);
     assert.strictEqual(await joinedResult, scenarioCase.expected.numberResult);
   }
-};
 
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: ScenarioCaseOf<Shape>): Promise<void> {
-  return runnerMap[scenarioCase.shape](scenarioCase);
+  private static createCountingOperation(executionCounts: Map<string, number>, key: string, delayMs: number): () => Promise<string> {
+    const operation = async (): Promise<string> => {
+      executionCounts.set(key, ScenarioValues.requireDefined(executionCounts.get(key), key) + 1);
+      await setTimeout(delayMs);
+      return `${key}-result`;
+    };
+    return operation;
+  }
+
+  private static createExclusiveCallBatch<TResult>(callerCount: number, run: () => Promise<TResult>): Promise<TResult>[] {
+    const calls: Promise<TResult>[] = [];
+    for (let index = 0; index < callerCount; index += 1) {
+      calls.push(run());
+    }
+    return calls;
+  }
+
+  private static async runDelayedBatch(mutex: Mutex<string>, key: string, delayMs: number, callerCount: number): Promise<void> {
+    const operation = async (): Promise<string> => {
+      await setTimeout(delayMs);
+      return 'result';
+    };
+    await Promise.all(CoalescingRunners.createExclusiveCallBatch(callerCount, () => {
+      const pending = mutex.runExclusive(key, operation);
+      return pending;
+    }));
+  }
 }
 
-void describe('Mutex coalescing', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': CoalescingScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Mutex coalescing',
+  'runners': CoalescingRunners
 });

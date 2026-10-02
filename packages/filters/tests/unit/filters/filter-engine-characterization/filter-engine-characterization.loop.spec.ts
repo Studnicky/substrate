@@ -1,147 +1,25 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-import { Predicates } from '@studnicky/types/node';
-
-import { FilterValueEntity } from '../../../../src/FilterValueEntity.js';
 
 import { ArrayLogic } from '../../../../src/enums/ArrayLogic.js';
 import { FilterMode } from '../../../../src/enums/FilterMode.js';
 import { LogicGate } from '../../../../src/enums/LogicGate.js';
 import { Operator } from '../../../../src/enums/Operator.js';
 import { FilterEngine } from '../../../../src/FilterEngine.js';
+import { FilterValueEntity } from '../../../../src/FilterValueEntity.js';
 import { ObjectOperators } from '../../../../src/operators/ObjectOperators.js';
 import { ValueOperators } from '../../../../src/operators/ValueOperators.js';
 import { Plugins } from '../../../../src/registries/index.js';
-import scenarioGroups from './filter-engine-characterization.scenarios.json' with { type: 'json' };
+import { FilterEngineCharacterizationScenarioCaseEntity } from './entities/FilterEngineCharacterizationScenarioCaseEntity.js';
+import scenarioGroups from './filter-engine-characterization.scenarios.json' with { 'type': 'json' };
 
-type ScenarioShape =
-  | 'array-equals-deep'
-  | 'custom-plugin-operator'
-  | 'date-between-in-range'
-  | 'date-between-out-of-range'
-  | 'date-equals-match'
-  | 'enum-reachability-sanity'
-  | 'map-has-direct'
-  | 'map-size-wildcard'
-  | 'nested-or-group'
-  | 'registered-custom-gate-operator'
-  | 'set-has-direct'
-  | 'set-size-wildcard'
-  | 'string-gate-fail'
-  | 'string-gate-pass';
-
-type ScenarioInput = {
-  data?: Record<string, unknown>;
-  dateValue?: string;
-  entries?: unknown[];
-  failData?: Record<string, unknown>;
-  failValue?: string;
-  items?: unknown[][];
-  matchData?: Record<string, unknown>;
-  matchValue?: string;
-  rangeMax?: string;
-  rangeMin?: string;
-  size?: number;
-};
-
-type ScenarioExpected = {
-  valid?: boolean;
-  validFail?: boolean;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected: ScenarioExpected;
-  input: ScenarioInput;
-  name: string;
-  shape: ScenarioShape;
-};
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-const scenarioShapes: readonly ScenarioShape[] = [
-  'array-equals-deep',
-  'custom-plugin-operator',
-  'date-between-in-range',
-  'date-between-out-of-range',
-  'date-equals-match',
-  'enum-reachability-sanity',
-  'map-has-direct',
-  'map-size-wildcard',
-  'nested-or-group',
-  'registered-custom-gate-operator',
-  'set-has-direct',
-  'set-size-wildcard',
-  'string-gate-fail',
-  'string-gate-pass'
-];
-
-const isScenarioShape = (value: unknown): value is ScenarioShape => {
-  const result = scenarioShapes.some((shape) => shape === value);
-
-  return result;
-};
-
-const isScenarioCase = (value: unknown): value is ScenarioCase => {
-  if (!Predicates.isRecord(value) || !Predicates.isRecord(value.expected) || !Predicates.isRecord(value.input)) {
-    return false;
-  }
-
-  const result = typeof value.description === 'string'
-    && typeof value.name === 'string'
-    && typeof value.shape === 'string'
-    && isScenarioShape(value.shape);
-
-  return result;
-};
-
-const requireData = (scenarioCase: ScenarioCase): Record<string, unknown> => {
-  const { data } = scenarioCase.input;
-  assert.ok(data !== undefined, `${scenarioCase.name} must define input.data`);
-  return data;
-};
-
-const requireValid = (scenarioCase: ScenarioCase): boolean => {
-  const { valid } = scenarioCase.expected;
-  assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
-  return valid;
-};
-
-const mapFromEntries = (entries: unknown[]): Map<unknown, unknown> => {
-  const result = new Map<unknown, unknown>();
-  const length = entries.length;
-
-  for (let index = 0; index < length; index += 1) {
-    const entry = entries[index];
-    assert.ok(Array.isArray(entry) && entry.length === 2, `Each map entry must contain exactly one key and value`);
-    result.set(entry[0], entry[1]);
-  }
-
-  return result;
-};
-
-const runStringGate = (scenarioCase: ScenarioCase): void => {
-  const engine = new FilterEngine({
-    'conditions': [
-      { 'operator': 'STRING.EQUALS', 'path': 'name', 'value': 'Alice' }
-    ],
-    'gate': 'CORE.AND',
-    'mode': FilterMode.CORE.WHITELIST
-  });
-
-  const result = engine.evaluate(requireData(scenarioCase));
-
-  assert.equal(result.valid, requireValid(scenarioCase));
-};
-
-const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
-  'array-equals-deep': (scenarioCase) => {
-    const { entries } = scenarioCase.input;
-    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
-    const { valid, validFail } = scenarioCase.expected;
-    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
-    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+class FilterEngineCharacterizationRunners {
+  static 'array-equals-deep'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'array-equals-deep'>): void {
+    const { expected, input } = scenarioCase;
+    const { entries } = input;
 
     const engine = new FilterEngine({
       'conditions': [
@@ -151,16 +29,13 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    assert.equal(engine.evaluate({ 'tags': [...entries] }).valid, valid);
-    assert.equal(engine.evaluate({ 'tags': [...entries, 'zzz'] }).valid, validFail);
-  },
-  'custom-plugin-operator': (scenarioCase) => {
-    const { failValue, matchValue } = scenarioCase.input;
-    assert.ok(typeof matchValue === 'string', `${scenarioCase.name} must define input.matchValue`);
-    assert.ok(typeof failValue === 'string', `${scenarioCase.name} must define input.failValue`);
-    const { valid, validFail } = scenarioCase.expected;
-    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
-    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+    assert.equal(engine.evaluate({ 'tags': [...entries] }).valid, expected.valid);
+    assert.equal(engine.evaluate({ 'tags': [...entries, 'zzz'] }).valid, expected.validFail);
+  }
+
+  static 'custom-plugin-operator'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'custom-plugin-operator'>): void {
+    const { expected, input } = scenarioCase;
+    const { failValue, matchValue } = input;
 
     const engine = new FilterEngine({
       'conditions': [
@@ -170,45 +45,28 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST,
       'plugins': [
         {
-          'getNamespace': () => 'custom',
+          'getNamespace': () => { return 'custom'; },
           'operators': {
-            'myOperator': (value, filterValue) => value === filterValue
+            'myOperator': (value, filterValue) => { const matches = value === filterValue; return matches; }
           }
         }
       ]
     });
 
-    assert.equal(engine.evaluate({ 'value': matchValue }).valid, valid);
-    assert.equal(engine.evaluate({ 'value': failValue }).valid, validFail);
-  },
-  'date-between-in-range': (scenarioCase) => {
-    const { dateValue, rangeMax, rangeMin } = scenarioCase.input;
-    assert.ok(typeof dateValue === 'string', `${scenarioCase.name} must define input.dateValue`);
-    assert.ok(typeof rangeMax === 'string', `${scenarioCase.name} must define input.rangeMax`);
-    assert.ok(typeof rangeMin === 'string', `${scenarioCase.name} must define input.rangeMin`);
+    assert.equal(engine.evaluate({ 'value': matchValue }).valid, expected.valid);
+    assert.equal(engine.evaluate({ 'value': failValue }).valid, expected.validFail);
+  }
 
-    const engine = new FilterEngine({
-      'conditions': [
-        {
-          'operator': 'DATE.BETWEEN',
-          'path': 'birthday',
-          'value': { 'max': rangeMax, 'min': rangeMin }
-        }
-      ],
-      'gate': 'CORE.AND',
-      'mode': FilterMode.CORE.WHITELIST
-    });
+  static 'date-between-in-range'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-in-range'>): void {
+    FilterEngineCharacterizationRunners.assertDateBetween(scenarioCase);
+  }
 
-    const result = engine.evaluate({ 'birthday': new Date(dateValue) });
+  static 'date-between-out-of-range'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-out-of-range'>): void {
+    FilterEngineCharacterizationRunners.assertDateBetween(scenarioCase);
+  }
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'date-between-out-of-range': (scenarioCase) => {
-    runnerMap['date-between-in-range'](scenarioCase);
-  },
-  'date-equals-match': (scenarioCase) => {
+  static 'date-equals-match'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-equals-match'>): void {
     const { dateValue } = scenarioCase.input;
-    assert.ok(typeof dateValue === 'string', `${scenarioCase.name} must define input.dateValue`);
 
     const engine = new FilterEngine({
       'conditions': [
@@ -220,17 +78,17 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const result = engine.evaluate({ 'birthday': new Date(dateValue) });
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'enum-reachability-sanity': () => {
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'enum-reachability-sanity'(_scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'enum-reachability-sanity'>): void {
     assert.equal(typeof LogicGate.CORE.AND, 'function');
     assert.equal(typeof Operator.STRING.EQUALS, 'function');
     assert.equal(typeof ArrayLogic.CORE.EVERY, 'function');
-  },
-  'map-has-direct': (scenarioCase) => {
+  }
+
+  static 'map-has-direct'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'map-has-direct'>): void {
     const { entries, matchValue } = scenarioCase.input;
-    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
-    assert.ok(typeof matchValue === 'string', `${scenarioCase.name} must define input.matchValue`);
 
     const engine = new FilterEngine({
       'conditions': [
@@ -240,14 +98,13 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    const result = engine.evaluate({ 'roles': mapFromEntries(entries) });
+    const result = engine.evaluate({ 'roles': FilterEngineCharacterizationRunners.mapFromEntries(entries) });
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'map-size-wildcard': (scenarioCase) => {
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'map-size-wildcard'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'map-size-wildcard'>): void {
     const { items, size } = scenarioCase.input;
-    assert.ok(Array.isArray(items), `${scenarioCase.name} must define input.items`);
-    assert.ok(typeof size === 'number', `${scenarioCase.name} must define input.size`);
 
     const engine = new FilterEngine({
       'conditions': [
@@ -262,19 +119,18 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    const result = engine.evaluate({
-      'items': items.map((entries) => ({ 'meta': mapFromEntries(entries) }))
-    });
+    const wrapped: { 'meta': Map<unknown, unknown> }[] = [];
+    for (let index = 0; index < items.length; index += 1) {
+      wrapped.push({ 'meta': FilterEngineCharacterizationRunners.mapFromEntries(items[index] ?? []) });
+    }
+    const result = engine.evaluate({ 'items': wrapped });
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'nested-or-group': (scenarioCase) => {
-    const { failData, matchData } = scenarioCase.input;
-    assert.ok(matchData !== undefined, `${scenarioCase.name} must define input.matchData`);
-    assert.ok(failData !== undefined, `${scenarioCase.name} must define input.failData`);
-    const { valid, validFail } = scenarioCase.expected;
-    assert.ok(typeof valid === 'boolean', `${scenarioCase.name} must define expected.valid`);
-    assert.ok(typeof validFail === 'boolean', `${scenarioCase.name} must define expected.validFail`);
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'nested-or-group'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'nested-or-group'>): void {
+    const { expected, input } = scenarioCase;
+    const { failData, matchData } = input;
 
     const engine = new FilterEngine({
       'conditions': [
@@ -291,14 +147,15 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    assert.equal(engine.evaluate(matchData).valid, valid);
-    assert.equal(engine.evaluate(failData).valid, validFail);
-  },
-  'registered-custom-gate-operator': (scenarioCase) => {
+    assert.equal(engine.evaluate(matchData).valid, expected.valid);
+    assert.equal(engine.evaluate(failData).valid, expected.validFail);
+  }
+
+  static 'registered-custom-gate-operator'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'registered-custom-gate-operator'>): void {
     const plugins = new Plugins();
 
-    plugins.gates.set('customAlwaysTrue', () => true);
-    plugins.operators.set('customAlwaysMatch', () => true);
+    plugins.gates.set('customAlwaysTrue', () => { const always = true; return always; });
+    plugins.operators.set('customAlwaysMatch', () => { const always = true; return always; });
 
     const engine = new FilterEngine({
       'conditions': [
@@ -309,14 +166,13 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'registry': plugins
     });
 
-    const result = engine.evaluate(requireData(scenarioCase));
+    const result = engine.evaluate(scenarioCase.input.data);
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'set-has-direct': (scenarioCase) => {
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'set-has-direct'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'set-has-direct'>): void {
     const { entries, matchValue } = scenarioCase.input;
-    assert.ok(Array.isArray(entries), `${scenarioCase.name} must define input.entries`);
-    assert.ok(typeof matchValue === 'string', `${scenarioCase.name} must define input.matchValue`);
 
     const engine = new FilterEngine({
       'conditions': [
@@ -328,12 +184,11 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
 
     const result = engine.evaluate({ 'tags': new Set(entries) });
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'set-size-wildcard': (scenarioCase) => {
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'set-size-wildcard'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'set-size-wildcard'>): void {
     const { items, size } = scenarioCase.input;
-    assert.ok(Array.isArray(items), `${scenarioCase.name} must define input.items`);
-    assert.ok(typeof size === 'number', `${scenarioCase.name} must define input.size`);
 
     const engine = new FilterEngine({
       'conditions': [
@@ -348,61 +203,121 @@ const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    const result = engine.evaluate({
-      'items': items.map((tags) => ({ 'tags': new Set(tags) }))
+    const wrapped: { 'tags': Set<unknown> }[] = [];
+    for (let index = 0; index < items.length; index += 1) {
+      wrapped.push({ 'tags': new Set(items[index]) });
+    }
+    const result = engine.evaluate({ 'items': wrapped });
+
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  static 'string-gate-fail'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-fail'>): void {
+    FilterEngineCharacterizationRunners.assertStringGate(scenarioCase);
+  }
+
+  static 'string-gate-pass'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-pass'>): void {
+    FilterEngineCharacterizationRunners.assertStringGate(scenarioCase);
+  }
+
+  static declaresNonStringMapKeys(): void {
+    void it('retains non-string native Map keys during evaluation', () => {
+      const engine = new FilterEngine({
+        'conditions': [
+          { 'operator': 'MAP.HAS', 'path': 'roles', 'value': 42 }
+        ],
+        'gate': 'CORE.AND',
+        'mode': FilterMode.CORE.WHITELIST
+      });
+
+      const result = engine.evaluate({ 'roles': new Map([[42, true]]) });
+
+      assert.equal(result.valid, true);
     });
+  }
 
-    assert.equal(result.valid, requireValid(scenarioCase));
-  },
-  'string-gate-fail': runStringGate,
-  'string-gate-pass': runStringGate
-};
+  private static assertDateBetween(
+    scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-in-range' | 'date-between-out-of-range'>
+  ): void {
+    const { dateValue, rangeMaximum, rangeMinimum } = scenarioCase.input;
 
-void describe('FilterEngine characterization', () => {
-  it('retains non-string native Map keys during evaluation', () => {
     const engine = new FilterEngine({
       'conditions': [
-        { 'operator': 'MAP.HAS', 'path': 'roles', 'value': 42 }
+        {
+          'operator': 'DATE.BETWEEN',
+          'path': 'birthday',
+          'value': { 'max': rangeMaximum, 'min': rangeMinimum }
+        }
       ],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    const result = engine.evaluate({ 'roles': new Map([[42, true]]) });
+    const result = engine.evaluate({ 'birthday': new Date(dateValue) });
 
-    assert.equal(result.valid, true);
-  });
-
-  for (const scenarioCase of scenarioGroups.cases) {
-    assert.ok(isScenarioCase(scenarioCase), 'Each scenario must define name, description, input, expected, and a known shape.');
-    void it(scenarioCase.name, () => {
-      runnerMap[scenarioCase.shape](scenarioCase);
-    });
+    assert.equal(result.valid, scenarioCase.expected.valid);
   }
+
+  private static assertStringGate(
+    scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-fail' | 'string-gate-pass'>
+  ): void {
+    const engine = new FilterEngine({
+      'conditions': [
+        { 'operator': 'STRING.EQUALS', 'path': 'name', 'value': 'Alice' }
+      ],
+      'gate': 'CORE.AND',
+      'mode': FilterMode.CORE.WHITELIST
+    });
+
+    const result = engine.evaluate(scenarioCase.input.data);
+
+    assert.equal(result.valid, scenarioCase.expected.valid);
+  }
+
+  private static mapFromEntries(entries: readonly unknown[]): Map<unknown, unknown> {
+    const result = new Map<unknown, unknown>();
+    const length = entries.length;
+
+    for (let index = 0; index < length; index += 1) {
+      const entry = entries[index];
+      assert.ok(Array.isArray(entry) && entry.length === 2, 'Each map entry must contain exactly one key and value');
+      result.set(entry[0], entry[1]);
+    }
+
+    return result;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': FilterEngineCharacterizationScenarioCaseEntity,
+  'extraTests': FilterEngineCharacterizationRunners.declaresNonStringMapKeys,
+  'file': scenarioGroups,
+  'name': 'FilterEngine characterization',
+  'runners': FilterEngineCharacterizationRunners
 });
 
 void describe('canonical deep equality', () => {
-  it('uses the predicate contract for arrays and object values', () => {
+  void it('uses the predicate contract for arrays and object values', () => {
     assert.equal(Operator.ARRAY.EQUALS([Number.NaN], [Number.NaN]), true);
-    assert.equal(Operator.ARRAY.EQUALS([ 'Ada' ], [ 'ada' ]), false);
+    assert.equal(Operator.ARRAY.EQUALS(['Ada'], ['ada']), false);
     assert.equal(ObjectOperators.handleEquals({ 'score': Number.NaN }, { 'score': Number.NaN }), true);
   });
 });
 
 void describe('value membership SameValueZero semantics', () => {
-  it('matches NaN in handleIn', () => {
+  void it('matches NaN in handleIn', () => {
     assert.equal(ValueOperators.handleIn(Number.NaN, [Number.NaN]), true);
   });
 
-  it('rejects NaN from handleNotIn', () => {
+  void it('rejects NaN from handleNotIn', () => {
     assert.equal(ValueOperators.handleNotIn(Number.NaN, [Number.NaN]), false);
   });
 });
 
 void describe('filter frozen exports', () => {
-  it('preserves the nested immutability contract through JSON Frozen', () => {
+  void it('preserves the nested immutability contract through JSON Frozen', () => {
     assert.equal(Object.isFrozen(FilterMode), true);
     assert.equal(Object.isFrozen(FilterMode.CORE), true);
-    assert.equal(Reflect.set(FilterMode.CORE, 'WHITELIST', () => false), false);
+    assert.equal(Reflect.set(FilterMode.CORE, 'WHITELIST', () => { const rejected = false; return rejected; }), false);
   });
 });

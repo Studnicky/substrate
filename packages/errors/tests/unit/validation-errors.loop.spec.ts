@@ -1,308 +1,319 @@
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
+import assert from 'node:assert/strict';
 
-import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
 import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { ValidationErrors } from '../../src/errors/ValidationErrors.js';
 import { ValidationErrorsScenarioCaseEntity } from './entities/ValidationErrorsScenarioCaseEntity.js';
-import scenarioGroups from './validation-errors.scenarios.json' with { type: 'json' };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(
-  ValidationErrorsScenarioCaseEntity.Schema, ValidationErrorsScenarioCaseEntity.Node, ValidationErrorsScenarioCaseEntity.RemoteSchemas
-);
+import scenarioGroups from './validation-errors.scenarios.json' with { 'type': 'json' };
 
 class TestViolation {
   public static of(path: string, keyword: string, message: string): ValidationViolationEntity.Type {
-    return ValidationViolationEntity.create({ keyword, message, path });
+    const result = ValidationViolationEntity.create({ 'keyword': keyword, 'message': message, 'path': path });
+    return result;
   }
 }
 
-type ScenarioCase = ValidationErrorsScenarioCaseEntity.Type;
-
-interface ScenarioRecordInterface {
-  readonly [key: string]: ScenarioValue;
-}
-
-type ScenarioValue = undefined | boolean | number | string | null | ScenarioValue[] | ScenarioRecordInterface;
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-function materialize(value: ScenarioValue): ScenarioValue {
-  if (Array.isArray(value)) {
-    return value.map((entry) => materialize(entry));
+/** Turns the JSON fixture tokens (`{ shape: 'undefined' | 'null' | 'empty-array' }`) into the values they stand for. */
+class FixtureValues {
+  public static materialize(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      const items = value.map((entry: unknown) => {
+        const materialized = FixtureValues.materialize(entry);
+        return materialized;
+      });
+      return items;
+    }
+    if (Predicates.isRecord(value)) {
+      const materialized = FixtureValues.materializeRecord(value);
+      return materialized;
+    }
+    return value;
   }
 
-  if (value !== null && typeof value === 'object' && 'shape' in value && value.shape === 'undefined') {
-    return undefined;
+  public static toViolations(input: unknown): ValidationViolationEntity.Type[] {
+    if (!Array.isArray(input)) {
+      throw RuntimeError.create('test fixture must contain a validation-violation array');
+    }
+    const violations: ValidationViolationEntity.Type[] = [];
+    for (let index = 0; index < input.length; index += 1) {
+      const entry: unknown = input[index];
+      if (!Predicates.isRecord(entry)) {
+        throw RuntimeError.create('test fixture validation violation must be an object');
+      }
+      violations.push(ValidationViolationEntity.create({
+        'keyword': String(entry.keyword),
+        'message': String(entry.message),
+        'path': String(entry.path)
+      }));
+    }
+    return violations;
   }
 
-  if (value !== null && typeof value === 'object') {
-    const record = value;
+  public static toAjvErrors(value: unknown): { 'instancePath': string; 'keyword': string; 'message'?: string }[] {
+    if (!Predicates.isArray(value)) {
+      throw RuntimeError.create('test fixture must be an ajv error array');
+    }
+    const errors: { 'instancePath': string; 'keyword': string; 'message'?: string }[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      errors.push(FixtureValues.toAjvError(value[index]));
+    }
+    return errors;
+  }
+
+  public static toEmptyOrValidatorErrors(value: unknown): { 'instancePath': string; 'keyword': string; 'message'?: string }[] | null | undefined {
+    if (value === null || value === undefined) {
+      return value;
+    }
+    if (Predicates.isArray(value) && value.length === 0) {
+      return [];
+    }
+    throw RuntimeError.create('test fixture must be null, undefined, or an empty array');
+  }
+
+  public static toOptionsAndViolations(value: unknown): { 'options': unknown; 'violations': ValidationViolationEntity.Type[] } {
+    const record = ScenarioValues.requireRecord(value, 'test fixture (options/violations)');
+    const result = { 'options': record.options, 'violations': FixtureValues.toViolations(record.violations) };
+    return result;
+  }
+
+  public static toLeftRight(value: unknown): { 'left': ValidationViolationEntity.Type[]; 'right': ValidationViolationEntity.Type[] } {
+    const record = ScenarioValues.requireRecord(value, 'test fixture (left/right)');
+    const result = { 'left': FixtureValues.toViolations(record.left), 'right': FixtureValues.toViolations(record.right) };
+    return result;
+  }
+
+  private static materializeRecord(record: Record<string, unknown>): unknown {
+    if (record.shape === 'undefined') {
+      return undefined;
+    }
     if (record.shape === 'null') {
       return null;
     }
-
     if (record.shape === 'empty-array') {
       return [];
     }
+    const structure = FixtureValues.materializeStructure(record);
+    return structure;
+  }
 
+  private static materializeStructure(record: Record<string, unknown>): unknown {
     if ('violations' in record) {
       return {
-        'options': materialize(record.options),
-        'violations': materialize(record.violations)
+        'options': FixtureValues.materialize(record.options),
+        'violations': FixtureValues.materialize(record.violations)
       };
     }
-
     if ('left' in record || 'right' in record) {
       return {
-        'left': materialize(record.left),
-        'right': materialize(record.right)
+        'left': FixtureValues.materialize(record.left),
+        'right': FixtureValues.materialize(record.right)
       };
     }
-
     if ('instancePath' in record) {
       return {
         'instancePath': String(record.instancePath),
         'keyword': String(record.keyword),
-        ...(record.message === undefined ? {} : { 'message': materialize(record.message) })
+        ...(record.message === undefined ? {} : { 'message': FixtureValues.materialize(record.message) })
       };
     }
-
-    const result: Record<string, ScenarioValue> = {};
-    for (const [key, entry] of Object.entries(record)) {
-      result[key] = materialize(entry);
-    }
-    return result;
+    return record;
   }
 
-  return value;
-}
-
-function toViolations(input: ScenarioValue): ValidationViolationEntity.Type[] {
-  if (!Array.isArray(input)) {
-    throw RuntimeError.create('test fixture must contain a validation-violation array');
-  }
-
-  return input.map((entry) => {
-    if (entry === null || Array.isArray(entry) || typeof entry !== 'object') {
-      throw RuntimeError.create('test fixture validation violation must be an object');
-    }
-    return ValidationViolationEntity.create({
-      'keyword': String(entry.keyword),
-      'message': String(entry.message),
-      'path': String(entry.path)
-    });
-  });
-}
-
-function toAjvErrors(value: ScenarioValue): { 'instancePath': string; 'keyword': string; 'message'?: string }[] {
-  if (!Predicates.isArray(value)) {
-    throw RuntimeError.create('test fixture must be an ajv error array');
-  }
-  return value.map((entry) => {
-    if (!Predicates.isRecord(entry)) {
-      throw RuntimeError.create('test fixture ajv error must be an object');
-    }
-    const instancePath = entry.instancePath;
-    const keyword = entry.keyword;
-    const message = entry.message;
-    if (typeof instancePath !== 'string' || typeof keyword !== 'string') {
-      throw RuntimeError.create('test fixture ajv error must have a string instancePath and keyword');
-    }
+  private static toAjvError(entry: unknown): { 'instancePath': string; 'keyword': string; 'message'?: string } {
+    const record = ScenarioValues.requireRecord(entry, 'test fixture ajv error');
+    const instancePath = ScenarioValues.requireString(record.instancePath, 'test fixture ajv error instancePath');
+    const keyword = ScenarioValues.requireString(record.keyword, 'test fixture ajv error keyword');
+    const message = record.message;
     if (message !== undefined && typeof message !== 'string') {
       throw RuntimeError.create('test fixture ajv error message must be a string when present');
     }
-    return message === undefined ? { instancePath, keyword } : { instancePath, keyword, message };
-  });
-}
-
-function toEmptyOrValidatorErrors(value: ScenarioValue): { 'instancePath': string; 'keyword': string; 'message'?: string }[] | null | undefined {
-  if (value === null || value === undefined) {
-    return value;
+    const result = message === undefined ? { 'instancePath': instancePath, 'keyword': keyword } : { 'instancePath': instancePath, 'keyword': keyword, 'message': message };
+    return result;
   }
-  if (Predicates.isArray(value) && value.length === 0) {
-    return [];
+}
+
+class ValidationErrorsRunners {
+  static 'aggregate-dedup'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'aggregate-dedup'>): void {
+    ValidationErrorsRunners.assertAggregate(scenarioCase);
   }
-  throw RuntimeError.create('test fixture must be null, undefined, or an empty array');
-}
 
-function isScenarioRecord(value: ScenarioValue): value is ScenarioRecordInterface {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function toOptionsAndViolations(value: ScenarioValue): { 'options': unknown; 'violations': ValidationViolationEntity.Type[] } {
-  if (!isScenarioRecord(value)) {
-    throw RuntimeError.create('test fixture must be an object with options/violations');
+  static 'aggregate-empty'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'aggregate-empty'>): void {
+    ValidationErrorsRunners.assertAggregate(scenarioCase);
   }
-  return { 'options': value.options, 'violations': toViolations(value.violations) };
-}
 
-function toLeftRight(value: ScenarioValue): { 'left': ValidationViolationEntity.Type[]; 'right': ValidationViolationEntity.Type[] } {
-  if (!isScenarioRecord(value)) {
-    throw RuntimeError.create('test fixture must be an object with left/right');
+  static 'construction-empty'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'construction-empty'>): void {
+    ValidationErrorsRunners.assertConstruction(scenarioCase);
   }
-  return { 'left': toViolations(value.left), 'right': toViolations(value.right) };
-}
 
-function expectViolations(actual: readonly ValidationViolationEntity.Type[], expected: readonly ValidationViolationEntity.Type[]): void {
-  assert.deepStrictEqual(actual, expected);
-}
-
-const runConstruction: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const errs = ValidationErrors.create(toViolations(input));
-  assert.strictEqual(errs.ok, scenarioCase.expected.ok);
-  assert.strictEqual(errs.length, scenarioCase.expected.length);
-};
-
-const runValidatorErrorsEmpty: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const errs = ValidationErrors.fromValidatorErrors(toEmptyOrValidatorErrors(input));
-  assert.strictEqual(errs.ok, scenarioCase.expected.ok);
-  assert.strictEqual(errs.length, scenarioCase.expected.length);
-};
-
-const runValidatorErrorsMapped: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const errs = ValidationErrors.fromValidatorErrors(toAjvErrors(input));
-  assert.strictEqual(errs.length, scenarioCase.expected.length);
-  expectViolations(errs.items, scenarioCase.expected.items ?? []);
-};
-
-const runAggregate: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const agg = ValidationErrors.create(toViolations(input)).aggregate();
-  assert.deepStrictEqual(agg, scenarioCase.expected.aggregate);
-};
-
-const runDefaultReport: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const report = ValidationErrors.create(toViolations(input)).report();
-  assert.deepStrictEqual(report, scenarioCase.expected.report);
-};
-
-const runReportOverrides: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const { options, violations } = toOptionsAndViolations(input);
-  const report = ValidationErrors.create(violations).report(options);
-  assert.deepStrictEqual(report, scenarioCase.expected.report);
-};
-
-const runReportInvalidStatus: ScenarioRunner = (scenarioCase) => {
-  const input = materialize(scenarioCase.input);
-  const { options, violations } = toOptionsAndViolations(input);
-  assert.throws(() => {
-    ValidationErrors.create(violations).report(options);
-  });
-};
-
-const runnerMap = {
-  'aggregate-dedup': runAggregate,
-  'aggregate-empty': runAggregate,
-  'construction-empty': runConstruction,
-  'construction-invalid': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
+  static 'construction-invalid'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'construction-invalid'>): void {
+    const input = FixtureValues.materialize(scenarioCase.input);
     assert.throws(() => {
       ValidationErrors.create(input);
     });
-  },
-  'construction-non-empty': runConstruction,
-  'create-from-array': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const source = toViolations(input);
-    const errs = ValidationErrors.create(source);
-    assert.strictEqual(errs.length, scenarioCase.expected.length);
-    expectViolations(errs.items, scenarioCase.expected.items ?? []);
-  },
-  'detaches-source': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const source = toViolations(input);
-    const errs = ValidationErrors.create(source);
+  }
 
-    source[0]!.message = 'mutated source';
+  static 'construction-non-empty'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'construction-non-empty'>): void {
+    ValidationErrorsRunners.assertConstruction(scenarioCase);
+  }
+
+  static 'create-from-array'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'create-from-array'>): void {
+    const source = FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input));
+    const errors = ValidationErrors.create(source);
+    assert.strictEqual(errors.length, scenarioCase.expected.length);
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
+  }
+
+  static 'detaches-source'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'detaches-source'>): void {
+    const source = FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input));
+    const errors = ValidationErrors.create(source);
+
+    ScenarioValues.requireDefined(source[0], 'Scenario source violation').message = 'mutated source';
     source.push(TestViolation.of('/name', 'required', 'required'));
-    assert.strictEqual(errs.length, scenarioCase.expected.length);
-    expectViolations(errs.items, scenarioCase.expected.items ?? []);
+    assert.strictEqual(errors.length, scenarioCase.expected.length);
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
 
-    const items = errs.items;
+    const items = errors.items;
     if (items[0] !== undefined) {
       items[0].message = 'mutated projection';
     }
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
 
-    expectViolations(errs.items, scenarioCase.expected.items ?? []);
-
-    const report = errs.report();
+    const report = errors.report();
     // Every Problem Details member is optional per RFC 9457 3.1, so the extension is narrowed.
-    assert.ok(report.errors !== undefined);
-    if (report.errors[0] !== undefined) {
-      report.errors[0].message = 'mutated report';
+    const reportErrors = ScenarioValues.requireDefined(report.errors, 'Report errors');
+    if (reportErrors[0] !== undefined) {
+      reportErrors[0].message = 'mutated report';
     }
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
 
-    expectViolations(errs.items, scenarioCase.expected.items ?? []);
-
-    const iterated = [...errs];
+    const iterated = [...errors];
     if (iterated[0] !== undefined) {
       iterated[0].message = 'mutated iterator';
     }
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
+  }
 
-    expectViolations(errs.items, scenarioCase.expected.items ?? []);
-  },
-  'fallback-message': runValidatorErrorsMapped,
-  'for-of': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const violations = toViolations(input);
-    const collected: ValidationViolationEntity.Type[] = [];
-    for (const v of ValidationErrors.create(violations)) {
-      collected.push(v);
+  static 'fallback-message'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'fallback-message'>): void {
+    ValidationErrorsRunners.assertValidatorErrorsMapped(scenarioCase);
+  }
+
+  static 'for-of'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'for-of'>): void {
+    const violations = FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input));
+    const expectedItems = scenarioCase.expected.items ?? [];
+    let position = 0;
+    for (const violation of ValidationErrors.create(violations)) {
+      assert.deepStrictEqual(violation, expectedItems[position]);
+      position += 1;
     }
-    expectViolations(collected, scenarioCase.expected.items ?? []);
-  },
-  'from-empty-array': runValidatorErrorsEmpty,
-  'from-null': runValidatorErrorsEmpty,
-  'from-undefined': runValidatorErrorsEmpty,
-  'maps-ajv': runValidatorErrorsMapped,
-  'merge': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const { left, right } = toLeftRight(input);
+    assert.strictEqual(position, expectedItems.length);
+  }
+
+  static 'from-empty-array'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'from-empty-array'>): void {
+    ValidationErrorsRunners.assertValidatorErrorsEmpty(scenarioCase);
+  }
+
+  static 'from-null'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'from-null'>): void {
+    ValidationErrorsRunners.assertValidatorErrorsEmpty(scenarioCase);
+  }
+
+  static 'from-undefined'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'from-undefined'>): void {
+    ValidationErrorsRunners.assertValidatorErrorsEmpty(scenarioCase);
+  }
+
+  static 'maps-ajv'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'maps-ajv'>): void {
+    ValidationErrorsRunners.assertValidatorErrorsMapped(scenarioCase);
+  }
+
+  static 'merge'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'merge'>): void {
+    const { left, right } = FixtureValues.toLeftRight(FixtureValues.materialize(scenarioCase.input));
     const merged = ValidationErrors.merge(ValidationErrors.create(left), ValidationErrors.create(right));
     assert.strictEqual(merged.length, scenarioCase.expected.length);
-    expectViolations(merged.items, scenarioCase.expected.items ?? []);
-  },
-  'merge-empty': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const { left, right } = toLeftRight(input);
+    assert.deepStrictEqual(merged.items, scenarioCase.expected.items ?? []);
+  }
+
+  static 'merge-empty'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'merge-empty'>): void {
+    const { left, right } = FixtureValues.toLeftRight(FixtureValues.materialize(scenarioCase.input));
     const merged = ValidationErrors.merge(ValidationErrors.create(left), ValidationErrors.create(right));
     assert.strictEqual(merged.ok, scenarioCase.expected.ok);
     assert.strictEqual(merged.length, scenarioCase.expected.length);
-  },
-  'report-default': runDefaultReport,
-  'report-empty': runDefaultReport,
-  'report-invalid-status': runReportInvalidStatus,
-  'report-overrides': runReportOverrides,
-  'report-plural': runDefaultReport,
-  'report-title': runReportOverrides,
-  'spread': (scenarioCase) => {
-    const input = materialize(scenarioCase.input);
-    const violations = toViolations(input);
-    const spread = [...ValidationErrors.create(violations)];
-    assert.strictEqual(spread.length, scenarioCase.expected.length);
-    expectViolations(spread, scenarioCase.expected.items ?? []);
   }
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
-}
+  static 'report-default'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-default'>): void {
+    ValidationErrorsRunners.assertDefaultReport(scenarioCase);
+  }
 
-void describe('ValidationErrors', () => {
-  const fileData = fileIntake(scenarioGroups);
-  for (const scenario of fileData.cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
+  static 'report-empty'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-empty'>): void {
+    ValidationErrorsRunners.assertDefaultReport(scenarioCase);
+  }
+
+  static 'report-invalid-status'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-invalid-status'>): void {
+    const { options, violations } = FixtureValues.toOptionsAndViolations(FixtureValues.materialize(scenarioCase.input));
+    assert.throws(() => {
+      ValidationErrors.create(violations).report(options);
     });
   }
+
+  static 'report-overrides'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-overrides'>): void {
+    ValidationErrorsRunners.assertReportOverrides(scenarioCase);
+  }
+
+  static 'report-plural'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-plural'>): void {
+    ValidationErrorsRunners.assertDefaultReport(scenarioCase);
+  }
+
+  static 'report-title'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'report-title'>): void {
+    ValidationErrorsRunners.assertReportOverrides(scenarioCase);
+  }
+
+  static 'spread'(scenarioCase: ScenarioCaseOfType<ValidationErrorsScenarioCaseEntity.Type, 'spread'>): void {
+    const violations = FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input));
+    const spread = [...ValidationErrors.create(violations)];
+    assert.strictEqual(spread.length, scenarioCase.expected.length);
+    assert.deepStrictEqual(spread, scenarioCase.expected.items ?? []);
+  }
+
+  private static assertAggregate(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const aggregate = ValidationErrors.create(FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input))).aggregate();
+    assert.deepStrictEqual(aggregate, scenarioCase.expected.aggregate);
+  }
+
+  private static assertConstruction(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const errors = ValidationErrors.create(FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input)));
+    assert.strictEqual(errors.ok, scenarioCase.expected.ok);
+    assert.strictEqual(errors.length, scenarioCase.expected.length);
+  }
+
+  private static assertDefaultReport(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const report = ValidationErrors.create(FixtureValues.toViolations(FixtureValues.materialize(scenarioCase.input))).report();
+    assert.deepStrictEqual(report, scenarioCase.expected.report);
+  }
+
+  private static assertReportOverrides(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const { options, violations } = FixtureValues.toOptionsAndViolations(FixtureValues.materialize(scenarioCase.input));
+    const report = ValidationErrors.create(violations).report(options);
+    assert.deepStrictEqual(report, scenarioCase.expected.report);
+  }
+
+  private static assertValidatorErrorsEmpty(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const errors = ValidationErrors.fromValidatorErrors(FixtureValues.toEmptyOrValidatorErrors(FixtureValues.materialize(scenarioCase.input)));
+    assert.strictEqual(errors.ok, scenarioCase.expected.ok);
+    assert.strictEqual(errors.length, scenarioCase.expected.length);
+  }
+
+  private static assertValidatorErrorsMapped(scenarioCase: ValidationErrorsScenarioCaseEntity.Type): void {
+    const errors = ValidationErrors.fromValidatorErrors(FixtureValues.toAjvErrors(FixtureValues.materialize(scenarioCase.input)));
+    assert.strictEqual(errors.length, scenarioCase.expected.length);
+    assert.deepStrictEqual(errors.items, scenarioCase.expected.items ?? []);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': ValidationErrorsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'ValidationErrors',
+  'runners': ValidationErrorsRunners
 });

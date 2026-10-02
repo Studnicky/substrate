@@ -1,63 +1,62 @@
-import { ScenarioFileCompiler } from "@studnicky/scenario-kit/node";
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { VirtualTimeCounter } from "@studnicky/clock/node";
+import { VirtualTimeCounter } from '@studnicky/clock/node';
 import {
-  StateMachine,
-  TransitionRejectedError,
   type EffectHandlerInterface,
   type FsmStepInterface,
-} from "@studnicky/fsm/node";
-import { VirtualScheduler } from "@studnicky/scheduler/node";
+  StateMachine,
+  TransitionRejectedError
+} from '@studnicky/fsm/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { VirtualScheduler } from '@studnicky/scheduler/node';
+import assert from 'node:assert/strict';
 
-import { ProcessKit } from "../../src/ProcessKit.js";
-import type { JobEffectEntity } from "../fixtures/entities/JobEffectEntity.js";
-import type { JobEventEntity } from "../fixtures/entities/JobEventEntity.js";
-import type { JobStateEntity } from "../fixtures/entities/JobStateEntity.js";
-import { ProcessKitScenarioCaseEntity } from "./entities/ProcessKitScenarioCaseEntity.js";
-import scenarioGroups from "./ProcessKit.scenarios.json" with { type: "json" };
+import type { JobEffectEntity } from '../fixtures/entities/JobEffectEntity.js';
+import type { JobEventEntity } from '../fixtures/entities/JobEventEntity.js';
+import type { JobStateEntity } from '../fixtures/entities/JobStateEntity.js';
 
-type ScenarioCase = ProcessKitScenarioCaseEntity.Type;
-type SchedulerInputType = Extract<ScenarioCase, { shape: "scheduled" }>["input"]["scheduler"];
+import { ProcessKit } from '../../src/ProcessKit.js';
+import { ProcessKitScenarioCaseEntity } from './entities/ProcessKitScenarioCaseEntity.js';
+import scenarioGroups from './ProcessKit.scenarios.json' with { 'type': 'json' };
 
 class JobMachine extends StateMachine<
   JobStateEntity.Type,
   JobEventEntity.Type,
   JobEffectEntity.Type
 > {
-  currentState: JobStateEntity.Type = { variant: "idle" };
+  currentState: JobStateEntity.Type = { 'variant': 'idle' };
 
   static make(): JobMachine {
     return new JobMachine();
   }
 
   getInitialState(): JobStateEntity.Type {
-    return { variant: "idle" };
+    return { 'variant': 'idle' };
   }
 
   reduce(
     state: JobStateEntity.Type,
-    event: JobEventEntity.Type,
+    event: JobEventEntity.Type
   ): FsmStepInterface<JobStateEntity.Type, JobEffectEntity.Type> {
-    if (state.variant === "idle" && event.type === "start") {
+    if (state.variant === 'idle' && event.type === 'start') {
       return {
-        effects: [{ message: "started", variant: "log" }],
-        state: { variant: "active" },
+        'effects': [{ 'message': 'started', 'variant': 'log' }],
+        'state': { 'variant': 'active' }
       };
     }
-    if (state.variant === "active" && event.type === "finish") {
-      return { effects: [], state: { variant: "done" } };
+    if (state.variant === 'active' && event.type === 'finish') {
+      return { 'effects': [], 'state': { 'variant': 'done' } };
     }
     throw new TransitionRejectedError({
-      eventType: event.type,
-      reason: `no transition defined for state '${state.variant}'`,
-      stateVariant: state.variant,
+      'eventType': event.type,
+      'reason': `no transition defined for state '${state.variant}'`,
+      'stateVariant': state.variant
     });
   }
 
   protected override isTerminated(state: JobStateEntity.Type): boolean {
-    return state.variant === "done";
+    const terminated = state.variant === 'done';
+    return terminated;
   }
 
   protected override onEnterState(state: JobStateEntity.Type): void {
@@ -65,28 +64,14 @@ class JobMachine extends StateMachine<
   }
 }
 
-function materializeVirtualScheduler(
-  input: SchedulerInputType,
-) {
-  const counter = VirtualTimeCounter.create(input.counter);
-  return { counter, scheduler: VirtualScheduler.create({ counter }) };
-}
-
-type ScenarioRunner<K extends ScenarioCase["shape"]> = (
-  scenarioCase: Extract<ScenarioCase, { shape: K }>,
-) => Promise<void>;
-type RunnerMap = {
-  [K in ScenarioCase["shape"]]: ScenarioRunner<K>;
-};
-
-const runnerMap: RunnerMap = {
-  drive: async (scenarioCase) => {
+class ProcessKitRunners {
+  static async 'drive'(scenarioCase: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'drive'>): Promise<void> {
     const kit = ProcessKit.create<
       JobStateEntity.Type,
       JobEventEntity.Type,
       JobEffectEntity.Type
     >({
-      machine: JobMachine.make(),
+      'machine': JobMachine.make()
     });
     kit.start();
     const afterStart = await kit.dispatch(scenarioCase.input.events.start);
@@ -94,9 +79,9 @@ const runnerMap: RunnerMap = {
     const afterFinish = await kit.dispatch(scenarioCase.input.events.finish);
     assert.deepStrictEqual(afterFinish, scenarioCase.expected.afterFinish);
     kit.stop();
-  },
+  }
 
-  effects: async (scenarioCase) => {
+  static async 'effects'(scenarioCase: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'effects'>): Promise<void> {
     const logged: string[] = [];
     const handler: EffectHandlerInterface<
       JobEffectEntity.Type,
@@ -109,129 +94,125 @@ const runnerMap: RunnerMap = {
       JobEventEntity.Type,
       JobEffectEntity.Type
     >({
-      handler,
-      machine: JobMachine.make(),
+      'handler': handler,
+      'machine': JobMachine.make()
     });
     kit.start();
     await kit.dispatch(scenarioCase.input.events.start);
     assert.deepStrictEqual(logged, scenarioCase.expected.logged);
     kit.stop();
-  },
+  }
 
-  scheduled: async (scenarioCase) => {
-    const { counter, scheduler } = materializeVirtualScheduler(
-      scenarioCase.input.scheduler,
-    );
-    const machine = JobMachine.make();
+  static async 'rejection'(scenarioCase: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'rejection'>): Promise<void> {
     const kit = ProcessKit.create<
       JobStateEntity.Type,
       JobEventEntity.Type,
       JobEffectEntity.Type
     >({
-      machine,
-      scheduler,
+      'machine': JobMachine.make()
     });
     kit.start();
-    await kit.dispatch(scenarioCase.input.events.start);
-    assert.deepStrictEqual(machine.currentState, { variant: "active" });
-    const scheduledAtMs =
-      counter.nowMs() + scenarioCase.input.timing.scheduleDelayMs;
-    assert.equal(scheduledAtMs, scenarioCase.expected.scheduledAtMs);
-    kit.scheduleDispatch(scheduledAtMs, scenarioCase.input.events.finish);
-    scheduler.advance(scenarioCase.input.timing.stepMs);
-    assert.deepStrictEqual(
-      machine.currentState,
-      scenarioCase.expected.afterFirstAdvance,
+    let caught: unknown;
+    try {
+      await kit.dispatch(scenarioCase.input.events.rejected);
+    } catch (error) {
+      caught = error;
+    }
+    assert.ok(caught instanceof TransitionRejectedError);
+    assert.equal(
+      caught.constructor.name,
+      scenarioCase.expected.rejectionName
     );
-    scheduler.advance(
-      scenarioCase.input.timing.scheduleDelayMs -
-        scenarioCase.input.timing.stepMs,
-    );
-    assert.deepStrictEqual(
-      machine.currentState,
-      scenarioCase.expected.afterAdvance,
-    );
-    kit.stop();
-  },
-
-  "stop-cancels": async (scenarioCase) => {
-    const { counter, scheduler } = materializeVirtualScheduler(
-      scenarioCase.input.scheduler,
-    );
-    const machine = JobMachine.make();
-    const kit = ProcessKit.create<
-      JobStateEntity.Type,
-      JobEventEntity.Type,
-      JobEffectEntity.Type
-    >({
-      machine,
-      scheduler,
-    });
-    kit.start();
-    await kit.dispatch(scenarioCase.input.events.start);
-    const scheduledAtMs =
-      counter.nowMs() + scenarioCase.input.timing.scheduleDelayMs;
-    assert.equal(scheduledAtMs, scenarioCase.expected.scheduledAtMs);
-    kit.scheduleDispatch(scheduledAtMs, scenarioCase.input.events.finish);
-    kit.stop();
-    scheduler.advance(scenarioCase.input.timing.stepMs);
-    assert.deepStrictEqual(
-      machine.currentState,
-      scenarioCase.expected.afterStop,
-    );
-    scheduler.advance(
-      scenarioCase.input.timing.scheduleDelayMs -
-        scenarioCase.input.timing.stepMs,
-    );
-    assert.deepStrictEqual(
-      machine.currentState,
-      scenarioCase.expected.afterAdvance,
-    );
-  },
-
-  rejection: async (scenarioCase) => {
-    const kit = ProcessKit.create<
-      JobStateEntity.Type,
-      JobEventEntity.Type,
-      JobEffectEntity.Type
-    >({
-      machine: JobMachine.make(),
-    });
-    kit.start();
-    await assert.rejects(
-      () => kit.dispatch(scenarioCase.input.events.rejected),
-      (error) => {
-        assert.ok(error instanceof TransitionRejectedError);
-        assert.equal(
-          error.constructor.name,
-          scenarioCase.expected.rejectionName,
-        );
-        assert.equal(error.eventType, scenarioCase.expected.rejectedEvent.type);
-        return true;
-      },
-    );
+    assert.equal(caught.eventType, scenarioCase.expected.rejectedEvent.type);
     const afterRecovery = await kit.dispatch(
-      scenarioCase.input.events.recovery,
+      scenarioCase.input.events.recovery
     );
     assert.deepStrictEqual(afterRecovery, scenarioCase.expected.afterRecovery);
-  },
-};
+  }
 
-async function runCase<K extends ScenarioCase["shape"]>(
-  scenarioCase: Extract<ScenarioCase, { shape: K }>,
-): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  static async 'scheduled'(scenarioCase: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'scheduled'>): Promise<void> {
+    const { counter, scheduler } = ProcessKitRunners.materializeVirtualScheduler(
+      scenarioCase.input.scheduler
+    );
+    const machine = JobMachine.make();
+    const kit = ProcessKit.create<
+      JobStateEntity.Type,
+      JobEventEntity.Type,
+      JobEffectEntity.Type
+    >({
+      'machine': machine,
+      'scheduler': scheduler
+    });
+    kit.start();
+    await kit.dispatch(scenarioCase.input.events.start);
+    assert.deepStrictEqual(machine.currentState, { 'variant': 'active' });
+    const scheduledAtMs =
+      counter.nowMs() + scenarioCase.input.timing.scheduleDelayMs;
+    assert.equal(scheduledAtMs, scenarioCase.expected.scheduledAtMs);
+    kit.scheduleDispatch(scheduledAtMs, scenarioCase.input.events.finish);
+    scheduler.advance(scenarioCase.input.timing.stepMs);
+    assert.deepStrictEqual(
+      machine.currentState,
+      scenarioCase.expected.afterFirstAdvance
+    );
+    scheduler.advance(
+      scenarioCase.input.timing.scheduleDelayMs -
+        scenarioCase.input.timing.stepMs
+    );
+    assert.deepStrictEqual(
+      machine.currentState,
+      scenarioCase.expected.afterAdvance
+    );
+    kit.stop();
+  }
+
+  static async 'stop-cancels'(scenarioCase: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'stop-cancels'>): Promise<void> {
+    const { counter, scheduler } = ProcessKitRunners.materializeVirtualScheduler(
+      scenarioCase.input.scheduler
+    );
+    const machine = JobMachine.make();
+    const kit = ProcessKit.create<
+      JobStateEntity.Type,
+      JobEventEntity.Type,
+      JobEffectEntity.Type
+    >({
+      'machine': machine,
+      'scheduler': scheduler
+    });
+    kit.start();
+    await kit.dispatch(scenarioCase.input.events.start);
+    const scheduledAtMs =
+      counter.nowMs() + scenarioCase.input.timing.scheduleDelayMs;
+    assert.equal(scheduledAtMs, scenarioCase.expected.scheduledAtMs);
+    kit.scheduleDispatch(scheduledAtMs, scenarioCase.input.events.finish);
+    kit.stop();
+    scheduler.advance(scenarioCase.input.timing.stepMs);
+    assert.deepStrictEqual(
+      machine.currentState,
+      scenarioCase.expected.afterStop
+    );
+    scheduler.advance(
+      scenarioCase.input.timing.scheduleDelayMs -
+        scenarioCase.input.timing.stepMs
+    );
+    assert.deepStrictEqual(
+      machine.currentState,
+      scenarioCase.expected.afterAdvance
+    );
+  }
+
+  private static materializeVirtualScheduler(
+    input: ScenarioCaseOfType<ProcessKitScenarioCaseEntity.Type, 'scheduled'>['input']['scheduler']
+  ) {
+    const counter = VirtualTimeCounter.create(input.counter);
+    const result = { 'counter': counter, 'scheduler': VirtualScheduler.create({ 'counter': counter }) };
+    return result;
+  }
 }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(
-  ProcessKitScenarioCaseEntity.Schema,
-  ProcessKitScenarioCaseEntity.Node,
-);
-
-void describe("ProcessKit", () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ProcessKitScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'ProcessKit',
+  'runners': ProcessKitRunners
 });

@@ -1,4 +1,4 @@
-import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
@@ -29,15 +29,17 @@ export namespace SumScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'sum': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sum'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'a': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'b': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        }, ['a', 'b'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'sum': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['sum'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'a': SchemaNode.defineNumber({ 'type': 'number' } as const),
+      'b': SchemaNode.defineNumber({ 'type': 'number' } as const)
+    }, ['a', 'b'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+  }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

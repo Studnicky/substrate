@@ -1,201 +1,142 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { it } from 'node:test';
 
 import { Hash } from '../../src/objects/Hash.js';
 import { StructuralHash } from '../../src/objects/StructuralHash.js';
-import { Predicates } from '../../src/predicates/Predicates.js';
+import { HEX_DIGEST_PATTERN } from '../fixtures/HEX_DIGEST_PATTERN.js';
+import { HashScenarioCaseEntity } from './entities/HashScenarioCaseEntity.js';
+import scenarioGroups from './hash.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './hash.scenarios.json' with { type: 'json' };
+interface RuntimeValueFactoryInterface {
+  (): unknown;
+}
 
-type ScenarioShape =
-  | 'hash-different'
-  | 'hash-distinct-shapes'
-  | 'hash-edge-values'
-  | 'hash-hex'
-  | 'hash-identical'
-  | 'hash-nested'
-  | 'hash-order'
-  | 'hash-primitive'
-  | 'structural-hash-different'
-  | 'structural-hash-metadata';
+/** Runtime values named by shape in the hash scenarios. */
+class RuntimeValueShapes {
+  static readonly factories: ReadonlyMap<string, RuntimeValueFactoryInterface> = new Map<string, RuntimeValueFactoryInterface>([
+    ['array', () => {
+      return [1, 2];
+    }],
+    ['date', () => {
+      return new Date(0);
+    }],
+    ['false', () => {
+      return false;
+    }],
+    ['function', () => {
+      return () => {
+        return 'hashable';
+      };
+    }],
+    ['map', () => {
+      return new Map([['a', 1]]);
+    }],
+    ['null', () => {
+      return null;
+    }],
+    ['number', () => {
+      return 1;
+    }],
+    ['object', () => {
+      return {};
+    }],
+    ['set', () => {
+      return new Set(['a']);
+    }],
+    ['string', () => {
+      return 'value';
+    }],
+    ['true', () => {
+      return true;
+    }],
+    ['undefined', () => {
+      return undefined;
+    }]
+  ]);
 
-type JsonObject = Record<string, unknown>;
-type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
-type ScenarioCase = {
-  description: string;
-  expected: JsonObject;
-  input: { json: JsonObject };
-  shape: ScenarioShape;
-  name: string;
-};
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
+  static materialize(shape: string): unknown {
+    const factory = RuntimeValueShapes.factories.get(shape);
+    assert.ok(factory !== undefined, `Unknown runtime value shape: ${shape}`);
+    const value = factory();
+    return value;
+  }
+}
 
-const runtimeValueByShape = {
-  array: (): unknown[] => [1, 2],
-  date: (): Date => new Date(0),
-  false: (): boolean => false,
-  function: (): (() => string) => () => 'hashable',
-  map: (): Map<string, number> => new Map([['a', 1]]),
-  null: (): null => null,
-  number: (): number => 1,
-  object: (): Record<string, never> => ({}),
-  set: (): Set<string> => new Set(['a']),
-  string: (): string => 'value',
-  true: (): boolean => true,
-  undefined: (): undefined => undefined
-} satisfies Record<string, () => unknown>;
-
-const scenarioRunnerMap = {
-  'hash-hex': (scenarioCase) => {
-    assert.match(Hash.value(readJson(scenarioCase).value), /^[0-9a-f]{8}$/u);
-  },
-
-  'hash-identical': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash identical values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-order': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash order values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-different': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash different values');
+class HashRunners {
+  static 'hash-different'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-different'>): void {
+    const values = scenarioCase.input.json.values;
     assert.equal(Hash.value(values[0]) === Hash.value(values[1]), scenarioCase.expected.sameHash);
     assert.notEqual(Hash.value([1, 2]), Hash.value([1, 3]));
-  },
+  }
 
-  'hash-primitive': (scenarioCase) => {
-    assert.equal(typeof Hash.value(readJson(scenarioCase).value), 'string');
-  },
-
-  'hash-nested': (scenarioCase) => {
-    const value = readJson(scenarioCase).value;
-    const changed = { a: { b: { c: 2 } } };
-    assert.notEqual(Hash.value(value), Hash.value(changed));
-  },
-
-  'hash-distinct-shapes': (scenarioCase) => {
-    const hashes = requireArray(readJson(scenarioCase).values, 'hash distinct value shapes').map((shape) => {
-      return Hash.value(materializeRuntimeValue(requireString(shape, 'hash distinct value shape')));
-    });
+  static 'hash-distinct-shapes'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-distinct-shapes'>): void {
+    const shapes = scenarioCase.input.json.values;
+    const hashes: string[] = [];
+    for (let index = 0; index < shapes.length; index += 1) {
+      hashes.push(Hash.value(RuntimeValueShapes.materialize(String(shapes[index]))));
+    }
     assert.equal(new Set(hashes).size === hashes.length, scenarioCase.expected.distinct);
-  },
-
-  'structural-hash-metadata': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash metadata base');
-    const metadataVariant = requireJsonObject(requiredValue(input, 'metadataVariant'), 'structural hash metadata variant');
-    assert.equal(StructuralHash.of(base), StructuralHash.of(metadataVariant));
-  },
-
-  'structural-hash-different': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash different base');
-    const variant = requireJsonObject(requiredValue(input, 'variant'), 'structural hash different variant');
-    assert.notEqual(StructuralHash.of(base), StructuralHash.of(variant));
-  },
-
-  'hash-edge-values': (scenarioCase) => {
-    const [trueShape, falseShape, nullShape, stringShape] = requireArray(readJson(scenarioCase).values, 'hash edge values')
-      .map((shape) => requireString(shape, 'hash edge value shape'));
-    assert.equal(Hash.value(materializeRuntimeValue(trueShape!)) !== Hash.value(materializeRuntimeValue(falseShape!)), scenarioCase.expected.booleanDistinct);
-    assert.equal(Hash.value(materializeRuntimeValue(nullShape!)) !== Hash.value(materializeRuntimeValue(stringShape!)), scenarioCase.expected.nullDistinctFromString);
-  }
-} satisfies Record<ScenarioShape, ScenarioRunner>;
-
-const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
-
-function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase {
-  return {
-    description: scenarioCase.description,
-    expected: scenarioCase.expected,
-    input: scenarioCase.input,
-    shape: requireScenarioShape(scenarioCase.shape),
-    name: scenarioCase.name
-  };
-}
-
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.hasOwn(scenarioRunnerMap, shape);
-}
-
-function requireScenarioShape(shape: string): ScenarioShape {
-  if (isScenarioShape(shape)) {
-    return shape;
   }
 
-  throw new TypeError(`Unhandled hash scenario shape: ${shape}`);
-}
-
-function readJson(scenarioCase: ScenarioCase): JsonObject {
-  return scenarioCase.input.json;
-}
-
-function isJsonObject<T>(value: T): value is T & JsonObject {
-  return Predicates.isRecord(value);
-}
-
-function requireJsonObject<T>(value: T, context: string): JsonObject {
-  if (isJsonObject(value)) {
-    return value;
+  static 'hash-edge-values'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-edge-values'>): void {
+    const [trueShape, falseShape, nullShape, stringShape] = scenarioCase.input.json.values.map(String);
+    assert.equal(Hash.value(RuntimeValueShapes.materialize(String(trueShape))) !== Hash.value(RuntimeValueShapes.materialize(String(falseShape))), scenarioCase.expected.booleanDistinct);
+    assert.equal(Hash.value(RuntimeValueShapes.materialize(String(nullShape))) !== Hash.value(RuntimeValueShapes.materialize(String(stringShape))), scenarioCase.expected.nullDistinctFromString);
   }
 
-  throw new TypeError(`Expected object for ${context}`);
-}
-
-function requireArray<T>(value: T, context: string): unknown[] {
-  if (Array.isArray(value)) {
-    return value;
+  static 'hash-hex'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-hex'>): void {
+    assert.match(Hash.value(scenarioCase.input.json.value), HEX_DIGEST_PATTERN);
   }
 
-  throw new TypeError(`Expected array for ${context}`);
-}
-
-function requireString<T>(value: T, context: string): string {
-  if (typeof value === 'string') {
-    return value;
+  static 'hash-identical'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-identical'>): void {
+    const values = scenarioCase.input.json.values;
+    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
   }
 
-  throw new TypeError(`Expected string for ${context}`);
-}
-
-function requiredValue(record: JsonObject, key: string): unknown {
-  if (Reflect.has(record, key)) {
-    return Reflect.get(record, key);
+  static 'hash-nested'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-nested'>): void {
+    const value = scenarioCase.input.json.value;
+    const changed = { 'a': { 'b': { 'c': 2 } } };
+    assert.notEqual(Hash.value(value), Hash.value(changed));
   }
 
-  throw new TypeError(`Missing scenario value: ${key}`);
-}
-
-function isRuntimeValueShape(shape: string): shape is keyof typeof runtimeValueByShape {
-  return Object.hasOwn(runtimeValueByShape, shape);
-}
-
-function materializeRuntimeValue(shape: string): unknown {
-  if (isRuntimeValueShape(shape)) {
-    return runtimeValueByShape[shape]();
+  static 'hash-order'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-order'>): void {
+    const values = scenarioCase.input.json.values;
+    assert.deepStrictEqual(Object.keys(values[0] ?? {}), ['a', 'b']);
+    assert.deepStrictEqual(Object.keys(values[1] ?? {}), ['b', 'a']);
+    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
   }
 
-  throw new TypeError(`Unknown runtime value shape: ${shape}`);
-}
+  static 'hash-primitive'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'hash-primitive'>): void {
+    assert.equal(typeof Hash.value(scenarioCase.input.json.value), 'string');
+  }
 
-function runCase(scenarioCase: ScenarioCase): void {
-  scenarioRunnerMap[scenarioCase.shape](scenarioCase);
-}
+  static 'structural-hash-different'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'structural-hash-different'>): void {
+    const input = scenarioCase.input.json;
+    assert.notEqual(StructuralHash.of(input.base), StructuralHash.of(input.variant));
+  }
 
-void describe('Hash and StructuralHash', () => {
-  for (const scenarioCase of scenarioCases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
+  static 'structural-hash-metadata'(scenarioCase: ScenarioCaseOfType<HashScenarioCaseEntity.Type, 'structural-hash-metadata'>): void {
+    const input = scenarioCase.input.json;
+    assert.equal(StructuralHash.of(input.base), StructuralHash.of(input.metadataVariant));
+  }
+
+  static declaresRuntimeContainerHashing(): void {
+    void it('hashes Date, Map, and Set values deterministically', () => {
+      assert.equal(Hash.value(new Date(1)), Hash.value(new Date(1)));
+      assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['a', 1], ['b', 2]])));
+      assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['a', 'b'])));
+      assert.notEqual(Hash.value(new Date(1)), Hash.value({}));
     });
   }
+}
 
-  void it('hashes Date, Map, and Set values deterministically', () => {
-    assert.equal(Hash.value(new Date(1)), Hash.value(new Date(1)));
-    assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['b', 2], ['a', 1]])));
-    assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['b', 'a'])));
-    assert.notEqual(Hash.value(new Date(1)), Hash.value({}));
-  });
+ScenarioSuite.register({
+  'entity': HashScenarioCaseEntity,
+  'extraTests': HashRunners.declaresRuntimeContainerHashing,
+  'file': scenarioGroups,
+  'name': 'Hash and StructuralHash',
+  'runners': HashRunners
 });

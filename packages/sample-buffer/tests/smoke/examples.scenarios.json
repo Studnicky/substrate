@@ -8,7 +8,8 @@
       "input": {
         "entrypoint": "../../examples/basicUsage.ts"
       },
-      "name": "basic-usage"
+      "name": "basic-usage",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed sample buffer example",
@@ -18,7 +19,8 @@
       "input": {
         "entrypoint": "../../examples/observedSampleBuffer.ts"
       },
-      "name": "observed-sample-buffer"
+      "name": "observed-sample-buffer",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the subclass hooks example",
@@ -28,7 +30,8 @@
       "input": {
         "entrypoint": "../../examples/subclassHooks.ts"
       },
-      "name": "subclass-hooks"
+      "name": "subclass-hooks",
+      "shape": "imports-example"
     }
   ]
 }

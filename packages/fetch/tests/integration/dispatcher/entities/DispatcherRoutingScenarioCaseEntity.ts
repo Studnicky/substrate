@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The `dispatcher-routing.loop.spec.ts` scenario case shape: one `oneOf` branch per `operation`. */
@@ -15,10 +17,10 @@ export namespace DispatcherRoutingScenarioCaseEntity {
     'type': 'object'
   } as const;
   const InputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'dispatcher': SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['connections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['baseURL'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    }, ['dispatcher', 'fetchClient', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'dispatcher': SchemaNode.defineObject({ 'type': 'object' } as const, { 'connections': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const) }, ['connections'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'fetchClient': SchemaNode.defineObject({ 'type': 'object' } as const, { 'baseURL': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['baseURL'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'path': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+  }, ['dispatcher', 'fetchClient', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const caseFields = { 'description': { 'minLength': 1, 'type': 'string' }, 'input': inputSchema, 'name': { 'minLength': 1, 'type': 'string' } } as const;
   const caseNodeFields = {
@@ -49,4 +51,7 @@ export namespace DispatcherRoutingScenarioCaseEntity {
     SchemaNode.defineObject({ 'type': 'object' } as const, { ...caseNodeFields, 'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'idleOriginRecorded': SchemaNode.defineConst({}, false as const) }, ['idleOriginRecorded'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'operation': SchemaNode.defineConst({}, 'isolates-unrelated-dispatcher' as const) }, ['description', 'expected', 'input', 'name', 'operation'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

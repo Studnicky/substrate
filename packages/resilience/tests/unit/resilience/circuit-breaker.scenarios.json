@@ -1,0 +1,541 @@
+{
+  "cases": [
+    {
+      "name": "resilience-circuitbreaker-invalid-failure-threshold",
+      "description": "CircuitBreaker rejects failureThreshold < 1",
+      "shape": "cb-invalid-failure-threshold",
+      "input": {
+        "resilience": {
+          "failureThreshold": 0,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-invalid-reset-timeout",
+      "description": "CircuitBreaker rejects resetTimeoutMs < 0",
+      "shape": "cb-invalid-reset-timeout",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": -1
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-starts-closed",
+      "description": "CircuitBreaker starts in closed state",
+      "shape": "cb-starts-closed",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-state-entity",
+      "description": "CircuitStateEntity validates supported states",
+      "shape": "cb-state-entity",
+      "input": {
+        "resilience": {
+          "states": [
+            "closed",
+            "halfOpen",
+            "open",
+            "half-open"
+          ]
+        }
+      },
+      "expected": {
+        "validStates": [
+          "closed",
+          "halfOpen",
+          "open"
+        ],
+        "invalidState": "half-open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-trips-open",
+      "description": "CircuitBreaker trips open after threshold failures",
+      "shape": "cb-trips-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "failures": 2
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-success-resets",
+      "description": "CircuitBreaker resets failure count on success in closed state",
+      "shape": "cb-success-resets",
+      "input": {
+        "resilience": {
+          "failureThreshold": 3,
+          "resetTimeoutMs": 100,
+          "sequence": [
+            "fail",
+            "fail",
+            "success",
+            "fail",
+            "fail",
+            "fail"
+          ]
+        }
+      },
+      "expected": {
+        "stateBeforeFinalFailure": "closed",
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-open-error",
+      "description": "CircuitBreakerOpenError is thrown when open",
+      "shape": "cb-open-error",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000
+        }
+      },
+      "expected": {
+        "openError": true,
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-open-error-name",
+      "description": "CircuitBreakerOpenError includes the breaker name",
+      "shape": "cb-open-error-name",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000,
+          "name": "my-cb"
+        }
+      },
+      "expected": {
+        "openError": true,
+        "messageIncludes": "my-cb"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-halfopen-transition",
+      "description": "CircuitBreaker transitions to halfOpen after resetTimeoutMs",
+      "shape": "cb-halfopen-transition",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-stays-open",
+      "description": "CircuitBreaker stays open before resetTimeoutMs elapses",
+      "shape": "cb-stays-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            99
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-close-on-success-threshold",
+      "description": "CircuitBreaker closes after successThreshold successes in halfOpen",
+      "shape": "cb-close-on-success-threshold",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "successThreshold": 2,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "states": [
+          "halfOpen",
+          "closed"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-halfopen-reopen",
+      "description": "CircuitBreaker re-opens on halfOpen failure",
+      "shape": "cb-halfopen-reopen",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-reset-control",
+      "description": "CircuitBreaker reset() returns to closed",
+      "shape": "cb-reset-control",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "stateAfterReset": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-force-open",
+      "description": "CircuitBreaker forceOpen() opens from closed",
+      "shape": "cb-force-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "state": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-reset-success",
+      "description": "CircuitBreaker execute succeeds after reset",
+      "shape": "cb-reset-success",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "result": "ok",
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-success",
+      "description": "CircuitBreaker onSuccess fires on success",
+      "shape": "cb-observed-success",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "success"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-failure",
+      "description": "CircuitBreaker onFailure fires on failure",
+      "shape": "cb-observed-failure",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "failure"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-trip-open",
+      "description": "CircuitBreaker onTrip and onOpen fire when threshold reached",
+      "shape": "cb-observed-trip-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "failure",
+          "trip",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-reject",
+      "description": "CircuitBreaker onReject fires when open",
+      "shape": "cb-observed-reject",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 10000
+        }
+      },
+      "expected": {
+        "events": [
+          "reject"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-halfopen",
+      "description": "CircuitBreaker onHalfOpen fires after timeout",
+      "shape": "cb-observed-halfopen",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "halfOpen",
+          "success"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-close",
+      "description": "CircuitBreaker onClose fires after halfOpen success and on reset",
+      "shape": "cb-observed-close",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {
+        "events": [
+          "failure",
+          "halfOpen",
+          "success",
+          "close"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-observed-open",
+      "description": "CircuitBreaker onOpen fires on forceOpen and re-open",
+      "shape": "cb-observed-open",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "clock": [
+            0,
+            100
+          ],
+          "reopenFailureThreshold": 1
+        }
+      },
+      "expected": {
+        "events": [
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-default-classification",
+      "description": "CircuitBreaker default classification counts all failures",
+      "shape": "cb-default-classification",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-retryable",
+      "description": "CircuitBreaker errorClassifier retryable errors do not count",
+      "shape": "cb-config-classifier-retryable",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "closed",
+        "retryableFailures": 3
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-failing",
+      "description": "CircuitBreaker errorClassifier non-retryable errors count",
+      "shape": "cb-config-classifier-failing",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "states": [
+          "closed",
+          "open"
+        ]
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-classifier-throws-original",
+      "description": "CircuitBreaker thrown error remains unchanged when retryable",
+      "shape": "cb-config-classifier-throws-original",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "thrown": "TransientError",
+        "state": "closed"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-subclass-classifier",
+      "description": "CircuitBreaker classifyError override works",
+      "shape": "cb-subclass-classifier",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-config-overrides-subclass",
+      "description": "CircuitBreaker config classifier overrides classifyError subclass",
+      "shape": "cb-config-overrides-subclass",
+      "input": {
+        "resilience": {
+          "failureThreshold": 1,
+          "resetTimeoutMs": 100
+        }
+      },
+      "expected": {
+        "finalState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-hook-swallows",
+      "description": "CircuitBreaker hook failures do not replace canonical results",
+      "shape": "cb-hook-swallows",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "rejectFailureThreshold": 1,
+          "rejectResetTimeoutMs": 10000,
+          "tripFailureThreshold": 1
+        }
+      },
+      "expected": {
+        "success": "ok",
+        "openState": "open"
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-async-hook-isolation",
+      "description": "CircuitBreaker async hook failures stay isolated",
+      "shape": "cb-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "first": "first async onSuccess boom",
+          "second": "second async onSuccess boom"
+        }
+      },
+      "expected": {
+        "results": [
+          "ok",
+          "ok"
+        ],
+        "rejections": 0,
+        "recordedErrors": 1
+      }
+    },
+    {
+      "name": "resilience-circuitbreaker-hook-fires-exactly-once",
+      "description": "CircuitBreaker fires onOpen/onTrip/onHalfOpen/onClose exactly once per relevant transition, with onTrip only on closed->open",
+      "shape": "cb-hook-fires-exactly-once",
+      "input": {
+        "resilience": {
+          "failureThreshold": 2,
+          "resetTimeoutMs": 100,
+          "successThreshold": 2,
+          "clock": [
+            0,
+            100
+          ]
+        }
+      },
+      "expected": {}
+    }
+  ]
+}

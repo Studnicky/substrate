@@ -1,19 +1,20 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Context as NodeContext } from '../../../src/node/index.js';
-import { Context as BrowserContext } from '../../../src/browser/index.js';
+import * as browserRuntime from '../../../src/browser/index.js';
+import * as nodeRuntime from '../../../src/node/index.js';
 
-describe('Context node-first runtime entrypoint', () => {
-  it('retains Node storage after the browser entrypoint loads', async () => {
-    assert.notStrictEqual(NodeContext, BrowserContext);
+void describe('Context node-first runtime entrypoint', () => {
+  void it('retains Node storage after the browser entrypoint loads', async () => {
+    assert.notStrictEqual(nodeRuntime.Context, browserRuntime.Context);
 
-    const context = NodeContext.create({ 'name': 'node-first' });
+    const context = nodeRuntime.Context.create({ 'name': 'node-first' });
     const scope = context.initialize({ 'value': 'node' });
 
     const value = await scope.execute(async () => {
       await Promise.resolve();
-      return context.get('value');
+      const storedValue = context.get('value');
+      return storedValue;
     });
 
     assert.strictEqual(value, 'node');

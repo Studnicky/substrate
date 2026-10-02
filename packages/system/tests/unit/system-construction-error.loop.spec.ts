@@ -6,12 +6,14 @@ import { System } from '../../src/System.js';
 
 void describe('System construction', () => {
   void it('rejects instantiation with a SystemConstructionError', () => {
-    assert.throws(() => {
-      Reflect.construct(System, []);
-    }, (error: unknown) => {
-      assert.ok(error instanceof SystemConstructionError);
-      assert.equal(error.code, 'system.staticOnly');
-      return true;
-    });
+    let thrown: unknown;
+    try {
+      const instance: unknown = Reflect.construct(System, []);
+      assert.fail(`construction returned ${typeof instance}`);
+    } catch (error: unknown) {
+      thrown = error;
+    }
+    assert.ok(thrown instanceof SystemConstructionError);
+    assert.equal(thrown.code, 'system.staticOnly');
   });
 });

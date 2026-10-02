@@ -1,83 +1,91 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { Predicates } from '@studnicky/types/node';
-import { RuntimeError } from '@studnicky/errors/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  after, before, describe, it
-} from 'node:test';
 
 import { FetchClient } from '../../../src/node/index.js';
-import {
-  startTestServer, stopTestServer
-} from '../../helpers/test-server/index.js';
-
+import { TestServer } from '../../helpers/test-server/TestServer.js';
 import { StandaloneScenarioCaseEntity } from './entities/StandaloneScenarioCaseEntity.js';
-import scenarioGroups from './standalone.scenarios.json' with { type: 'json' };
+import scenarioGroups from './standalone.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = StandaloneScenarioCaseEntity.Type;
+class StandaloneRunners {
+  private static readonly client = FetchClient.create();
 
-const fileIntake = ScenarioFileCompiler.compileIntake(StandaloneScenarioCaseEntity.Schema, StandaloneScenarioCaseEntity.Node);
-
-const client = FetchClient.create();
-
-let testUrl: string;
-
-function requireJsonRecord(value: unknown): { id?: number; title?: string } {
-  if (!Predicates.isObject(value)) {
-    throw RuntimeError.create('Expected a JSON object response body');
+  static async 'DELETE'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'DELETE'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const response = await StandaloneRunners.client.delete(url);
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
   }
-  const id = value.id;
-  const title = value.title;
-  return {
-    ...(typeof id === 'number' ? { id } : {}),
-    ...(typeof title === 'string' ? { title } : {})
-  };
-}
 
-const requestRunnerMap: Record<ScenarioCase['input']['method'], (url: string, body?: ScenarioCase['input']['body']) => Promise<Response>> = {
-  'DELETE': async (url) => client.delete(url),
-  'GET': async (url) => client.get(url),
-  'HEAD': async (url) => client.head(url),
-  'OPTIONS': async (url) => client.options(url),
-  'PATCH': async (url, body) => client.patch(url, body === undefined ? undefined : { body }),
-  'POST': async (url, body) => client.post(url, body === undefined ? undefined : { body }),
-  'PUT': async (url, body) => client.put(url, body === undefined ? undefined : { body })
-};
+  static async 'GET'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'GET'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const response = await StandaloneRunners.client.get(url);
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-void before(async () => {
-  testUrl = await startTestServer();
-});
+  static async 'HEAD'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'HEAD'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const response = await StandaloneRunners.client.head(url);
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-void after(async () => {
-  await stopTestServer();
-});
+  static async 'OPTIONS'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'OPTIONS'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const response = await StandaloneRunners.client.options(url);
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const url = `${testUrl}${scenarioCase.input.path}`;
-  const response = await requestRunnerMap[scenarioCase.input.method](url, scenarioCase.input.body);
+  static async 'PATCH'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'PATCH'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const { body } = scenarioCase.input;
+    const response = await StandaloneRunners.client.patch(url, body === undefined ? undefined : { 'body': body });
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-  assert.strictEqual(response.status, scenarioCase.expected.status);
+  static async 'POST'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'POST'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const { body } = scenarioCase.input;
+    const response = await StandaloneRunners.client.post(url, body === undefined ? undefined : { 'body': body });
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-  if (scenarioCase.expected.shape === 'ok') {
-    if (scenarioCase.expected.text !== undefined) {
-      assert.strictEqual(await response.text(), scenarioCase.expected.text);
+  static async 'PUT'(scenarioCase: ScenarioCaseOfType<StandaloneScenarioCaseEntity.Type, 'PUT'>): Promise<void> {
+    using server = TestServer.start();
+    const url = `${server.url}${scenarioCase.input.path}`;
+    const { body } = scenarioCase.input;
+    const response = await StandaloneRunners.client.put(url, body === undefined ? undefined : { 'body': body });
+    await StandaloneRunners.assertResponse(response, scenarioCase.expected);
+  }
+
+  private static async assertResponse(response: Response, expected: StandaloneScenarioCaseEntity.Type['expected']): Promise<void> {
+    assert.strictEqual(response.status, expected.status);
+
+    if (expected.shape === 'ok') {
+      if (expected.text !== undefined) {
+        assert.strictEqual(await response.text(), expected.text);
+      }
+      return;
     }
-    return;
-  }
 
-  const data = requireJsonRecord(await response.json());
-  if (scenarioCase.expected.id !== undefined) {
-    assert.strictEqual(data.id, scenarioCase.expected.id);
-  }
-  if (scenarioCase.expected.title !== undefined) {
-    assert.strictEqual(data.title, scenarioCase.expected.title);
+    const data = ScenarioValues.requireRecord(await response.json(), 'response body');
+    if (expected.id !== undefined) {
+      assert.strictEqual(data.id, expected.id);
+    }
+    if (expected.title !== undefined) {
+      assert.strictEqual(data.title, expected.title);
+    }
   }
 }
 
-void describe('FetchClient HTTP methods with absolute URLs', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': StandaloneScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'FetchClient HTTP methods with absolute URLs',
+  'runners': StandaloneRunners
 });

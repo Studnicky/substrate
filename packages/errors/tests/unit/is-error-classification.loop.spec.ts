@@ -1,35 +1,33 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { ErrorClassificationGuard } from '../../src/validation/ErrorClassificationGuard.js';
 import { IsErrorClassificationScenarioCaseEntity } from './entities/IsErrorClassificationScenarioCaseEntity.js';
-import scenarioGroups from './is-error-classification.scenarios.json' with { type: 'json' };
+import scenarioGroups from './is-error-classification.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = IsErrorClassificationScenarioCaseEntity.Type;
-type ScenarioRunner = (scenario: ScenarioCase) => void;
+class IsErrorClassificationRunners {
+  static 'invalid-reason'(scenarioCase: ScenarioCaseOfType<IsErrorClassificationScenarioCaseEntity.Type, 'invalid-reason'>): void {
+    assert.strictEqual(ErrorClassificationGuard.isErrorClassification(scenarioCase.input), scenarioCase.expected.result);
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(IsErrorClassificationScenarioCaseEntity.Schema, IsErrorClassificationScenarioCaseEntity.Node);
+  static 'non-object'(scenarioCase: ScenarioCaseOfType<IsErrorClassificationScenarioCaseEntity.Type, 'non-object'>): void {
+    assert.strictEqual(ErrorClassificationGuard.isErrorClassification(scenarioCase.input), scenarioCase.expected.result);
+  }
 
-const runClassification: ScenarioRunner = (scenario) => {
-  assert.strictEqual(ErrorClassificationGuard.isErrorClassification(scenario.input), scenario.expected.result);
-};
+  static 'valid'(scenarioCase: ScenarioCaseOfType<IsErrorClassificationScenarioCaseEntity.Type, 'valid'>): void {
+    assert.strictEqual(ErrorClassificationGuard.isErrorClassification(scenarioCase.input), scenarioCase.expected.result);
+  }
 
-const runnerMap = {
-  'invalid-reason': runClassification,
-  'non-object': runClassification,
-  'valid': runClassification,
-  'valid-with-reason': runClassification
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
-
-function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.shape](scenario);
+  static 'valid-with-reason'(scenarioCase: ScenarioCaseOfType<IsErrorClassificationScenarioCaseEntity.Type, 'valid-with-reason'>): void {
+    assert.strictEqual(ErrorClassificationGuard.isErrorClassification(scenarioCase.input), scenarioCase.expected.result);
+  }
 }
 
-void describe('isErrorClassification', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': IsErrorClassificationScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'isErrorClassification',
+  'runners': IsErrorClassificationRunners
 });

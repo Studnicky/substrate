@@ -1,126 +1,106 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { it } from 'node:test';
 
 import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
-import { MaxElapsedMsScenarioCaseEntity } from '../entities/MaxElapsedMsScenarioCaseEntity.js';
-import scenarioGroups from './max-elapsed-ms.scenarios.json' with { type: 'json' };
+import { MaximumElapsedMsScenarioCaseEntity } from '../entities/MaximumElapsedMsScenarioCaseEntity.js';
+import { FailingOperation } from './fixtures/FailingOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import { RetryClassifier } from './fixtures/RetryClassifier.js';
+import scenarioGroups from './max-elapsed-ms.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(MaxElapsedMsScenarioCaseEntity.Schema, MaxElapsedMsScenarioCaseEntity.Node);
-
-type ScenarioCase = MaxElapsedMsScenarioCaseEntity.Type;
-
-type ScenarioRunner = (scenario: ScenarioCase) => Promise<void>;
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'configured-not-reached': async (scenario) => {
+class MaximumElapsedMsRunners {
+  static async 'configured-not-reached'(scenario: ScenarioCaseOfType<MaximumElapsedMsScenarioCaseEntity.Type, 'configured-not-reached'>): Promise<void> {
     const { expected, input } = scenario;
     const retry = Retry.create({
-      errorClassifier: () => ({ retryable: true }),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
 
-    const result = await retry.execute(async () => String(input.result));
+    const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     assert.strictEqual(result, String(expected.result));
-  },
-  'count-wins': async (scenario) => {
+  }
+
+  static async 'count-wins'(scenario: ScenarioCaseOfType<MaximumElapsedMsScenarioCaseEntity.Type, 'count-wins'>): Promise<void> {
     const { expected, input } = scenario;
-    let attempts = 0;
+    const operation = new FailingOperation(String(input.errorMessage));
 
     const retry = Retry.create({
-      errorClassifier: () => ({ retryable: true }),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => {
-        attempts += 1;
-        throw RuntimeError.create(String(input.errorMessage));
-      }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(operation.run), MaximumRetriesExceededError);
 
-    assert.strictEqual(attempts, Number(expected.attempts));
+    assert.strictEqual(operation.attempts, Number(expected.attempts));
     assert.strictEqual(retry.getStats().totalRetries, Number(expected.totalRetries));
-  },
-  'default-behavior': async (scenario) => {
+  }
+
+  static async 'default-behavior'(scenario: ScenarioCaseOfType<MaximumElapsedMsScenarioCaseEntity.Type, 'default-behavior'>): Promise<void> {
     const { expected, input } = scenario;
-    let attempts = 0;
+    const operation = new FailingOperation(String(input.errorMessage), Number(input.delayMs));
     const retry = Retry.create({
-      errorClassifier: () => ({ retryable: true }),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => {
-        attempts += 1;
-        await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
-        throw RuntimeError.create(String(input.errorMessage));
-      }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(operation.run), MaximumRetriesExceededError);
 
-    assert.strictEqual(attempts, Number(expected.attempts));
+    assert.strictEqual(operation.attempts, Number(expected.attempts));
     assert.strictEqual(retry.getStats().totalRetries, Number(expected.totalRetries));
-  },
-  'time-wins': async (scenario) => {
+  }
+
+  static async 'time-wins'(scenario: ScenarioCaseOfType<MaximumElapsedMsScenarioCaseEntity.Type, 'time-wins'>): Promise<void> {
     const { expected, input } = scenario;
     const maximumElapsedMs = Number(input.retry?.maximumElapsedMs);
-    let attempts = 0;
+    const operation = new FailingOperation(String(input.errorMessage), Number(input.delayMs));
 
     const retry = Retry.create({
-      errorClassifier: () => ({ retryable: true }),
+      'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
 
     const start = Date.now();
 
-    await assert.rejects(
-      () => retry.execute(async () => {
-        attempts += 1;
-        await new Promise((resolve) => setTimeout(resolve, Number(input.delayMs)));
-        throw RuntimeError.create(String(input.errorMessage));
-      }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(operation.run), MaximumRetriesExceededError);
 
     const elapsed = Date.now() - start;
-    assert.ok(attempts < Number(expected.attemptsLessThan));
+    assert.ok(operation.attempts < Number(expected.attemptsLessThan));
     assert.ok(elapsed < maximumElapsedMs * Number(expected.elapsedLessThanFactor));
   }
-};
 
-async function runCase(scenario: ScenarioCase): Promise<void> {
-  await runnerMap[scenario.shape](scenario);
-}
+  static declareInjectsClockElapsedTime(): void {
+    void it('measures the elapsed-time budget with an injected clock', async () => {
+      const counter = VirtualTimeCounter.create({ 'startMs': 0 });
+      const clock = VirtualClockProvider.create(counter);
+      const retry = Retry.create({
+        'clock': clock,
+        'errorClassifier': RetryClassifier.retryable,
+        'maximumElapsedMs': 5,
+        'maximumRetries': 3
+      });
 
-void describe('Retry maximumElapsedMs', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
+      const operation = (): Promise<string> => {
+        counter.advance(6);
+        const failure = Promise.reject(RuntimeError.create('transient failure'));
+        return failure;
+      };
+
+      await assert.rejects(retry.execute(operation), MaximumRetriesExceededError);
+      assert.equal(retry.getStats().totalRetries, 0);
     });
   }
+}
 
-  void it('measures the elapsed-time budget with an injected clock', async () => {
-    const counter = VirtualTimeCounter.create({ startMs: 0 });
-    const clock = VirtualClockProvider.create(counter);
-    const retry = Retry.create({
-      clock,
-      errorClassifier: () => ({ retryable: true }),
-      maximumElapsedMs: 5,
-      maximumRetries: 3
-    });
-
-    await assert.rejects(
-      () => retry.execute(async () => {
-        counter.advance(6);
-        throw RuntimeError.create('transient failure');
-      }),
-      MaximumRetriesExceededError
-    );
-    assert.equal(retry.getStats().totalRetries, 0);
-  });
+ScenarioSuite.register({
+  'entity': MaximumElapsedMsScenarioCaseEntity,
+  'extraTests': MaximumElapsedMsRunners.declareInjectsClockElapsedTime,
+  'file': scenarioGroups,
+  'name': 'Retry maximumElapsedMs',
+  'runners': MaximumElapsedMsRunners
 });

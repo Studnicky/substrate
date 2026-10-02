@@ -1,51 +1,22 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
-
+import type { ErrorClassifierFunctionInterface } from '@studnicky/errors/browser';
 import type { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
-
-import { CircuitBreaker, CircuitBreakerOpenError, type CircuitBreakerCollaboratorsInterface } from '@studnicky/resilience/node';
-import { MaximumRetriesExceededError, Retry } from '@studnicky/retry/node';
 import type { RetryConfigInterface } from '@studnicky/retry/interfaces';
-import { Throttle } from '@studnicky/throttle/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { ThrottleConfigEntity } from '@studnicky/throttle/entities';
 
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { RuntimeError } from '@studnicky/errors/node';
+import { CircuitBreaker, type CircuitBreakerCollaboratorsInterface, CircuitBreakerOpenError } from '@studnicky/resilience/node';
+import { MaximumRetriesExceededError, Retry } from '@studnicky/retry/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { Throttle } from '@studnicky/throttle/node';
+import assert from 'node:assert/strict';
 
-import { BoundaryKit } from '../../../src/index.js';
 import type { BoundaryKitConfigInterface } from '../../../src/interfaces/index.js';
+
 import { BoundaryKitAbortedError } from '../../../src/errors/BoundaryKitAbortedError.js';
+import { BoundaryKit } from '../../../src/index.js';
+import scenarioGroups from './boundary-kit.scenarios.json' with { 'type': 'json' };
 import { BoundaryKitScenarioCaseEntity } from './entities/BoundaryKitScenarioCaseEntity.js';
-import scenarioGroups from './boundary-kit.scenarios.json' with { type: 'json' };
-
-type RetryClassifierDescriptor = {
-  shape: 'constant';
-  reason: string;
-  retryable: boolean;
-};
-
-type RetryConfigDescriptor = {
-  errorClassifier?: RetryClassifierDescriptor;
-  maximumRetries?: number;
-};
-
-type BoundaryKitConfigDescriptor = {
-  circuitBreaker?: CircuitBreakerOptionsEntity.InputType;
-  retry?: RetryConfigDescriptor;
-  throttle?: ThrottleConfigEntity.Type;
-};
-
-type BoundaryKitRuntimeDeps = {
-  circuitBreaker?: CircuitBreaker;
-  retry?: Retry;
-  throttle?: Throttle;
-};
-
-type BatchInput = {
-  callCount: number;
-};
-
-type ScenarioCase = BoundaryKitScenarioCaseEntity.Type;
 
 class SubclassedThrottle extends Throttle {
   acquireCount = 0;
@@ -83,199 +54,237 @@ class SubclassedRetry extends Retry {
   }
 }
 
-const retryClassifierMap: Record<
-  RetryClassifierDescriptor['shape'],
-  (descriptor: RetryClassifierDescriptor) => NonNullable<RetryConfigInterface['errorClassifier']>
-> = {
-  constant: (descriptor) => () => ({ reason: descriptor.reason, retryable: descriptor.retryable })
-};
+class BoundaryKitRunners {
+  private static createConstantClassifier(descriptor: { 'reason': string; 'retryable': boolean }): ErrorClassifierFunctionInterface {
+    const classifier: ErrorClassifierFunctionInterface = () => {
+      const classification = { 'reason': descriptor.reason, 'retryable': descriptor.retryable };
+      return classification;
+    };
+    return classifier;
+  }
 
-function materializeRetryConfig(config: RetryConfigDescriptor): RetryConfigInterface {
-  const { errorClassifier, ...serializableConfig } = config;
+  private static materializeRetryConfig(config: { 'errorClassifier'?: { 'reason': string; 'retryable': boolean; 'shape': 'constant' }; 'maximumRetries'?: number }): RetryConfigInterface {
+    const { errorClassifier, ...serializableConfig } = config;
 
-  return {
-    ...serializableConfig,
-    ...(errorClassifier === undefined ? {} : { errorClassifier: retryClassifierMap[errorClassifier.shape](errorClassifier) })
-  };
-}
+    return {
+      ...serializableConfig,
+      ...(errorClassifier === undefined ? {} : { 'errorClassifier': BoundaryKitRunners.createConstantClassifier(errorClassifier) })
+    };
+  }
 
-function materializeBoundaryKitConfig(
-  descriptor: BoundaryKitConfigDescriptor,
-  runtimeDeps: BoundaryKitRuntimeDeps = {}
-): BoundaryKitConfigInterface {
-  const circuitBreaker = runtimeDeps.circuitBreaker ?? descriptor.circuitBreaker;
-  const retry = runtimeDeps.retry ?? (descriptor.retry === undefined ? undefined : materializeRetryConfig(descriptor.retry));
-  const throttle = runtimeDeps.throttle ?? descriptor.throttle;
+  private static materializeBoundaryKitConfig(
+    descriptor: { 'circuitBreaker'?: CircuitBreakerOptionsEntity.InputType; 'retry'?: { 'errorClassifier'?: { 'reason': string; 'retryable': boolean; 'shape': 'constant' }; 'maximumRetries'?: number }; 'throttle'?: ThrottleConfigEntity.Type },
+    runtimeDeps: { 'circuitBreaker'?: CircuitBreaker; 'retry'?: Retry; 'throttle'?: Throttle } = {}
+  ): BoundaryKitConfigInterface {
+    const circuitBreaker = runtimeDeps.circuitBreaker ?? descriptor.circuitBreaker;
+    const retry = runtimeDeps.retry ?? (descriptor.retry === undefined ? undefined : BoundaryKitRunners.materializeRetryConfig(descriptor.retry));
+    const throttle = runtimeDeps.throttle ?? descriptor.throttle;
 
-  return {
-    ...(circuitBreaker === undefined ? {} : { circuitBreaker }),
-    ...(retry === undefined ? {} : { retry }),
-    ...(throttle === undefined ? {} : { throttle })
-  };
-}
+    return {
+      ...(circuitBreaker === undefined ? {} : { 'circuitBreaker': circuitBreaker }),
+      ...(retry === undefined ? {} : { 'retry': retry }),
+      ...(throttle === undefined ? {} : { 'throttle': throttle })
+    };
+  }
 
-function materializePrebuiltBoundaryKit(
-  descriptor: Required<BoundaryKitConfigDescriptor>
-): {
-  circuitBreaker: SubclassedCircuitBreaker;
-  config: BoundaryKitConfigInterface;
-  retry: SubclassedRetry;
-  throttle: SubclassedThrottle;
-} {
-  const throttle = new SubclassedThrottle(descriptor.throttle);
-  const circuitBreaker = new SubclassedCircuitBreaker(descriptor.circuitBreaker);
-  const retry = new SubclassedRetry(materializeRetryConfig(descriptor.retry));
+  private static materializePrebuiltBoundaryKit(
+    descriptor: { 'circuitBreaker': CircuitBreakerOptionsEntity.InputType; 'retry': { 'errorClassifier'?: { 'reason': string; 'retryable': boolean; 'shape': 'constant' }; 'maximumRetries'?: number }; 'throttle': ThrottleConfigEntity.Type }
+  ): {
+    'circuitBreaker': SubclassedCircuitBreaker;
+    'config': BoundaryKitConfigInterface;
+    'retry': SubclassedRetry;
+    'throttle': SubclassedThrottle;
+  } {
+    const throttle = new SubclassedThrottle(descriptor.throttle);
+    const circuitBreaker = new SubclassedCircuitBreaker(descriptor.circuitBreaker);
+    const retry = new SubclassedRetry(BoundaryKitRunners.materializeRetryConfig(descriptor.retry));
 
-  return {
-    circuitBreaker,
-    config: materializeBoundaryKitConfig(descriptor, { circuitBreaker, retry, throttle }),
-    retry,
-    throttle
-  };
-}
+    return {
+      'circuitBreaker': circuitBreaker,
+      'config': BoundaryKitRunners.materializeBoundaryKitConfig(descriptor, { 'circuitBreaker': circuitBreaker, 'retry': retry, 'throttle': throttle }),
+      'retry': retry,
+      'throttle': throttle
+    };
+  }
 
-function materializeTrackedCircuitBreakerKit(
-  descriptor: Required<Pick<BoundaryKitConfigDescriptor, 'circuitBreaker' | 'retry'>>
-): { circuitBreaker: CircuitBreaker; kit: BoundaryKit } {
-  const circuitBreaker = CircuitBreaker.create(descriptor.circuitBreaker);
+  private static materializeTrackedCircuitBreakerKit(
+    descriptor: { 'circuitBreaker': CircuitBreakerOptionsEntity.InputType; 'retry': { 'errorClassifier'?: { 'reason': string; 'retryable': boolean; 'shape': 'constant' }; 'maximumRetries'?: number } }
+  ): { 'circuitBreaker': CircuitBreaker; 'kit': BoundaryKit } {
+    const circuitBreaker = CircuitBreaker.create(descriptor.circuitBreaker);
 
-  return {
-    circuitBreaker,
-    kit: BoundaryKit.create(materializeBoundaryKitConfig(descriptor, { circuitBreaker }))
-  };
-}
+    return {
+      'circuitBreaker': circuitBreaker,
+      'kit': BoundaryKit.create(BoundaryKitRunners.materializeBoundaryKitConfig(descriptor, { 'circuitBreaker': circuitBreaker }))
+    };
+  }
 
-function materializeAbortBoundaryKit(
-  descriptor: Required<Pick<BoundaryKitConfigDescriptor, 'throttle'>>
-): { kit: BoundaryKit; throttle: Throttle } {
-  const throttle = Throttle.create(descriptor.throttle);
+  private static materializeAbortBoundaryKit(
+    descriptor: { 'throttle': ThrottleConfigEntity.Type }
+  ): { 'kit': BoundaryKit; 'throttle': Throttle } {
+    const throttle = Throttle.create(descriptor.throttle);
 
-  return {
-    kit: BoundaryKit.create(materializeBoundaryKitConfig(descriptor, { throttle })),
-    throttle
-  };
-}
+    return {
+      'kit': BoundaryKit.create(BoundaryKitRunners.materializeBoundaryKitConfig(descriptor, { 'throttle': throttle })),
+      'throttle': throttle
+    };
+  }
 
-function createExecuteBatch<T>(batch: BatchInput, execute: () => Promise<T>): Promise<T>[] {
-  return Array.from({ length: batch.callCount }, () => execute());
-}
+  private static createExecuteBatch<T>(batch: { 'callCount': number }, execute: () => Promise<T>): Promise<T>[] {
+    const result: Promise<T>[] = [];
+    for (let i = 0; i < batch.callCount; i += 1) {
+      result.push(execute());
+    }
+    return result;
+  }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = {
-  [K in ScenarioCase['shape']]: ScenarioRunner<K>;
-};
+  static async 'circuit-breaker-open'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'circuit-breaker-open'>): Promise<void> {
+    const { circuitBreaker, kit } = BoundaryKitRunners.materializeTrackedCircuitBreakerKit(scenarioCase.input.boundaryKit.config);
 
-const fileIntake = ScenarioFileCompiler.compileIntake(BoundaryKitScenarioCaseEntity.Schema, BoundaryKitScenarioCaseEntity.Node);
+    let callCount = 0;
 
-const runnerMap: RunnerMap = {
-  'plain-config': async (scenarioCase) => {
-    const kit = BoundaryKit.create(materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
+    const alwaysFails = (): Promise<never> => {
+      callCount += 1;
+      const error = RuntimeError.create('always fails');
+      const result = Promise.reject(error);
+      return result;
+    };
 
-    const result = await kit.execute(async () => scenarioCase.expected.result);
-    assert.equal(result, scenarioCase.expected.result);
-  },
+    await assert.rejects(
+      async () => {
+        const result = await kit.execute(alwaysFails);
+        return result;
+      },
+      MaximumRetriesExceededError
+    );
+    assert.equal(callCount, scenarioCase.expected.callCount);
+    assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterFirst);
 
-  'default-retry': async (scenarioCase) => {
+    await assert.rejects(
+      async () => {
+        const result = await kit.execute(alwaysFails);
+        return result;
+      },
+      MaximumRetriesExceededError
+    );
+    assert.equal(callCount, scenarioCase.expected.callCount * 2);
+    assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterSecond);
+
+    await assert.rejects(
+      async () => {
+        const result = await kit.execute(alwaysFails);
+        return result;
+      },
+      (error) => {
+        assert.ok(error instanceof CircuitBreakerOpenError);
+        assert.equal(error.constructor.name, scenarioCase.expected.rejectionName);
+        return true;
+      }
+    );
+    assert.equal(callCount, scenarioCase.expected.callCount * 2);
+  }
+
+  static async 'default-retry'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'default-retry'>): Promise<void> {
     const kit = BoundaryKit.create();
     let callCount = 0;
 
-    const flaky = async (): Promise<string> => {
+    const flaky = (): Promise<string> => {
       callCount += 1;
 
       if (callCount <= scenarioCase.input.boundaryKit.failuresBeforeSuccess) {
-        throw RuntimeError.create('transient failure');
+        const error = RuntimeError.create('transient failure');
+        const result = Promise.reject(error);
+        return result;
       }
 
-      return scenarioCase.expected.result;
+      const result = Promise.resolve(scenarioCase.expected.result);
+      return result;
     };
 
     const result = await kit.execute(flaky);
     assert.equal(result, scenarioCase.expected.result);
     assert.equal(callCount, scenarioCase.expected.callCount);
-  },
+  }
 
-  'prebuilt-instances': async (scenarioCase) => {
-    const { circuitBreaker, config, retry, throttle } = materializePrebuiltBoundaryKit(scenarioCase.input.boundaryKit.prebuiltConfig);
+  static async 'plain-config'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'plain-config'>): Promise<void> {
+    const kit = BoundaryKit.create(BoundaryKitRunners.materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
+
+    const result = await kit.execute(() => {
+      const resolved = Promise.resolve(scenarioCase.expected.result);
+      return resolved;
+    });
+    assert.equal(result, scenarioCase.expected.result);
+  }
+
+  static async 'prebuilt-instances'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'prebuilt-instances'>): Promise<void> {
+    const { circuitBreaker, config, retry, throttle } = BoundaryKitRunners.materializePrebuiltBoundaryKit(scenarioCase.input.boundaryKit.prebuiltConfig);
     const kit = BoundaryKit.create(config);
 
-    await kit.execute(async () => 'ok');
+    await kit.execute(() => {
+      const settled = Promise.resolve('ok');
+      return settled;
+    });
 
     assert.equal(throttle.acquireCount, scenarioCase.expected.acquireCount);
     assert.equal(circuitBreaker.successCount, scenarioCase.expected.successCount);
     assert.equal(retry.attemptCount, scenarioCase.expected.attemptCount);
-  },
+  }
 
-  'throttle-bound': async (scenarioCase) => {
+  static async 'throttle-bound'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'throttle-bound'>): Promise<void> {
     const concurrencyLimit = scenarioCase.input.boundaryKit.config.throttle.concurrencyLimit;
-    const kit = BoundaryKit.create(materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
+    const kit = BoundaryKit.create(BoundaryKitRunners.materializeBoundaryKitConfig(scenarioCase.input.boundaryKit.config));
 
-    let active = 0;
-    let maxObservedActive = 0;
+    let currentlyActiveCount = 0;
+    let maximumCurrentlyActiveCount = 0;
 
     const trackedWork = async (): Promise<number> => {
-      active += 1;
-      maxObservedActive = Math.max(maxObservedActive, active);
+      currentlyActiveCount += 1;
+      maximumCurrentlyActiveCount = Math.max(maximumCurrentlyActiveCount, currentlyActiveCount);
 
-      await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.boundaryKit.workDelayMs); });
+      await new Promise((resolve) => {
+        setTimeout(resolve, scenarioCase.input.boundaryKit.workDelayMs);
+      });
 
-      active -= 1;
-      return active;
+      currentlyActiveCount -= 1;
+      return currentlyActiveCount;
     };
 
-    const calls = createExecuteBatch(scenarioCase.input.batch, () => kit.execute(trackedWork));
-    await Promise.all(calls);
-
-    assert.equal(maxObservedActive, scenarioCase.expected.maxObservedActive);
-    assert.equal(maxObservedActive, concurrencyLimit);
-  },
-
-  'circuit-breaker-open': async (scenarioCase) => {
-    const { circuitBreaker, kit } = materializeTrackedCircuitBreakerKit(scenarioCase.input.boundaryKit.config);
-
-    let callCount = 0;
-
-    const alwaysFails = async (): Promise<never> => {
-      callCount += 1;
-      throw RuntimeError.create('always fails');
-    };
-
-    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
-    assert.equal(callCount, scenarioCase.expected.callCount);
-    assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterFirst);
-
-    await assert.rejects(() => kit.execute(alwaysFails), MaximumRetriesExceededError);
-    assert.equal(callCount, scenarioCase.expected.callCount * 2);
-    assert.equal(circuitBreaker.state, scenarioCase.expected.breakerStateAfterSecond);
-
-    await assert.rejects(() => kit.execute(alwaysFails), (error) => {
-      assert.ok(error instanceof CircuitBreakerOpenError);
-      assert.equal(error.constructor.name, scenarioCase.expected.rejectionName);
-      return true;
+    const executeBatchCalls = BoundaryKitRunners.createExecuteBatch(scenarioCase.input.batch, () => {
+      const pending = kit.execute(trackedWork);
+      return pending;
     });
-    assert.equal(callCount, scenarioCase.expected.callCount * 2);
-  },
+    await Promise.all(executeBatchCalls);
 
-  'undefined-result-vs-abort': async (scenarioCase) => {
+    assert.equal(maximumCurrentlyActiveCount, scenarioCase.expected.maximumObservedActive);
+    assert.equal(maximumCurrentlyActiveCount, concurrencyLimit);
+  }
+
+  static async 'undefined-result-vs-abort'(scenarioCase: ScenarioCaseOfType<BoundaryKitScenarioCaseEntity.Type, 'undefined-result-vs-abort'>): Promise<void> {
     const kit = BoundaryKit.create();
 
     let ran = false;
-    const voidWork = async (): Promise<void> => {
+    const voidWork = (): Promise<void> => {
       ran = true;
+      const settled = Promise.resolve();
+      return settled;
     };
 
     const result = await kit.execute(voidWork);
     assert.equal(result, undefined);
     assert.equal(ran, true);
 
-    const { kit: abortKit, throttle } = materializeAbortBoundaryKit(scenarioCase.input.boundaryKit.abortConfig);
+    const { 'kit': abortKit, throttle } = BoundaryKitRunners.materializeAbortBoundaryKit(scenarioCase.input.boundaryKit.abortConfig);
 
     let abortedRan = false;
     const blockingWork = async (): Promise<string> => {
-      await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.boundaryKit.abortDelayMs); });
+      await new Promise((resolve) => {
+        setTimeout(resolve, scenarioCase.input.boundaryKit.abortDelayMs);
+      });
       return 'done';
     };
-    const queuedWork = async (): Promise<void> => {
+    const queuedWork = (): Promise<void> => {
       abortedRan = true;
+      const settled = Promise.resolve();
+      return settled;
     };
 
     const first = abortKit.execute(blockingWork);
@@ -284,19 +293,20 @@ const runnerMap: RunnerMap = {
     await throttle.abort();
 
     await first.catch(() => {});
-    await assert.rejects(() => queued, BoundaryKitAbortedError);
+    await assert.rejects(
+      async () => {
+        const queuedResult = await queued;
+        return queuedResult;
+      },
+      BoundaryKitAbortedError
+    );
     assert.equal(abortedRan, scenarioCase.expected.abortedRan);
   }
-};
-
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('BoundaryKit', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': BoundaryKitScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'BoundaryKit',
+  'runners': BoundaryKitRunners
 });

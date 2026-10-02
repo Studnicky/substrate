@@ -1,4 +1,5 @@
 export { plugin } from './plugin.js';
+export { PlatformCallDefaults } from './rules/shared/PlatformCallDefaults.js';
 export { classMechanicsSuite } from './suites/classMechanicsSuite.js';
 export { diagnosticsSuite } from './suites/diagnosticsSuite.js';
 export { entityModelSuite } from './suites/entityModelSuite.js';

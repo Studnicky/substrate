@@ -7,16 +7,11 @@
  * `tsc` before a single assertion runs. The scenario fixture supplies the inputs and expected
  * descriptions; the compile-time guarantee lives here.
  */
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
-import {
-  PaginatorAvailableCursorEntity,
-  PaginatorExhaustedStateEntity,
-  PaginatorHasMoreStateEntity,
-  PaginatorPageReceivedEventEntity
-} from '../../../src/entities/index.js';
 
 import type {
   PaginatorExhaustedCursorEntity,
@@ -30,113 +25,121 @@ import type {
   PaginatorPageReceivedEventInterface
 } from '../../../src/interfaces/index.js';
 
+import {
+  PaginatorAvailableCursorEntity,
+  PaginatorExhaustedStateEntity,
+  PaginatorHasMoreStateEntity,
+  PaginatorPageReceivedEventEntity
+} from '../../../src/entities/index.js';
 import { DiscriminantNarrowingScenarioCaseEntity } from '../entities/DiscriminantNarrowingScenarioCaseEntity.js';
-import scenarioGroups from './discriminantNarrowing.scenarios.json' with { type: 'json' };
+import scenarioGroups from './discriminantNarrowing.scenarios.json' with { 'type': 'json' };
 
-type CursorUnion = PaginatorAvailableCursorInterface<number> | PaginatorExhaustedCursorEntity.Type;
-type EventUnion = PaginatorResetEventEntity.Type | PaginatorPageReceivedEventInterface<string, number>;
-type StateUnion =
-  | PaginatorIdleStateEntity.Type
-  | PaginatorHasMoreStateInterface<string, number>
-  | PaginatorExhaustedStateInterface<string>;
-
-function describeCursor(cursor: CursorUnion): string {
-  const result = cursor.exhausted ? 'exhausted' : `cursor:${String(cursor.cursor)}`;
-
-  return result;
-}
-
-function describeEvent(event: EventUnion): string {
-  if (event.type === 'reset') {
-    return event.type;
+class DiscriminantNarrowingRunners {
+  static 'cursor-discriminants'(scenarioCase: ScenarioCaseOfType<DiscriminantNarrowingScenarioCaseEntity.Type, 'cursor-discriminants'>): void {
+    const descriptions: string[] = [];
+    for (let index = 0; index < scenarioCase.input.cursors.length; index += 1) {
+      const cursor = scenarioCase.input.cursors[index];
+      if (cursor !== undefined) {
+        descriptions.push(DiscriminantNarrowingRunners.describeCursor(cursor));
+      }
+    }
+    assert.deepStrictEqual(descriptions, scenarioCase.expected.descriptions);
   }
 
-  const result = `${event.page}:${describeCursor(event.nextCursor)}`;
-
-  return result;
-}
-
-function describeState(state: StateUnion): string {
-  switch (state.variant) {
-    case 'idle':
-      return state.variant;
-    case 'hasMore':
-      return `${state.pages.join(',')}:cursor:${String(state.cursor)}`;
-    case 'exhausted':
-      return `${state.pages.join(',')}:exhausted`;
+  static 'event-discriminants'(scenarioCase: ScenarioCaseOfType<DiscriminantNarrowingScenarioCaseEntity.Type, 'event-discriminants'>): void {
+    const descriptions: string[] = [];
+    for (let index = 0; index < scenarioCase.input.events.length; index += 1) {
+      const event = scenarioCase.input.events[index];
+      if (event !== undefined) {
+        descriptions.push(DiscriminantNarrowingRunners.describeEvent(event));
+      }
+    }
+    assert.deepStrictEqual(descriptions, scenarioCase.expected.descriptions);
   }
-}
 
-type ScenarioCase = DiscriminantNarrowingScenarioCaseEntity.Type;
-
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
-
-const scenarioRunners: { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> } = {
-  'cursor-discriminants': (scenarioCase) => {
-    assert.deepStrictEqual(scenarioCase.input.cursors.map(describeCursor), scenarioCase.expected.descriptions);
-  },
-  'event-discriminants': (scenarioCase) => {
-    assert.deepStrictEqual(scenarioCase.input.events.map(describeEvent), scenarioCase.expected.descriptions);
-  },
-  'state-discriminants': (scenarioCase) => {
-    assert.deepStrictEqual(scenarioCase.input.states.map(describeState), scenarioCase.expected.descriptions);
+  static 'state-discriminants'(scenarioCase: ScenarioCaseOfType<DiscriminantNarrowingScenarioCaseEntity.Type, 'state-discriminants'>): void {
+    const descriptions: string[] = [];
+    for (let index = 0; index < scenarioCase.input.states.length; index += 1) {
+      const state = scenarioCase.input.states[index];
+      if (state !== undefined) {
+        descriptions.push(DiscriminantNarrowingRunners.describeState(state));
+      }
+    }
+    assert.deepStrictEqual(descriptions, scenarioCase.expected.descriptions);
   }
-};
 
-/** A literal-keyed switch lets each branch narrow `scenarioCase` before indexing the map, so the call stays sound without erasing the union to `ScenarioRunner<ScenarioCase['shape']>`. */
-function runCase(scenarioCase: ScenarioCase): void {
-  switch (scenarioCase.shape) {
-    case 'cursor-discriminants':
-      scenarioRunners['cursor-discriminants'](scenarioCase);
-      return;
-    case 'event-discriminants':
-      scenarioRunners['event-discriminants'](scenarioCase);
-      return;
-    case 'state-discriminants':
-      scenarioRunners['state-discriminants'](scenarioCase);
-      return;
-  }
-}
+  static declaresEntityContracts(): void {
+    void describe('Paginator entity contracts', () => {
+      void it('intakes complete cursor, state, and page-received event shapes', () => {
+        assert.deepEqual(
+          PaginatorAvailableCursorEntity.intake({ 'cursor': 2, 'exhausted': false }),
+          { 'cursor': 2, 'exhausted': false }
+        );
+        assert.deepEqual(
+          PaginatorHasMoreStateEntity.intake({ 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }),
+          { 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }
+        );
+        assert.deepEqual(
+          PaginatorExhaustedStateEntity.intake({ 'pages': ['last'], 'variant': 'exhausted' }),
+          { 'pages': ['last'], 'variant': 'exhausted' }
+        );
+        assert.deepEqual(
+          PaginatorPageReceivedEventEntity.intake({
+            'nextCursor': { 'exhausted': true },
+            'page': 'last',
+            'type': 'pageReceived'
+          }),
+          { 'nextCursor': { 'exhausted': true }, 'page': 'last', 'type': 'pageReceived' }
+        );
+      });
 
-void describe('Paginator entity contracts', () => {
-  void it('intakes complete cursor, state, and page-received event shapes', () => {
-    assert.deepEqual(
-      PaginatorAvailableCursorEntity.intake({ 'cursor': 2, 'exhausted': false }),
-      { 'cursor': 2, 'exhausted': false }
-    );
-    assert.deepEqual(
-      PaginatorHasMoreStateEntity.intake({ 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }),
-      { 'cursor': 2, 'pages': ['first'], 'variant': 'hasMore' }
-    );
-    assert.deepEqual(
-      PaginatorExhaustedStateEntity.intake({ 'pages': ['last'], 'variant': 'exhausted' }),
-      { 'pages': ['last'], 'variant': 'exhausted' }
-    );
-    assert.deepEqual(
-      PaginatorPageReceivedEventEntity.intake({
-        'nextCursor': { 'exhausted': true },
-        'page': 'last',
-        'type': 'pageReceived'
-      }),
-      { 'nextCursor': { 'exhausted': true }, 'page': 'last', 'type': 'pageReceived' }
-    );
-  });
-
-  void it('rejects incomplete page-received event data', () => {
-    assert.throws(() => PaginatorPageReceivedEventEntity.intake({
-      'nextCursor': { 'exhausted': false },
-      'page': 'missing cursor',
-      'type': 'pageReceived'
-    }));
-  });
-});
-
-const fileIntake = ScenarioFileCompiler.compileIntake(DiscriminantNarrowingScenarioCaseEntity.Schema, DiscriminantNarrowingScenarioCaseEntity.Node);
-
-void describe('Paginator discriminant narrowing', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, () => {
-      runCase(scenarioCase);
+      void it('rejects incomplete page-received event data', () => {
+        assert.throws(() => {
+          PaginatorPageReceivedEventEntity.intake({
+            'nextCursor': { 'exhausted': false },
+            'page': 'missing cursor',
+            'type': 'pageReceived'
+          });
+        });
+      });
     });
   }
+
+  private static describeCursor(cursor: PaginatorAvailableCursorInterface<number> | PaginatorExhaustedCursorEntity.Type): string {
+    const result = cursor.exhausted ? 'exhausted' : `cursor:${String(cursor.cursor)}`;
+
+    return result;
+  }
+
+  private static describeEvent(event: PaginatorPageReceivedEventInterface<string, number> | PaginatorResetEventEntity.Type): string {
+    if (event.type === 'reset') {
+      return event.type;
+    }
+
+    const result = `${event.page}:${DiscriminantNarrowingRunners.describeCursor(event.nextCursor)}`;
+
+    return result;
+  }
+
+  private static describeState(
+    state: PaginatorExhaustedStateInterface<string> | PaginatorHasMoreStateInterface<string, number> | PaginatorIdleStateEntity.Type
+  ): string {
+    if (state.variant === 'exhausted') {
+      return `${state.pages.join(',')}:exhausted`;
+    }
+
+    if (state.variant === 'hasMore') {
+      return `${state.pages.join(',')}:cursor:${String(state.cursor)}`;
+    }
+
+    return state.variant;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': DiscriminantNarrowingScenarioCaseEntity,
+  'extraTests': DiscriminantNarrowingRunners.declaresEntityContracts,
+  'file': scenarioGroups,
+  'name': 'Paginator discriminant narrowing',
+  'runners': DiscriminantNarrowingRunners
 });

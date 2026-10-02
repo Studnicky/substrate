@@ -1,10 +1,12 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
-import { ProcessDefaultMaxConcurrentScenarioCaseEntity } from './ProcessDefaultMaxConcurrentScenarioCaseEntity.js';
+import { ProcessDefaultMaximumConcurrentScenarioCaseEntity } from './ProcessDefaultMaximumConcurrentScenarioCaseEntity.js';
 import { ProcessEmptyScenarioCaseEntity } from './ProcessEmptyScenarioCaseEntity.js';
-import { ProcessInvalidMaxConcurrentScenarioCaseEntity } from './ProcessInvalidMaxConcurrentScenarioCaseEntity.js';
+import { ProcessInvalidMaximumConcurrentScenarioCaseEntity } from './ProcessInvalidMaximumConcurrentScenarioCaseEntity.js';
 import { ProcessMultiBatchScenarioCaseEntity } from './ProcessMultiBatchScenarioCaseEntity.js';
 import { ProcessOrderScenarioCaseEntity } from './ProcessOrderScenarioCaseEntity.js';
 import { ProcessPropagatesErrorsScenarioCaseEntity } from './ProcessPropagatesErrorsScenarioCaseEntity.js';
@@ -23,9 +25,9 @@ export namespace BatchScenarioCaseEntity {
       ProcessSingleBatchScenarioCaseEntity.Schema,
       ProcessSingleBatchConcurrentScenarioCaseEntity.Schema,
       ProcessMultiBatchScenarioCaseEntity.Schema,
-      ProcessInvalidMaxConcurrentScenarioCaseEntity.Schema,
+      ProcessInvalidMaximumConcurrentScenarioCaseEntity.Schema,
       ProcessOrderScenarioCaseEntity.Schema,
-      ProcessDefaultMaxConcurrentScenarioCaseEntity.Schema,
+      ProcessDefaultMaximumConcurrentScenarioCaseEntity.Schema,
       ProcessWaitsForBatchCompletionScenarioCaseEntity.Schema,
       ProcessPropagatesErrorsScenarioCaseEntity.Schema,
       ProcessStopsOnFirstErrorScenarioCaseEntity.Schema,
@@ -39,9 +41,9 @@ export namespace BatchScenarioCaseEntity {
     ProcessSingleBatchScenarioCaseEntity.Node,
     ProcessSingleBatchConcurrentScenarioCaseEntity.Node,
     ProcessMultiBatchScenarioCaseEntity.Node,
-    ProcessInvalidMaxConcurrentScenarioCaseEntity.Node,
+    ProcessInvalidMaximumConcurrentScenarioCaseEntity.Node,
     ProcessOrderScenarioCaseEntity.Node,
-    ProcessDefaultMaxConcurrentScenarioCaseEntity.Node,
+    ProcessDefaultMaximumConcurrentScenarioCaseEntity.Node,
     ProcessWaitsForBatchCompletionScenarioCaseEntity.Node,
     ProcessPropagatesErrorsScenarioCaseEntity.Node,
     ProcessStopsOnFirstErrorScenarioCaseEntity.Node,
@@ -49,4 +51,7 @@ export namespace BatchScenarioCaseEntity {
     ProcessSettledReturnsResultsScenarioCaseEntity.Node
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

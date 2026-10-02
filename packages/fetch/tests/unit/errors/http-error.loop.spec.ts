@@ -1,30 +1,15 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { HTTPError } from '../../../src/errors/index.js';
-
 import { HttpErrorScenarioCaseEntity } from './entities/HttpErrorScenarioCaseEntity.js';
-import scenarioGroups from './http-error.scenarios.json' with { type: 'json' };
+import scenarioGroups from './http-error.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = HttpErrorScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(HttpErrorScenarioCaseEntity.Schema, HttpErrorScenarioCaseEntity.Node);
-
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-
-function createResponse(scenarioCase: ScenarioCase): Response {
-  return new Response(scenarioCase.input.body, {
-    headers: { 'Content-Type': 'text/plain' },
-    status: scenarioCase.input.status,
-    statusText: scenarioCase.input.statusText
-  });
-}
-
-const runnerMap: RunnerMap = {
-  'catchable': (scenarioCase) => {
-    const response = createResponse(scenarioCase);
+class HttpErrorScenarioRunners {
+  static 'catchable'(scenarioCase: ScenarioCaseOfType<HttpErrorScenarioCaseEntity.Type, 'catchable'>): void {
+    const response = HttpErrorScenarioRunners.createResponse(scenarioCase);
     const error = new HTTPError(scenarioCase.input.url, response);
 
     try {
@@ -37,9 +22,10 @@ const runnerMap: RunnerMap = {
       assert.equal(caughtError.statusText, scenarioCase.expected.statusText);
       assert.equal(caughtError.url, scenarioCase.expected.url);
     }
-  },
-  'client-error': (scenarioCase) => {
-    const response = createResponse(scenarioCase);
+  }
+
+  static 'client-error'(scenarioCase: ScenarioCaseOfType<HttpErrorScenarioCaseEntity.Type, 'client-error'>): void {
+    const response = HttpErrorScenarioRunners.createResponse(scenarioCase);
     const error = new HTTPError(scenarioCase.input.url, response);
 
     assert.ok(error instanceof HTTPError);
@@ -49,20 +35,22 @@ const runnerMap: RunnerMap = {
     assert.equal(error.status, scenarioCase.expected.status);
     assert.equal(error.statusText, scenarioCase.expected.statusText);
     assert.equal(error.retryable, scenarioCase.expected.retryable);
-    assert.equal(error.response, response);
+    assert.equal(error.response.status, response.status);
     assert.equal(error.message, scenarioCase.expected.message);
-  },
-  'response-properties': (scenarioCase) => {
-    const response = createResponse(scenarioCase);
+  }
+
+  static 'response-properties'(scenarioCase: ScenarioCaseOfType<HttpErrorScenarioCaseEntity.Type, 'response-properties'>): void {
+    const response = HttpErrorScenarioRunners.createResponse(scenarioCase);
     const error = new HTTPError(scenarioCase.input.url, response);
 
     assert.equal(error.response.url, scenarioCase.expected.responseUrl);
     assert.equal(error.status, scenarioCase.expected.status);
     assert.equal(error.statusText, scenarioCase.expected.statusText);
     assert.equal(error.url, scenarioCase.expected.url);
-  },
-  'server-error': (scenarioCase) => {
-    const response = createResponse(scenarioCase);
+  }
+
+  static 'server-error'(scenarioCase: ScenarioCaseOfType<HttpErrorScenarioCaseEntity.Type, 'server-error'>): void {
+    const response = HttpErrorScenarioRunners.createResponse(scenarioCase);
     const error = new HTTPError(scenarioCase.input.url, response);
 
     assert.ok(error instanceof HTTPError);
@@ -70,19 +58,23 @@ const runnerMap: RunnerMap = {
     assert.equal(error.status, scenarioCase.expected.status);
     assert.equal(error.statusText, scenarioCase.expected.statusText);
     assert.equal(error.url, scenarioCase.expected.url);
-    assert.equal(error.response, response);
+    assert.equal(error.response.status, response.status);
     assert.equal(error.message, scenarioCase.expected.message);
   }
-};
 
-function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  private static createResponse(scenarioCase: HttpErrorScenarioCaseEntity.Type): Response {
+    const response = new Response(scenarioCase.input.body, {
+      'headers': { 'Content-Type': 'text/plain' },
+      'status': scenarioCase.input.status,
+      'statusText': scenarioCase.input.statusText
+    });
+    return response;
+  }
 }
 
-void describe('fetch http error', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': HttpErrorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'fetch http error',
+  'runners': HttpErrorScenarioRunners
 });

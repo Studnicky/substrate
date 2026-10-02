@@ -1,234 +1,232 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+import type { Worker } from 'node:worker_threads';
+
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { fileURLToPath } from 'node:url';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it, mock } from 'node:test';
-import { Worker } from 'node:worker_threads';
+
+import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
 
 import { WorkerPool } from '../../src/WorkerPool.js';
-import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+import { WorkerFixturePath } from '../helpers/WorkerFixturePath.js';
 import { TerminationScenarioCaseEntity } from './entities/TerminationScenarioCaseEntity.js';
-import scenarioGroups from './termination.scenarios.json' with { type: 'json' };
+import scenarioGroups from './termination.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = TerminationScenarioCaseEntity.Type;
-type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
-type ItemInterface = NonNullable<ScenarioCase['input']['item']>;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(TerminationScenarioCaseEntity.Schema, TerminationScenarioCaseEntity.Node);
-
-function requireItem(item: ScenarioCase['input']['item'] | ScenarioCase['input']['crashItem']): ItemInterface {
-  if (item === undefined) {
-    throw RuntimeError.create('scenario input item is required');
+class TerminationSupport {
+  static requireItem(
+    item: TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']
+  ): NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']> {
+    if (item === undefined) {
+      throw RuntimeError.create('scenario input item is required');
+    }
+    return item;
   }
-  return item;
-}
 
-function requireString(value: string | undefined): string {
-  if (value === undefined) {
-    throw RuntimeError.create('scenario field is required');
+  static requireString(value: string | undefined): string {
+    if (value === undefined) {
+      throw RuntimeError.create('scenario field is required');
+    }
+    return value;
   }
-  return value;
-}
 
-async function flushTurn(): Promise<void> {
-  await new Promise((resolve) => { setImmediate(resolve); });
-}
+  static async flushTurn(): Promise<void> {
+    await new Promise((resolve): void => { setImmediate(resolve); });
+  }
 
-async function captureUnhandledRejections(scenarioName: string, action: () => Promise<void> | void): Promise<unknown[]> {
-  const rejectionEvents: unknown[] = [];
-  const onUnhandledRejection = (reason: Error): void => {
-    rejectionEvents.push(reason);
-    console.error('[%s] captured unhandledRejection', scenarioName, reason);
-  };
+  static async captureUnhandledRejections(action: () => Promise<void> | void): Promise<unknown[]> {
+    const rejectionEvents: unknown[] = [];
+    const onUnhandledRejection = (reason: Error): void => {
+      rejectionEvents.push(reason);
+    };
 
-  process.on('unhandledRejection', onUnhandledRejection);
-  try {
-    await action();
-    await flushTurn();
-    await flushTurn();
-    return rejectionEvents;
-  } finally {
-    process.off('unhandledRejection', onUnhandledRejection);
+    process.on('unhandledRejection', onUnhandledRejection);
+    try {
+      await action();
+      await TerminationSupport.flushTurn();
+      await TerminationSupport.flushTurn();
+      return rejectionEvents;
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  }
+
+  static resolveWorkerPath(relativePath: string): string {
+    const absolutePath = WorkerFixturePath.resolveFromModule(
+      relativePath,
+      import.meta.url
+    );
+    return absolutePath;
+  }
+
+  static resolvePoolConfig(
+    config: TerminationScenarioCaseEntity.Type['input']['workerPool']
+  ): WorkerPoolConfigInterface {
+    const resolved: WorkerPoolConfigInterface = {
+      'workerPath': TerminationSupport.resolveWorkerPath(config.workerPath)
+    };
+    if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
+    if (config.timeoutMs !== undefined) { resolved.timeoutMs = config.timeoutMs; }
+    return resolved;
+  }
+
+  static assertRunRejects(error: Error, messageFragment: string): boolean {
+    assert.ok(error.message.includes(messageFragment));
+    return true;
+  }
+
+  static async assertRejectedRun(run: Promise<unknown>, messageFragment: string): Promise<void> {
+    await assert.rejects(run, (error: Error): boolean => {
+      const result = TerminationSupport.assertRunRejects(error, messageFragment);
+      return result;
+    });
+  }
+
+
+  static workerErrors(errors: readonly { readonly 'error': Error; readonly 'index': number }[]): { 'index': number; 'message': string }[] {
+    const result = errors.map(({ error, index }) => {
+      return { 'index': index, 'message': error.message };
+    });
+    return result;
   }
 }
 
-function resolveWorkerPath(relativePath: string): string {
-  return fileURLToPath(new URL(relativePath, import.meta.url));
-}
-
-function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
-  const resolved: WorkerPoolConfigInterface = {
-    workerPath: resolveWorkerPath(config.workerPath)
-  };
-  if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
-  if (config.timeoutMs !== undefined) { resolved.timeoutMs = config.timeoutMs; }
-  return resolved;
-}
-
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'final-shutdown-rejection': async (scenarioCase) => {
-    const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = RuntimeError.create(requireString(scenarioCase.input.terminateFailureMessage));
-    const observedErrors: Array<{ error: Error; index: number }> = [];
+class TerminationRunners {
+  static 'error-shutdown-rejection'(scenarioCase: ScenarioCaseOfType<TerminationScenarioCaseEntity.Type, 'error-shutdown-rejection'>): Promise<void> {
+    const terminationFailure = RuntimeError.create(TerminationSupport.requireString(scenarioCase.input.terminateFailureMessage));
+    const observedErrors: { 'error': Error; 'index': number }[] = [];
     let terminateCalls = 0;
 
-    class ObservingPool extends WorkerPool<ItemInterface, string> {
-      protected override async onWorkerError(error: Error, index: number): Promise<void> {
-        observedErrors.push({ error, index });
-        throw RuntimeError.create('termination observer rejected');
+    class ObservingPool extends WorkerPool<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string> {
+      protected override onWorkerError(error: Error, index: number): void {
+        observedErrors.push({ 'error': error, 'index': index });
+      }
+
+      protected override terminateWorker(worker: Worker): Promise<number> {
+        terminateCalls += 1;
+        if (terminateCalls === 1) {
+          const result = Promise.reject(terminationFailure);
+          return result;
+        }
+        const result = super.terminateWorker(worker);
+        return result;
       }
     }
 
-    const terminateMock = mock.method(
-      Worker.prototype,
-      'terminate',
-      async function terminateWithRejection(this: Worker): Promise<number> {
-        terminateCalls += 1;
-        await originalTerminate.call(this);
-        throw terminationFailure;
-      }
-    );
+    const result = (async (): Promise<void> => {
+      const pool = ObservingPool.create<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string, ObservingPool>(TerminationSupport.resolvePoolConfig(scenarioCase.input.workerPool));
+      const rejectionEvents = await TerminationSupport.captureUnhandledRejections(async () => {
+        await TerminationSupport.assertRejectedRun(
+          pool.run([TerminationSupport.requireItem(scenarioCase.input.crashItem)]),
+          TerminationSupport.requireString(scenarioCase.expected.runRejectedMessageIncludes)
+        );
+        const laterResults = await pool.run([TerminationSupport.requireItem(scenarioCase.input.laterItem)]);
+        assert.deepStrictEqual(laterResults, scenarioCase.expected.laterResults);
+      });
 
-    try {
-      const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-        const results = await pool.run([requireItem(scenarioCase.input.item)]);
+      assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
+      assert.deepStrictEqual(TerminationSupport.workerErrors(observedErrors), scenarioCase.expected.observedErrors);
+      assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
+    })();
+    return result;
+  }
+
+  static 'final-shutdown-rejection'(scenarioCase: ScenarioCaseOfType<TerminationScenarioCaseEntity.Type, 'final-shutdown-rejection'>): Promise<void> {
+    const terminationFailure = RuntimeError.create(TerminationSupport.requireString(scenarioCase.input.terminateFailureMessage));
+    const observedErrors: { 'error': Error; 'index': number }[] = [];
+    let terminateCalls = 0;
+
+    class ObservingPool extends WorkerPool<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string> {
+      protected override onWorkerError(error: Error, index: number): Promise<void> {
+        observedErrors.push({ 'error': error, 'index': index });
+        const result = Promise.reject(RuntimeError.create('termination observer rejected'));
+        return result;
+      }
+
+      protected override terminateWorker(worker: Worker): Promise<number> {
+        terminateCalls += 1;
+        const result = super.terminateWorker(worker).then(() => {
+          throw terminationFailure;
+        });
+        return result;
+      }
+    }
+
+    const result = (async (): Promise<void> => {
+      const pool = ObservingPool.create<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string, ObservingPool>(TerminationSupport.resolvePoolConfig(scenarioCase.input.workerPool));
+      const rejectionEvents = await TerminationSupport.captureUnhandledRejections(async () => {
+        const results = await pool.run([TerminationSupport.requireItem(scenarioCase.input.item)]);
         assert.deepStrictEqual(results, scenarioCase.expected.results);
       });
 
-      assert.deepStrictEqual(observedErrors.map(({ error, index }) => ({ index, message: error.message })), scenarioCase.expected.observedErrors);
+      assert.deepStrictEqual(TerminationSupport.workerErrors(observedErrors), scenarioCase.expected.observedErrors);
       assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
       assert.equal(pool.getHookErrorCount(), 1);
       assert.equal(pool.getHookErrors()[0]?.hookName, 'onWorkerError');
       assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
-    } finally {
-      terminateMock.mock.restore();
-    }
-  },
-
-  'timeout-shutdown-rejection': async (scenarioCase) => {
-    const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = RuntimeError.create(requireString(scenarioCase.input.terminateFailureMessage));
-    const observedErrors: Array<{ error: Error; index: number }> = [];
-    let terminateCalls = 0;
-
-    class ObservingPool extends WorkerPool<ItemInterface, string> {
-      protected override onWorkerError(error: Error, index: number): void {
-        observedErrors.push({ error, index });
-      }
-    }
-
-    const terminateMock = mock.method(
-      Worker.prototype,
-      'terminate',
-      function rejectFirstTermination(this: Worker): Promise<number> {
-        terminateCalls += 1;
-        if (terminateCalls === 1) {
-          return Promise.reject(terminationFailure);
-        }
-        return originalTerminate.call(this);
-      }
-    );
-
-    try {
-      const pool = ObservingPool.create({
-        ...resolvePoolConfig(scenarioCase.input.workerPool)
-      });
-
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-        await assert.rejects(pool.run([requireItem(scenarioCase.input.timeoutItem)]), (error: Error) => {
-          assert.ok(error instanceof Error);
-          assert.ok(error.message.includes(requireString(scenarioCase.expected.runRejectedMessageIncludes)));
-          return true;
-        });
-        const laterResults = await pool.run([requireItem(scenarioCase.input.laterItem)]);
-        assert.deepStrictEqual(laterResults, scenarioCase.expected.laterResults);
-      });
-
-      assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
-      assert.deepStrictEqual(observedErrors.map(({ error, index }) => ({ index, message: error.message })), scenarioCase.expected.observedErrors);
-      assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
-    } finally {
-      terminateMock.mock.restore();
-    }
-  },
-
-  'error-shutdown-rejection': async (scenarioCase) => {
-    const originalTerminate = Worker.prototype.terminate;
-    const terminationFailure = RuntimeError.create(requireString(scenarioCase.input.terminateFailureMessage));
-    const observedErrors: Array<{ error: Error; index: number }> = [];
-    let terminateCalls = 0;
-
-    class ObservingPool extends WorkerPool<ItemInterface, string> {
-      protected override onWorkerError(error: Error, index: number): void {
-        observedErrors.push({ error, index });
-      }
-    }
-
-    const terminateMock = mock.method(
-      Worker.prototype,
-      'terminate',
-      function rejectFirstTermination(this: Worker): Promise<number> {
-        terminateCalls += 1;
-        if (terminateCalls === 1) {
-          return Promise.reject(terminationFailure);
-        }
-        return originalTerminate.call(this);
-      }
-    );
-
-    try {
-      const pool = ObservingPool.create({
-        ...resolvePoolConfig(scenarioCase.input.workerPool)
-      });
-      const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-        await assert.rejects(pool.run([requireItem(scenarioCase.input.crashItem)]), (error: Error) => {
-          assert.ok(error instanceof Error);
-          assert.ok(error.message.includes(requireString(scenarioCase.expected.runRejectedMessageIncludes)));
-          return true;
-        });
-        const laterResults = await pool.run([requireItem(scenarioCase.input.laterItem)]);
-        assert.deepStrictEqual(laterResults, scenarioCase.expected.laterResults);
-      });
-
-      assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
-      assert.deepStrictEqual(observedErrors.map(({ error, index }) => ({ index, message: error.message })), scenarioCase.expected.observedErrors);
-      // Reference identity, not merely message equality: `onWorkerError` receives the SAME Error
-      // instance the terminate mock rejected with. Comparing `.message` alone also passes when a
-      // different Error carrying identical text is substituted, which would hide the pool
-      // re-wrapping or reconstructing the failure rather than propagating it.
-      assert.ok(
-        observedErrors.some(({ error, index }) => error === terminationFailure && index === 0),
-        'onWorkerError receives the original termination Error instance at index 0'
-      );
-      assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
-    } finally {
-      terminateMock.mock.restore();
-    }
-  },
-
-  'task-timeout-after-startup': async (scenarioCase) => {
-    const pool = WorkerPool.create<ItemInterface, string>(resolvePoolConfig(scenarioCase.input.workerPool));
-
-    const rejectionEvents = await captureUnhandledRejections(scenarioCase.shape, async () => {
-      await assert.rejects(pool.run([requireItem(scenarioCase.input.item)]), (error: Error) => {
-        assert.ok(error.message.includes(requireString(scenarioCase.expected.runRejectedMessageIncludes)));
-        return true;
-      });
-    });
-
-    assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
+    })();
+    return result;
   }
-};
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  static 'task-timeout-after-startup'(scenarioCase: ScenarioCaseOfType<TerminationScenarioCaseEntity.Type, 'task-timeout-after-startup'>): Promise<void> {
+    const pool = WorkerPool.create<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string>(TerminationSupport.resolvePoolConfig(scenarioCase.input.workerPool));
+    const result = (async (): Promise<void> => {
+      const rejectionEvents = await TerminationSupport.captureUnhandledRejections(async () => {
+        await TerminationSupport.assertRejectedRun(
+          pool.run([TerminationSupport.requireItem(scenarioCase.input.item)]),
+          TerminationSupport.requireString(scenarioCase.expected.runRejectedMessageIncludes)
+        );
+      });
+
+      assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
+    })();
+    return result;
+  }
+
+  static 'timeout-shutdown-rejection'(scenarioCase: ScenarioCaseOfType<TerminationScenarioCaseEntity.Type, 'timeout-shutdown-rejection'>): Promise<void> {
+    const terminationFailure = RuntimeError.create(TerminationSupport.requireString(scenarioCase.input.terminateFailureMessage));
+    const observedErrors: { 'error': Error; 'index': number }[] = [];
+    let terminateCalls = 0;
+
+    class ObservingPool extends WorkerPool<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string> {
+      protected override onWorkerError(error: Error, index: number): void {
+        observedErrors.push({ 'error': error, 'index': index });
+      }
+
+      protected override terminateWorker(worker: Worker): Promise<number> {
+        terminateCalls += 1;
+        if (terminateCalls === 1) {
+          const result = Promise.reject(terminationFailure);
+          return result;
+        }
+        const result = super.terminateWorker(worker);
+        return result;
+      }
+    }
+
+    const result = (async (): Promise<void> => {
+      const poolConfig = TerminationSupport.resolvePoolConfig(scenarioCase.input.workerPool);
+      const pool = ObservingPool.create<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string, ObservingPool>(poolConfig);
+      const rejectionEvents = await TerminationSupport.captureUnhandledRejections(async () => {
+        await TerminationSupport.assertRejectedRun(
+          pool.run([TerminationSupport.requireItem(scenarioCase.input.timeoutItem)]),
+          TerminationSupport.requireString(scenarioCase.expected.runRejectedMessageIncludes)
+        );
+        const recoveryPool = ObservingPool.create<NonNullable<TerminationScenarioCaseEntity.Type['input']['item' | 'crashItem' | 'laterItem' | 'timeoutItem']>, string, ObservingPool>({ ...poolConfig, 'timeoutMs': 1000 });
+        const laterResults = await recoveryPool.run([TerminationSupport.requireItem(scenarioCase.input.laterItem)]);
+        assert.deepStrictEqual(laterResults, scenarioCase.expected.laterResults);
+      });
+
+      assert.equal(terminateCalls, scenarioCase.expected.terminateCalls);
+      assert.deepStrictEqual(TerminationSupport.workerErrors(observedErrors), scenarioCase.expected.observedErrors);
+      assert.deepStrictEqual(rejectionEvents, scenarioCase.expected.rejectionEvents);
+    })();
+    return result;
+  }
 }
 
-void describe('WorkerPool termination rejection disposition', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': TerminationScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'WorkerPool termination rejection disposition',
+  'runners': TerminationRunners
 });

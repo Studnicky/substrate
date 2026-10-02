@@ -1,74 +1,68 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError } from '@studnicky/errors/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { Retry } from '../../../src/retry/index.js';
 import { RetryStatsScenarioCaseEntity } from '../entities/RetryStatsScenarioCaseEntity.js';
-import scenarioGroups from './retry-stats.scenarios.json' with { type: 'json' };
+import { FailingOperation } from './fixtures/FailingOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import { RetryClassifier } from './fixtures/RetryClassifier.js';
+import scenarioGroups from './retry-stats.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(RetryStatsScenarioCaseEntity.Schema, RetryStatsScenarioCaseEntity.Node);
+class RetryStatsRunners {
+  private static createScenarioRetry(input: RetryStatsScenarioCaseEntity.Type['input']): Retry {
+    let retry = Retry.create(input.retry);
+    if (input.classifier === 'non-retryable') {
+      retry = Retry.create({ ...input.retry, 'errorClassifier': RetryClassifier.nonRetryable });
+    }
+    if (input.classifier === 'retryable') {
+      retry = Retry.create({ ...input.retry, 'errorClassifier': RetryClassifier.retryable });
+    }
+    return retry;
+  }
 
-type ScenarioCase = RetryStatsScenarioCaseEntity.Type;
-
-type RetryClassifierMode = ScenarioCase['input']['classifier'];
-
-type ScenarioShape = ScenarioCase['shape'];
-
-const retryFactoryMap: Record<RetryClassifierMode, (input: ScenarioCase['input']) => Retry> = {
-  'default': (input) => Retry.create(input.retry),
-  'non-retryable': (input) => Retry.create({
-    ...input.retry,
-    errorClassifier: () => ({ retryable: false })
-  }),
-  'retryable': (input) => Retry.create({
-    ...input.retry,
-    errorClassifier: () => ({ retryable: true })
-  })
-};
-
-function createScenarioRetry(input: ScenarioCase['input']): Retry {
-  return retryFactoryMap[input.classifier](input);
-}
-
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void> | void> = {
-  'failed-requests-increment': async (scenarioCase) => {
+  static async 'failed-requests-increment'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'failed-requests-increment'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    const retry = createScenarioRetry(input);
+    const retry = this.createScenarioRetry(input);
 
-    await assert.rejects(retry.execute(async () => { throw RuntimeError.create(String(input.errorMessage)); }));
+    await assert.rejects(retry.execute(new FailingOperation(String(input.errorMessage)).run));
     const stats = retry.getStats();
     assert.strictEqual(stats.failedRequests, Number(expected.failedRequests));
     assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
-  },
-  'initial': (scenarioCase) => {
+  }
+
+  static 'initial'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'initial'>): void {
     const { expected } = scenarioCase;
-    const retry = createScenarioRetry(scenarioCase.input);
+    const retry = this.createScenarioRetry(scenarioCase.input);
     assert.deepStrictEqual(retry.getStats(), expected.stats);
-  },
-  'reset-stats-accumulates': async (scenarioCase) => {
+  }
+
+  static async 'reset-stats-accumulates'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'reset-stats-accumulates'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    const retry = createScenarioRetry(input);
-    await retry.execute(async () => String(input.calls?.[0] ?? 'first'));
+    const retry = this.createScenarioRetry(input);
+    await retry.execute(ResolvingOperation.of(String(input.calls?.[0] ?? 'first')));
     retry.resetStats();
-    await retry.execute(async () => String(input.calls?.[1] ?? 'second'));
-    await retry.execute(async () => String(input.calls?.[2] ?? 'third'));
+    await retry.execute(ResolvingOperation.of(String(input.calls?.[1] ?? 'second')));
+    await retry.execute(ResolvingOperation.of(String(input.calls?.[2] ?? 'third')));
     const stats = retry.getStats();
     assert.strictEqual(stats.totalRequests, Number(expected.totalRequests));
     assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
-  },
-  'reset-stats-zero': async (scenarioCase) => {
+  }
+
+  static async 'reset-stats-zero'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'reset-stats-zero'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    const retry = createScenarioRetry(input);
-    await retry.execute(async () => String(input.calls?.[0] ?? 'first'));
-    await retry.execute(async () => String(input.calls?.[1] ?? 'second'));
+    const retry = this.createScenarioRetry(input);
+    await retry.execute(ResolvingOperation.of(String(input.calls?.[0] ?? 'first')));
+    await retry.execute(ResolvingOperation.of(String(input.calls?.[1] ?? 'second')));
     assert.strictEqual(retry.getStats().totalRequests, 2);
     retry.resetStats();
     assert.deepStrictEqual(retry.getStats(), expected.stats);
-  },
-  'stats-frozen': (scenarioCase) => {
+  }
+
+  static 'stats-frozen'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'stats-frozen'>): void {
     const { expected, input } = scenarioCase;
-    const retry = createScenarioRetry(input);
+    const retry = this.createScenarioRetry(input);
     const stats = retry.getStats();
     try {
       Reflect.set(stats, 'totalRequests', Number(input.mutatedTotalRequests));
@@ -76,49 +70,44 @@ const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<v
       // ignored
     }
     assert.strictEqual(retry.getStats().totalRequests, Number(expected.totalRequests));
-  },
-  'successful-requests-increment': async (scenarioCase) => {
+  }
+
+  static async 'successful-requests-increment'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'successful-requests-increment'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    const retry = createScenarioRetry(input);
-    await retry.execute(async () => String(input.result));
+    const retry = this.createScenarioRetry(input);
+    await retry.execute(ResolvingOperation.of(String(input.result)));
     const stats = retry.getStats();
     assert.strictEqual(stats.successfulRequests, Number(expected.successfulRequests));
     assert.strictEqual(stats.failedRequests, Number(expected.failedRequests));
-  },
-  'total-requests-increments': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    const retry = createScenarioRetry(input);
-    const calls = input.calls ?? [];
-    await retry.execute(async () => calls[0] ?? 'first');
-    assert.strictEqual(retry.getStats().totalRequests, 1);
-    await retry.execute(async () => calls[1] ?? 'second');
-    assert.strictEqual(retry.getStats().totalRequests, 2);
-    await retry.execute(async () => calls[2] ?? 'third');
-    assert.strictEqual(retry.getStats().totalRequests, Number(expected.totalRequests));
-  },
-  'total-retries-counted': async (scenarioCase) => {
-    const { input, expected } = scenarioCase;
-    let attempts = 0;
-    const retry = createScenarioRetry(input);
+  }
 
-    await assert.rejects(retry.execute(async () => {
-      attempts += 1;
-      throw RuntimeError.create(String(input.errorMessage));
-    }));
+  static async 'total-requests-increments'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'total-requests-increments'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const retry = this.createScenarioRetry(input);
+    const calls = input.calls ?? [];
+    await retry.execute(ResolvingOperation.of(calls[0] ?? 'first'));
+    assert.strictEqual(retry.getStats().totalRequests, 1);
+    await retry.execute(ResolvingOperation.of(calls[1] ?? 'second'));
+    assert.strictEqual(retry.getStats().totalRequests, 2);
+    await retry.execute(ResolvingOperation.of(calls[2] ?? 'third'));
+    assert.strictEqual(retry.getStats().totalRequests, Number(expected.totalRequests));
+  }
+
+  static async 'total-retries-counted'(scenarioCase: ScenarioCaseOfType<RetryStatsScenarioCaseEntity.Type, 'total-retries-counted'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const operation = new FailingOperation(String(input.errorMessage));
+    const retry = this.createScenarioRetry(input);
+
+    await assert.rejects(retry.execute(operation.run));
     const stats = retry.getStats();
     assert.strictEqual(stats.totalRetries, Number(expected.totalRetries));
-    assert.strictEqual(attempts, Number(expected.attempts));
+    assert.strictEqual(operation.attempts, Number(expected.attempts));
   }
-};
-
-function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('Retry stats', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': RetryStatsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Retry stats',
+  'runners': RetryStatsRunners
 });

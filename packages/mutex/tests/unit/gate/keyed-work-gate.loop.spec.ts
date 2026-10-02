@@ -1,220 +1,240 @@
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { Coalesce } from '@studnicky/concurrency/node';
 import { CoalesceOptionsEntity } from '@studnicky/concurrency/entities';
-import { RuntimeError } from '@studnicky/errors/node';
+import { Coalesce } from '@studnicky/concurrency/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
+import assert from 'node:assert/strict';
+import { setTimeout } from 'node:timers/promises';
+
 import { MutexKeyStateEntity } from '../../../src/entities/MutexKeyStateEntity.js';
-import { Mutex } from '../../../src/mutex/Mutex.js';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-
 import { KeyedWorkGate } from '../../../src/gate/index.js';
-import type { KeyedWorkGateConfigInterface } from '../../../src/gate/interfaces/index.js';
+import { Mutex } from '../../../src/mutex/Mutex.js';
 import { KeyedWorkGateScenarioCaseEntity } from './entities/KeyedWorkGateScenarioCaseEntity.js';
-import scenarioGroups from './keyed-work-gate.scenarios.json' with { type: 'json' };
+import scenarioGroups from './keyed-work-gate.scenarios.json' with { 'type': 'json' };
 
-type SerializableGateConfigInput = {
-  coalesce: { timeout: number };
-  mutex: { timeout: number };
-};
-
-type MaterializedGateDelegates<K extends PropertyKey> = {
-  coalesce: Coalesce<unknown>;
-  mutex: Mutex<K>;
-};
-
-type ScenarioCase = KeyedWorkGateScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(KeyedWorkGateScenarioCaseEntity.Schema, KeyedWorkGateScenarioCaseEntity.Node);
-
-/** Fails loudly when a scenario case's shape-specific field is absent from the fixture. */
-function requireDefined<T>(value: T | undefined, fieldPath: string): T {
-  if (value !== undefined) {
-    return value;
-  }
-  throw RuntimeError.create(`Missing mutex/gate scenario field: ${fieldPath}`);
-}
-
-const materializeDelegateInstances = <K extends PropertyKey>(
-  config: SerializableGateConfigInput
-): MaterializedGateDelegates<K> => ({
-  coalesce: Coalesce.create<unknown>(config.coalesce),
-  mutex: Mutex.create<K>(config.mutex)
-});
-
-const materializeSerializableConfig = <K extends PropertyKey>(
-  config: SerializableGateConfigInput
-): KeyedWorkGateConfigInterface<K> => ({
-  coalesce: config.coalesce,
-  mutex: config.mutex
-});
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void>;
-type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
-
-const runnerMap: RunnerMap = {
-  'composed-instances': async (scenarioCase) => {
-    const config = requireDefined(scenarioCase.input.config, 'input.config');
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const { coalesce, mutex } = materializeDelegateInstances<string>(config);
-    const gate = KeyedWorkGate.create<string>({ coalesce, mutex });
-    assert.equal(await gate.runSerialized(key, async () => scenarioCase.expected.result), scenarioCase.expected.result);
+class KeyedWorkGateRunners {
+  static async 'composed-instances'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'composed-instances'>): Promise<void> {
+    const config = ScenarioValues.requireDefined(scenarioCase.input.config, 'input.config');
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const coalesce = Coalesce.create<unknown>(config.coalesce);
+    const mutex = Mutex.create<string>(config.mutex);
+    const gate = KeyedWorkGate.create<string>({ 'coalesce': coalesce, 'mutex': mutex });
+    const result = await gate.runSerialized(key, () => {
+      const settled = Promise.resolve(scenarioCase.expected.result);
+      return settled;
+    });
+    assert.equal(result, scenarioCase.expected.result);
     assert.equal(mutex.isLocked(key), scenarioCase.expected.mutexIsLocked);
     assert.equal(coalesce.isInflight(key), scenarioCase.expected.coalesceIsInflight);
-  },
-  'default-serialize-same-key': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
+  }
+
+  static async 'default-serialize-same-key'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'default-serialize-same-key'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
     const gate = KeyedWorkGate.create<string>();
     const order: string[] = [];
     const results = await Promise.all([
-      gate.runSerialized(key, async () => { order.push('first'); return 1; }),
-      gate.runSerialized(key, async () => { order.push('second'); return 2; })
+      gate.runSerialized(key, () => {
+        order.push('first');
+        const settled = Promise.resolve(1);
+        return settled;
+      }),
+      gate.runSerialized(key, () => {
+        order.push('second');
+        const settled = Promise.resolve(2);
+        return settled;
+      })
     ]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
-  },
-  'different-keys-do-not-block': async (scenarioCase) => {
-    const key1 = requireDefined(scenarioCase.input.key1, 'input.key1');
-    const key2 = requireDefined(scenarioCase.input.key2, 'input.key2');
-    const key1DelayMs = requireDefined(scenarioCase.input.key1DelayMs, 'input.key1DelayMs');
-    const key2DelayMs = requireDefined(scenarioCase.input.key2DelayMs, 'input.key2DelayMs');
+  }
+
+  static async 'different-keys-do-not-block'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'different-keys-do-not-block'>): Promise<void> {
+    const firstKey = ScenarioValues.requireDefined(scenarioCase.input.key1, 'input.key1');
+    const secondKey = ScenarioValues.requireDefined(scenarioCase.input.key2, 'input.key2');
+    const firstDelayMs = ScenarioValues.requireDefined(scenarioCase.input.key1DelayMs, 'input.key1DelayMs');
+    const secondDelayMs = ScenarioValues.requireDefined(scenarioCase.input.key2DelayMs, 'input.key2DelayMs');
     const gate = KeyedWorkGate.create<string>();
     const order: string[] = [];
     await Promise.all([
-      gate.runSerialized(key1, async () => {
+      gate.runSerialized(firstKey, async () => {
         order.push('user1-start');
-        await new Promise((resolve) => { setTimeout(resolve, key1DelayMs); });
+        await setTimeout(firstDelayMs);
         order.push('user1-end');
         return 'user1';
       }),
-      gate.runSerialized(key2, async () => {
+      gate.runSerialized(secondKey, async () => {
         order.push('user2-start');
-        await new Promise((resolve) => { setTimeout(resolve, key2DelayMs); });
+        await setTimeout(secondDelayMs);
         order.push('user2-end');
         return 'user2';
       })
     ]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
-  },
-  'plain-config-single-flight': async (scenarioCase) => {
-    const config = requireDefined(scenarioCase.input.config, 'input.config');
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const gate = KeyedWorkGate.create<string>(materializeSerializableConfig<string>(config));
+  }
+
+  static async 'plain-config-single-flight'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'plain-config-single-flight'>): Promise<void> {
+    const config = ScenarioValues.requireDefined(scenarioCase.input.config, 'input.config');
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const gate = KeyedWorkGate.create<string>({ 'coalesce': config.coalesce, 'mutex': config.mutex });
     let runs = 0;
     const values = await Promise.all([
-      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => { runs += 1; await Promise.resolve(); return CoalesceOptionsEntity.create({ 'timeout': runs }); }),
-      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => { runs += 1; await Promise.resolve(); return CoalesceOptionsEntity.create({ 'timeout': runs }); })
+      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+        runs += 1;
+        await Promise.resolve();
+        const created = CoalesceOptionsEntity.create({ 'timeout': runs });
+        return created;
+      }),
+      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+        runs += 1;
+        await Promise.resolve();
+        const created = CoalesceOptionsEntity.create({ 'timeout': runs });
+        return created;
+      })
     ]);
-    assert.deepStrictEqual(values.map((value) => value.timeout), scenarioCase.expected.result);
+    const timeouts: unknown[] = [];
+    for (let index = 0; index < values.length; index += 1) {
+      const value = ScenarioValues.requireDefined(values[index], 'values[index]');
+      timeouts.push(value.timeout);
+    }
+    assert.deepStrictEqual(timeouts, scenarioCase.expected.result);
     assert.equal(runs, scenarioCase.expected.runs);
-  },
-  'same-key-serialized-exclusion': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const delayMs = requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
+  }
+
+  static async 'same-key-serialized-exclusion'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'same-key-serialized-exclusion'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const delayMs = ScenarioValues.requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
     const gate = KeyedWorkGate.create<string>();
     let active = 0;
-    let maxActive = 0;
+    let maximumActive = 0;
     let calls = 0;
     const completionOrder: number[] = [];
-    const fn = async (index: number): Promise<number> => {
+    const work = async (index: number): Promise<number> => {
       active += 1;
-      maxActive = Math.max(maxActive, active);
+      maximumActive = Math.max(maximumActive, active);
       calls += 1;
-      await new Promise((resolve) => { setTimeout(resolve, delayMs); });
+      await setTimeout(delayMs);
       active -= 1;
       completionOrder.push(index);
       return index;
     };
     const results = await Promise.all([
-      gate.runSerialized(key, () => fn(0)),
-      gate.runSerialized(key, () => fn(1)),
-      gate.runSerialized(key, () => fn(2))
+      gate.runSerialized(key, () => {
+        const pending = work(0);
+        return pending;
+      }),
+      gate.runSerialized(key, () => {
+        const pending = work(1);
+        return pending;
+      }),
+      gate.runSerialized(key, () => {
+        const pending = work(2);
+        return pending;
+      })
     ]);
     assert.equal(calls, scenarioCase.expected.calls);
-    assert.equal(maxActive, scenarioCase.expected.maxActive);
+    assert.equal(maximumActive, scenarioCase.expected.maximumActive);
     assert.deepStrictEqual(completionOrder, scenarioCase.expected.completionOrder);
     assert.deepStrictEqual(results, scenarioCase.expected.results);
-  },
-  'single-flight-shares-result': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const delayMs = requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
-    const gate = KeyedWorkGate.create<string>();
-    let calls = 0;
-    const fn = async (): Promise<number> => {
-      calls += 1;
-      await new Promise((resolve) => { setTimeout(resolve, delayMs); });
-      return 100;
-    };
-    const [a, b, c] = await Promise.all([
-      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() })),
-      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() })),
-      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }))
-    ]);
-    assert.equal(calls, scenarioCase.expected.calls);
-    assert.deepStrictEqual([a.timeout, b.timeout, c.timeout], scenarioCase.expected.values);
-  },
-  'single-flight-holds-mutex-against-serialized': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const leaderDelayMs = requireDefined(scenarioCase.input.leaderDelayMs, 'input.leaderDelayMs');
-    const serializedDelayMs = requireDefined(scenarioCase.input.serializedDelayMs, 'input.serializedDelayMs');
-    const waitBeforeSerializedMs = requireDefined(scenarioCase.input.waitBeforeSerializedMs, 'input.waitBeforeSerializedMs');
+  }
+
+  static async 'single-flight-holds-mutex-against-serialized'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'single-flight-holds-mutex-against-serialized'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const leaderDelayMs = ScenarioValues.requireDefined(scenarioCase.input.leaderDelayMs, 'input.leaderDelayMs');
+    const serializedDelayMs = ScenarioValues.requireDefined(scenarioCase.input.serializedDelayMs, 'input.serializedDelayMs');
+    const waitBeforeSerializedMs = ScenarioValues.requireDefined(scenarioCase.input.waitBeforeSerializedMs, 'input.waitBeforeSerializedMs');
     const gate = KeyedWorkGate.create<string>();
     const order: string[] = [];
     const leader = gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
       order.push('single-flight-start');
-      await new Promise((resolve) => { setTimeout(resolve, leaderDelayMs); });
+      await setTimeout(leaderDelayMs);
       order.push('single-flight-end');
-      return CoalesceOptionsEntity.create({ 'timeout': 1 });
+      const created = CoalesceOptionsEntity.create({ 'timeout': 1 });
+      return created;
     });
-    await new Promise((resolve) => { setTimeout(resolve, waitBeforeSerializedMs); });
+    await setTimeout(waitBeforeSerializedMs);
     const serialized = gate.runSerialized(key, async () => {
       order.push('serialized-start');
-      await new Promise((resolve) => { setTimeout(resolve, serializedDelayMs); });
+      await setTimeout(serializedDelayMs);
       order.push('serialized-end');
       return 'serialized';
     });
     await Promise.all([leader, serialized]);
     assert.deepStrictEqual(order, scenarioCase.expected.order);
-  },
-  'single-flight-reruns-after-settle': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
+  }
+
+  static async 'single-flight-parses-result'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'single-flight-parses-result'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const delayMs = ScenarioValues.requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
+    const resolved = ScenarioValues.requireDefined(scenarioCase.expected.resolved, 'expected.resolved');
+    const rejectedName = ScenarioValues.requireDefined(scenarioCase.expected.rejectedName, 'expected.rejectedName');
+    const gate = KeyedWorkGate.create<string>();
+    const validResult = gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+      await setTimeout(delayMs);
+      const created = CoalesceOptionsEntity.create({ 'timeout': resolved });
+      return created;
+    });
+    const invalidResult = gate.runSingleFlight(key, MutexKeyStateEntity, () => {
+      const settled = Promise.resolve('locked');
+      return settled;
+    });
+    assert.equal((await validResult).timeout, resolved);
+    await assert.rejects(invalidResult, { 'name': rejectedName });
+  }
+
+  static async 'single-flight-reruns-after-settle'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'single-flight-reruns-after-settle'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
     const gate = KeyedWorkGate.create<string>();
     let calls = 0;
-    const fn = async (): Promise<number> => {
+    const work = async (): Promise<number> => {
       calls += 1;
       await Promise.resolve();
       return calls;
     };
-    const first = await gate.runSingleFlight(key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }));
-    const second = await gate.runSingleFlight(key, CoalesceOptionsEntity, async () => CoalesceOptionsEntity.create({ 'timeout': await fn() }));
+    const first = await gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+      const created = CoalesceOptionsEntity.create({ 'timeout': await work() });
+      return created;
+    });
+    const second = await gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+      const created = CoalesceOptionsEntity.create({ 'timeout': await work() });
+      return created;
+    });
     assert.equal(calls, scenarioCase.expected.calls);
     assert.equal(first.timeout, scenarioCase.expected.first);
     assert.equal(second.timeout, scenarioCase.expected.second);
-  },
-  'single-flight-parses-result': async (scenarioCase) => {
-    const key = requireDefined(scenarioCase.input.key, 'input.key');
-    const delayMs = requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
-    const resolved = requireDefined(scenarioCase.expected.resolved, 'expected.resolved');
-    const rejectedName = requireDefined(scenarioCase.expected.rejectedName, 'expected.rejectedName');
-    const gate = KeyedWorkGate.create<string>();
-    const validResult = gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
-      await new Promise((resolve) => { setTimeout(resolve, delayMs); });
-      return CoalesceOptionsEntity.create({ 'timeout': resolved });
-    });
-    const invalidResult = gate.runSingleFlight(key, MutexKeyStateEntity, async () => 'locked');
-    assert.equal((await validResult).timeout, resolved);
-    await assert.rejects(invalidResult, { 'name': rejectedName });
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.shape](scenarioCase);
+  static async 'single-flight-shares-result'(scenarioCase: ScenarioCaseOfType<KeyedWorkGateScenarioCaseEntity.Type, 'single-flight-shares-result'>): Promise<void> {
+    const key = ScenarioValues.requireDefined(scenarioCase.input.key, 'input.key');
+    const delayMs = ScenarioValues.requireDefined(scenarioCase.input.delayMs, 'input.delayMs');
+    const gate = KeyedWorkGate.create<string>();
+    let calls = 0;
+    const work = async (): Promise<number> => {
+      calls += 1;
+      await setTimeout(delayMs);
+      return 100;
+    };
+    const [first, second, third] = await Promise.all([
+      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+        const created = CoalesceOptionsEntity.create({ 'timeout': await work() });
+        return created;
+      }),
+      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+        const created = CoalesceOptionsEntity.create({ 'timeout': await work() });
+        return created;
+      }),
+      gate.runSingleFlight(key, CoalesceOptionsEntity, async () => {
+        const created = CoalesceOptionsEntity.create({ 'timeout': await work() });
+        return created;
+      })
+    ]);
+    assert.equal(calls, scenarioCase.expected.calls);
+    assert.deepStrictEqual([first.timeout, second.timeout, third.timeout], scenarioCase.expected.values);
+  }
 }
 
-void describe('KeyedWorkGate', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': KeyedWorkGateScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'KeyedWorkGate',
+  'runners': KeyedWorkGateRunners
 });

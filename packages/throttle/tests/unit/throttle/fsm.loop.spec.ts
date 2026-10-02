@@ -1,39 +1,32 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { ThrottleStateEntity } from '../../../src/entities/ThrottleStateEntity.js';
 import { Throttle } from '../../../src/throttle/index.js';
 import { FsmScenarioCaseEntity } from './entities/FsmScenarioCaseEntity.js';
+import scenarioGroups from './fsm.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = FsmScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
-
-import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
-
-function assertErrorMessageIncludes(error: Error, expectedMessage: string): void {
-  assert.equal(error.message.includes(expectedMessage), true);
-}
-
-interface TransitionRecord {
-  from: ThrottleStateEntity.Type;
-  to: ThrottleStateEntity.Type;
+interface TransitionRecordInterface {
+  readonly 'from': ThrottleStateEntity.Type;
+  readonly 'to': ThrottleStateEntity.Type;
 }
 
 class TrackingThrottle extends Throttle {
-  readonly transitions: TransitionRecord[] = [];
+  readonly transitions: TransitionRecordInterface[] = [];
 
   constructor(config?: Parameters<typeof Throttle.create>[0]) {
     super(config);
   }
 
   override guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
-    return super.guard(from, to);
+    const allowed = super.guard(from, to);
+    return allowed;
   }
 
   override onEnter(to: ThrottleStateEntity.Type, from: ThrottleStateEntity.Type): void {
-    this.transitions.push({ from, to });
+    this.transitions.push({ 'from': from, 'to': to });
   }
 
   get currentState(): ThrottleStateEntity.Type {
@@ -47,98 +40,108 @@ class TrackingThrottle extends Throttle {
 
 class BlockingThrottle extends TrackingThrottle {
   static withConfig(config: Parameters<typeof Throttle.create>[0]): BlockingThrottle {
-    return new BlockingThrottle(config);
+    const throttle = new BlockingThrottle(config);
+    return throttle;
   }
 }
 
-type ScenarioRunner<K extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void>;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
+class FsmRunners {
+  static async 'abort-transitions-to-aborted'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'abort-transitions-to-aborted'>): Promise<void> {
+    const throttle = new TrackingThrottle(scenarioCase.input.throttle);
+    await throttle.abort();
+    assert.strictEqual(throttle.currentState, scenarioCase.expected.currentState);
+    assert.strictEqual(FsmRunners.countTransitions(throttle, undefined, scenarioCase.expected.to) > 0, true);
+  }
 
-async function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  const runnerMap: RunnerMap = {
-    'abort-transitions-to-aborted': async (caseData) => {
-      const throttle = new TrackingThrottle(caseData.input.throttle);
-      await throttle.abort();
-      assert.strictEqual(throttle.currentState, caseData.expected.currentState);
-      assert.strictEqual(throttle.transitions.some((t) => t.to === caseData.expected.to), true);
-    },
-    'active-to-idle': async (caseData) => {
-      const throttle = BlockingThrottle.withConfig(caseData.input.throttle);
-      let unblock!: () => void;
-      const blocker = new Promise<void>((resolve) => { unblock = resolve; });
-      const executePromise = throttle.execute(async () => {
-        await blocker;
-        return 42;
-      });
-      await Promise.resolve();
-      unblock();
-      await executePromise;
-      assert.strictEqual(throttle.currentState, caseData.expected.currentState);
-      assert.strictEqual(throttle.transitions.some((t) => t.from === caseData.expected.from && t.to === caseData.expected.to), true);
-    },
-    'double-abort-no-second-transition': async (caseData) => {
-      const throttle = new TrackingThrottle(caseData.input.throttle);
-      await throttle.abort();
-      const countAfterFirst = throttle.transitions.filter((t) => t.to === 'aborted').length;
-      await throttle.abort();
-      const countAfterSecond = throttle.transitions.filter((t) => t.to === 'aborted').length;
-      assert.strictEqual(countAfterFirst, caseData.expected.abortedTransitionCount);
-      assert.strictEqual(countAfterSecond, caseData.expected.abortedTransitionCount);
-    },
-    'idle-to-active': async (caseData) => {
-      const throttle = BlockingThrottle.withConfig(caseData.input.throttle);
-      let unblock!: () => void;
-      const blocker = new Promise<void>((resolve) => { unblock = resolve; });
-      const executePromise = throttle.execute(async () => {
-        await blocker;
-        return 'done';
-      });
-      await Promise.resolve();
-      assert.strictEqual(throttle.transitions.some((t) => t.from === caseData.expected.from && t.to === caseData.expected.to), true);
-      unblock();
-      await executePromise;
-    },
-    'illegal-transition-throws': async (caseData) => {
-      class GuardBlockingThrottle extends TrackingThrottle {
-        override guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
-          if (from === caseData.input.illegalFrom && to === caseData.input.illegalTo) return false;
-          return super.guard(from, to);
-        }
+  static async 'active-to-idle'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'active-to-idle'>): Promise<void> {
+    const throttle = BlockingThrottle.withConfig(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const executePromise = throttle.execute(async () => {
+      await blocker.promise;
+      return 42;
+    });
+    await Promise.resolve();
+    blocker.resolve();
+    await executePromise;
+    assert.strictEqual(throttle.currentState, scenarioCase.expected.currentState);
+    assert.strictEqual(FsmRunners.countTransitions(throttle, scenarioCase.expected.from, scenarioCase.expected.to) > 0, true);
+  }
+
+  static async 'double-abort-no-second-transition'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'double-abort-no-second-transition'>): Promise<void> {
+    const throttle = new TrackingThrottle(scenarioCase.input.throttle);
+    await throttle.abort();
+    const countAfterFirst = FsmRunners.countTransitions(throttle, undefined, 'aborted');
+    await throttle.abort();
+    const countAfterSecond = FsmRunners.countTransitions(throttle, undefined, 'aborted');
+    assert.strictEqual(countAfterFirst, scenarioCase.expected.abortedTransitionCount);
+    assert.strictEqual(countAfterSecond, scenarioCase.expected.abortedTransitionCount);
+  }
+
+  static async 'idle-to-active'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'idle-to-active'>): Promise<void> {
+    const throttle = BlockingThrottle.withConfig(scenarioCase.input.throttle);
+    const blocker = Promise.withResolvers<void>();
+    const executePromise = throttle.execute(async () => {
+      await blocker.promise;
+      return 'done';
+    });
+    await Promise.resolve();
+    assert.strictEqual(FsmRunners.countTransitions(throttle, scenarioCase.expected.from, scenarioCase.expected.to) > 0, true);
+    blocker.resolve();
+    await executePromise;
+  }
+
+  static async 'idle-to-draining'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'idle-to-draining'>): Promise<void> {
+    const throttle = new TrackingThrottle(scenarioCase.input.throttle);
+    assert.strictEqual(throttle.currentState, 'idle');
+    await throttle.drain();
+    assert.strictEqual(FsmRunners.countTransitions(throttle, scenarioCase.expected.from, scenarioCase.expected.to) > 0, true);
+    assert.strictEqual(throttle.currentState, scenarioCase.expected.currentState);
+  }
+
+  static 'illegal-transition-throws'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'illegal-transition-throws'>): void {
+    class GuardBlockingThrottle extends TrackingThrottle {
+      override guard(from: ThrottleStateEntity.Type, to: ThrottleStateEntity.Type): boolean {
+        const blocked = from === scenarioCase.input.illegalFrom && to === scenarioCase.input.illegalTo;
+        const allowed = blocked === false && super.guard(from, to);
+        return allowed;
       }
-      const throttle = new GuardBlockingThrottle(caseData.input.throttle);
-      assert.throws(() => { throttle.forceTransition(caseData.input.illegalTo); }, (error) => {
-        if (!(error instanceof Error)) { return false; }
-        assertErrorMessageIncludes(error, caseData.expected.errorMessage);
-        return true;
-      });
-    },
-    'idle-to-draining': async (caseData) => {
-      const throttle = new TrackingThrottle(caseData.input.throttle);
-      assert.strictEqual(throttle.currentState, 'idle');
-      await throttle.drain();
-      assert.strictEqual(throttle.transitions.some((t) => t.from === caseData.expected.from && t.to === caseData.expected.to), true);
-      assert.strictEqual(throttle.currentState, caseData.expected.currentState);
-    },
-    'starts-idle': async (caseData) => {
-      const throttle = new TrackingThrottle(caseData.input.throttle);
-      assert.strictEqual(throttle.currentState, caseData.expected.currentState);
-      assert.strictEqual(throttle.transitions.length, caseData.expected.transitionCount);
-    },
-    'validate-states': async (caseData) => {
-      for (const state of caseData.input.states) {
-        assert.strictEqual(ThrottleStateEntity.validate(state), caseData.expected.validStates);
-      }
-      assert.strictEqual(ThrottleStateEntity.validate(caseData.input.invalidState), caseData.expected.invalidState);
     }
-  };
-
-  await runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('Throttle FSM', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
+    const throttle = new GuardBlockingThrottle(scenarioCase.input.throttle);
+    assert.throws(() => { throttle.forceTransition(scenarioCase.input.illegalTo); }, (error) => {
+      const caught: unknown = error;
+      const includesMessage = caught instanceof Error && caught.message.includes(scenarioCase.expected.errorMessage);
+      return includesMessage;
     });
   }
+
+  static 'starts-idle'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'starts-idle'>): void {
+    const throttle = new TrackingThrottle(scenarioCase.input.throttle);
+    assert.strictEqual(throttle.currentState, scenarioCase.expected.currentState);
+    assert.strictEqual(throttle.transitions.length, scenarioCase.expected.transitionCount);
+  }
+
+  static 'validate-states'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'validate-states'>): void {
+    for (let index = 0; index < scenarioCase.input.states.length; index += 1) {
+      assert.strictEqual(ThrottleStateEntity.validate(ScenarioValues.requireDefined(scenarioCase.input.states[index], 'states[index]')), scenarioCase.expected.validStates);
+    }
+    assert.strictEqual(ThrottleStateEntity.validate(scenarioCase.input.invalidState), scenarioCase.expected.invalidState);
+  }
+
+  private static countTransitions(throttle: TrackingThrottle, from: ThrottleStateEntity.Type | undefined, to: ThrottleStateEntity.Type): number {
+    let count = 0;
+    for (let index = 0; index < throttle.transitions.length; index += 1) {
+      const transition = ScenarioValues.requireDefined(throttle.transitions[index], 'transitions[index]');
+      if (transition.to === to && (from === undefined || transition.from === from)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': FsmScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Throttle FSM',
+  'runners': FsmRunners
 });

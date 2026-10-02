@@ -2,24 +2,15 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { SchemaNodeInterface } from '../../../../src/interfaces/SchemaNodeInterface.js';
+import type { AssertType, EqualType } from './type-level-assert.js';
+
 import { SchemaNode } from '../../../../src/types/infer/SchemaNode.js';
-
-type EqualType<X, Y> = (<T>() => T extends X ? 1 : 2) extends (<T>() => T extends Y ? 1 : 2) ? true : false;
-type ExpectTrueType<T extends true> = T;
-
-/** Compiles only if `value` structurally satisfies `T` — the type-level half of each case below. */
-function assertAssignable<T>(value: T): void {
-  void value;
-}
 
 // Regression: `defineObject`'s declared schema type erased `properties`/`required`
 // to `ObjectSchemaShapeInterface`'s generic `Record<string, unknown>` fallback, so
 // `Node.schema.properties.x` always resolved to `unknown` for every entity and key.
-const variantNode = SchemaNode.defineString({ 'type': 'string', 'enum': ['idle', 'running'] } as const);
+const variantNode = SchemaNode.defineString({ 'enum': ['idle', 'running'], 'type': 'string' } as const);
 const stateNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': variantNode }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-// `.schema.properties.variant` resolves to the exact node built for `variant`, not `unknown`.
-type SchemaPropertiesVariantCheck = ExpectTrueType<EqualType<typeof stateNode.schema.properties.variant, typeof variantNode>>;
 
 // A sibling entity can compose that property directly into its own node — the
 // failure mode reported was `SchemaNodeInterface<unknown, unknown>` rejecting it.
@@ -27,19 +18,24 @@ const transitionNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 
 
 void describe('SchemaNode.defineObject schema.properties/.required typing', () => {
   void it('type-checks the properties-composition case above (enforced by tsc -b)', () => {
-    const check: SchemaPropertiesVariantCheck = true;
+    // `.schema.properties.variant` resolves to the exact node built for `variant`, not `unknown`.
+    const check: AssertType<EqualType<typeof stateNode.schema.properties.variant, typeof variantNode>> = true;
 
     assert.ok(check);
   });
 
   void it('.schema.properties carries every declared property node, keyed by name', () => {
-    assertAssignable<Record<'variant', SchemaNodeInterface<unknown, unknown>>>(stateNode.schema.properties);
-    assert.deepEqual(stateNode.schema.properties.variant, variantNode);
+    // Compiles only if the declared properties structurally satisfy the keyed node record.
+    const properties: Record<'variant', SchemaNodeInterface<unknown, unknown>> = stateNode.schema.properties;
+
+    assert.deepEqual(properties.variant, variantNode);
   });
 
   void it('.schema.required carries the exact declared key union, not a bare string[]', () => {
-    assertAssignable<readonly 'variant'[]>(stateNode.schema.required);
-    assert.deepEqual(stateNode.schema.required, ['variant']);
+    // Compiles only if the declared required keys satisfy the exact key union.
+    const required: readonly 'variant'[] = stateNode.schema.required;
+
+    assert.deepEqual(required, ['variant']);
   });
 
   void it('a sibling entity composing .schema.properties.x builds and reads back correctly', () => {

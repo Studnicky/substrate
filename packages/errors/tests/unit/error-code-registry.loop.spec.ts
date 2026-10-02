@@ -1,30 +1,26 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { ErrorCodeRegistry } from '../../src/errors/ErrorCodeRegistry.js';
 import { ErrorCodeRegistryScenarioCaseEntity } from './entities/ErrorCodeRegistryScenarioCaseEntity.js';
-import scenarioGroups from './error-code-registry.scenarios.json' with { type: 'json' };
+import scenarioGroups from './error-code-registry.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = ErrorCodeRegistryScenarioCaseEntity.Type;
-type ScenarioRunner = (scenario: ScenarioCase) => void;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(ErrorCodeRegistryScenarioCaseEntity.Schema, ErrorCodeRegistryScenarioCaseEntity.Node);
-
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'constructor-throws': (scenario) => {
+class ErrorCodeRegistryRunners {
+  static 'constructor-throws'(scenarioCase: ScenarioCaseOfType<ErrorCodeRegistryScenarioCaseEntity.Type, 'constructor-throws'>): void {
     assert.throws(() => {
       const instance: unknown = Reflect.construct(ErrorCodeRegistry, []);
       return instance;
     }, (error) => {
       assert.ok(error instanceof Error);
-      assert.strictEqual(error.message, String(scenario.expected.message));
+      assert.strictEqual(error.message, String(scenarioCase.expected.message));
       return true;
     });
-  },
-  'register-duplicate': (scenario) => {
-    const descriptor = scenario.input.descriptor;
-    assert.ok(descriptor);
+  }
+
+  static 'register-duplicate'(scenarioCase: ScenarioCaseOfType<ErrorCodeRegistryScenarioCaseEntity.Type, 'register-duplicate'>): void {
+    const descriptor = ScenarioValues.requireDefined(scenarioCase.input.descriptor, 'Scenario input.descriptor');
     assert.doesNotThrow(() => {
       ErrorCodeRegistry.register(descriptor);
     });
@@ -32,14 +28,14 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       ErrorCodeRegistry.register(descriptor);
     }, (error) => {
       assert.ok(error instanceof Error);
-      assert.ok(error.message.includes(String(scenario.expected.messageIncludes)));
+      assert.ok(error.message.includes(String(scenarioCase.expected.messageIncludes)));
       return true;
     });
-  },
-  'register-unique': (scenario) => {
-    const descriptor = scenario.input.descriptor;
-    assert.ok(descriptor);
-    if (scenario.expected.registered) {
+  }
+
+  static 'register-unique'(scenarioCase: ScenarioCaseOfType<ErrorCodeRegistryScenarioCaseEntity.Type, 'register-unique'>): void {
+    const descriptor = ScenarioValues.requireDefined(scenarioCase.input.descriptor, 'Scenario input.descriptor');
+    if (scenarioCase.expected.registered === true) {
       assert.doesNotThrow(() => {
         ErrorCodeRegistry.register(descriptor);
       });
@@ -49,16 +45,11 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       });
     }
   }
-};
-
-function runCase(scenario: ScenarioCase): void {
-  runnerMap[scenario.shape](scenario);
 }
 
-void describe('ErrorCodeRegistry', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ErrorCodeRegistryScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'ErrorCodeRegistry',
+  'runners': ErrorCodeRegistryRunners
 });

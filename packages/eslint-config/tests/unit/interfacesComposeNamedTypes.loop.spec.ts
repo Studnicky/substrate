@@ -1,28 +1,27 @@
+import parser from '@typescript-eslint/parser';
+import { Linter, RuleTester } from 'eslint';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { Linter, RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { interfacesComposeNamedTypes } from '../../src/rules/interfacesComposeNamedTypes.js';
 import { noMixedCallableShapes } from '../../src/rules/noMixedCallableShapes.js';
-import scenarioGroups from './interfacesComposeNamedTypes.scenarios.json' with { type: 'json' };
+import scenarioGroups from './interfacesComposeNamedTypes.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
 const languageOptions = {
-  parser,
-  parserOptions: {
-    projectService: {
-      allowDefaultProject: ['*.ts'],
-      maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30
+  'parser': parser,
+  'parserOptions': {
+    'projectService': {
+      'allowDefaultProject': ['*.ts'],
+      'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 30
     },
-    tsconfigRootDir: import.meta.dirname
+    'tsconfigRootDir': import.meta.dirname
   }
 };
 
-const ruleTester = new RuleTester({ languageOptions });
+const ruleTester = new RuleTester({ 'languageOptions': languageOptions });
 
 void describe('interfaces-compose-named-types', () => {
   void it('validates interface composition rules', () => {
@@ -35,23 +34,23 @@ void describe('interfaces-compose-named-types', () => {
       scenarioGroups.combined.code,
       [
         {
-          files: ['**/*.ts'],
-          languageOptions,
-          plugins: {
-            local: {
-              rules: {
+          'files': ['**/*.ts'],
+          'languageOptions': languageOptions,
+          'plugins': {
+            'local': {
+              'rules': {
                 'interfaces-compose-named-types': interfacesComposeNamedTypes,
                 'no-mixed-callable-shapes': noMixedCallableShapes
               }
             }
           },
-          rules: {
+          'rules': {
             'local/interfaces-compose-named-types': 'error',
             'local/no-mixed-callable-shapes': 'error'
           }
         }
       ],
-      { filename: scenarioGroups.combined.filename }
+      { 'filename': scenarioGroups.combined.filename }
     );
 
     assert.deepEqual(

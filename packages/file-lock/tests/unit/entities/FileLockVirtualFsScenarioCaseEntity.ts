@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** One `Map` seed entry for the injected `VirtualFileSystem`. */
@@ -99,35 +101,38 @@ export namespace FileLockVirtualFsScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'firstAcquire': SchemaNode.defineConst({}, true as const),
-            'secondAcquireRejected': SchemaNode.defineConst({}, true as const),
-            'thirdAcquire': SchemaNode.defineConst({}, true as const)
-          }, ['firstAcquire', 'secondAcquireRejected', 'thirdAcquire'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode, 'third': TimeoutOnlyNode }, ['first', 'second', 'third'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-            'fileSystemSeed': FileSystemSeedNode,
-            'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          }, ['fileLock', 'fileSystemSeed', 'lockPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'virtual-fs-mutual-exclusion' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'firstAcquire': SchemaNode.defineConst({}, true as const),
+        'secondAcquireRejected': SchemaNode.defineConst({}, true as const),
+        'thirdAcquire': SchemaNode.defineConst({}, true as const)
+      }, ['firstAcquire', 'secondAcquireRejected', 'thirdAcquire'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode, 'third': TimeoutOnlyNode }, ['first', 'second', 'third'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'fileSystemSeed': FileSystemSeedNode,
+        'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+      }, ['fileLock', 'fileSystemSeed', 'lockPath'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'virtual-fs-mutual-exclusion' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'initialContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          }, ['initialContents', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-            'fileSystemSeed': FileSystemSeedNode,
-            'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-          }, ['fileLock', 'fileSystemSeed', 'lockPath', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'virtual-fs-read-write' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'initialContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+      }, ['initialContents', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'fileLock': SchemaNode.defineObject({ 'type': 'object' } as const, { 'first': TimeoutOnlyNode, 'second': TimeoutOnlyNode }, ['first', 'second'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'fileSystemSeed': FileSystemSeedNode,
+        'lockPath': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'updatedContents': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+      }, ['fileLock', 'fileSystemSeed', 'lockPath', 'updatedContents'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'virtual-fs-read-write' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

@@ -50,7 +50,7 @@
           "workDelayMs": 20
         }
       },
-      "expected": { "maxObservedActive": 2 }
+      "expected": { "maximumObservedActive": 2 }
     },
     {
       "name": "boundary-kit-circuit-breaker-open",

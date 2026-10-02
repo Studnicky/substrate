@@ -226,7 +226,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The incoming item that triggered the overflow
    */
-  protected onOverflow(_item: T): void {
+  protected onOverflow(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -238,7 +238,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item that was evicted
    */
-  protected onEvict(_item: T): void {
+  protected onEvict(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -249,7 +249,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param _oldCapacity - Capacity before growth
    * @param _newCapacity - Capacity after growth
    */
-  protected onGrow(_oldCapacity: number, _newCapacity: number): void {
+  protected onGrow(_oldCapacity: number, _newCapacity: number): void | Promise<void> {
     // no-op
   }
 
@@ -262,7 +262,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item that was pushed or unshifted
    */
-  protected onPush(_item: T): void {
+  protected onPush(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -273,7 +273,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item about to be returned
    */
-  protected onShift(_item: T): void {
+  protected onShift(_item: T): void | Promise<void> {
     // no-op
   }
 

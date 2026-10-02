@@ -1,44 +1,46 @@
-import type { NodeStaticType } from "@studnicky/entity/types";
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { SchemaNode } from "@studnicky/entity/types";
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
-import { AsyncRejectionRoutedNoUnhandledScenarioCaseEntity } from "./AsyncRejectionRoutedNoUnhandledScenarioCaseEntity.js";
-import { DeepDetachedGettersScenarioCaseEntity } from "./DeepDetachedGettersScenarioCaseEntity.js";
-import { GetAllCacheInvalidatedScenarioCaseEntity } from "./GetAllCacheInvalidatedScenarioCaseEntity.js";
-import { GetAllDefensiveSnapshotScenarioCaseEntity } from "./GetAllDefensiveSnapshotScenarioCaseEntity.js";
-import { GetAllInsertionOrderScenarioCaseEntity } from "./GetAllInsertionOrderScenarioCaseEntity.js";
-import { GetAllSortedScenarioCaseEntity } from "./GetAllSortedScenarioCaseEntity.js";
-import { HookErrorsDeeplyDetachedScenarioCaseEntity } from "./HookErrorsDeeplyDetachedScenarioCaseEntity.js";
-import { HookErrorsDefensiveCopyScenarioCaseEntity } from "./HookErrorsDefensiveCopyScenarioCaseEntity.js";
-import { HookFailureRecordedBatchContinuesScenarioCaseEntity } from "./HookFailureRecordedBatchContinuesScenarioCaseEntity.js";
-import { HookFailuresIsolatedPerInstanceScenarioCaseEntity } from "./HookFailuresIsolatedPerInstanceScenarioCaseEntity.js";
-import { HooksAllOverriddenScenarioCaseEntity } from "./HooksAllOverriddenScenarioCaseEntity.js";
-import { HooksRemoveManyScenarioCaseEntity } from "./HooksRemoveManyScenarioCaseEntity.js";
-import { HooksRemoveOnlyWhenExistsScenarioCaseEntity } from "./HooksRemoveOnlyWhenExistsScenarioCaseEntity.js";
-import { HooksReplaceAllCountScenarioCaseEntity } from "./HooksReplaceAllCountScenarioCaseEntity.js";
-import { HooksReplaceAllEmptyScenarioCaseEntity } from "./HooksReplaceAllEmptyScenarioCaseEntity.js";
-import { HooksUpsertManyScenarioCaseEntity } from "./HooksUpsertManyScenarioCaseEntity.js";
-import { HooksUpsertOverwriteScenarioCaseEntity } from "./HooksUpsertOverwriteScenarioCaseEntity.js";
-import { IdsSizeReflectOperationsScenarioCaseEntity } from "./IdsSizeReflectOperationsScenarioCaseEntity.js";
-import { RemoveManyCountScenarioCaseEntity } from "./RemoveManyCountScenarioCaseEntity.js";
-import { RemoveManyEmptyScenarioCaseEntity } from "./RemoveManyEmptyScenarioCaseEntity.js";
-import { RemoveOneMissingScenarioCaseEntity } from "./RemoveOneMissingScenarioCaseEntity.js";
-import { RemoveOneRemovesScenarioCaseEntity } from "./RemoveOneRemovesScenarioCaseEntity.js";
-import { SetAllEmptyScenarioCaseEntity } from "./SetAllEmptyScenarioCaseEntity.js";
-import { SetAllReplacesScenarioCaseEntity } from "./SetAllReplacesScenarioCaseEntity.js";
-import { SnapshotRetentionPathsScenarioCaseEntity } from "./SnapshotRetentionPathsScenarioCaseEntity.js";
-import { ThrowingOnRemovePreservesRemovalScenarioCaseEntity } from "./ThrowingOnRemovePreservesRemovalScenarioCaseEntity.js";
-import { ThrowingOnReplaceAllPreservesSwapScenarioCaseEntity } from "./ThrowingOnReplaceAllPreservesSwapScenarioCaseEntity.js";
-import { ThrowingOnUpsertPreservesStoreScenarioCaseEntity } from "./ThrowingOnUpsertPreservesStoreScenarioCaseEntity.js";
-import { UpsertManyBatchScenarioCaseEntity } from "./UpsertManyBatchScenarioCaseEntity.js";
-import { UpsertManyEmptyScenarioCaseEntity } from "./UpsertManyEmptyScenarioCaseEntity.js";
-import { UpsertOneInsertsScenarioCaseEntity } from "./UpsertOneInsertsScenarioCaseEntity.js";
-import { UpsertOneOverwritesScenarioCaseEntity } from "./UpsertOneOverwritesScenarioCaseEntity.js";
+import { AsyncRejectionRoutedNoUnhandledScenarioCaseEntity } from './AsyncRejectionRoutedNoUnhandledScenarioCaseEntity.js';
+import { DeepDetachedGettersScenarioCaseEntity } from './DeepDetachedGettersScenarioCaseEntity.js';
+import { GetAllCacheInvalidatedScenarioCaseEntity } from './GetAllCacheInvalidatedScenarioCaseEntity.js';
+import { GetAllDefensiveSnapshotScenarioCaseEntity } from './GetAllDefensiveSnapshotScenarioCaseEntity.js';
+import { GetAllInsertionOrderScenarioCaseEntity } from './GetAllInsertionOrderScenarioCaseEntity.js';
+import { GetAllSortedScenarioCaseEntity } from './GetAllSortedScenarioCaseEntity.js';
+import { HookErrorsDeeplyDetachedScenarioCaseEntity } from './HookErrorsDeeplyDetachedScenarioCaseEntity.js';
+import { HookErrorsDefensiveCopyScenarioCaseEntity } from './HookErrorsDefensiveCopyScenarioCaseEntity.js';
+import { HookFailureRecordedBatchContinuesScenarioCaseEntity } from './HookFailureRecordedBatchContinuesScenarioCaseEntity.js';
+import { HookFailuresIsolatedPerInstanceScenarioCaseEntity } from './HookFailuresIsolatedPerInstanceScenarioCaseEntity.js';
+import { HooksAllOverriddenScenarioCaseEntity } from './HooksAllOverriddenScenarioCaseEntity.js';
+import { HooksRemoveManyScenarioCaseEntity } from './HooksRemoveManyScenarioCaseEntity.js';
+import { HooksRemoveOnlyWhenExistsScenarioCaseEntity } from './HooksRemoveOnlyWhenExistsScenarioCaseEntity.js';
+import { HooksReplaceAllCountScenarioCaseEntity } from './HooksReplaceAllCountScenarioCaseEntity.js';
+import { HooksReplaceAllEmptyScenarioCaseEntity } from './HooksReplaceAllEmptyScenarioCaseEntity.js';
+import { HooksUpsertManyScenarioCaseEntity } from './HooksUpsertManyScenarioCaseEntity.js';
+import { HooksUpsertOverwriteScenarioCaseEntity } from './HooksUpsertOverwriteScenarioCaseEntity.js';
+import { IdsSizeReflectOperationsScenarioCaseEntity } from './IdsSizeReflectOperationsScenarioCaseEntity.js';
+import { RemoveManyCountScenarioCaseEntity } from './RemoveManyCountScenarioCaseEntity.js';
+import { RemoveManyEmptyScenarioCaseEntity } from './RemoveManyEmptyScenarioCaseEntity.js';
+import { RemoveOneMissingScenarioCaseEntity } from './RemoveOneMissingScenarioCaseEntity.js';
+import { RemoveOneRemovesScenarioCaseEntity } from './RemoveOneRemovesScenarioCaseEntity.js';
+import { SetAllEmptyScenarioCaseEntity } from './SetAllEmptyScenarioCaseEntity.js';
+import { SetAllReplacesScenarioCaseEntity } from './SetAllReplacesScenarioCaseEntity.js';
+import { SnapshotRetentionPathsScenarioCaseEntity } from './SnapshotRetentionPathsScenarioCaseEntity.js';
+import { ThrowingOnRemovePreservesRemovalScenarioCaseEntity } from './ThrowingOnRemovePreservesRemovalScenarioCaseEntity.js';
+import { ThrowingOnReplaceAllPreservesSwapScenarioCaseEntity } from './ThrowingOnReplaceAllPreservesSwapScenarioCaseEntity.js';
+import { ThrowingOnUpsertPreservesStoreScenarioCaseEntity } from './ThrowingOnUpsertPreservesStoreScenarioCaseEntity.js';
+import { UpsertManyBatchScenarioCaseEntity } from './UpsertManyBatchScenarioCaseEntity.js';
+import { UpsertManyEmptyScenarioCaseEntity } from './UpsertManyEmptyScenarioCaseEntity.js';
+import { UpsertOneInsertsScenarioCaseEntity } from './UpsertOneInsertsScenarioCaseEntity.js';
+import { UpsertOneOverwritesScenarioCaseEntity } from './UpsertOneOverwritesScenarioCaseEntity.js';
 
 /** Union of every `EntityStore.loop.spec.ts` scenario case shape, discriminated by `shape`. */
 export namespace EntityStoreScenarioCaseEntity {
   export const Schema = {
-    oneOf: [
+    'oneOf': [
       AsyncRejectionRoutedNoUnhandledScenarioCaseEntity.Schema,
       DeepDetachedGettersScenarioCaseEntity.Schema,
       GetAllCacheInvalidatedScenarioCaseEntity.Schema,
@@ -70,8 +72,8 @@ export namespace EntityStoreScenarioCaseEntity {
       UpsertManyBatchScenarioCaseEntity.Schema,
       UpsertManyEmptyScenarioCaseEntity.Schema,
       UpsertOneInsertsScenarioCaseEntity.Schema,
-      UpsertOneOverwritesScenarioCaseEntity.Schema,
-    ],
+      UpsertOneOverwritesScenarioCaseEntity.Schema
+    ]
   } as const;
 
   export const Node = SchemaNode.defineOneOf({}, [
@@ -106,7 +108,10 @@ export namespace EntityStoreScenarioCaseEntity {
     UpsertManyBatchScenarioCaseEntity.Node,
     UpsertManyEmptyScenarioCaseEntity.Node,
     UpsertOneInsertsScenarioCaseEntity.Node,
-    UpsertOneOverwritesScenarioCaseEntity.Node,
+    UpsertOneOverwritesScenarioCaseEntity.Node
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

@@ -1,63 +1,26 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
 
-import { FetchClient, UndiciDispatcher } from '../../../src/node/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
-import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-
+import { FetchClient, UndiciDispatcher } from '../../../src/node/index.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import scenarioGroups from './dispatcher-routing.scenarios.json' with { 'type': 'json' };
 import { DispatcherRoutingScenarioCaseEntity } from './entities/DispatcherRoutingScenarioCaseEntity.js';
-import scenarioGroups from './dispatcher-routing.scenarios.json' with { type: 'json' };
 
-type ScenarioCase = DispatcherRoutingScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(DispatcherRoutingScenarioCaseEntity.Schema, DispatcherRoutingScenarioCaseEntity.Node);
-
-const ctx = {
-  testUrl: ''
-};
-
-void before(async () => {
-  ctx.testUrl = await startTestServer();
-});
-
-void after(async () => {
-  await stopTestServer();
-});
-
-type ScenarioRunner<Operation extends ScenarioCase['operation']> = (scenarioCase: Extract<ScenarioCase, { operation: Operation }>) => Promise<void>;
-type RunnerMap = { [Operation in ScenarioCase['operation']]: ScenarioRunner<Operation> };
-
-const runnerMap: RunnerMap = {
-  'routes-through-configured-dispatcher': async (scenarioCase) => {
-    const origin = new URL(ctx.testUrl).origin;
-    const baseURL = scenarioCase.input.fetchClient.baseURL === '__TEST_SERVER_URL__' ? ctx.testUrl : scenarioCase.input.fetchClient.baseURL;
-    const agent = DispatcherAgent.create(scenarioCase.input.dispatcher);
-    const dispatcher = UndiciDispatcher.create(agent);
-    const client = FetchClient.create({
-      baseURL,
-      options: { dispatcher: agent }
-    });
-
-    const response = await client.get(scenarioCase.input.path);
-
-    assert.strictEqual(response.status, 200);
-    assert.ok(dispatcher.getStats().has(origin), `expected dispatcher stats to include origin ${origin}`);
-    assert.equal(dispatcher.getStats().has(origin), scenarioCase.expected.originRecorded);
-
-    await dispatcher.destroy();
-  },
-
-  'isolates-unrelated-dispatcher': async (scenarioCase) => {
-    const origin = new URL(ctx.testUrl).origin;
-    const baseURL = scenarioCase.input.fetchClient.baseURL === '__TEST_SERVER_URL__' ? ctx.testUrl : scenarioCase.input.fetchClient.baseURL;
+class DispatcherRoutingRunners {
+  static async 'isolates-unrelated-dispatcher'(scenarioCase: ScenarioCaseOfType<DispatcherRoutingScenarioCaseEntity.Type, 'isolates-unrelated-dispatcher', 'operation'>): Promise<void> {
+    using server = TestServer.start();
+    const { origin } = server;
+    const baseURL = scenarioCase.input.fetchClient.baseURL === '__TEST_SERVER_URL__' ? server.url : scenarioCase.input.fetchClient.baseURL;
     const usedAgent = DispatcherAgent.create(scenarioCase.input.dispatcher);
     const idleAgent = DispatcherAgent.create(scenarioCase.input.dispatcher);
     const usedDispatcher = UndiciDispatcher.create(usedAgent);
     const idleDispatcher = UndiciDispatcher.create(idleAgent);
     const client = FetchClient.create({
-      baseURL,
-      options: { dispatcher: usedAgent }
+      'baseURL': baseURL,
+      'options': { 'dispatcher': usedAgent }
     });
 
     const response = await client.get(scenarioCase.input.path);
@@ -71,16 +34,31 @@ const runnerMap: RunnerMap = {
     await usedDispatcher.destroy();
     await idleDispatcher.destroy();
   }
-};
 
-async function runCase<Operation extends ScenarioCase['operation']>(scenarioCase: Extract<ScenarioCase, { operation: Operation }>): Promise<void> {
-  await runnerMap[scenarioCase.operation](scenarioCase);
+  static async 'routes-through-configured-dispatcher'(scenarioCase: ScenarioCaseOfType<DispatcherRoutingScenarioCaseEntity.Type, 'routes-through-configured-dispatcher', 'operation'>): Promise<void> {
+    using server = TestServer.start();
+    const { origin } = server;
+    const baseURL = scenarioCase.input.fetchClient.baseURL === '__TEST_SERVER_URL__' ? server.url : scenarioCase.input.fetchClient.baseURL;
+    const agent = DispatcherAgent.create(scenarioCase.input.dispatcher);
+    const dispatcher = UndiciDispatcher.create(agent);
+    const client = FetchClient.create({
+      'baseURL': baseURL,
+      'options': { 'dispatcher': agent }
+    });
+
+    const response = await client.get(scenarioCase.input.path);
+
+    assert.strictEqual(response.status, 200);
+    assert.ok(dispatcher.getStats().has(origin), `expected dispatcher stats to include origin ${origin}`);
+    assert.equal(dispatcher.getStats().has(origin), scenarioCase.expected.originRecorded);
+
+    await dispatcher.destroy();
+  }
 }
 
-void describe('Dispatcher routing', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.registerBy('operation', {
+  'entity': DispatcherRoutingScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Dispatcher routing',
+  'runners': DispatcherRoutingRunners
 });

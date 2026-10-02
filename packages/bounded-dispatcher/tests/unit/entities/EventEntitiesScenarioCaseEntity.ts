@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /** The scenario case shape `entities.loop.spec.ts` exercises. `value` is a deliberately open payload — tests feed both valid and invalid entity data through it. */
@@ -42,17 +44,21 @@ export namespace EventEntitiesScenarioCaseEntity {
   } as const;
 
   const ValidationCaseNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'entity': SchemaNode.defineEnum({}, ['BoundedDispatcherErrorEventEntity', 'BoundedDispatcherStartEventEntity', 'BoundedDispatcherSuccessEventEntity'] as const),
-      'expected': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'value': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} })
-    }, ['entity', 'expected', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'entity': SchemaNode.defineEnum({}, ['BoundedDispatcherErrorEventEntity', 'BoundedDispatcherStartEventEntity', 'BoundedDispatcherSuccessEventEntity'] as const),
+    'expected': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'value': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} })
+  }, ['entity', 'expected', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined) }, ['validationResults'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, ValidationCaseNode, undefined) }, ['validations'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum({}, ['entities-reject-invalid', 'entities-valid-phases'] as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validationResults': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineBoolean({ 'type': 'boolean' } as const), undefined) }, ['validationResults'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'validations': SchemaNode.defineArray({ 'type': 'array' } as const, ValidationCaseNode, undefined) }, ['validations'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineEnum({}, ['entities-reject-invalid', 'entities-valid-phases'] as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

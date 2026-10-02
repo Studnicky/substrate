@@ -6,12 +6,20 @@
   "sideEffects": false,
   "exports": {
     "./node": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
     }
   },
   "files": [

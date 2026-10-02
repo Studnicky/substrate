@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 /**
@@ -78,26 +80,29 @@ export namespace IdempotencyGuardConfigScenarioCaseEntity {
 
   export const Node = SchemaNode.defineOneOf({}, [
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': validOptionsNode,
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': validOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'accepts-valid-options' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': validOptionsNode,
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': validOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'accepts-valid-options' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': codeExpectedNode,
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': rangeViolationOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'rejects-range-violation' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': codeExpectedNode,
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': rangeViolationOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'rejects-range-violation' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
     SchemaNode.defineObject({ 'type': 'object' } as const, {
-        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'expected': validExpectedNode,
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': shapeViolationOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-        'shape': SchemaNode.defineConst({}, 'rejects-shape-violation' as const)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'expected': validExpectedNode,
+      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'options': shapeViolationOptionsNode }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'shape': SchemaNode.defineConst({}, 'rejects-shape-violation' as const)
+    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} })
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

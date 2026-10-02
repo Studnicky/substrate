@@ -1,17 +1,20 @@
+import { CallerFault } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { describe, it } from 'node:test';
 
+import type { ContextStorageInterface } from '../../../src/interfaces/index.js';
+
 import * as browserExports from '../../../src/browser/index.js';
 import * as nodeExports from '../../../src/node/index.js';
 import { Context } from '../../../src/node/index.js';
-import type { ContextStorageInterface } from '../../../src/interfaces/index.js';
 
 class OverrideStorage implements ContextStorageInterface {
   readonly #storage: AsyncLocalStorage<Map<string, unknown>> = new AsyncLocalStorage<Map<string, unknown>>();
 
   getStore(): Map<string, unknown> | undefined {
-    return this.#storage.getStore();
+    const store = this.#storage.getStore();
+    return store;
   }
 
   run<TResult>(store: Map<string, unknown>, callback: () => TResult): TResult {
@@ -37,7 +40,7 @@ class OverrideStorage implements ContextStorageInterface {
       },
       (error: unknown) => {
         const rejectedResult = runInScope(() => {
-          throw error;
+          CallerFault.propagate(error);
         });
         return rejectedResult;
       }
@@ -64,23 +67,25 @@ class OverrideStorage implements ContextStorageInterface {
   }
 }
 
-describe('Context runtime entrypoints', () => {
-  it('exports the same runtime symbols from node and browser', () => {
+void describe('Context runtime entrypoints', () => {
+  void it('exports the same runtime symbols from node and browser', () => {
     assert.deepStrictEqual(Object.keys(nodeExports).toSorted(), ['Context', 'ContextAsyncRuntime', 'ContextConfigError', 'ContextError', 'UnsupportedSourceExtensionError']);
     assert.deepStrictEqual(Object.keys(browserExports).toSorted(), Object.keys(nodeExports).toSorted());
   });
 
-  it('keeps browser contexts explicit after the Node entrypoint loads', async () => {
+  void it('keeps browser contexts explicit after the Node entrypoint loads', async () => {
     const context = browserExports.Context.create({ 'name': 'browser-first' });
     const scope = context.initialize({ 'value': 'browser' });
 
     await scope.execute(async () => {
       await Promise.resolve();
-      assert.throws(() => context.get('value'), browserExports.ContextError);
+      assert.throws(() => {
+        context.get('value');
+      }, browserExports.ContextError);
     });
   });
 
-  it('uses an injected storage host ahead of the Node default', () => {
+  void it('uses an injected storage host ahead of the Node default', () => {
     const context = Context.create({ 'name': 'override' }, new OverrideStorage());
     const scope = context.initialize({ 'value': 'injected' });
 

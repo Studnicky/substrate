@@ -223,7 +223,7 @@
         }
       },
       "expected": {
-        "sameRef": false,
+        "sameReference": false,
         "sameValue": true
       }
     },

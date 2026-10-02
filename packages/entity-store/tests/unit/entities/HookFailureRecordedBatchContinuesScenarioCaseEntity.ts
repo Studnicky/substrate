@@ -1,99 +1,105 @@
-import type { NodeStaticType } from "@studnicky/entity/types";
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { SchemaNode } from "@studnicky/entity/types";
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
-import { SelectiveHookFailureEntity } from "./common/SelectiveHookFailureEntity.js";
-import { UserEntity } from "./common/UserEntity.js";
+import { SelectiveHookFailureEntity } from './common/SelectiveHookFailureEntity.js';
+import { UserEntity } from './common/UserEntity.js';
 
 /** The `hook-failure-recorded-batch-continues` scenario case shape `EntityStore.loop.spec.ts` exercises. */
 export namespace HookFailureRecordedBatchContinuesScenarioCaseEntity {
   export const Schema = {
-    additionalProperties: false,
-    properties: {
-      description: {
-        minLength: 1,
-        type: "string",
+    'additionalProperties': false,
+    'properties': {
+      'description': {
+        'minLength': 1,
+        'type': 'string'
       },
-      expected: {
-        additionalProperties: false,
-        properties: {
-          entities: {
-            additionalProperties: UserEntity.Schema,
-            properties: {},
-            required: [],
-            type: "object",
+      'expected': {
+        'additionalProperties': false,
+        'properties': {
+          'entities': {
+            'additionalProperties': UserEntity.Schema,
+            'properties': {},
+            'required': [],
+            'type': 'object'
           },
-          hookErrorCount: {
-            type: "number",
+          'hookErrorCount': {
+            'type': 'number'
           },
-          hookName: {
-            type: "string",
+          'hookName': {
+            'type': 'string'
           },
-          size: {
-            type: "number",
-          },
+          'size': {
+            'type': 'number'
+          }
         },
-        required: ["entities", "hookErrorCount", "hookName", "size"],
-        type: "object",
+        'required': ['entities', 'hookErrorCount', 'hookName', 'size'],
+        'type': 'object'
       },
-      input: {
-        additionalProperties: false,
-        properties: {
-          entities: {
-            items: UserEntity.Schema,
-            type: "array",
+      'input': {
+        'additionalProperties': false,
+        'properties': {
+          'entities': {
+            'items': UserEntity.Schema,
+            'type': 'array'
           },
-          failure: SelectiveHookFailureEntity.Schema,
+          'failure': SelectiveHookFailureEntity.Schema
         },
-        required: ["entities", "failure"],
-        type: "object",
+        'required': ['entities', 'failure'],
+        'type': 'object'
       },
-      name: {
-        minLength: 1,
-        type: "string",
+      'name': {
+        'minLength': 1,
+        'type': 'string'
       },
-      shape: {
-        const: "hook-failure-recorded-batch-continues",
-      },
+      'shape': {
+        'const': 'hook-failure-recorded-batch-continues'
+      }
     },
-    required: ["description", "expected", "input", "name", "shape"],
-    type: "object",
+    'required': ['description', 'expected', 'input', 'name', 'shape'],
+    'type': 'object'
   } as const;
 
-  export const Node = SchemaNode.defineObject({ type: "object" } as const, {
-      description: SchemaNode.defineString({
-        minLength: 1,
-        type: "string",
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'description': SchemaNode.defineString({
+      'minLength': 1,
+      'type': 'string'
+    } as const),
+    'expected': SchemaNode.defineObject({
+      'type': 'object'
+    } as const, {
+      'entities': SchemaNode.defineObject({
+        'type': 'object'
+      } as const, {}, [] as const, { 'additionalProperties': UserEntity.Node, 'patternProperties': {} }),
+      'hookErrorCount': SchemaNode.defineNumber({
+        'type': 'number'
       } as const),
-      expected: SchemaNode.defineObject({
-          type: "object",
-        } as const, {
-          entities: SchemaNode.defineObject({
-              type: "object",
-            } as const, {}, [] as const, { additionalProperties: UserEntity.Node, 'patternProperties': {} }),
-          hookErrorCount: SchemaNode.defineNumber({
-            type: "number",
-          } as const),
-          hookName: SchemaNode.defineString({
-            type: "string",
-          } as const),
-          size: SchemaNode.defineNumber({
-            type: "number",
-          } as const),
-        }, ["entities", "hookErrorCount", "hookName", "size"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      input: SchemaNode.defineObject({
-          type: "object",
-        } as const, {
-          entities: SchemaNode.defineArray({
-              type: "array",
-            } as const, UserEntity.Node, undefined),
-          failure: SelectiveHookFailureEntity.Node,
-        }, ["entities", "failure"] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      name: SchemaNode.defineString({
-        minLength: 1,
-        type: "string",
+      'hookName': SchemaNode.defineString({
+        'type': 'string'
       } as const),
-      shape: SchemaNode.defineConst({}, "hook-failure-recorded-batch-continues" as const),
-    }, ["description", "expected", "input", "name", "shape"] as const, { additionalProperties: false, 'patternProperties': {} });
+      'size': SchemaNode.defineNumber({
+        'type': 'number'
+      } as const)
+    }, ['entities', 'hookErrorCount', 'hookName', 'size'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({
+      'type': 'object'
+    } as const, {
+      'entities': SchemaNode.defineArray({
+        'type': 'array'
+      } as const, UserEntity.Node, undefined),
+      'failure': SelectiveHookFailureEntity.Node
+    }, ['entities', 'failure'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': SchemaNode.defineString({
+      'minLength': 1,
+      'type': 'string'
+    } as const),
+    'shape': SchemaNode.defineConst({}, 'hook-failure-recorded-batch-continues' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

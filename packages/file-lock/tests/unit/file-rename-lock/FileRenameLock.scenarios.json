@@ -3,14 +3,25 @@
     {
       "name": "acquires and restores a file in one atomic-rename lifecycle",
       "shape": "acquire-release",
-      "input": { "path": "resource.json", "content": "content" },
-      "expected": { "existsWhileHeld": false, "existsAfterRelease": true }
+      "input": {
+        "path": "resource.json",
+        "content": "content"
+      },
+      "expected": {
+        "existsWhileHeld": false,
+        "existsAfterRelease": true
+      },
+      "description": "acquires and restores a file in one atomic-rename lifecycle"
     },
     {
       "name": "reports contention without entering a retry loop",
       "shape": "contention",
-      "input": { "path": "contended.json", "content": "content" },
-      "expected": {}
+      "input": {
+        "path": "contended.json",
+        "content": "content"
+      },
+      "expected": {},
+      "description": "reports contention without entering a retry loop"
     }
   ]
 }

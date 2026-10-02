@@ -1,188 +1,169 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import timersPromises from 'node:timers/promises';
 
 import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
+import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
+
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
 import { ClampedConfigScenarioCaseEntity } from '../entities/ClampedConfigScenarioCaseEntity.js';
+import scenarioGroups from './clampedConfig.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './clampedConfig.scenarios.json' with { type: 'json' };
-
-type ScenarioCase = ClampedConfigScenarioCaseEntity.Type['cases'][number];
-
-type ScenarioShape = ScenarioCase['shape'];
-
-type CapturedClampResult = {
-  readonly events: readonly ClampEventEntity.Type[];
-  readonly result: Record<string, unknown>;
-};
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-
-const typedScenarioGroups = ClampedConfigScenarioCaseEntity.intake(scenarioGroups);
-
-function applyClamp<T extends Record<string, unknown>>(
-  config: T,
-  rules: ScenarioCase['input']['rules']
-): T {
-  return ClampedConfig.apply(config, rules);
-}
-
-function requiredRecord(value: Record<string, unknown> | undefined, label: string): Record<string, unknown> {
-  if (value === undefined) {
-    throw RuntimeError.create(`${label} is required`);
-  }
-  return value;
-}
-
-function requiredBoolean(value: boolean | undefined, label: string): boolean {
-  if (value === undefined) {
-    throw RuntimeError.create(`${label} is required`);
-  }
-  return value;
-}
-
-function requiredNumber(value: number | undefined, label: string): number {
-  if (value === undefined) {
-    throw RuntimeError.create(`${label} is required`);
-  }
-  return value;
-}
-
-function requiredStrings(value: readonly string[] | undefined, label: string): readonly string[] {
-  if (value === undefined) {
-    throw RuntimeError.create(`${label} is required`);
-  }
-  return value;
-}
-
-function requiredEvent(value: ClampEventEntity.Type | undefined, label: string): ClampEventEntity.Type {
-  if (value === undefined) {
-    throw RuntimeError.create(`${label} is required`);
-  }
-  return value;
-}
-
-function captureClampEvents(scenarioCase: ScenarioCase): CapturedClampResult {
-  const events: ClampEventEntity.Type[] = [];
-  class ObservingClampedConfig extends ClampedConfig {
-    protected static override onClamp(event: ClampEventEntity.Type): void {
-      events.push(event);
-    }
+class ClampedConfigRunners {
+  static 'absent-field-untouched'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'absent-field-untouched'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
   }
 
-  return {
-    'events': events,
-    'result': ObservingClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules)
-  };
-}
-
-function applyWithThrowingHook(scenarioCase: ScenarioCase): Record<string, unknown> {
-  class ThrowingClampedConfig extends ClampedConfig {
-    protected static override onClamp(): void {
-      throw RuntimeError.create('onClamp boom');
-    }
-  }
-
-  return ThrowingClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules);
-}
-
-function sorted(values: readonly string[]): string[] {
-  return [...values].toSorted();
-}
-
-function assertClampedResult(scenarioCase: ScenarioCase): void {
-  assert.deepStrictEqual(applyClamp(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
-}
-
-const scenarioRunners: Record<ScenarioShape, ScenarioRunner> = {
-  'absent-field-untouched': assertClampedResult,
-  'async-throwing-hook-is-contained': async (scenarioCase): Promise<void> => {
+  static async 'async-throwing-hook-is-contained'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'async-throwing-hook-is-contained'>): Promise<void> {
     let hookInvoked = false;
-    class AsyncOverrideClampedConfig extends ClampedConfig {
-      protected static override async onClamp(_event: ClampEventEntity.Type): Promise<void> {
+    class AsyncOverrideClampedConfig extends ClampedConfig {}
+    // The base `onClamp` hook is typed `void`, so the asynchronous override is installed on the class.
+    Object.defineProperty(AsyncOverrideClampedConfig, 'onClamp', {
+      'value': (): Promise<void> => {
         hookInvoked = true;
-        throw RuntimeError.create('async onClamp boom');
+        const rejection = Promise.reject(RuntimeError.create('async onClamp boom'));
+        return rejection;
       }
-    }
+    });
 
-    const rejectionEvents: Error[] = [];
+    let rejectionCount = 0;
     const onUnhandledRejection = (): void => {
-      rejectionEvents.push(RuntimeError.create('unexpected unhandled rejection'));
+      rejectionCount += 1;
     };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
       const result = AsyncOverrideClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules);
       assert.deepStrictEqual(result, scenarioCase.expected.result);
-      await new Promise((resolve) => { setImmediate(resolve); });
-      await new Promise((resolve) => { setImmediate(resolve); });
-      assert.strictEqual(hookInvoked, requiredBoolean(scenarioCase.expected.hookInvoked, 'expected.hookInvoked'));
-      assert.strictEqual(rejectionEvents.length, requiredNumber(scenarioCase.expected.rejectionCount, 'expected.rejectionCount'));
+      await timersPromises.setImmediate();
+      await timersPromises.setImmediate();
+      assert.strictEqual(hookInvoked, scenarioCase.expected.hookInvoked);
+      assert.strictEqual(rejectionCount, scenarioCase.expected.rejectionCount);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
-  },
-  'clamp-above-max': assertClampedResult,
-  'clamp-below-min': assertClampedResult,
-  'default-hook-noop': (scenarioCase): void => {
+  }
+
+  static 'clamp-above-max'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'clamp-above-max'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
+  }
+
+  static 'clamp-below-min'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'clamp-below-min'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
+  }
+
+  static 'default-hook-noop'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'default-hook-noop'>): void {
     assert.doesNotThrow(() => {
-      assert.deepStrictEqual(applyClamp(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
-    });
-  },
-  'in-range-untouched': assertClampedResult,
-  'nan-field-untouched-no-hook': (scenarioCase): void => {
-    const config = { 'timeoutMs': Number.NaN };
-    const captured = captureClampEvents({ ...scenarioCase, 'input': { 'config': config, 'rules': scenarioCase.input.rules } });
-
-    assert.strictEqual(captured.events.length, requiredNumber(scenarioCase.expected.eventCount, 'expected.eventCount'));
-    assert.ok(Number.isNaN(captured.result.timeoutMs), 'NaN field is left untouched, not clamped');
-  },
-  'non-numeric-field-untouched': assertClampedResult,
-  'on-clamp-fires': (scenarioCase): void => {
-    const captured = captureClampEvents(scenarioCase);
-
-    assert.deepStrictEqual(captured.events, [requiredEvent(scenarioCase.expected.event, 'expected.event')]);
-    assert.deepStrictEqual(captured.result, scenarioCase.expected.result);
-  },
-  'on-clamp-multi-field': (scenarioCase): void => {
-    const captured = captureClampEvents(scenarioCase);
-
-    assert.deepStrictEqual(captured.result, scenarioCase.expected.result);
-    assert.deepStrictEqual(
-      sorted(captured.events.map((event) => event.field)),
-      sorted(requiredStrings(scenarioCase.expected.eventFields, 'expected.eventFields'))
-    );
-  },
-  'on-clamp-skipped-in-range': (scenarioCase): void => {
-    const captured = captureClampEvents(scenarioCase);
-
-    assert.strictEqual(captured.events.length, requiredNumber(scenarioCase.expected.eventCount, 'expected.eventCount'));
-    assert.deepStrictEqual(captured.result, scenarioCase.expected.result);
-  },
-  'returns-new-object': (scenarioCase): void => {
-    const result = applyClamp(scenarioCase.input.config, scenarioCase.input.rules);
-
-    assert.strictEqual(result === scenarioCase.input.config, requiredBoolean(scenarioCase.expected.sameRef, 'expected.sameRef'));
-    assert.deepStrictEqual(scenarioCase.input.config, requiredRecord(scenarioCase.expected.input, 'expected.input'));
-    assert.deepStrictEqual(result, scenarioCase.expected.result);
-  },
-  'throwing-hook-preserves-input': (scenarioCase): void => {
-    const result = applyWithThrowingHook(scenarioCase);
-
-    assert.deepStrictEqual(result, scenarioCase.expected.result);
-    assert.deepStrictEqual(scenarioCase.input.config, requiredRecord(scenarioCase.expected.input, 'expected.input'));
-  },
-  'throwing-hook-preserves-result': (scenarioCase): void => {
-    assert.deepStrictEqual(applyWithThrowingHook(scenarioCase), scenarioCase.expected.result);
-  },
-  'unruled-field-untouched': assertClampedResult
-};
-
-void describe('ClampedConfig', () => {
-  for (const scenario of typedScenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await scenarioRunners[scenario.shape](scenario);
+      assert.deepStrictEqual(ClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
     });
   }
+
+  static 'in-range-untouched'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'in-range-untouched'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
+  }
+
+  static 'nan-field-untouched-no-hook'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'nan-field-untouched-no-hook'>): void {
+    const [events, result] = ClampedConfigRunners.captureClampEvents({ 'timeoutMs': Number.NaN }, scenarioCase.input.rules);
+
+    assert.strictEqual(events.length, scenarioCase.expected.eventCount);
+    assert.ok(Number.isNaN(result.timeoutMs), 'NaN field is left untouched, not clamped');
+  }
+
+  static 'non-numeric-field-untouched'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'non-numeric-field-untouched'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
+  }
+
+  static 'on-clamp-fires'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'on-clamp-fires'>): void {
+    const [events, result] = ClampedConfigRunners.captureClampEvents(scenarioCase.input.config, scenarioCase.input.rules);
+
+    assert.deepStrictEqual(events, [scenarioCase.expected.event]);
+    assert.deepStrictEqual(result, scenarioCase.expected.result);
+  }
+
+  static 'on-clamp-multi-field'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'on-clamp-multi-field'>): void {
+    const [events, result] = ClampedConfigRunners.captureClampEvents(scenarioCase.input.config, scenarioCase.input.rules);
+
+    const fields: string[] = [];
+    for (let index = 0; index < events.length; index += 1) {
+      fields.push(events[index]?.field ?? '');
+    }
+    assert.deepStrictEqual(result, scenarioCase.expected.result);
+    assert.deepStrictEqual(fields.toSorted(), [...scenarioCase.expected.eventFields].toSorted());
+  }
+
+  static 'on-clamp-skipped-in-range'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'on-clamp-skipped-in-range'>): void {
+    const [events, result] = ClampedConfigRunners.captureClampEvents(scenarioCase.input.config, scenarioCase.input.rules);
+
+    assert.strictEqual(events.length, scenarioCase.expected.eventCount);
+    assert.deepStrictEqual(result, scenarioCase.expected.result);
+  }
+
+  static 'returns-new-object'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'returns-new-object'>): void {
+    const result = ClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules);
+
+    assert.strictEqual(result === scenarioCase.input.config, scenarioCase.expected.sameReference);
+    assert.deepStrictEqual(scenarioCase.input.config, scenarioCase.expected.input);
+    assert.deepStrictEqual(result, scenarioCase.expected.result);
+  }
+
+  static 'throwing-hook-preserves-input'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'throwing-hook-preserves-input'>): void {
+    const result = ClampedConfigRunners.applyWithThrowingHook(scenarioCase.input.config, scenarioCase.input.rules);
+
+    assert.deepStrictEqual(result, scenarioCase.expected.result);
+    assert.deepStrictEqual(scenarioCase.input.config, scenarioCase.expected.input);
+  }
+
+  static 'throwing-hook-preserves-result'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'throwing-hook-preserves-result'>): void {
+    assert.deepStrictEqual(ClampedConfigRunners.applyWithThrowingHook(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
+  }
+
+  static 'unruled-field-untouched'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'unruled-field-untouched'>): void {
+    ClampedConfigRunners.assertClampedResult(scenarioCase);
+  }
+
+  private static applyWithThrowingHook(
+    config: Readonly<Record<string, unknown>>,
+    rules: Readonly<Record<string, ClampRuleEntity.Type>>
+  ): Record<string, unknown> {
+    class ThrowingClampedConfig extends ClampedConfig {
+      protected static override onClamp(): void {
+        throw RuntimeError.create('onClamp boom');
+      }
+    }
+
+    const result = ThrowingClampedConfig.apply(config, rules);
+    return result;
+  }
+
+  private static assertClampedResult(
+    scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type,
+      'absent-field-untouched' | 'clamp-above-max' | 'clamp-below-min' | 'in-range-untouched' | 'non-numeric-field-untouched' | 'unruled-field-untouched'>
+  ): void {
+    assert.deepStrictEqual(ClampedConfig.apply(scenarioCase.input.config, scenarioCase.input.rules), scenarioCase.expected.result);
+  }
+
+  private static captureClampEvents(
+    config: Readonly<Record<string, unknown>>,
+    rules: Readonly<Record<string, ClampRuleEntity.Type>>
+  ): readonly [ClampEventEntity.Type[], Record<string, unknown>] {
+    const events: ClampEventEntity.Type[] = [];
+    class ObservingClampedConfig extends ClampedConfig {
+      protected static override onClamp(event: ClampEventEntity.Type): void {
+        events.push(event);
+      }
+    }
+
+    const result = ObservingClampedConfig.apply(config, rules);
+    return [events, result];
+  }
+}
+
+ScenarioSuite.register({
+  'entity': ClampedConfigScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'ClampedConfig',
+  'runners': ClampedConfigRunners
 });

@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/node';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { FirstSecondItemInputEntity } from './common/FirstSecondItemInputEntity.js';
@@ -30,16 +32,20 @@ export namespace HookErrorsOwnedByInstanceScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'firstCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'firstHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-          'secondCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'secondHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
-        }, ['firstCauseMessage', 'firstHookErrorCount', 'secondCauseMessage', 'secondHookErrorCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': FirstSecondItemInputEntity.Node,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, 'hook-errors-owned-by-instance' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'firstCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'firstHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
+      'secondCauseMessage': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'secondHookErrorCount': SchemaNode.defineNumber({ 'type': 'number' } as const)
+    }, ['firstCauseMessage', 'firstHookErrorCount', 'secondCauseMessage', 'secondHookErrorCount'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': FirstSecondItemInputEntity.Node,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineConst({}, 'hook-errors-owned-by-instance' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

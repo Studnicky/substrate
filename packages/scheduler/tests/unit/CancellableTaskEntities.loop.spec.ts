@@ -16,8 +16,8 @@ void describe('CancellableTask lifecycle entities', () => {
   });
 
   void it('rejects scalar states, extraneous properties, and invalid transition targets', () => {
-    assert.throws(() => CancellableTaskStateEntity.intake('pending'));
-    assert.throws(() => CancellableTaskStateEntity.intake({ 'extra': true, 'variant': 'pending' }));
-    assert.throws(() => CancellableTaskTransitionEventEntity.intake({ 'to': 'active', 'type': 'transitionTo' }));
+    assert.throws(() => { CancellableTaskStateEntity.intake('pending'); });
+    assert.throws(() => { CancellableTaskStateEntity.intake({ 'extra': true, 'variant': 'pending' }); });
+    assert.throws(() => { CancellableTaskTransitionEventEntity.intake({ 'to': 'active', 'type': 'transitionTo' }); });
   });
 });

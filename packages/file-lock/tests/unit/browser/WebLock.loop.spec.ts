@@ -1,3 +1,4 @@
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
@@ -5,7 +6,21 @@ import type {
   LockInterface,
   WebLockManagerInterface
 } from '../../../src/browser/index.js';
+
 import { WebLock } from '../../../src/browser/index.js';
+
+class LockManagerCallbackRejectionError extends BaseError {
+  public override readonly name: string = 'LockManagerCallbackRejectionError';
+
+  public constructor(cause: unknown) {
+    super({
+      'cause': cause,
+      'code': 'fileLock.testLockManagerCallbackRejected',
+      'message': 'Lock manager callback rejected',
+      'retryable': false
+    });
+  }
+}
 
 interface LockRequestInterface {
   readonly 'callback': () => Promise<undefined>;
@@ -23,7 +38,7 @@ class TestWebLockManager implements WebLockManagerInterface {
     callback: () => Promise<undefined>
   ): Promise<undefined> {
     const result = new Promise<undefined>((resolve, reject) => {
-      this.#requests.push({ 'callback': callback, reject, resolve });
+      this.#requests.push({ 'callback': callback, 'reject': reject, 'resolve': resolve });
     });
 
     this.#dispatch();
@@ -49,7 +64,7 @@ class TestWebLockManager implements WebLockManagerInterface {
       },
       (error: unknown): void => {
         this.#held = false;
-        request.reject(error);
+        request.reject(new LockManagerCallbackRejectionError(error));
         this.#dispatch();
       }
     );

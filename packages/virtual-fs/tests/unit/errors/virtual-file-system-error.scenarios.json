@@ -7,7 +7,7 @@
       "input": {
         "error": {
           "message": "path does not exist",
-          "args": {
+          "argumentList": {
             "correlationId": "corr-123",
             "metadata": {
               "path": "/missing"
@@ -47,7 +47,7 @@
       "input": {
         "error": {
           "message": "underlying volume is temporarily locked",
-          "args": {
+          "argumentList": {
             "retryable": true
           }
         }

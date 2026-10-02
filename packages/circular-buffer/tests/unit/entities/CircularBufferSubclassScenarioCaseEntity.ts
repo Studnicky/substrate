@@ -1,5 +1,7 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { CircularBufferOptionsEntity } from '../../../src/entities/CircularBufferOptionsEntity.js';
@@ -9,54 +11,54 @@ const bufferItemNode = SchemaNode.defineOneOf({}, [SchemaNode.defineNumber({ 'ty
 const growLogEntryNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'newCapacity': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), 'oldCapacity': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, ['newCapacity', 'oldCapacity'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const inspectStateNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'capacity': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'head': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'tail': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
-  }, ['capacity', 'head', 'length', 'tail'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'capacity': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'head': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'tail': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
+}, ['capacity', 'head', 'length', 'tail'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const asyncOperationNode = SchemaNode.defineObject({ 'type': 'object' } as const, { 'method': SchemaNode.defineEnum({}, ['push', 'unshift'] as const), 'value': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['method', 'value'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const batchNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'pushStageCounts': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
-    'shiftCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
-  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'pushStageCounts': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
+  'shiftCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
+}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const inputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'asyncOperations': SchemaNode.defineArray({ 'type': 'array' } as const, asyncOperationNode, undefined),
-    'batch': batchNode,
-    'flushTurns': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'options': CircularBufferOptionsEntity.Node,
-    'pushItems': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
-    'pushValue': SchemaNode.defineNumber({ 'type': 'number' } as const)
-  }, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'asyncOperations': SchemaNode.defineArray({ 'type': 'array' } as const, asyncOperationNode, undefined),
+  'batch': batchNode,
+  'flushTurns': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'options': CircularBufferOptionsEntity.Node,
+  'pushItems': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
+  'pushValue': SchemaNode.defineNumber({ 'type': 'number' } as const)
+}, ['options'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const expectedNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'evictItems': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-    'evictItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'evictLog': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
-    'firstShift': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'firstShiftValues': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-    'growEventsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'growLog': SchemaNode.defineArray({ 'type': 'array' } as const, growLogEntryNode, undefined),
-    'growOldCapacitiesFirst': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
-    'growOldCapacitiesSecond': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
-    'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'lengthAtHook': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'minHookErrors': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'pushCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'pushItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'rejectionCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'result': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-    'returned': SchemaNode.defineString({ 'type': 'string' } as const),
-    'secondShift': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'shiftCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'shiftItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'shiftLog': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
-    'shiftValue': SchemaNode.defineNumber({ 'type': 'number' } as const),
-    'shiftValues': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
-    'state': inspectStateNode
-  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'evictItems': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+  'evictItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'evictLog': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
+  'firstShift': SchemaNode.defineNumber({ 'type': 'number' } as const),
+  'firstShiftValues': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+  'growEventsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'growLog': SchemaNode.defineArray({ 'type': 'array' } as const, growLogEntryNode, undefined),
+  'growOldCapacitiesFirst': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
+  'growOldCapacitiesSecond': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const), undefined),
+  'length': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'lengthAtHook': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'minHookErrors': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'pushCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'pushItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'rejectionCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'result': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+  'returned': SchemaNode.defineString({ 'type': 'string' } as const),
+  'secondShift': SchemaNode.defineNumber({ 'type': 'number' } as const),
+  'shiftCount': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'shiftItemsLength': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'shiftLog': SchemaNode.defineArray({ 'type': 'array' } as const, bufferItemNode, undefined),
+  'shiftValue': SchemaNode.defineNumber({ 'type': 'number' } as const),
+  'shiftValues': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'number' } as const), undefined),
+  'state': inspectStateNode
+}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 /** The scenario case shape `CircularBuffer.subclass.loop.spec.ts` exercises for subclass-hook behavior. */
 export namespace CircularBufferSubclassScenarioCaseEntity {
@@ -159,22 +161,26 @@ export namespace CircularBufferSubclassScenarioCaseEntity {
   } as const;
 
   export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': expectedNode,
-      'input': inputNode,
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineEnum({}, [
-        'async-rejecting-onPush-guarded', 'base-class-operates-correctly-after-grow', 'create-returns-subclass',
-        'full-trace-grow', 'full-trace-overwrite', 'grow-mode-all-hooks-active', 'onEvict-called-with-evicted-item',
-        'onEvict-not-called-below-capacity', 'onEvict-receives-items-FIFO', 'onEvict-receives-oldest-item',
-        'onGrow-called-once-per-grow-event', 'onGrow-called-when-capacity-exceeded', 'onGrow-not-called-in-overwrite-mode',
-        'onGrow-receives-correct-old-new-capacity', 'onPush-called-on-each-overwrite-push', 'onPush-called-on-each-push',
-        'onPush-called-on-grow-trigger', 'onPush-length-already-incremented', 'onShift-called-with-items-before-returned',
-        'onShift-not-called-when-empty', 'onShift-receives-correct-item', 'onShift-return-value-matches-log',
-        'reentrant-grow-throws-and-does-not-double-resize', 'reentrant-shift-throws', 'subclass-can-read-protected-state',
-        'throwing-onEvict', 'throwing-onGrow', 'throwing-onOverflow', 'throwing-onPush', 'throwing-onShift'
-      ] as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'expected': expectedNode,
+    'input': inputNode,
+    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'shape': SchemaNode.defineEnum({}, [
+      'async-rejecting-onPush-guarded', 'base-class-operates-correctly-after-grow', 'create-returns-subclass',
+      'full-trace-grow', 'full-trace-overwrite', 'grow-mode-all-hooks-active', 'onEvict-called-with-evicted-item',
+      'onEvict-not-called-below-capacity', 'onEvict-receives-items-FIFO', 'onEvict-receives-oldest-item',
+      'onGrow-called-once-per-grow-event', 'onGrow-called-when-capacity-exceeded', 'onGrow-not-called-in-overwrite-mode',
+      'onGrow-receives-correct-old-new-capacity', 'onPush-called-on-each-overwrite-push', 'onPush-called-on-each-push',
+      'onPush-called-on-grow-trigger', 'onPush-length-already-incremented', 'onShift-called-with-items-before-returned',
+      'onShift-not-called-when-empty', 'onShift-receives-correct-item', 'onShift-return-value-matches-log',
+      'reentrant-grow-throws-and-does-not-double-resize', 'reentrant-shift-throws', 'subclass-can-read-protected-state',
+      'throwing-onEvict', 'throwing-onGrow', 'throwing-onOverflow', 'throwing-onPush', 'throwing-onShift'
+    ] as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }

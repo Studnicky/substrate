@@ -1,24 +1,34 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import { FetchTestError } from '../helpers/FetchTestError.js';
 import { ExamplesScenarioCaseEntity } from './entities/ExamplesScenarioCaseEntity.js';
-import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
+import scenarioGroups from './examples.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = ExamplesScenarioCaseEntity.Type;
+class ExamplesRunners {
+  static async 'imports-example'(scenarioCase: ScenarioCaseOfType<ExamplesScenarioCaseEntity.Type, 'imports-example'>): Promise<void> {
+    const href = ExamplesRunners.resolveHref(scenarioCase.input.entrypoint);
+    await assert.doesNotReject(async () => {
+      await import(href);
+    }, `Example ${scenarioCase.input.entrypoint} threw`);
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(ExamplesScenarioCaseEntity.Schema, ExamplesScenarioCaseEntity.Node);
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await assert.doesNotReject(async () => {
-    await import(new URL(scenarioCase.input.entrypoint, import.meta.url).href);
-  }, `Example ${scenarioCase.input.entrypoint} threw`);
+  private static resolveHref(entrypoint: string): string {
+    let href = '';
+    try {
+      href = new URL(entrypoint, import.meta.url).href;
+    } catch (error) {
+      throw new FetchTestError(`Example entrypoint ${entrypoint} is not a resolvable URL`, error);
+    }
+    return href;
+  }
 }
 
-void describe('examples smoke', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ExamplesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'examples smoke',
+  'runners': ExamplesRunners
 });

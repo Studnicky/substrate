@@ -1,13 +1,14 @@
 import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
 import { RuntimeError } from '@studnicky/errors/node';
+import { EventBus } from '@studnicky/event-bus/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { setImmediate } from 'node:timers/promises';
 
-import { EventBus } from '@studnicky/event-bus/node';
+import type { RetryEventTopicMapInterface } from '../../../src/interfaces/index.js';
 
 import { RetryAttemptEventEntity, RetryContextDataEntity, RetrySuccessEventEntity } from '../../../src/entities/index.js';
-import type { RetryEventTopicMapInterface } from '../../../src/interfaces/index.js';
 import { Retry } from '../../../src/retry/index.js';
 
 interface RecordedEventInterface {
@@ -18,27 +19,34 @@ interface RecordedEventInterface {
 class RecordingEventSink implements EventSinkInterface<RetryEventTopicMapInterface> {
   readonly events: RecordedEventInterface[] = [];
 
-  async publish<K extends keyof RetryEventTopicMapInterface>(
+  publish<K extends keyof RetryEventTopicMapInterface>(
     topic: K,
     payload: RetryEventTopicMapInterface[K]
   ): Promise<void> {
-    this.events.push({ 'payload': structuredClone(payload), 'topic': topic });
+    try {
+      this.events.push({ 'payload': structuredClone(payload), 'topic': topic });
+    } catch (cause) {
+      throw RuntimeError.create('Retry event payload is not structured-cloneable', { 'cause': cause });
+    }
+    const published = Promise.resolve();
+    return published;
   }
 }
 
 class RejectingEventSink implements EventSinkInterface<RetryEventTopicMapInterface> {
-  async publish<K extends keyof RetryEventTopicMapInterface>(
+  publish<K extends keyof RetryEventTopicMapInterface>(
     _topic: K,
     _payload: RetryEventTopicMapInterface[K]
   ): Promise<void> {
-    throw RuntimeError.create('telemetry delivery failed');
+    const failure = Promise.reject(RuntimeError.create('telemetry delivery failed'));
+    return failure;
   }
 }
 
 class MutatingEventSink implements EventSinkInterface<RetryEventTopicMapInterface> {
   mutationWasPrevented = false;
 
-  async publish<K extends keyof RetryEventTopicMapInterface>(
+  publish<K extends keyof RetryEventTopicMapInterface>(
     topic: K,
     payload: RetryEventTopicMapInterface[K]
   ): Promise<void> {
@@ -47,33 +55,50 @@ class MutatingEventSink implements EventSinkInterface<RetryEventTopicMapInterfac
       const delayMutation = Reflect.set(payload, 'delayMs', 60_000);
       this.mutationWasPrevented = !abortMutation && !delayMutation;
     }
+    const published = Promise.resolve();
+    return published;
   }
 }
 
-function retryAfterOneFailure(eventSink: EventSinkInterface<RetryEventTopicMapInterface>): Retry {
-  return Retry.create({
-    'errorClassifier': () => ({ 'retryable': true }),
-    'eventSink': eventSink,
-    'maximumRetries': 1
-  });
+class FailOnceOperation {
+  attempts = 0;
+
+  readonly run = (): Promise<string> => {
+    this.attempts += 1;
+    let outcome = Promise.resolve('complete');
+    if (this.attempts === 1) {
+      outcome = Promise.reject(RuntimeError.create('transient'));
+    }
+    return outcome;
+  };
+}
+
+class RetryEventSinkFixtures {
+  static retryAfterOneFailure(eventSink: EventSinkInterface<RetryEventTopicMapInterface>): Retry {
+    const retry = Retry.create({
+      'errorClassifier': RetryEventSinkFixtures.classifyRetryable,
+      'eventSink': eventSink,
+      'maximumRetries': 1
+    });
+    return retry;
+  }
+
+  private static classifyRetryable(): { 'retryable': true } {
+    const classification = { 'retryable': true } as const;
+    return classification;
+  }
 }
 
 void describe('Retry event sink', () => {
   void it('publishes ordered schema-derived attempt, scheduled, and success snapshots', async () => {
     const eventSink = new RecordingEventSink();
-    const retry = retryAfterOneFailure(eventSink);
-    let attempts = 0;
+    const retry = RetryEventSinkFixtures.retryAfterOneFailure(eventSink);
+    const operation = new FailOnceOperation();
 
-    const result = await retry.execute(async () => {
-      attempts += 1;
-      if (attempts === 1) {
-        throw RuntimeError.create('transient');
-      }
-      return 'complete';
-    });
+    const result = await retry.execute(operation.run);
 
     assert.equal(result, 'complete');
-    assert.deepEqual(eventSink.events.map((event) => event.topic), ['attempt', 'retryScheduled', 'attempt', 'success']);
+    assert.deepEqual(eventSink.events.map((event) => {return event.topic;}), ['attempt', 'retryScheduled', 'attempt', 'success']);
     assert.ok(RetryAttemptEventEntity.validate(eventSink.events[0]?.payload));
     assert.ok(RetryContextDataEntity.validate(eventSink.events[1]?.payload));
     assert.ok(RetryAttemptEventEntity.validate(eventSink.events[2]?.payload));
@@ -85,19 +110,13 @@ void describe('Retry event sink', () => {
     const eventSink: EventSinkInterface<RetryEventTopicMapInterface> = bus;
     const receivedTopics: (keyof RetryEventTopicMapInterface)[] = [];
 
-    bus.subscribe('attempt', async () => { receivedTopics.push('attempt'); });
-    bus.subscribe('retryScheduled', async () => { receivedTopics.push('retryScheduled'); });
-    bus.subscribe('success', async () => { receivedTopics.push('success'); });
+    bus.subscribe('attempt', () => { receivedTopics.push('attempt'); });
+    bus.subscribe('retryScheduled', () => { receivedTopics.push('retryScheduled'); });
+    bus.subscribe('success', () => { receivedTopics.push('success'); });
 
-    const retry = retryAfterOneFailure(eventSink);
-    let attempts = 0;
-    await retry.execute(async () => {
-      attempts += 1;
-      if (attempts === 1) {
-        throw RuntimeError.create('transient');
-      }
-      return 'complete';
-    });
+    const retry = RetryEventSinkFixtures.retryAfterOneFailure(eventSink);
+    const operation = new FailOnceOperation();
+    await retry.execute(operation.run);
 
     await bus.drain();
     await bus.close();
@@ -105,37 +124,25 @@ void describe('Retry event sink', () => {
   });
 
   void it('keeps terminal retry results independent of rejected telemetry publications', async () => {
-    const retry = retryAfterOneFailure(new RejectingEventSink());
-    let attempts = 0;
+    const retry = RetryEventSinkFixtures.retryAfterOneFailure(new RejectingEventSink());
+    const operation = new FailOnceOperation();
 
-    const result = await retry.execute(async () => {
-      attempts += 1;
-      if (attempts === 1) {
-        throw RuntimeError.create('transient');
-      }
-      return 'complete';
-    });
+    const result = await retry.execute(operation.run);
 
-    await new Promise<void>((resolve) => { setImmediate(resolve); });
+    await setImmediate();
     assert.equal(result, 'complete');
-    assert.equal(attempts, 2);
+    assert.equal(operation.attempts, 2);
   });
 
   void it('freezes detached retry-scheduled snapshots before publication', async () => {
     const eventSink = new MutatingEventSink();
-    const retry = retryAfterOneFailure(eventSink);
-    let attempts = 0;
+    const retry = RetryEventSinkFixtures.retryAfterOneFailure(eventSink);
+    const operation = new FailOnceOperation();
 
-    const result = await retry.execute(async () => {
-      attempts += 1;
-      if (attempts === 1) {
-        throw RuntimeError.create('transient');
-      }
-      return 'complete';
-    });
+    const result = await retry.execute(operation.run);
 
     assert.equal(result, 'complete');
-    assert.equal(attempts, 2);
+    assert.equal(operation.attempts, 2);
     assert.equal(eventSink.mutationWasPrevented, true);
   });
 });

@@ -1,29 +1,16 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { EventRecorder } from '../../src/index.js';
 import { EventRecorderScenarioCaseEntity } from './entities/EventRecorderScenarioCaseEntity.js';
-import scenarioGroups from './event-recorder.scenarios.json' with { type: 'json' };
+import scenarioGroups from './event-recorder.scenarios.json' with { 'type': 'json' };
 
-interface RecordedEventInterface {
-  shape: string;
-  nested: { value: number };
-}
-
-type ScenarioCase = EventRecorderScenarioCaseEntity.Type;
-type ScenarioRunner = (scenario: ScenarioCase) => void;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(EventRecorderScenarioCaseEntity.Schema, EventRecorderScenarioCaseEntity.Node);
-
-function runCase(scenario: ScenarioCase): void {
-  scenarioRunners[scenario.shape](scenario);
-}
-
-const scenarioRunners = {
-  'detaches-recorded-events': (scenario) => {
-    const { expected, input } = scenario;
-    const recorder = new EventRecorder<RecordedEventInterface>();
+class EventRecorderRunners {
+  static 'detaches-recorded-events'(scenarioCase: ScenarioCaseOfType<EventRecorderScenarioCaseEntity.Type, 'detaches-recorded-events'>): void {
+    const { expected, input } = scenarioCase;
+    const recorder = new EventRecorder<EventRecorderScenarioCaseEntity.Type['input']['recorder']['event']>();
     const source = input.recorder.event;
 
     recorder.record(source, 'request');
@@ -40,12 +27,11 @@ const scenarioRunners = {
 
     assert.deepStrictEqual(recorder.events[0], expected.detachedProjection);
   }
-} satisfies Record<ScenarioCase['shape'], ScenarioRunner>;
+}
 
-void describe('EventRecorder', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': EventRecorderScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'EventRecorder',
+  'runners': EventRecorderRunners
 });

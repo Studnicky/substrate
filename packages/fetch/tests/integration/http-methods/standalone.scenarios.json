@@ -4,14 +4,14 @@
       "name": "get-request",
       "description": "FetchClient makes GET requests",
       "input": {
-        "method": "GET",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "json",
         "id": 1,
         "status": 200
-      }
+      },
+      "shape": "GET"
     },
     {
       "name": "post-json",
@@ -22,27 +22,27 @@
           "title": "test",
           "userId": 1
         },
-        "method": "POST",
         "path": "/posts"
       },
       "expected": {
         "shape": "json",
         "status": 201,
         "title": "test"
-      }
+      },
+      "shape": "POST"
     },
     {
       "name": "post-string-body",
       "description": "FetchClient supports string request bodies",
       "input": {
         "body": "plain text",
-        "method": "POST",
         "path": "/posts"
       },
       "expected": {
         "shape": "json",
         "status": 201
-      }
+      },
+      "shape": "POST"
     },
     {
       "name": "put-json",
@@ -54,14 +54,14 @@
           "title": "updated",
           "userId": 1
         },
-        "method": "PUT",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "json",
         "status": 200,
         "title": "updated"
-      }
+      },
+      "shape": "PUT"
     },
     {
       "name": "patch-json",
@@ -70,50 +70,50 @@
         "body": {
           "title": "partial update"
         },
-        "method": "PATCH",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "json",
         "status": 200,
         "title": "Test Post"
-      }
+      },
+      "shape": "PATCH"
     },
     {
       "name": "delete-request",
       "description": "FetchClient makes DELETE requests",
       "input": {
-        "method": "DELETE",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "DELETE"
     },
     {
       "name": "head-request",
       "description": "FetchClient makes HEAD requests",
       "input": {
-        "method": "HEAD",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "HEAD"
     },
     {
       "name": "options-request",
       "description": "FetchClient makes OPTIONS requests",
       "input": {
-        "method": "OPTIONS",
         "path": "/posts/1"
       },
       "expected": {
         "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "OPTIONS"
     }
   ]
 }

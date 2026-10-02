@@ -1,8 +1,10 @@
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { describe, it } from 'node:test';
-
 import {
   createCompilerHost,
   createProgram,
@@ -14,527 +16,79 @@ import {
   ScriptTarget
 } from 'typescript';
 
-import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
+import type { IdempotencyGuardOptionsEntity } from '../../../src/entities/index.js';
+
 import { IdempotencyGuardEntryMetadataEntity, IdempotencyPayloadEntity } from '../../../src/entities/index.js';
+import { IdempotencyConflictError, IdempotencyGuard } from '../../../src/index.js';
+import { IdempotencyGuardScenarioCaseEntity } from '../entities/IdempotencyGuardScenarioCaseEntity.js';
+import scenarioGroups from './idempotency-guard.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './idempotency-guard.scenarios.json' with { type: 'json' };
+class IdempotencyFixtureError extends BaseError {
+  public override readonly name: string = 'IdempotencyFixtureError';
 
-// Shared placeholder for a deferred-promise resolver that is always reassigned before use.
-const NOOP_STRING_RESOLVER: (value: string) => void = () => {};
+  public constructor(message: string, cause?: unknown) {
+    super({
+      'cause': cause,
+      'code': 'idempotencyGuard.testFixtureFailed',
+      'message': message,
+      'retryable': false
+    });
+  }
+}
 
-type ScenarioFixture = (typeof scenarioGroups.cases)[number];
-type GuardOptions = ScenarioFixture['input']['idempotencyGuard'];
-type GuardFactory<TResult> = () => TResult | Promise<TResult>;
+interface GuardFactoryInterface<TResult> {
+  (): TResult | Promise<TResult>;
+}
 
-/**
- * `scenarioGroups.cases` is loaded via `resolveJsonModule`, which widens every JSON literal
- * (including `shape`) to its base type (`string`, `number`, …). That makes `ScenarioFixture['shape']`
- * plain `string` rather than a literal union, so `Extract` on it can never narrow — every scenario
- * handler would otherwise receive the full union of all fixture shapes. `ScenarioCase` restates the
- * true per-shape contract by hand so `shape` is a real discriminant, and `assertScenarioShape` below
- * performs the runtime check that lets TypeScript narrow a loose `ScenarioFixture` down to one member.
- */
-type ScenarioCase =
-  | {
-      shape: 'metadata-accepts-string-fingerprint';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; fingerprint: string };
-      expected: { valid: boolean };
+/** Records labelled lines for a scenario; the snapshot annotates assertion failures. */
+class TraceLogger {
+  readonly #lines: string[] = [];
+  readonly #shape: string;
+
+  constructor(shape: string) {
+    this.#shape = shape;
+  }
+
+  log(message: string): void {
+    const line = `${this.#shape}: ${message}`;
+    this.#lines.push(line);
+    if (process.env.SUBSTATE_TEST_TRACE === '1') {
+      process.stderr.write(`${line}\n`);
     }
-  | {
-      shape: 'metadata-rejects-invalid-fingerprint';
-      name: string;
-      description: string;
-      input: {
-        idempotencyGuard: GuardOptions;
-        missingFingerprint: Record<string, never>;
-        numericFingerprint: { fingerprint: number };
-      };
-      expected: { missingValid: boolean; numericValid: boolean };
-    }
-  | {
-      shape: 'coalesce-shares-one-execution';
-      name: string;
-      description: string;
-      input: {
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-        batch: { calls: number; factoryResult: string };
-      };
-      expected: { calls: number; result: string };
-    }
-  | {
-      shape: 'result-contract-owned';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { operand: number } };
-      expected: { initial: number; replayed: number; type: string };
-    }
-  | {
-      shape: 'result-contract-rejects-invalid-factory';
-      name: string;
-      description: string;
-      input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: Record<string, never> };
-      expected: { diagnosticsCount: number; messagePattern: string };
-    }
-  | {
-      shape: 'conflict-same-key-different-payload';
-      name: string;
-      description: string;
-      input: {
-        conflictingPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-      };
-      expected: { calls: number };
-    }
-  | {
-      shape: 'conflict-exposes-key';
-      name: string;
-      description: string;
-      input: {
-        conflictingPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-      };
-      expected: { code: string; key: string; result: string };
-    }
-  | {
-      shape: 'replay-accepts-sync-factory';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { result: { chargeId: string } };
-    }
-  | {
-      shape: 'replay-cached-result';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { calls: number; firstResult: { chargeId: string }; secondResult: { chargeId: string } };
-    }
-  | {
-      shape: 'replay-expired-entry-reruns';
-      name: string;
-      description: string;
-      input: { expirationWaitMs: number; idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { calls: number; second: string };
-    }
-  | {
-      shape: 'hooks-execute-new-key';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { conflicted: never[]; executed: string[]; replayed: never[] };
-    }
-  | {
-      shape: 'hooks-execute-before-factory';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { events: string[] };
-    }
-  | {
-      shape: 'hooks-replay-match';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { executed: string[]; replayed: string[] };
-    }
-  | {
-      shape: 'hooks-conflict-before-throw';
-      name: string;
-      description: string;
-      input: {
-        conflictingPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-      };
-      expected: { conflicted: string[] };
-    }
-  | {
-      shape: 'hooks-coalesce-follower';
-      name: string;
-      description: string;
-      input: {
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-        batch: { calls: number; factoryResult: string };
-      };
-      expected: { coalesced: string[]; executed: string[] };
-    }
-  | {
-      shape: 'hooks-isolated-instances';
-      name: string;
-      description: string;
-      input: {
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-        batch: { callsPerInstance: number; factoryResults: string[] };
-      };
-      expected: {
-        firstEvents: string[];
-        firstFactoryCalls: number;
-        results: string[];
-        secondEvents: string[];
-        secondFactoryCalls: number;
-      };
-    }
-  | {
-      shape: 'hooks-throwing-replay';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { result: string };
-    }
-  | {
-      shape: 'hooks-throwing-conflict';
-      name: string;
-      description: string;
-      input: {
-        conflictingPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-      };
-      expected: { result: string };
-    }
-  | {
-      shape: 'hooks-throwing-execute';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { result: string };
-    }
-  | {
-      shape: 'hooks-sync-replay-swallowed';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { result: string };
-    }
-  | {
-      shape: 'hooks-async-replay-safe';
-      name: string;
-      description: string;
-      input: { idempotencyGuard: GuardOptions; key: string; payload: { amount: number } };
-      expected: { rejections: number; result: string };
-    }
-  | {
-      shape: 'hooks-throwing-coalesce';
-      name: string;
-      description: string;
-      input: {
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-        batch: { calls: number; factoryResult: string };
-      };
-      expected: { followerResult: string; leaderResult: string };
-    }
-  | {
-      shape: 'hooks-async-overrides-safe';
-      name: string;
-      description: string;
-      input: {
-        conflictingPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        payload: { amount: number };
-        batch: { calls: number; factoryResult: string };
-      };
-      expected: { events: string[]; rejections: number; result: string };
-    }
-  | {
-      shape: 'race-concurrent-different-payload';
-      name: string;
-      description: string;
-      input: {
-        followerPayload: { amount: number };
-        idempotencyGuard: GuardOptions;
-        key: string;
-        leaderPayload: { amount: number };
-        batch: { followerResult: string; leaderResult: string; replayResult: string };
-      };
-      expected: {
-        followerCalls: number;
-        leaderCalls: number;
-        leaderResult: string;
-        replayed: string;
-        replayFactoryCalls: number;
-      };
+  }
+
+  snapshot(): string {
+    const text = this.#lines.join('\n');
+    return text;
+  }
+}
+
+/** Collects `unhandledRejection` reasons while a scenario runs. */
+class RejectionRecorder {
+  readonly reasons: unknown[] = [];
+  readonly #listener: (reason: unknown) => void;
+
+  constructor(trace: TraceLogger) {
+    this.#listener = (reason): void => {
+      this.reasons.push(reason);
+      trace.log(`unhandled-rejection:${String(reason)}`);
     };
-type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner = (scenario: ScenarioFixture) => Promise<void> | void;
-type ScenarioRunnerMap = Record<ScenarioShape, ScenarioRunner>;
+    process.on('unhandledRejection', this.#listener);
+  }
 
-/**
- * `scenarioGroups.cases` is loaded via `resolveJsonModule`, which widens every JSON literal
- * (including `shape`) to its base type (`string`), so `ScenarioFixture['shape']` is plain `string`
- * rather than a literal union — a single generic `Extract`-based assertion cannot be proven
- * assignable back to `ScenarioFixture` for an arbitrary type parameter (TS2677), even though each
- * concrete instantiation is sound. These per-shape assertions narrow a loose `ScenarioFixture` down
- * to the matching `ScenarioCase` member, verified at runtime.
- */
-
-function assertScenarioMetadataAcceptsStringFingerprint(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-accepts-string-fingerprint' }> {
-  if (scenario.shape !== 'metadata-accepts-string-fingerprint') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "metadata-accepts-string-fingerprint", received "${scenario.shape}"`);
+  dispose(): void {
+    process.off('unhandledRejection', this.#listener);
   }
 }
 
-function assertScenarioMetadataRejectsInvalidFingerprint(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'metadata-rejects-invalid-fingerprint' }> {
-  if (scenario.shape !== 'metadata-rejects-invalid-fingerprint') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "metadata-rejects-invalid-fingerprint", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioCoalesceSharesOneExecution(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'coalesce-shares-one-execution' }> {
-  if (scenario.shape !== 'coalesce-shares-one-execution') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "coalesce-shares-one-execution", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioResultContractOwned(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-owned' }> {
-  if (scenario.shape !== 'result-contract-owned') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "result-contract-owned", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioResultContractRejectsInvalidFactory(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'result-contract-rejects-invalid-factory' }> {
-  if (scenario.shape !== 'result-contract-rejects-invalid-factory') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "result-contract-rejects-invalid-factory", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioConflictSameKeyDifferentPayload(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-same-key-different-payload' }> {
-  if (scenario.shape !== 'conflict-same-key-different-payload') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "conflict-same-key-different-payload", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioConflictExposesKey(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'conflict-exposes-key' }> {
-  if (scenario.shape !== 'conflict-exposes-key') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "conflict-exposes-key", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioReplayAcceptsSyncFactory(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'replay-accepts-sync-factory' }> {
-  if (scenario.shape !== 'replay-accepts-sync-factory') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-accepts-sync-factory", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioReplayCachedResult(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'replay-cached-result' }> {
-  if (scenario.shape !== 'replay-cached-result') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-cached-result", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioReplayExpiredEntryReruns(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'replay-expired-entry-reruns' }> {
-  if (scenario.shape !== 'replay-expired-entry-reruns') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "replay-expired-entry-reruns", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksExecuteNewKey(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-new-key' }> {
-  if (scenario.shape !== 'hooks-execute-new-key') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-execute-new-key", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksExecuteBeforeFactory(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-execute-before-factory' }> {
-  if (scenario.shape !== 'hooks-execute-before-factory') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-execute-before-factory", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksReplayMatch(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-replay-match' }> {
-  if (scenario.shape !== 'hooks-replay-match') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-replay-match", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksConflictBeforeThrow(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-conflict-before-throw' }> {
-  if (scenario.shape !== 'hooks-conflict-before-throw') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-conflict-before-throw", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksCoalesceFollower(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-coalesce-follower' }> {
-  if (scenario.shape !== 'hooks-coalesce-follower') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-coalesce-follower", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksIsolatedInstances(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-isolated-instances' }> {
-  if (scenario.shape !== 'hooks-isolated-instances') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-isolated-instances", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksThrowingReplay(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-replay' }> {
-  if (scenario.shape !== 'hooks-throwing-replay') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-replay", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksThrowingConflict(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-conflict' }> {
-  if (scenario.shape !== 'hooks-throwing-conflict') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-conflict", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksThrowingExecute(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-execute' }> {
-  if (scenario.shape !== 'hooks-throwing-execute') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-execute", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksSyncReplaySwallowed(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-sync-replay-swallowed' }> {
-  if (scenario.shape !== 'hooks-sync-replay-swallowed') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-sync-replay-swallowed", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksAsyncReplaySafe(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-replay-safe' }> {
-  if (scenario.shape !== 'hooks-async-replay-safe') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-async-replay-safe", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksThrowingCoalesce(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-throwing-coalesce' }> {
-  if (scenario.shape !== 'hooks-throwing-coalesce') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-throwing-coalesce", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioHooksAsyncOverridesSafe(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'hooks-async-overrides-safe' }> {
-  if (scenario.shape !== 'hooks-async-overrides-safe') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "hooks-async-overrides-safe", received "${scenario.shape}"`);
-  }
-}
-
-function assertScenarioRaceConcurrentDifferentPayload(
-  scenario: ScenarioFixture
-): asserts scenario is Extract<ScenarioCase, { shape: 'race-concurrent-different-payload' }> {
-  if (scenario.shape !== 'race-concurrent-different-payload') {
-    throw RuntimeError.create(`Scenario shape mismatch: expected "race-concurrent-different-payload", received "${scenario.shape}"`);
-  }
-}
-
-type PayloadMaterializerMap = {
-  conflicting: (input: { conflictingPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
-  follower: (input: { followerPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
-  leader: (input: { leaderPayload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
-  primary: (input: { payload: IdempotencyPayloadEntity.Type }) => IdempotencyPayloadEntity.Type;
-};
-type DiagnosticPatternPredicate = (diagnostic: string) => boolean;
-
-const diagnosticPatternPredicates: Record<string, DiagnosticPatternPredicate> = {
-  "Type 'string' is not assignable to type 'number \\| Promise<number>'": (diagnostic) => diagnostic.includes("Type 'string' is not assignable to type 'number | Promise<number>'")
-};
-
-class ResultContractCompiler {
-  static diagnostics(input: { fixture: string; idempotencyGuard: GuardOptions; key: string; payload: IdempotencyPayloadEntity.Type }): string[] {
-    const guardOptions = input.idempotencyGuard;
-    const fileName = fileURLToPath(new URL(`../../fixtures/${input.fixture}`, import.meta.url));
-    const source = `
-      import { IdempotencyGuard } from '../../src/index.js';
-      import { IdempotencyPayloadEntity } from '../../src/entities/index.js';
-
-      const direct = IdempotencyGuard.create<number>({ capacity: ${guardOptions.capacity}, ttlMs: ${guardOptions.ttlMs} });
-      await direct.run(${sourceStringLiteral(scenarioKey(input))}, IdempotencyPayloadEntity.create(${sourceLiteral(scenarioPayload(input))}), () => 'wrong');
-    `;
-    const options = {
-      module: ModuleKind.NodeNext,
-      moduleResolution: ModuleResolutionKind.NodeNext,
-      noEmit: true,
-      skipLibCheck: true,
-      strict: true,
-      target: ScriptTarget.ES2022
-    };
-    const host = createCompilerHost(options);
-    const fileExists = host.fileExists.bind(host);
-    const getSourceFile = host.getSourceFile.bind(host);
-    const readFile = host.readFile.bind(host);
-
-    host.fileExists = (candidate): boolean => candidate === fileName || fileExists(candidate);
-    host.readFile = (candidate): string | undefined => candidate === fileName ? source : readFile(candidate);
-    host.getSourceFile = (candidate, languageVersion, onError, shouldCreateNewSourceFile) => {
-      if (candidate === fileName) {
-        return createSourceFile(candidate, source, languageVersion, true);
-      }
-      return getSourceFile(candidate, languageVersion, onError, shouldCreateNewSourceFile);
-    };
-
-    const program = createProgram([fileName], options, host);
-    return getPreEmitDiagnostics(program)
-      .filter((diagnostic) => diagnostic.file?.fileName === fileName && diagnostic.code === 2322)
-      .map((diagnostic) => flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
-  }
-}
-
+/** A guard whose lifecycle hooks record the keys they fire for. */
 class TrackingGuard extends IdempotencyGuard<string> {
   readonly replayed: string[] = [];
   readonly coalesced: string[] = [];
   readonly conflicted: string[] = [];
   readonly executed: string[] = [];
 
-  static tracked(options: GuardOptions): TrackingGuard {
+  static tracked(options: IdempotencyGuardOptionsEntity.InputType): TrackingGuard {
     return new TrackingGuard(options);
   }
 
@@ -555,136 +109,465 @@ class TrackingGuard extends IdempotencyGuard<string> {
   }
 }
 
-function createGuard<TResult>(options: GuardOptions): IdempotencyGuard<TResult> {
-  return IdempotencyGuard.create<TResult>(options);
-}
+/** A guard that records each `onExecute` and `onCoalesce` firing in order. */
+class IsolatedTrackingGuard extends IdempotencyGuard<string> {
+  readonly events: string[] = [];
 
-function sourceLiteral(value: IdempotencyPayloadEntity.Type): string {
-  const literal = JSON.stringify(value);
-  if (literal === undefined) {
-    throw RuntimeError.create('Scenario fixture is not JSON serializable');
-  }
-  return literal;
-}
-
-function sourceStringLiteral(value: string): string {
-  return JSON.stringify(value);
-}
-
-function scenarioKey(input: { key: string }): string {
-  return input.key;
-}
-
-const payloadMaterializers: PayloadMaterializerMap = {
-  conflicting(input) {
-    return IdempotencyPayloadEntity.create(structuredClone(input.conflictingPayload));
-  },
-  follower(input) {
-    return IdempotencyPayloadEntity.create(structuredClone(input.followerPayload));
-  },
-  leader(input) {
-    return IdempotencyPayloadEntity.create(structuredClone(input.leaderPayload));
-  },
-  primary(input) {
-    return IdempotencyPayloadEntity.create(structuredClone(input.payload));
-  }
-};
-
-function scenarioPayload(input: { payload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
-  return payloadMaterializers.primary(input);
-}
-
-function scenarioConflictingPayload(
-  input: { conflictingPayload: IdempotencyPayloadEntity.Type }
-): IdempotencyPayloadEntity.Type {
-  return payloadMaterializers.conflicting(input);
-}
-
-function scenarioLeaderPayload(input: { leaderPayload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
-  return payloadMaterializers.leader(input);
-}
-
-function scenarioFollowerPayload(input: { followerPayload: IdempotencyPayloadEntity.Type }): IdempotencyPayloadEntity.Type {
-  return payloadMaterializers.follower(input);
-}
-
-function runScenarioInput<TResult, TInput extends { key: string; payload: IdempotencyPayloadEntity.Type }>(
-  guard: IdempotencyGuard<TResult>,
-  input: TInput,
-  factory: GuardFactory<TResult>
-): Promise<TResult> {
-  return guard.run(scenarioKey(input), scenarioPayload(input), factory);
-}
-
-function runConflictingScenarioInput<TResult, TInput extends { conflictingPayload: IdempotencyPayloadEntity.Type; key: string }>(
-  guard: IdempotencyGuard<TResult>,
-  input: TInput,
-  factory: GuardFactory<TResult>
-): Promise<TResult> {
-  return guard.run(scenarioKey(input), scenarioConflictingPayload(input), factory);
-}
-
-function runLeaderScenarioInput<TResult, TInput extends { key: string; leaderPayload: IdempotencyPayloadEntity.Type }>(
-  guard: IdempotencyGuard<TResult>,
-  input: TInput,
-  factory: GuardFactory<TResult>
-): Promise<TResult> {
-  return guard.run(scenarioKey(input), scenarioLeaderPayload(input), factory);
-}
-
-function runFollowerScenarioInput<TResult, TInput extends { followerPayload: IdempotencyPayloadEntity.Type; key: string }>(
-  guard: IdempotencyGuard<TResult>,
-  input: TInput,
-  factory: GuardFactory<TResult>
-): Promise<TResult> {
-  return guard.run(scenarioKey(input), scenarioFollowerPayload(input), factory);
-}
-
-function runScenarioInputBatch<TResult, TInput extends { batch: { calls: number }; key: string; payload: IdempotencyPayloadEntity.Type }>(
-  guard: IdempotencyGuard<TResult>,
-  input: TInput,
-  factory: GuardFactory<TResult>
-): Promise<TResult[]> {
-  return Promise.all(Array.from({ length: input.batch.calls }, () => runScenarioInput(guard, input, factory)));
-}
-
-function assertDiagnosticPattern(diagnostic: string, pattern: string): void {
-  const predicate = diagnosticPatternPredicates[pattern];
-
-  if (predicate === undefined) {
-    throw RuntimeError.create(`Unsupported diagnostic message pattern scenario: ${pattern}`);
+  static tracked(options: IdempotencyGuardOptionsEntity.InputType): IsolatedTrackingGuard {
+    return new IsolatedTrackingGuard(options);
   }
 
-  assert.equal(predicate(diagnostic), true);
+  protected override onExecute(key: string): void {
+    this.events.push(`execute:${key}`);
+  }
+
+  protected override onCoalesce(key: string): void {
+    this.events.push(`coalesce:${key}`);
+  }
 }
 
-function createTraceLogger(shape: string): { log: (message: string) => void; snapshot: () => string } {
-  const lines: string[] = [];
-  return {
-    log(message: string): void {
-      const line = `${shape}: ${message}`;
-      lines.push(line);
-      if (process.env.SUBSTATE_TEST_TRACE === '1') {
-        console.error('%s', line);
-      }
-    },
-    snapshot(): string {
-      return lines.join('\n');
+/** A guard whose named hook throws a synchronous named error. */
+class ThrowingHookGuard extends IdempotencyGuard<string> {
+  readonly #hookName: string;
+
+  constructor(options: IdempotencyGuardOptionsEntity.InputType, hookName: string) {
+    super(options);
+    this.#hookName = hookName;
+  }
+
+  static throwing(options: IdempotencyGuardOptionsEntity.InputType, hookName: string): ThrowingHookGuard {
+    return new ThrowingHookGuard(options, hookName);
+  }
+
+  protected override onConflict(): void {
+    this.failWhen('onConflict');
+  }
+
+  protected override onCoalesce(): void {
+    this.failWhen('onCoalesce');
+  }
+
+  protected override onExecute(): void {
+    this.failWhen('onExecute');
+  }
+
+  protected override onReplay(): void {
+    this.failWhen('onReplay');
+  }
+
+  private failWhen(hookName: string): void {
+    if (this.#hookName === hookName) {
+      throw RuntimeError.create(`${hookName} boom`);
     }
-  };
+  }
 }
 
-const scenarioRunners: ScenarioRunnerMap = {
-  'metadata-accepts-string-fingerprint': (scenario) => {
-    assertScenarioMetadataAcceptsStringFingerprint(scenario);
+/** A guard that appends `execute` to a shared event list before its factory runs. */
+class OrderedGuard extends IdempotencyGuard<string> {
+  readonly #events: string[];
+
+  constructor(options: IdempotencyGuardOptionsEntity.InputType, events: string[]) {
+    super(options);
+    this.#events = events;
+  }
+
+  static ordered(options: IdempotencyGuardOptionsEntity.InputType, events: string[]): OrderedGuard {
+    return new OrderedGuard(options, events);
+  }
+
+  protected override onExecute(): void {
+    this.#events.push('execute');
+  }
+}
+
+/** One isolated guard instance with a gated factory whose invocations are counted. */
+class IsolatedExecution {
+  readonly guard: IsolatedTrackingGuard;
+  readonly result: string;
+  readonly #gate: PromiseWithResolvers<string> = Promise.withResolvers<string>();
+  #calls = 0;
+
+  constructor(guard: IsolatedTrackingGuard, result: string) {
+    this.guard = guard;
+    this.result = result;
+  }
+
+  get factoryCalls(): number {
+    return this.#calls;
+  }
+
+  factory(): Promise<string> {
+    this.#calls += 1;
+    return this.#gate.promise;
+  }
+
+  release(): void {
+    this.#gate.resolve(this.result);
+  }
+}
+
+class ResultContractCompiler {
+  static diagnostics(input: { 'fixture': string; 'idempotencyGuard': IdempotencyGuardOptionsEntity.InputType; 'key': string; 'payload': IdempotencyPayloadEntity.Type }): string[] {
+    const guardOptions = input.idempotencyGuard;
+    const fileName = ResultContractCompiler.fixturePath(input.fixture);
+    const source = `
+      import { IdempotencyGuard } from '../../src/index.js';
+      import { IdempotencyPayloadEntity } from '../../src/entities/index.js';
+
+      const direct = IdempotencyGuard.create<number>({ capacity: ${guardOptions.capacity}, ttlMs: ${guardOptions.ttlMs} });
+      await direct.run(${ResultContractCompiler.literal(input.key)}, IdempotencyPayloadEntity.create(${ResultContractCompiler.literal(input.payload)}), () => 'wrong');
+    `;
+    const options = {
+      'module': ModuleKind.NodeNext,
+      'moduleResolution': ModuleResolutionKind.NodeNext,
+      'noEmit': true,
+      'skipLibCheck': true,
+      'strict': true,
+      'target': ScriptTarget.ES2022
+    };
+    const baseHost = createCompilerHost(options);
+    const host = createCompilerHost(options);
+
+    host.fileExists = (candidate): boolean => {
+      const exists = candidate === fileName || baseHost.fileExists(candidate);
+      return exists;
+    };
+    host.readFile = (candidate): string | undefined => {
+      const contents = candidate === fileName ? source : baseHost.readFile(candidate);
+      return contents;
+    };
+    host.getSourceFile = (candidate, languageVersion, onError, shouldCreateNewSourceFile) => {
+      let sourceFile = baseHost.getSourceFile(candidate, languageVersion, onError, shouldCreateNewSourceFile);
+      if (candidate === fileName) {
+        sourceFile = createSourceFile(candidate, source, languageVersion, true);
+      }
+      return sourceFile;
+    };
+
+    const program = createProgram([fileName], options, host);
+    const messages: string[] = [];
+    const diagnostics = getPreEmitDiagnostics(program);
+    for (let index = 0; index < diagnostics.length; index += 1) {
+      const diagnostic = diagnostics[index];
+      if (diagnostic?.file?.fileName === fileName && diagnostic.code === 2322) {
+        messages.push(flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+      }
+    }
+    return messages;
+  }
+
+  private static fixturePath(fixture: string): string {
+    try {
+      const path = fileURLToPath(new URL(`../../fixtures/${fixture}`, import.meta.url));
+      return path;
+    } catch (cause) {
+      throw new IdempotencyFixtureError('Fixture path did not resolve', cause);
+    }
+  }
+
+  private static literal(value: IdempotencyPayloadEntity.Type | string): string {
+    try {
+      const text = JSON.stringify(value);
+      return text;
+    } catch (cause) {
+      throw new IdempotencyFixtureError('Scenario fixture is not JSON serializable', cause);
+    }
+  }
+}
+
+class IdempotencyGuardRunners {
+  static async 'coalesce-shares-one-execution'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'coalesce-shares-one-execution'>): Promise<void> {
+    const trace = new TraceLogger(scenario.shape);
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    let calls = 0;
+    const gate = Promise.withResolvers<string>();
+    const factory = async (): Promise<string> => {
+      calls += 1;
+      trace.log(`factory-call:${calls}`);
+      return await gate.promise;
+    };
+
+    const results = IdempotencyGuardRunners.runBatch(guard, input, factory);
+    trace.log('leader-and-follower-scheduled');
+    gate.resolve(input.batch.factoryResult);
+    trace.log(`factory-resolved:${input.batch.factoryResult}`);
+
+    const output = await results;
+    assert.equal(calls, scenario.expected.calls, trace.snapshot());
+    assert.deepEqual(
+      output,
+      IdempotencyGuardRunners.repeat(input.batch.calls, scenario.expected.result),
+      trace.snapshot()
+    );
+  }
+
+  static async 'conflict-exposes-key'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'conflict-exposes-key'>): Promise<void> {
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, async () => {
+      return await Promise.resolve(scenario.expected.result);
+    });
+    await assert.rejects(
+      IdempotencyGuardRunners.runConflicting(guard, input, async () => {
+        return await Promise.resolve(scenario.expected.result);
+      }),
+      (thrown) => {
+        const error: unknown = thrown;
+        assert.ok(error instanceof IdempotencyConflictError);
+        assert.equal(error.key, scenario.expected.key);
+        assert.equal(error.code, scenario.expected.code);
+        return true;
+      }
+    );
+  }
+
+  static async 'conflict-same-key-different-payload'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'conflict-same-key-different-payload'>): Promise<void> {
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    let calls = 0;
+
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      calls += 1;
+      return 'ok';
+    });
+
+    await assert.rejects(
+      IdempotencyGuardRunners.runConflicting(guard, input, () => {
+        calls += 1;
+        return 'ok';
+      }),
+      IdempotencyConflictError
+    );
+
+    assert.equal(calls, scenario.expected.calls);
+  }
+
+  static async 'hooks-async-overrides-safe'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-async-overrides-safe'>): Promise<void> {
+    const trace = new TraceLogger(scenario.shape);
+    const events: string[] = [];
+    const recorder = new RejectionRecorder(trace);
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    Object.assign(guard, { 'onExecute': IdempotencyGuardRunners.asyncFailureHook('onExecute', 'execute', events) });
+    Object.assign(guard, { 'onCoalesce': IdempotencyGuardRunners.asyncFailureHook('onCoalesce', 'coalesce', events) });
+    Object.assign(guard, { 'onReplay': IdempotencyGuardRunners.asyncFailureHook('onReplay', 'replay', events) });
+    Object.assign(guard, { 'onConflict': IdempotencyGuardRunners.asyncFailureHook('onConflict', 'conflict', events) });
+    const input = scenario.input;
+    const gate = Promise.withResolvers<string>();
+
+    try {
+      const results = IdempotencyGuardRunners.runBatch(guard, input, () => {
+        return gate.promise;
+      });
+      gate.resolve(input.batch.factoryResult);
+
+      assert.deepEqual(
+        await results,
+        IdempotencyGuardRunners.repeat(input.batch.calls, scenario.expected.result),
+        trace.snapshot()
+      );
+      assert.equal(await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+        return 'wrong';
+      }), scenario.expected.result);
+      await assert.rejects(IdempotencyGuardRunners.runConflicting(guard, input, () => {
+        return 'wrong';
+      }), IdempotencyConflictError);
+
+      await IdempotencyGuardRunners.flushImmediate();
+      await IdempotencyGuardRunners.flushImmediate();
+
+      trace.log(`events:${events.join(',')}`);
+      trace.log(`rejections:${recorder.reasons.length}`);
+      assert.deepEqual(events, scenario.expected.events, trace.snapshot());
+      assert.equal(recorder.reasons.length, scenario.expected.rejections, trace.snapshot());
+    } finally {
+      recorder.dispose();
+    }
+  }
+
+  static async 'hooks-async-replay-safe'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-async-replay-safe'>): Promise<void> {
+    const trace = new TraceLogger(scenario.shape);
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    Object.assign(guard, { 'onReplay': IdempotencyGuardRunners.asyncFailureHook('onReplay', 'replay', []) });
+    const recorder = new RejectionRecorder(trace);
+    try {
+      const input = scenario.input;
+      await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+        return scenario.expected.result;
+      });
+      const result = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+        return 'wrong';
+      });
+      assert.equal(result, scenario.expected.result);
+      await IdempotencyGuardRunners.flushImmediate();
+      await IdempotencyGuardRunners.flushImmediate();
+      assert.equal(recorder.reasons.length, scenario.expected.rejections, trace.snapshot());
+      trace.log('replay-settled-without-unhandled-rejection');
+    } finally {
+      recorder.dispose();
+    }
+  }
+
+  static async 'hooks-coalesce-follower'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-coalesce-follower'>): Promise<void> {
+    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    const gate = Promise.withResolvers<string>();
+    const results = IdempotencyGuardRunners.runBatch(guard, input, () => {
+      return gate.promise;
+    });
+    gate.resolve(input.batch.factoryResult);
+    await results;
+    assert.deepEqual(guard.executed, scenario.expected.executed);
+    assert.deepEqual(guard.coalesced, scenario.expected.coalesced);
+  }
+
+  static async 'hooks-conflict-before-throw'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-conflict-before-throw'>): Promise<void> {
+    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'ok';
+    });
+    await assert.rejects(IdempotencyGuardRunners.runConflicting(guard, input, () => {
+      return 'ok';
+    }), IdempotencyConflictError);
+    assert.deepEqual(guard.conflicted, scenario.expected.conflicted);
+  }
+
+  static async 'hooks-execute-before-factory'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-execute-before-factory'>): Promise<void> {
+    const events: string[] = [];
+    const guard = OrderedGuard.ordered(scenario.input.idempotencyGuard, events);
+    await IdempotencyGuardRunners.runPrimary(guard, scenario.input, () => {
+      events.push('factory');
+      return 'ok';
+    });
+    assert.deepEqual(events, scenario.expected.events);
+  }
+
+  static async 'hooks-execute-new-key'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-execute-new-key'>): Promise<void> {
+    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
+    await IdempotencyGuardRunners.runPrimary(guard, scenario.input, () => {
+      return 'ok';
+    });
+    assert.deepEqual(guard.executed, scenario.expected.executed);
+    assert.deepEqual(guard.replayed, scenario.expected.replayed);
+    assert.deepEqual(guard.conflicted, scenario.expected.conflicted);
+  }
+
+  static async 'hooks-isolated-instances'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-isolated-instances'>): Promise<void> {
+    const factoryResults = scenario.input.batch.factoryResults;
+    const executions: IsolatedExecution[] = [];
+    for (let index = 0; index < factoryResults.length; index += 1) {
+      executions.push(new IsolatedExecution(IsolatedTrackingGuard.tracked(scenario.input.idempotencyGuard), String(factoryResults[index])));
+    }
+
+    const pendingRuns: Promise<string>[] = [];
+    for (let index = 0; index < executions.length; index += 1) {
+      const execution = executions[index];
+      assert.ok(execution !== undefined);
+      for (let call = 0; call < scenario.input.batch.callsPerInstance; call += 1) {
+        pendingRuns.push(IdempotencyGuardRunners.runPrimary(execution.guard, scenario.input, () => {
+          const pending = execution.factory();
+          return pending;
+        }));
+      }
+    }
+    const results = Promise.all(pendingRuns);
+
+    assert.deepEqual(
+      IdempotencyGuardRunners.eventsOf(executions),
+      [scenario.expected.firstEvents, scenario.expected.secondEvents]
+    );
+    assert.deepEqual(
+      IdempotencyGuardRunners.factoryCallsOf(executions),
+      [0, 0]
+    );
+
+    for (let index = 0; index < executions.length; index += 1) {
+      executions[index]?.release();
+    }
+
+    assert.deepEqual(await results, scenario.expected.results);
+    assert.deepEqual(
+      IdempotencyGuardRunners.factoryCallsOf(executions),
+      [scenario.expected.firstFactoryCalls, scenario.expected.secondFactoryCalls]
+    );
+  }
+
+  static async 'hooks-replay-match'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-replay-match'>): Promise<void> {
+    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'ok';
+    });
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'ok';
+    });
+    assert.deepEqual(guard.executed, scenario.expected.executed);
+    assert.deepEqual(guard.replayed, scenario.expected.replayed);
+  }
+
+  static async 'hooks-sync-replay-swallowed'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-sync-replay-swallowed'>): Promise<void> {
+    const guard = ThrowingHookGuard.throwing(scenario.input.idempotencyGuard, 'onReplay');
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return scenario.expected.result;
+    });
+    const result = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'wrong';
+    });
+    assert.equal(result, scenario.expected.result);
+  }
+
+  static async 'hooks-throwing-coalesce'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-throwing-coalesce'>): Promise<void> {
+    const guard = ThrowingHookGuard.throwing(scenario.input.idempotencyGuard, 'onCoalesce');
+    const input = scenario.input;
+    const gate = Promise.withResolvers<string>();
+    const results = IdempotencyGuardRunners.runBatch(guard, input, () => {
+      return gate.promise;
+    });
+    gate.resolve(input.batch.factoryResult);
+    assert.deepEqual(await results, [scenario.expected.leaderResult, scenario.expected.followerResult]);
+  }
+
+  static async 'hooks-throwing-conflict'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-throwing-conflict'>): Promise<void> {
+    const guard = ThrowingHookGuard.throwing(scenario.input.idempotencyGuard, 'onConflict');
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'ok';
+    });
+    await assert.rejects(IdempotencyGuardRunners.runConflicting(guard, input, () => {
+      return 'wrong';
+    }), IdempotencyConflictError);
+  }
+
+  static async 'hooks-throwing-execute'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-throwing-execute'>): Promise<void> {
+    const guard = ThrowingHookGuard.throwing(scenario.input.idempotencyGuard, 'onExecute');
+    const result = await IdempotencyGuardRunners.runPrimary(guard, scenario.input, () => {
+      return scenario.expected.result;
+    });
+    assert.equal(result, scenario.expected.result);
+  }
+
+  static async 'hooks-throwing-replay'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'hooks-throwing-replay'>): Promise<void> {
+    const guard = ThrowingHookGuard.throwing(scenario.input.idempotencyGuard, 'onReplay');
+    const input = scenario.input;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return scenario.expected.result;
+    });
+    const result = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 'wrong';
+    });
+    assert.equal(result, scenario.expected.result);
+  }
+
+  static 'metadata-accepts-string-fingerprint'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'metadata-accepts-string-fingerprint'>): void {
     assert.equal(
-      IdempotencyGuardEntryMetadataEntity.validate({ fingerprint: scenario.input.fingerprint }),
+      IdempotencyGuardEntryMetadataEntity.validate({ 'fingerprint': scenario.input.fingerprint }),
       scenario.expected.valid
     );
-  },
+  }
 
-  'metadata-rejects-invalid-fingerprint': (scenario) => {
-    assertScenarioMetadataRejectsInvalidFingerprint(scenario);
+  static 'metadata-rejects-invalid-fingerprint'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'metadata-rejects-invalid-fingerprint'>): void {
     assert.equal(
       IdempotencyGuardEntryMetadataEntity.validate(scenario.input.missingFingerprint),
       scenario.expected.missingValid
@@ -693,535 +576,35 @@ const scenarioRunners: ScenarioRunnerMap = {
       IdempotencyGuardEntryMetadataEntity.validate(scenario.input.numericFingerprint),
       scenario.expected.numericValid
     );
-  },
+  }
 
-  'coalesce-shares-one-execution': async (scenario) => {
-    assertScenarioCoalesceSharesOneExecution(scenario);
-    const trace = createTraceLogger(scenario.shape);
-    const guard = createGuard<string>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let calls = 0;
-    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
-    const pending = new Promise<string>((resolve) => {
-      resolveFactory = resolve;
-    });
-    const factory = async (): Promise<string> => {
-      calls += 1;
-      trace.log(`factory-call:${calls}`);
-      return await pending;
-    };
-
-    const results = runScenarioInputBatch(guard, input, factory);
-    trace.log('leader-and-follower-scheduled');
-    resolveFactory(input.batch.factoryResult);
-    trace.log(`factory-resolved:${input.batch.factoryResult}`);
-
-    const output = await results;
-    assert.equal(calls, scenario.expected.calls, trace.snapshot());
-    assert.deepEqual(
-      output,
-      Array.from({ length: input.batch.calls }, () => scenario.expected.result),
-      trace.snapshot()
-    );
-  },
-
-  'result-contract-owned': async (scenario) => {
-    assertScenarioResultContractOwned(scenario);
-    const guard = createGuard<number>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    const initial = await runScenarioInput(guard, input, () => scenario.expected.initial);
-    const replayed = await runScenarioInput(guard, input, async () => 42);
-    assert.equal(initial, scenario.expected.initial);
-    assert.equal(replayed, scenario.expected.replayed);
-    assert.equal(typeof replayed, scenario.expected.type);
-  },
-
-  'result-contract-rejects-invalid-factory': (scenario) => {
-    assertScenarioResultContractRejectsInvalidFactory(scenario);
-    const diagnostics = ResultContractCompiler.diagnostics(scenario.input);
-    assert.equal(diagnostics.length, scenario.expected.diagnosticsCount);
-    for (const diagnostic of diagnostics) {
-      assertDiagnosticPattern(diagnostic, scenario.expected.messagePattern);
-    }
-  },
-
-  'conflict-same-key-different-payload': async (scenario) => {
-    assertScenarioConflictSameKeyDifferentPayload(scenario);
-    const guard = createGuard<string>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let calls = 0;
-
-    await runScenarioInput(guard, input, async () => {
-      calls += 1;
-      return 'ok';
-    });
-
-    await assert.rejects(
-      async () => {
-        await runConflictingScenarioInput(guard, input, async () => {
-          calls += 1;
-          return 'ok';
-        });
-      },
-      IdempotencyConflictError
-    );
-
-    assert.equal(calls, scenario.expected.calls);
-  },
-
-  'conflict-exposes-key': async (scenario) => {
-    assertScenarioConflictExposesKey(scenario);
-    const guard = createGuard<string>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => scenario.expected.result);
-    try {
-      await runConflictingScenarioInput(guard, input, async () => scenario.expected.result);
-      throw RuntimeError.create('expected IdempotencyConflictError to be thrown');
-    } catch (error) {
-      if (!(error instanceof IdempotencyConflictError)) {
-        throw error;
-      }
-      assert.equal(error.key, scenario.expected.key);
-      assert.equal(error.code, scenario.expected.code);
-    }
-  },
-
-  'replay-accepts-sync-factory': async (scenario) => {
-    assertScenarioReplayAcceptsSyncFactory(scenario);
-    const guard = createGuard<{ chargeId: string }>(scenario.input.idempotencyGuard);
-    const result = await runScenarioInput(guard, scenario.input, () => structuredClone(scenario.expected.result));
-    assert.deepEqual(result, scenario.expected.result);
-  },
-
-  'replay-cached-result': async (scenario) => {
-    assertScenarioReplayCachedResult(scenario);
-    const guard = createGuard<{ chargeId: string }>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let calls = 0;
-    const first = await runScenarioInput(guard, input, async () => {
-      calls += 1;
-      return structuredClone(scenario.expected.firstResult);
-    });
-    const second = await runScenarioInput(guard, input, async () => {
-      calls += 1;
-      return structuredClone(scenario.expected.secondResult);
-    });
-    assert.equal(calls, scenario.expected.calls);
-    assert.deepEqual(first, scenario.expected.firstResult);
-    assert.deepEqual(second, scenario.expected.firstResult);
-  },
-
-  'replay-expired-entry-reruns': async (scenario) => {
-    assertScenarioReplayExpiredEntryReruns(scenario);
-    const guard = createGuard<string>(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let calls = 0;
-    await runScenarioInput(guard, input, async () => {
-      calls += 1;
-      return 'first';
-    });
-    await new Promise((resolve) => {
-      setTimeout(resolve, input.expirationWaitMs);
-    });
-    const second = await runScenarioInput(guard, input, async () => {
-      calls += 1;
-      return scenario.expected.second;
-    });
-    assert.equal(calls, scenario.expected.calls);
-    assert.equal(second, scenario.expected.second);
-  },
-
-  'hooks-execute-new-key': async (scenario) => {
-    assertScenarioHooksExecuteNewKey(scenario);
-    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => 'ok');
-    assert.deepEqual(guard.executed, scenario.expected.executed);
-    assert.deepEqual(guard.replayed, scenario.expected.replayed);
-    assert.deepEqual(guard.conflicted, scenario.expected.conflicted);
-  },
-
-  'hooks-execute-before-factory': async (scenario) => {
-    assertScenarioHooksExecuteBeforeFactory(scenario);
-    const events: string[] = [];
-
-    class OrderedGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): OrderedGuard {
-        return new OrderedGuard(options);
-      }
-
-      protected override onExecute(): void {
-        events.push('execute');
-      }
-    }
-
-    const guard = OrderedGuard.tracked(scenario.input.idempotencyGuard);
-    await runScenarioInput(guard, scenario.input, async () => {
-      events.push('factory');
-      return 'ok';
-    });
-    assert.deepEqual(events, scenario.expected.events);
-  },
-
-  'hooks-replay-match': async (scenario) => {
-    assertScenarioHooksReplayMatch(scenario);
-    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => 'ok');
-    await runScenarioInput(guard, input, async () => 'ok');
-    assert.deepEqual(guard.executed, scenario.expected.executed);
-    assert.deepEqual(guard.replayed, scenario.expected.replayed);
-  },
-
-  'hooks-conflict-before-throw': async (scenario) => {
-    assertScenarioHooksConflictBeforeThrow(scenario);
-    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => 'ok');
-    await runConflictingScenarioInput(guard, input, async () => 'ok').catch((error: Error) => {
-      if (!(error instanceof IdempotencyConflictError)) {
-        throw error;
-      }
-    });
-    assert.deepEqual(guard.conflicted, scenario.expected.conflicted);
-  },
-
-  'hooks-coalesce-follower': async (scenario) => {
-    assertScenarioHooksCoalesceFollower(scenario);
-    const guard = TrackingGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
-    const pending = new Promise<string>((resolve) => {
-      resolveFactory = resolve;
-    });
-    const factory = async (): Promise<string> => await pending;
-    const results = runScenarioInputBatch(guard, input, factory);
-    resolveFactory(input.batch.factoryResult);
-    await results;
-    assert.deepEqual(guard.executed, scenario.expected.executed);
-    assert.deepEqual(guard.coalesced, scenario.expected.coalesced);
-  },
-
-  'hooks-isolated-instances': async (scenario) => {
-    assertScenarioHooksIsolatedInstances(scenario);
-    class IsolatedTrackingGuard extends IdempotencyGuard<string> {
-      readonly events: string[] = [];
-
-      static tracked(options: GuardOptions): IsolatedTrackingGuard {
-        return new IsolatedTrackingGuard(options);
-      }
-
-      protected override onExecute(key: string): void {
-        this.events.push(`execute:${key}`);
-      }
-
-      protected override onCoalesce(key: string): void {
-        this.events.push(`coalesce:${key}`);
-      }
-    }
-
-    type IsolatedExecution = {
-      readonly factory: GuardFactory<string>;
-      readonly factoryCalls: () => number;
-      readonly guard: IsolatedTrackingGuard;
-      readonly resolve: (value: string) => void;
-      readonly result: string;
-    };
-
-    const executions = scenario.input.batch.factoryResults.map((result): IsolatedExecution => {
-      let calls = 0;
-      let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
-      const pending = new Promise<string>((resolve) => {
-        resolveFactory = resolve;
-      });
-
-      return {
-        factory: async () => {
-          calls += 1;
-          return await pending;
-        },
-        factoryCalls: () => calls,
-        guard: IsolatedTrackingGuard.tracked(scenario.input.idempotencyGuard),
-        resolve: resolveFactory,
-        result
-      };
-    });
-
-    const results = Promise.all(
-      executions.flatMap((execution) =>
-        Array.from({ length: scenario.input.batch.callsPerInstance }, () =>
-          runScenarioInput(execution.guard, scenario.input, execution.factory)
-        )
-      )
-    );
-
-    assert.deepEqual(
-      executions.map((execution) => execution.guard.events),
-      [scenario.expected.firstEvents, scenario.expected.secondEvents]
-    );
-    assert.deepEqual(
-      executions.map((execution) => execution.factoryCalls()),
-      [0, 0]
-    );
-
-    for (const execution of executions) {
-      execution.resolve(execution.result);
-    }
-
-    assert.deepEqual(await results, scenario.expected.results);
-    assert.deepEqual(
-      executions.map((execution) => execution.factoryCalls()),
-      [scenario.expected.firstFactoryCalls, scenario.expected.secondFactoryCalls]
-    );
-  },
-
-  'hooks-throwing-replay': async (scenario) => {
-    assertScenarioHooksThrowingReplay(scenario);
-    class ThrowingReplayGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): ThrowingReplayGuard {
-        return new ThrowingReplayGuard(options);
-      }
-
-      protected override onReplay(): void {
-        throw RuntimeError.create('onReplay boom');
-      }
-    }
-
-    const guard = ThrowingReplayGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => scenario.expected.result);
-    const result = await runScenarioInput(guard, input, async () => 'wrong');
-    assert.equal(result, scenario.expected.result);
-  },
-
-  'hooks-throwing-conflict': async (scenario) => {
-    assertScenarioHooksThrowingConflict(scenario);
-    class ThrowingConflictGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): ThrowingConflictGuard {
-        return new ThrowingConflictGuard(options);
-      }
-
-      protected override onConflict(): void {
-        throw RuntimeError.create('onConflict boom');
-      }
-    }
-
-    const guard = ThrowingConflictGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => 'ok');
-    await assert.rejects(() => runConflictingScenarioInput(guard, input, async () => 'wrong'), IdempotencyConflictError);
-  },
-
-  'hooks-throwing-execute': async (scenario) => {
-    assertScenarioHooksThrowingExecute(scenario);
-    class ThrowingExecuteGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): ThrowingExecuteGuard {
-        return new ThrowingExecuteGuard(options);
-      }
-
-      protected override onExecute(): void {
-        throw RuntimeError.create('onExecute boom');
-      }
-    }
-
-    const guard = ThrowingExecuteGuard.tracked(scenario.input.idempotencyGuard);
-    const result = await runScenarioInput(guard, scenario.input, async () => scenario.expected.result);
-    assert.equal(result, scenario.expected.result);
-  },
-
-  'hooks-sync-replay-swallowed': async (scenario) => {
-    assertScenarioHooksSyncReplaySwallowed(scenario);
-    class ThrowingReplayGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): ThrowingReplayGuard {
-        return new ThrowingReplayGuard(options);
-      }
-
-      protected override onReplay(): void {
-        throw RuntimeError.create('onReplay boom (post-HookInvoking-migration)');
-      }
-    }
-
-    const guard = ThrowingReplayGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    await runScenarioInput(guard, input, async () => scenario.expected.result);
-    const result = await runScenarioInput(guard, input, async () => 'wrong');
-    assert.equal(result, scenario.expected.result);
-  },
-
-  'hooks-async-replay-safe': async (scenario) => {
-    assertScenarioHooksAsyncReplaySafe(scenario);
-    const trace = createTraceLogger(scenario.shape);
-
-    class AsyncRejectingReplayGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): AsyncRejectingReplayGuard {
-        return new AsyncRejectingReplayGuard(options);
-      }
-
-      protected override async onReplay(_key: string): Promise<void> {
-        await Promise.resolve();
-        throw RuntimeError.create('async onReplay boom');
-      }
-    }
-
-    const guard = AsyncRejectingReplayGuard.tracked(scenario.input.idempotencyGuard);
-    const rejectionEvents: Error[] = [];
-    const onUnhandledRejection = (reason: Error): void => {
-      rejectionEvents.push(reason);
-      trace.log(`unhandled-rejection:${reason.message}`);
-    };
-    process.on('unhandledRejection', onUnhandledRejection);
-    try {
-      const input = scenario.input;
-      await runScenarioInput(guard, input, async () => scenario.expected.result);
-      const result = await runScenarioInput(guard, input, async () => 'wrong');
-      assert.equal(result, scenario.expected.result);
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-      assert.equal(rejectionEvents.length, scenario.expected.rejections, trace.snapshot());
-      trace.log('replay-settled-without-unhandled-rejection');
-    } finally {
-      process.off('unhandledRejection', onUnhandledRejection);
-    }
-  },
-
-  'hooks-throwing-coalesce': async (scenario) => {
-    assertScenarioHooksThrowingCoalesce(scenario);
-    class ThrowingCoalesceGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): ThrowingCoalesceGuard {
-        return new ThrowingCoalesceGuard(options);
-      }
-
-      protected override onCoalesce(): void {
-        throw RuntimeError.create('onCoalesce boom');
-      }
-    }
-
-    const guard = ThrowingCoalesceGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
-    const pending = new Promise<string>((resolve) => {
-      resolveFactory = resolve;
-    });
-    const factory = async (): Promise<string> => pending;
-    const results = runScenarioInputBatch(guard, input, factory);
-    resolveFactory(input.batch.factoryResult);
-    assert.deepEqual(await results, [scenario.expected.leaderResult, scenario.expected.followerResult]);
-  },
-
-  'hooks-async-overrides-safe': async (scenario) => {
-    assertScenarioHooksAsyncOverridesSafe(scenario);
-    const trace = createTraceLogger(scenario.shape);
-    const events: string[] = [];
-    const rejectionEvents: Error[] = [];
-    const onUnhandledRejection = (reason: Error): void => {
-      rejectionEvents.push(reason);
-      trace.log(`unhandled-rejection:${reason.message}`);
-    };
-    process.on('unhandledRejection', onUnhandledRejection);
-
-    class AsyncRejectingHooksGuard extends IdempotencyGuard<string> {
-      static tracked(options: GuardOptions): AsyncRejectingHooksGuard {
-        return new AsyncRejectingHooksGuard(options);
-      }
-
-      protected override async onExecute(): Promise<void> {
-        events.push('execute');
-        await Promise.resolve();
-        throw RuntimeError.create('onExecute async boom');
-      }
-
-      protected override async onCoalesce(): Promise<void> {
-        events.push('coalesce');
-        await Promise.resolve();
-        throw RuntimeError.create('onCoalesce async boom');
-      }
-
-      protected override async onReplay(): Promise<void> {
-        events.push('replay');
-        await Promise.resolve();
-        throw RuntimeError.create('onReplay async boom');
-      }
-
-      protected override async onConflict(): Promise<void> {
-        events.push('conflict');
-        await Promise.resolve();
-        throw RuntimeError.create('onConflict async boom');
-      }
-    }
-
-    const guard = AsyncRejectingHooksGuard.tracked(scenario.input.idempotencyGuard);
-    const input = scenario.input;
-    let resolveFactory: (value: string) => void = NOOP_STRING_RESOLVER;
-    const pending = new Promise<string>((resolve) => {
-      resolveFactory = resolve;
-    });
-    const factory = async (): Promise<string> => pending;
-
-    try {
-      const results = runScenarioInputBatch(guard, input, factory);
-      resolveFactory(input.batch.factoryResult);
-
-      assert.deepEqual(
-        await results,
-        Array.from({ length: input.batch.calls }, () => scenario.expected.result),
-        trace.snapshot()
-      );
-      assert.equal(await runScenarioInput(guard, input, async () => 'wrong'), scenario.expected.result);
-      await assert.rejects(() => runConflictingScenarioInput(guard, input, async () => 'wrong'), IdempotencyConflictError);
-
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-
-      trace.log(`events:${events.join(',')}`);
-      trace.log(`rejections:${rejectionEvents.length}`);
-      assert.deepEqual(events, scenario.expected.events, trace.snapshot());
-      assert.equal(rejectionEvents.length, scenario.expected.rejections, trace.snapshot());
-    } finally {
-      process.off('unhandledRejection', onUnhandledRejection);
-    }
-  },
-
-  'race-concurrent-different-payload': async (scenario) => {
-    assertScenarioRaceConcurrentDifferentPayload(scenario);
-    const trace = createTraceLogger(scenario.shape);
-    const guard = createGuard<string>(scenario.input.idempotencyGuard);
+  static async 'race-concurrent-different-payload'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'race-concurrent-different-payload'>): Promise<void> {
+    const trace = new TraceLogger(scenario.shape);
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
     const input = scenario.input;
     let leaderCalls = 0;
     let followerCalls = 0;
-    let resolveLeader: (value: string) => void = NOOP_STRING_RESOLVER;
-    const gate = new Promise<string>((resolve) => {
-      resolveLeader = resolve;
-    });
+    const gate = Promise.withResolvers<string>();
 
     const leaderFactory = async (): Promise<string> => {
       leaderCalls += 1;
       trace.log(`leader-factory:${leaderCalls}`);
-      return await gate;
+      return await gate.promise;
     };
 
-    const followerFactory = async (): Promise<string> => {
+    const followerFactory = (): string => {
       followerCalls += 1;
       trace.log(`follower-factory:${followerCalls}`);
       return input.batch.followerResult;
     };
 
-    const leaderCall = runLeaderScenarioInput(guard, input, leaderFactory);
-    const followerCall = runFollowerScenarioInput(guard, input, followerFactory);
+    const leaderCall = guard.run(input.key, IdempotencyGuardRunners.materialize(input.leaderPayload), leaderFactory);
+    const followerCall = guard.run(input.key, IdempotencyGuardRunners.materialize(input.followerPayload), followerFactory);
     trace.log('racer-scheduled');
 
-    await assert.rejects(async () => {
-      await followerCall;
-    }, IdempotencyConflictError);
+    await assert.rejects(followerCall, IdempotencyConflictError);
 
-    resolveLeader(input.batch.leaderResult);
+    gate.resolve(input.batch.leaderResult);
     trace.log(`leader-resolved:${input.batch.leaderResult}`);
     const leaderResult = await leaderCall;
 
@@ -1230,7 +613,7 @@ const scenarioRunners: ScenarioRunnerMap = {
     assert.equal(followerCalls, scenario.expected.followerCalls, trace.snapshot());
 
     let replayFactoryCalls = 0;
-    const replayed = await runLeaderScenarioInput(guard, input, async () => {
+    const replayed = await guard.run(input.key, IdempotencyGuardRunners.materialize(input.leaderPayload), () => {
       replayFactoryCalls += 1;
       return input.batch.replayResult;
     });
@@ -1238,23 +621,190 @@ const scenarioRunners: ScenarioRunnerMap = {
     assert.equal(replayed, scenario.expected.replayed, trace.snapshot());
     assert.equal(replayFactoryCalls, scenario.expected.replayFactoryCalls, trace.snapshot());
   }
-};
 
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.prototype.hasOwnProperty.call(scenarioRunners, shape);
-}
-
-async function runScenario(scenario: ScenarioFixture): Promise<void> {
-  if (!isScenarioShape(scenario.shape)) {
-    throw RuntimeError.create(`Unknown scenario shape: ${scenario.shape}`);
-  }
-  await scenarioRunners[scenario.shape](scenario);
-}
-
-void describe('idempotency-guard', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runScenario(scenario);
+  static async 'replay-accepts-sync-factory'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'replay-accepts-sync-factory'>): Promise<void> {
+    const guard = IdempotencyGuard.create<{ 'chargeId': string }>(scenario.input.idempotencyGuard);
+    const result = await IdempotencyGuardRunners.runPrimary(guard, scenario.input, () => {
+      const copy = IdempotencyGuardRunners.cloneFixture(scenario.expected.result);
+      return copy;
     });
+    assert.deepEqual(result, scenario.expected.result);
   }
+
+  static async 'replay-cached-result'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'replay-cached-result'>): Promise<void> {
+    const guard = IdempotencyGuard.create<{ 'chargeId': string }>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    let calls = 0;
+    const first = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      calls += 1;
+      const copy = IdempotencyGuardRunners.cloneFixture(scenario.expected.firstResult);
+      return copy;
+    });
+    const second = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      calls += 1;
+      const copy = IdempotencyGuardRunners.cloneFixture(scenario.expected.secondResult);
+      return copy;
+    });
+    assert.equal(calls, scenario.expected.calls);
+    assert.deepEqual(first, scenario.expected.firstResult);
+    assert.deepEqual(second, scenario.expected.firstResult);
+  }
+
+  static async 'replay-expired-entry-reruns'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'replay-expired-entry-reruns'>): Promise<void> {
+    const guard = IdempotencyGuard.create<string>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    let calls = 0;
+    await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      calls += 1;
+      return 'first';
+    });
+    await IdempotencyGuardRunners.waitMs(input.expirationWaitMs);
+    const second = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      calls += 1;
+      return scenario.expected.second;
+    });
+    assert.equal(calls, scenario.expected.calls);
+    assert.equal(second, scenario.expected.second);
+  }
+
+  static async 'result-contract-owned'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'result-contract-owned'>): Promise<void> {
+    const guard = IdempotencyGuard.create<number>(scenario.input.idempotencyGuard);
+    const input = scenario.input;
+    const initial = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return scenario.expected.initial;
+    });
+    const replayed = await IdempotencyGuardRunners.runPrimary(guard, input, () => {
+      return 42;
+    });
+    assert.equal(initial, scenario.expected.initial);
+    assert.equal(replayed, scenario.expected.replayed);
+    assert.equal(typeof replayed, scenario.expected.type);
+  }
+
+  static 'result-contract-rejects-invalid-factory'(scenario: ScenarioCaseOfType<IdempotencyGuardScenarioCaseEntity.Type, 'result-contract-rejects-invalid-factory'>): void {
+    const diagnostics = ResultContractCompiler.diagnostics({
+      'fixture': scenario.input.fixture,
+      'idempotencyGuard': scenario.input.idempotencyGuard,
+      'key': scenario.input.key,
+      'payload': IdempotencyGuardRunners.materialize(scenario.input.payload)
+    });
+    assert.equal(diagnostics.length, scenario.expected.diagnosticsCount);
+    for (let index = 0; index < diagnostics.length; index += 1) {
+      IdempotencyGuardRunners.assertDiagnosticPattern(String(diagnostics[index]), scenario.expected.messagePattern);
+    }
+  }
+
+  private static assertDiagnosticPattern(diagnostic: string, pattern: string): void {
+    assert.equal(pattern, "Type 'string' is not assignable to type 'number \\| Promise<number>'", `Unsupported diagnostic message pattern scenario: ${pattern}`);
+    assert.equal(diagnostic.includes("Type 'string' is not assignable to type 'number | Promise<number>'"), true);
+  }
+
+  private static cloneFixture(value: { 'chargeId': string }): { 'chargeId': string } {
+    try {
+      const copy = structuredClone(value);
+      return copy;
+    } catch (cause) {
+      throw new IdempotencyFixtureError('Scenario fixture is not cloneable', cause);
+    }
+  }
+
+  private static eventsOf(executions: readonly IsolatedExecution[]): (readonly string[])[] {
+    const events: (readonly string[])[] = [];
+    for (let index = 0; index < executions.length; index += 1) {
+      events.push(executions[index]?.guard.events ?? []);
+    }
+    return events;
+  }
+
+  private static factoryCallsOf(executions: readonly IsolatedExecution[]): number[] {
+    const calls: number[] = [];
+    for (let index = 0; index < executions.length; index += 1) {
+      calls.push(executions[index]?.factoryCalls ?? -1);
+    }
+    return calls;
+  }
+
+  private static flushImmediate(): Promise<void> {
+    const flushed = new Promise<void>((resolve) => {
+      setImmediate(resolve);
+    });
+    return flushed;
+  }
+
+  /** A lifecycle hook that records `label` and rejects asynchronously; installed on an instance in place of the synchronous hook. */
+  private static asyncFailureHook(hookName: string, label: string, events: string[]): () => Promise<void> {
+    const hook = (): Promise<void> => {
+      events.push(label);
+      const pending = IdempotencyGuardRunners.rejectAfterTick(`${hookName} async boom`);
+      return pending;
+    };
+    return hook;
+  }
+
+  private static materialize(payload: IdempotencyPayloadEntity.Type): IdempotencyPayloadEntity.Type {
+    try {
+      const copy = IdempotencyPayloadEntity.create(structuredClone(payload));
+      return copy;
+    } catch (cause) {
+      throw new IdempotencyFixtureError('Scenario payload is not cloneable', cause);
+    }
+  }
+
+  private static async rejectAfterTick(message: string): Promise<void> {
+    await Promise.resolve();
+    throw RuntimeError.create(message);
+  }
+
+  private static repeat(count: number, value: string): string[] {
+    const values: string[] = [];
+    for (let index = 0; index < count; index += 1) {
+      values.push(value);
+    }
+    return values;
+  }
+
+  private static runBatch<TResult>(
+    guard: IdempotencyGuard<TResult>,
+    input: { 'batch': { 'calls': number }; 'key': string; 'payload': IdempotencyPayloadEntity.Type },
+    factory: GuardFactoryInterface<TResult>
+  ): Promise<TResult[]> {
+    const runs: Promise<TResult>[] = [];
+    for (let index = 0; index < input.batch.calls; index += 1) {
+      runs.push(IdempotencyGuardRunners.runPrimary(guard, input, factory));
+    }
+    const results = Promise.all(runs);
+    return results;
+  }
+
+  private static runConflicting<TResult>(
+    guard: IdempotencyGuard<TResult>,
+    input: { 'conflictingPayload': IdempotencyPayloadEntity.Type; 'key': string },
+    factory: GuardFactoryInterface<TResult>
+  ): Promise<TResult> {
+    const result = guard.run(input.key, IdempotencyGuardRunners.materialize(input.conflictingPayload), factory);
+    return result;
+  }
+
+  private static runPrimary<TResult>(
+    guard: IdempotencyGuard<TResult>,
+    input: { 'key': string; 'payload': IdempotencyPayloadEntity.Type },
+    factory: GuardFactoryInterface<TResult>
+  ): Promise<TResult> {
+    const result = guard.run(input.key, IdempotencyGuardRunners.materialize(input.payload), factory);
+    return result;
+  }
+
+  private static waitMs(milliseconds: number): Promise<void> {
+    const waited = new Promise<void>((resolve) => {
+      setTimeout(resolve, milliseconds);
+    });
+    return waited;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': IdempotencyGuardScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'idempotency-guard',
+  'runners': IdempotencyGuardRunners
 });

@@ -32,8 +32,8 @@
         "tfIdfToken": "audit",
         "documentFrequency": 1,
         "documentCount": 3,
-        "minHashLeft": "audit logger",
-        "minHashRight": "logger audit",
+        "minimumHashLeft": "audit logger",
+        "minimumHashRight": "logger audit",
         "seed": 7,
         "signatureSize": 8
       },
@@ -96,7 +96,7 @@
         "ngramSize": 3,
         "ngramRegisteredValue": "audit.logger",
         "ngramQuery": "audit.event",
-        "minHashValue": "audit logger",
+        "minimumHashValue": "audit logger",
         "seed": 1,
         "signatureSize": 8,
         "rowsPerBand": 2

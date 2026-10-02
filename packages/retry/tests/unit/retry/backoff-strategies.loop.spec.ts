@@ -1,99 +1,94 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { BackoffStrategy } from '../../../src/retry/index.js';
 import { BackoffStrategiesScenarioCaseEntity } from '../entities/BackoffStrategiesScenarioCaseEntity.js';
-import scenarioGroups from './backoff-strategies.scenarios.json' with { type: 'json' };
+import scenarioGroups from './backoff-strategies.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(BackoffStrategiesScenarioCaseEntity.Schema, BackoffStrategiesScenarioCaseEntity.Node);
-
-type StrategyName = 'constant' | 'exponential' | 'linear';
-
-type ScenarioShape = BackoffStrategiesScenarioCaseEntity.Type['shape'];
-
-type ScenarioCase = BackoffStrategiesScenarioCaseEntity.Type;
-
-const strategyMap: Record<StrategyName, (attempt: number, baseDelay: number) => number> = {
-  'constant': BackoffStrategy.constant,
-  'exponential': BackoffStrategy.exponential,
-  'linear': BackoffStrategy.linear
-};
-
-function readAttemptInput(scenarioCase: ScenarioCase): { attempt: number; baseDelay: number } {
-  return {
-    attempt: Number(scenarioCase.input.attempt),
-    baseDelay: Number(scenarioCase.input.baseDelay)
+class BackoffStrategiesRunners {
+  private static readonly strategyMap: Record<'constant' | 'exponential' | 'linear', (attempt: number, baseDelay: number) => number> = {
+    'constant': BackoffStrategy.constant,
+    'exponential': BackoffStrategy.exponential,
+    'linear': BackoffStrategy.linear
   };
-}
 
-function assertStrategyResult(strategy: (attempt: number, baseDelay: number) => number, scenarioCase: ScenarioCase): void {
-  const { attempt, baseDelay } = readAttemptInput(scenarioCase);
-  assert.strictEqual(strategy(attempt, baseDelay), Number(scenarioCase.expected.result), scenarioCase.description);
-}
+  private static readAttemptInput(scenarioCase: BackoffStrategiesScenarioCaseEntity.Type): { 'attempt': number; 'baseDelay': number } {
+    return {
+      'attempt': Number(scenarioCase.input.attempt),
+      'baseDelay': Number(scenarioCase.input.baseDelay)
+    };
+  }
 
-function readSampleCount(scenarioCase: ScenarioCase): number {
-  const sampleCount = Number(scenarioCase.input.batch?.sampleCount);
-  assert.ok(Number.isInteger(sampleCount) && sampleCount > 0, `${scenarioCase.description}: batch.sampleCount must be a positive integer`);
-  return sampleCount;
-}
+  private static assertStrategyResult(strategy: (attempt: number, baseDelay: number) => number, scenarioCase: BackoffStrategiesScenarioCaseEntity.Type): void {
+    const { attempt, baseDelay } = this.readAttemptInput(scenarioCase);
+    assert.strictEqual(strategy(attempt, baseDelay), Number(scenarioCase.expected.result), scenarioCase.description);
+  }
 
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => void> = {
-  'ceiling': (scenarioCase) => {
-    const strategy = strategyMap[scenarioCase.input.strategy ?? 'constant'];
+  private static readSampleCount(scenarioCase: BackoffStrategiesScenarioCaseEntity.Type): number {
+    const sampleCount = Number(scenarioCase.input.batch?.sampleCount);
+    assert.ok(Number.isInteger(sampleCount) && sampleCount > 0, `${scenarioCase.description}: batch.sampleCount must be a positive integer`);
+    return sampleCount;
+  }
+
+  static 'ceiling'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'ceiling'>): void {
+    const strategy = this.strategyMap[scenarioCase.input.strategy ?? 'constant'];
     const capped = BackoffStrategy.withCeiling(strategy, Number(scenarioCase.input.ceiling));
-    assertStrategyResult(capped, scenarioCase);
-  },
-  'constant': (scenarioCase) => {
-    assertStrategyResult(BackoffStrategy.constant, scenarioCase);
-  },
-  'decorrelated-range': (scenarioCase) => {
-    const { attempt, baseDelay } = readAttemptInput(scenarioCase);
-    const delay = BackoffStrategy.decorrelatedJitter(attempt, baseDelay);
-    const minResult = Number(scenarioCase.expected.minResult);
-    const maxResult = Number(scenarioCase.expected.maxResult);
-    assert.ok(delay >= minResult, `${scenarioCase.description}: ${String(delay)} >= ${String(minResult)}`);
-    assert.ok(delay <= maxResult, `${scenarioCase.description}: ${String(delay)} <= ${String(maxResult)}`);
-  },
-  'decorrelated-zero': (scenarioCase) => {
-    assertStrategyResult(BackoffStrategy.decorrelatedJitter, scenarioCase);
-  },
-  'exponential': (scenarioCase) => {
-    assertStrategyResult(BackoffStrategy.exponential, scenarioCase);
-  },
-  'jitter-range': (scenarioCase) => {
-    const { attempt, baseDelay } = readAttemptInput(scenarioCase);
-    const exponentialBase = baseDelay * Math.pow(2, attempt);
-    const minExpected = Math.floor(exponentialBase * Number(scenarioCase.input.minMultiplier));
-    const maxExpected = Math.floor(exponentialBase * Number(scenarioCase.input.maxMultiplier));
+    this.assertStrategyResult(capped, scenarioCase);
+  }
 
-    for (let index = 0; index < readSampleCount(scenarioCase); index += 1) {
+  static 'constant'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'constant'>): void {
+    this.assertStrategyResult(BackoffStrategy.constant, scenarioCase);
+  }
+
+  static 'decorrelated-range'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'decorrelated-range'>): void {
+    const { attempt, baseDelay } = this.readAttemptInput(scenarioCase);
+    const delay = BackoffStrategy.decorrelatedJitter(attempt, baseDelay);
+    const minimumResult = Number(scenarioCase.expected.minimumResult);
+    const maximumResult = Number(scenarioCase.expected.maximumResult);
+    assert.ok(delay >= minimumResult, `${scenarioCase.description}: ${String(delay)} >= ${String(minimumResult)}`);
+    assert.ok(delay <= maximumResult, `${scenarioCase.description}: ${String(delay)} <= ${String(maximumResult)}`);
+  }
+
+  static 'decorrelated-zero'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'decorrelated-zero'>): void {
+    this.assertStrategyResult(BackoffStrategy.decorrelatedJitter, scenarioCase);
+  }
+
+  static 'exponential'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'exponential'>): void {
+    this.assertStrategyResult(BackoffStrategy.exponential, scenarioCase);
+  }
+
+  static 'jitter-range'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'jitter-range'>): void {
+    const { attempt, baseDelay } = this.readAttemptInput(scenarioCase);
+    const exponentialBase = baseDelay * Math.pow(2, attempt);
+    const minimumExpected = Math.floor(exponentialBase * Number(scenarioCase.input.minimumMultiplier));
+    const maximumExpected = Math.floor(exponentialBase * Number(scenarioCase.input.maximumMultiplier));
+
+    for (let index = 0; index < this.readSampleCount(scenarioCase); index += 1) {
       const delay = BackoffStrategy.exponentialWithJitter(attempt, baseDelay);
-      assert.ok(delay >= minExpected, `Attempt ${String(attempt)}: delay ${String(delay)} should be >= ${String(minExpected)}`);
-      assert.ok(delay <= maxExpected, `Attempt ${String(attempt)}: delay ${String(delay)} should be <= ${String(maxExpected)}`);
+      assert.ok(delay >= minimumExpected, `Attempt ${String(attempt)}: delay ${String(delay)} should be >= ${String(minimumExpected)}`);
+      assert.ok(delay <= maximumExpected, `Attempt ${String(attempt)}: delay ${String(delay)} should be <= ${String(maximumExpected)}`);
     }
-  },
-  'jitter-varying': (scenarioCase) => {
-    const { attempt, baseDelay } = readAttemptInput(scenarioCase);
+  }
+
+  static 'jitter-varying'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'jitter-varying'>): void {
+    const { attempt, baseDelay } = this.readAttemptInput(scenarioCase);
     const results = new Set<number>();
-    for (let index = 0; index < readSampleCount(scenarioCase); index += 1) {
+    for (let index = 0; index < this.readSampleCount(scenarioCase); index += 1) {
       results.add(BackoffStrategy.exponentialWithJitter(attempt, baseDelay));
     }
-    assert.ok(results.size >= Number(scenarioCase.expected.minDistinct), scenarioCase.description);
-  },
-  'linear': (scenarioCase) => {
-    assertStrategyResult(BackoffStrategy.linear, scenarioCase);
+    assert.ok(results.size >= Number(scenarioCase.expected.minimumDistinct), scenarioCase.description);
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'linear'(scenarioCase: ScenarioCaseOfType<BackoffStrategiesScenarioCaseEntity.Type, 'linear'>): void {
+    this.assertStrategyResult(BackoffStrategy.linear, scenarioCase);
+  }
 }
 
-void describe('BackoffStrategy', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': BackoffStrategiesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'BackoffStrategy',
+  'runners': BackoffStrategiesRunners
 });

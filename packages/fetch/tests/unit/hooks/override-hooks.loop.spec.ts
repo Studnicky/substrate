@@ -1,172 +1,195 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
 import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { afterEach, beforeEach, describe, it } from 'node:test';
 
 import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
+
 import { FetchClient } from '../../../src/node/index.js';
-
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RoutedFakeFetch } from '../../helpers/RoutedFakeFetch.js';
 import { OverrideHooksScenarioCaseEntity } from './entities/OverrideHooksScenarioCaseEntity.js';
-import scenarioGroups from './override-hooks.scenarios.json' with { type: 'json' };
+import scenarioGroups from './override-hooks.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = OverrideHooksScenarioCaseEntity.Type;
+class PipelineClient extends FetchClient {
+  readonly log: string[] = [];
 
-const fileIntake = ScenarioFileCompiler.compileIntake(OverrideHooksScenarioCaseEntity.Schema, OverrideHooksScenarioCaseEntity.Node);
-
-function requireHeadersRecord(value: unknown): { headers: Record<string, string> } {
-  if (!Predicates.isObject(value) || !Predicates.isObject(value.headers)) {
-    throw RuntimeError.create('Expected a JSON response with a headers object');
-  }
-  const headers: Record<string, string> = {};
-  for (const [key, headerValue] of Object.entries(value.headers)) {
-    headers[key] = String(headerValue);
-  }
-  return { headers };
-}
-
-function requireValueRecord(value: unknown): { value: string } {
-  if (!Predicates.isObject(value) || typeof value.value !== 'string') {
-    throw RuntimeError.create('Expected a JSON response with a string value field');
-  }
-  return { 'value': value.value };
-}
-
-const originalFetch = globalThis.fetch;
-
-void beforeEach(() => {
-  globalThis.fetch = fakeFetch;
-});
-
-void afterEach(() => {
-  globalThis.fetch = originalFetch;
-});
-
-function toPlainHeaders(headers: RequestInit['headers']): Record<string, string> {
-  const normalized = new Headers(headers);
-  const result: Record<string, string> = {};
-
-  for (const [key, value] of normalized.entries()) {
-    result[key] = value;
-  }
-
-  return result;
-}
-
-function fakeFetch(input: Request | URL | string, init?: RequestInit): Promise<Response> {
-  const url = new URL(String(input));
-
-  if (url.pathname === '/echo-headers') {
-    return Promise.resolve(new Response(JSON.stringify({ headers: toPlainHeaders(init?.headers) }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200
-    }));
-  }
-
-  if (url.pathname === '/ok') {
-    return Promise.resolve(new Response(JSON.stringify({ value: 'original' }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200
-    }));
-  }
-
-  return Promise.resolve(new Response('', { status: 404 }));
-}
-
-function clientConfig(scenarioCase: ScenarioCase): Parameters<typeof FetchClient.create>[0] {
-  return { baseURL: scenarioCase.input.baseURL };
-}
-
-function headerInput(scenarioCase: ScenarioCase): string {
-  const { header } = scenarioCase.expected;
-  if (header === undefined) {
-    throw RuntimeError.create(`${scenarioCase.name} must define expected.header`);
-  }
-  return header;
-}
-
-const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'request-header-injection': async (scenarioCase) => {
-    class HeaderInjectClient extends FetchClient {
-      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-        return {
-          ...context,
-          options: {
-            ...context.options,
-            headers: {
-              ...context.options.headers,
-              'X-Injected': 'hook-value'
-            }
-          }
-        };
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+    this.log.push('onRequest');
+    const rewritten = Promise.resolve({
+      ...context,
+      'options': {
+        ...context.options,
+        'headers': { ...context.options.headers, 'X-Pipeline': 'request-stage' }
       }
-    }
+    });
+    return rewritten;
+  }
 
-    const client = HeaderInjectClient.create(clientConfig(scenarioCase));
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
+    this.log.push('onResponse');
+    const passedThrough = Promise.resolve(context);
+    return passedThrough;
+  }
+}
+
+class MetadataClient extends FetchClient {
+  readonly capturedRequestIds: string[] = [];
+
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
+    this.capturedRequestIds.push(context.request.requestId);
+    const passedThrough = Promise.resolve(context);
+    return passedThrough;
+  }
+}
+
+class HeaderInjectClient extends FetchClient {
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+    const rewritten = Promise.resolve({
+      ...context,
+      'options': {
+        ...context.options,
+        'headers': {
+          ...context.options.headers,
+          'X-Injected': 'hook-value'
+        }
+      }
+    });
+    return rewritten;
+  }
+}
+
+class StrictClient extends FetchClient {
+  protected override onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
+    if (context.response.ok) {
+      const passedThrough = Promise.resolve(context);
+      return passedThrough;
+    }
+    throw RuntimeError.create(`HTTP error: ${String(context.response.status)}`);
+  }
+}
+
+class ResponseWrapClient extends FetchClient {
+  protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
+    const body = await context.response.text();
+    const wrapped = new Response(body, {
+      'headers': {
+        'Content-Type': 'application/json',
+        'X-Transformed': 'yes'
+      },
+      'status': context.response.status
+    });
+    return { ...context, 'response': wrapped };
+  }
+}
+
+class UrlRewriteClient extends FetchClient {
+  readonly visitedUrls: string[] = [];
+
+  protected override onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
+    this.visitedUrls.push(context.url);
+    const rewritten = Promise.resolve({ ...context, 'url': context.url.replace('/original-path', '/ok') });
+    return rewritten;
+  }
+}
+
+class OverrideHooksRunners {
+  static async 'base-on-request'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'base-on-request', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = FetchClient.create({ 'baseURL': scenarioCase.input.baseURL });
 
     try {
       const response = await client.get('/echo-headers');
-      const data = requireHeadersRecord(await response.json());
-      const headerName = headerInput(scenarioCase).toLowerCase();
+      const headers = await OverrideHooksRunners.readHeaders(response);
+      const headerName = scenarioCase.expected.header.toLowerCase();
       assert.strictEqual(response.status, 200);
-      assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
-      assert.strictEqual(headerName in data.headers, true);
+      assert.strictEqual(headers.get(headerName), scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
     } finally {
       await client.destroy();
     }
-  },
-  'url-rewrite': async (scenarioCase) => {
-    const visitedUrls: string[] = [];
+  }
 
-    class UrlRewriteClient extends FetchClient {
-      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-        visitedUrls.push(context.url);
-        return { ...context, url: context.url.replace('/original-path', '/ok') };
-      }
-    }
-
-    const client = UrlRewriteClient.create(clientConfig(scenarioCase));
+  static async 'base-on-response'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'base-on-response', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = FetchClient.create({ 'baseURL': scenarioCase.input.baseURL });
 
     try {
-      const response = await client.get('/original-path');
-      assert.strictEqual(response.status, 200);
-      assert.ok(visitedUrls[0]?.includes('/original-path'));
-      assert.deepStrictEqual(visitedUrls, scenarioCase.expected.entries);
-      await response.arrayBuffer();
+      const response = await client.get('/ok');
+      const data = ScenarioValues.requireRecord(await response.json(), 'response body');
+      assert.strictEqual(response.status, scenarioCase.expected.status);
+      assert.strictEqual(ScenarioValues.requireString(data.value, 'response body value'), 'original');
+      assert.strictEqual(response.headers.get('x-transformed'), null);
     } finally {
       await client.destroy();
     }
-  },
-  'base-on-request': async (scenarioCase) => {
-    const client = FetchClient.create(clientConfig(scenarioCase));
+  }
+
+  static async 'hook-pipeline'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'hook-pipeline', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = PipelineClient.create({ 'baseURL': scenarioCase.input.baseURL });
 
     try {
       const response = await client.get('/echo-headers');
-      const data = requireHeadersRecord(await response.json());
-      const headerName = headerInput(scenarioCase).toLowerCase();
-      assert.strictEqual(response.status, 200);
-      assert.strictEqual(data.headers[headerName], scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
+      const headers = await OverrideHooksRunners.readHeaders(response);
+      assert.deepStrictEqual(client.log, scenarioCase.expected.entries);
+      assert.strictEqual(headers.get('x-pipeline'), 'request-stage');
     } finally {
       await client.destroy();
     }
-  },
-  'response-wrap': async (scenarioCase) => {
-    class ResponseWrapClient extends FetchClient {
-      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
-        const body = await context.response.text();
-        const wrapped = new Response(body, {
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Transformed': 'yes'
-          },
-          status: context.response.status
-        });
-        return { ...context, response: wrapped };
-      }
-    }
+  }
 
-    const client = ResponseWrapClient.create(clientConfig(scenarioCase));
+  static async 'metadata'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'metadata', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = MetadataClient.create({ 'baseURL': scenarioCase.input.baseURL });
+
+    try {
+      await client.get('/ok');
+      assert.strictEqual(client.capturedRequestIds.length, scenarioCase.expected.count);
+      assert.ok(typeof client.capturedRequestIds[0] === 'string' && client.capturedRequestIds[0].length > 0);
+    } finally {
+      await client.destroy();
+    }
+  }
+
+  static async 'request-header-injection'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'request-header-injection', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = HeaderInjectClient.create({ 'baseURL': scenarioCase.input.baseURL });
+
+    try {
+      const response = await client.get('/echo-headers');
+      const headers = await OverrideHooksRunners.readHeaders(response);
+      const headerName = scenarioCase.expected.header.toLowerCase();
+      assert.strictEqual(response.status, 200);
+      assert.strictEqual(headers.get(headerName), scenarioCase.expected.value === '__UNDEFINED__' ? undefined : scenarioCase.expected.value);
+      assert.strictEqual(headers.has(headerName), true);
+    } finally {
+      await client.destroy();
+    }
+  }
+
+  static async 'response-reject'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'response-reject', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = StrictClient.create({ 'baseURL': scenarioCase.input.baseURL });
+
+    try {
+      const caught = await RejectionProbe.capture(async () => {
+        await client.get('/nonexistent');
+      });
+      assert.ok(caught instanceof Error);
+      const fragments = scenarioCase.expected.messageIncludes;
+      for (let index = 0; index < fragments.length; index += 1) {
+        assert.ok(caught.message.includes(fragments[index] ?? ''));
+      }
+    } finally {
+      await client.destroy();
+    }
+  }
+
+  static async 'response-wrap'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'response-wrap', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = ResponseWrapClient.create({ 'baseURL': scenarioCase.input.baseURL });
 
     try {
       const response = await client.get('/ok');
@@ -175,108 +198,41 @@ const runnerMap: Record<ScenarioCase['operation'], (scenarioCase: ScenarioCase) 
     } finally {
       await client.destroy();
     }
-  },
-  'response-reject': async (scenarioCase) => {
-    class StrictClient extends FetchClient {
-      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
-        if (!context.response.ok) {
-          throw RuntimeError.create(`HTTP error: ${context.response.status}`);
-        }
-        return context;
-      }
-    }
+  }
 
-    const client = StrictClient.create(clientConfig(scenarioCase));
+  static async 'url-rewrite'(scenarioCase: ScenarioCaseOfType<OverrideHooksScenarioCaseEntity.Type, 'url-rewrite', 'operation'>): Promise<void> {
+    using _ = RoutedFakeFetch.install();
+    const client = UrlRewriteClient.create({ 'baseURL': scenarioCase.input.baseURL });
 
     try {
-      await assert.rejects(
-        () => client.get('/nonexistent'),
-        (error: Error) => {
-          for (const expectedMessagePart of scenarioCase.expected.messageIncludes ?? []) {
-            assert.ok(error.message.includes(expectedMessagePart));
-          }
-          return true;
-        }
-      );
-    } finally {
-      await client.destroy();
-    }
-  },
-  'base-on-response': async (scenarioCase) => {
-    const client = FetchClient.create(clientConfig(scenarioCase));
-
-    try {
-      const response = await client.get('/ok');
-      const data = requireValueRecord(await response.json());
-      assert.strictEqual(response.status, scenarioCase.expected.status);
-      assert.strictEqual(data.value, 'original');
-      assert.strictEqual(response.headers.get('x-transformed'), null);
-    } finally {
-      await client.destroy();
-    }
-  },
-  metadata: async (scenarioCase) => {
-    const capturedRequestIds: string[] = [];
-
-    class MetadataClient extends FetchClient {
-      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
-        capturedRequestIds.push(context.request.requestId);
-        return context;
-      }
-    }
-
-    const client = MetadataClient.create(clientConfig(scenarioCase));
-
-    try {
-      await client.get('/ok');
-      assert.strictEqual(capturedRequestIds.length, scenarioCase.expected.count);
-      assert.ok(typeof capturedRequestIds[0] === 'string' && capturedRequestIds[0].length > 0);
-    } finally {
-      await client.destroy();
-    }
-  },
-  'hook-pipeline': async (scenarioCase) => {
-    const log: string[] = [];
-
-    class PipelineClient extends FetchClient {
-      protected override async onRequest(context: RequestContextInterface): Promise<RequestContextInterface> {
-        log.push('onRequest');
-        return {
-          ...context,
-          options: {
-            ...context.options,
-            headers: { ...context.options.headers, 'X-Pipeline': 'request-stage' }
-          }
-        };
-      }
-
-      protected override async onResponse(context: ResponseContextInterface): Promise<ResponseContextInterface> {
-        log.push('onResponse');
-        return context;
-      }
-    }
-
-    const client = PipelineClient.create(clientConfig(scenarioCase));
-
-    try {
-      const response = await client.get('/echo-headers');
-      const data = requireHeadersRecord(await response.json());
-      assert.deepStrictEqual(log, scenarioCase.expected.entries);
-      assert.strictEqual(data.headers['x-pipeline'], 'request-stage');
+      const response = await client.get('/original-path');
+      assert.strictEqual(response.status, 200);
+      assert.ok(client.visitedUrls[0]?.includes('/original-path') === true);
+      assert.deepStrictEqual(client.visitedUrls, scenarioCase.expected.entries);
+      await response.arrayBuffer();
     } finally {
       await client.destroy();
     }
   }
-};
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.operation](scenarioCase);
+  private static async readHeaders(response: Response): Promise<Map<string, string>> {
+    const data = ScenarioValues.requireRecord(await response.json(), 'response body');
+    const headers = ScenarioValues.requireRecord(ScenarioValues.requireProperty(data, 'headers', 'response body'), 'response body headers');
+    const entries = Object.entries(headers);
+    const result = new Map<string, string>();
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      if (entry !== undefined) {
+        result.set(entry[0], String(entry[1]));
+      }
+    }
+    return result;
+  }
 }
 
-void describe('hook override behavior', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.registerBy('operation', {
+  'entity': OverrideHooksScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'hook override behavior',
+  'runners': OverrideHooksRunners
 });

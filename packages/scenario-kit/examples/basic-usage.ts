@@ -1,7 +1,9 @@
-/** basic-usage — compileIntake validates a { cases: [...] } envelope against a caller-supplied case entity; the returned type is inferred from the Node, never passed explicitly. Run: npx tsx packages/scenario-kit/examples/basic-usage.ts */
+/** basic-usage — compileIntake validates a { cases: [...] } envelope, proving each case with the case entity's own intake; the returned type is inferred from that intake, never passed explicitly. Run: npx tsx packages/scenario-kit/examples/basic-usage.ts */
 
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 import assert from 'node:assert/strict';
 
@@ -41,9 +43,13 @@ namespace SumCaseEntity {
     'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
   }, ['description', 'expected', 'input', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
 }
 
-const intakeSumFile = ScenarioFileCompiler.compileIntake(SumCaseEntity.Schema, SumCaseEntity.Node);
+const intakeSumFile = ScenarioFileCompiler.compileIntake(SumCaseEntity);
 
 const parsed = intakeSumFile({
   'cases': [

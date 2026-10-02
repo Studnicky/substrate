@@ -1,16 +1,15 @@
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { maximumSwitchCases } from '../../../src/rules/v8/maximumSwitchCases.js';
-import scenarioGroups from './maximumSwitchCases.scenarios.json' with { type: 'json' };
+import scenarioGroups from './maximumSwitchCases.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
 const ruleTester = new RuleTester({
-  languageOptions: { parser, parserOptions: { sourceType: 'module' } }
+  'languageOptions': { 'parser': parser, 'parserOptions': { 'sourceType': 'module' } }
 });
 
 // The rule's `!Array.isArray(cases)` guard defends against a malformed AST — a real

@@ -1,7 +1,8 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { RuntimeError, DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import type { RetryCallStateEntity } from '../../../src/entities/RetryCallStateEntity.js';
 import type { RetryConfigInterface } from '../../../src/interfaces/index.js';
@@ -10,20 +11,20 @@ import type { RetryContextInterface } from '../../../src/interfaces/RetryContext
 import { MaximumRetriesExceededError } from '../../../src/errors/index.js';
 import { Retry } from '../../../src/retry/index.js';
 import { FsmScenarioCaseEntity } from '../entities/FsmScenarioCaseEntity.js';
-import scenarioGroups from './fsm.scenarios.json' with { type: 'json' };
+import { FailingOperation } from './fixtures/FailingOperation.js';
+import { FlakyOperation } from './fixtures/FlakyOperation.js';
+import { ResolvingOperation } from './fixtures/ResolvingOperation.js';
+import scenarioGroups from './fsm.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(FsmScenarioCaseEntity.Schema, FsmScenarioCaseEntity.Node);
-
-type TransitionRecord = { from: string; to: string };
-
-type ScenarioShape = FsmScenarioCaseEntity.Type['shape'];
-
-type ScenarioCase = FsmScenarioCaseEntity.Type;
+interface TransitionRecordInterface {
+  readonly 'from': string;
+  readonly 'to': string;
+}
 
 class TrackingRetry extends Retry {
-  readonly transitions: TransitionRecord[] = [];
+  readonly transitions: TransitionRecordInterface[] = [];
 
-  constructor(config?: Partial<RetryConfigInterface>) {
+  constructor(config?: RetryConfigInterface) {
     super(config ?? {});
   }
 
@@ -33,8 +34,9 @@ class TrackingRetry extends Retry {
 }
 
 class AlwaysNonRetryableClassifier {
-  classify(_error: Error, _attemptNumber: number): { retryable: false; reason: string } {
-    return { retryable: false, reason: 'always non-retryable' };
+  classify(_error: Error, _attemptNumber: number): { 'reason': string; 'retryable': false; } {
+    const classification = { 'reason': 'always non-retryable', 'retryable': false } as const;
+    return classification;
   }
 }
 
@@ -45,132 +47,116 @@ class AbortingTrackingRetry extends TrackingRetry {
   }
 }
 
-type AttemptOutcome = 'failure' | 'success';
+class FsmRunners {
+  private static findExhausted(retry: TrackingRetry): TransitionRecordInterface | undefined {
+    const exhausted = retry.transitions.find((transition) => {
+      const isExhausted = transition.to === 'exhausted';
+      return isExhausted;
+    });
+    return exhausted;
+  }
 
-function resolveAttemptOutcome(callCount: number, scenarioCase: ScenarioCase): AttemptOutcome {
-  return callCount <= Number(scenarioCase.input.batch?.failureCountBeforeSuccess ?? 0) ? 'failure' : 'success';
-}
-
-const runnerMap: Record<ScenarioShape, (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'aborted-by-hook': async (scenarioCase) => {
+  static async 'aborted-by-hook'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'aborted-by-hook'>): Promise<void> {
     const retry = new AbortingTrackingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create('will be aborted'); }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(new FailingOperation('will be aborted').run), MaximumRetriesExceededError);
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
-  },
-  'exhausted-after-max-retries': async (scenarioCase) => {
+  }
+
+  static async 'exhausted-after-max-elapsed'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'exhausted-after-max-elapsed'>): Promise<void> {
     const retry = new TrackingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      ...(scenarioCase.input.maximumElapsedMs === undefined ? {} : { 'maximumElapsedMs': scenarioCase.input.maximumElapsedMs }),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create('always fails'); }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(new FailingOperation('elapsed budget').run), MaximumRetriesExceededError);
 
-    assert.deepStrictEqual(retry.transitions.find((transition) => transition.to === 'exhausted'), scenarioCase.expected.exhausted);
-  },
-  'exhausted-after-max-elapsed': async (scenarioCase) => {
+    assert.deepStrictEqual(FsmRunners.findExhausted(retry), scenarioCase.expected.exhausted);
+  }
+
+  static async 'exhausted-after-max-retries'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'exhausted-after-max-retries'>): Promise<void> {
     const retry = new TrackingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      ...(scenarioCase.input.maximumElapsedMs === undefined ? {} : { maximumElapsedMs: scenarioCase.input.maximumElapsedMs }),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create('elapsed budget'); }),
-      MaximumRetriesExceededError
-    );
+    await assert.rejects(retry.execute(new FailingOperation('always fails').run), MaximumRetriesExceededError);
 
-    assert.deepStrictEqual(retry.transitions.find((transition) => transition.to === 'exhausted'), scenarioCase.expected.exhausted);
-  },
-  'immediate-success': async (scenarioCase) => {
-    const retry = new TrackingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      maximumRetries: scenarioCase.input.maximumRetries
-    });
+    assert.deepStrictEqual(FsmRunners.findExhausted(retry), scenarioCase.expected.exhausted);
+  }
 
-    const result = await retry.execute(async () => scenarioCase.input.result);
-    assert.equal(result, scenarioCase.expected.result);
-    assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
-  },
-  'illegal-transition': async (scenarioCase) => {
-    const { rejectedTransition: maybeRejectedTransition } = scenarioCase.input;
-    if (maybeRejectedTransition === undefined) {
-      throw RuntimeError.create('Scenario input.rejectedTransition is required');
-    }
-    const rejectedTransition: NonNullable<typeof maybeRejectedTransition> = maybeRejectedTransition;
+  static async 'illegal-transition'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'illegal-transition'>): Promise<void> {
+    const rejectedTransition = ScenarioValues.requireDefined(scenarioCase.input.rejectedTransition, 'input.rejectedTransition');
 
     class GuardRejectingRetry extends Retry {
-      constructor(config?: Partial<RetryConfigInterface>) {
+      constructor(config?: RetryConfigInterface) {
         super(config ?? {});
       }
 
       override guardCall(from: RetryCallStateEntity.Type, to: RetryCallStateEntity.Type): boolean {
         const rejected = from.variant === rejectedTransition.from && to.variant === rejectedTransition.to;
-        return !rejected && super.guardCall(from, to);
+        const allowed = rejected === false && super.guardCall(from, to);
+        return allowed;
       }
     }
 
     const retry = new GuardRejectingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
-    await assert.rejects(
-      () => retry.execute(async () => 'should not reach caller'),
-      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- errorMessageIncludes is repo-authored fixture data, not attacker input
-      new RegExp(String(scenarioCase.expected.errorMessageIncludes))
-    );
-  },
-  'non-retryable-error': async (scenarioCase) => {
+    const expectedFragment = String(scenarioCase.expected.errorMessageIncludes);
+    await assert.rejects(retry.execute(ResolvingOperation.of('should not reach caller')), (error) => {
+      const caught: unknown = error;
+      const includesFragment = caught instanceof Error && caught.message.includes(expectedFragment);
+      return includesFragment;
+    });
+  }
+
+  static async 'immediate-success'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'immediate-success'>): Promise<void> {
     const retry = new TrackingRetry({
-      errorClassifier: new AlwaysNonRetryableClassifier(),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      'maximumRetries': scenarioCase.input.maximumRetries
+    });
+
+    const result = await retry.execute(ResolvingOperation.of(String(scenarioCase.input.result)));
+    assert.equal(result, scenarioCase.expected.result);
+    assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
+  }
+
+  static async 'non-retryable-error'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'non-retryable-error'>): Promise<void> {
+    const retry = new TrackingRetry({
+      'errorClassifier': new AlwaysNonRetryableClassifier(),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
     await assert.rejects(
-      () => retry.execute(async () => { throw RuntimeError.create('fatal'); }),
+      retry.execute(new FailingOperation('fatal').run),
       { 'name': String(scenarioCase.expected.errorName) }
     );
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
-  },
-  'retryable-failure-then-success': async (scenarioCase) => {
+  }
+
+  static async 'retryable-failure-then-success'(scenarioCase: ScenarioCaseOfType<FsmScenarioCaseEntity.Type, 'retryable-failure-then-success'>): Promise<void> {
     const retry = new TrackingRetry({
-      errorClassifier: DefaultHttpErrorClassifier.create(),
-      maximumRetries: scenarioCase.input.maximumRetries
+      'errorClassifier': DefaultHttpErrorClassifier.create(),
+      'maximumRetries': scenarioCase.input.maximumRetries
     });
 
-    let callCount = 0;
-    const result = await retry.execute(async () => {
-      callCount += 1;
-
-      const attemptMap: Record<AttemptOutcome, () => string> = {
-        'failure': () => {
-          throw RuntimeError.create(String(scenarioCase.input.errorMessage));
-        },
-        'success': () => String(scenarioCase.input.result)
-      };
-
-      return attemptMap[resolveAttemptOutcome(callCount, scenarioCase)]();
-    });
+    const { result } = await FlakyOperation.execute(retry, Number(scenarioCase.input.batch?.failureCountBeforeSuccess ?? 0), String(scenarioCase.input.errorMessage), String(scenarioCase.input.result));
 
     assert.equal(result, scenarioCase.expected.result);
     assert.deepStrictEqual(retry.transitions, scenarioCase.expected.transitions);
   }
-};
+}
 
-void describe('Retry FSM', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runnerMap[scenario.shape](scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': FsmScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Retry FSM',
+  'runners': FsmRunners
 });

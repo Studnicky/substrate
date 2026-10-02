@@ -1,9 +1,8 @@
+import { TestWorkspace } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, describe, it } from 'node:test';
+import { describe, it } from 'node:test';
 
 import type { AsyncFileSystemInterface } from '../../../src/interfaces/AsyncFileSystemInterface.js';
 
@@ -44,27 +43,28 @@ const operationCases: readonly OperationCaseInterface[] = [
   }
 ];
 
-void describe('NodeFileSystem platform failures', () => {
-  let root = '';
-
-  before(async () => {
-    root = await mkdtemp(join(tmpdir(), 'virtual-fs-node-'));
-    await writeFile(join(root, 'existing-file.txt'), 'present');
-  });
-
-  after(async () => {
-    await rm(root, { 'force': true, 'recursive': true });
-  });
-
-  for (const operationCase of operationCases) {
-    void it(`${operationCase.name} rejects with a VirtualFileSystemError carrying the fs error as cause`, async () => {
-      await assert.rejects(operationCase.run(new NodeFileSystem(), root), (error: unknown) => {
-        assert.ok(error instanceof VirtualFileSystemError);
-        assert.ok(Predicates.isObject(error.cause));
-        assert.equal(error.cause.code, operationCase.expectedCauseCode);
-        assert.equal(error.message, VirtualFileSystemError.toMessage(error.cause));
-        return true;
-      });
+class NodeFileSystemFailureRunner {
+  public static async assertRejects(operationCase: OperationCaseInterface): Promise<void> {
+    using workspace = TestWorkspace.create('virtual-fs-node-');
+    workspace.write('existing-file.txt', 'present');
+    await assert.rejects(operationCase.run(new NodeFileSystem(), workspace.root), (caught) => {
+      const thrown: unknown = caught;
+      assert.ok(thrown instanceof VirtualFileSystemError);
+      assert.ok(Predicates.isObject(thrown.cause));
+      assert.equal(thrown.cause.code, operationCase.expectedCauseCode);
+      assert.equal(thrown.message, VirtualFileSystemError.toMessage(thrown.cause));
+      return true;
     });
+  }
+}
+
+void describe('NodeFileSystem platform failures', () => {
+  for (let index = 0; index < operationCases.length; index += 1) {
+    const operationCase = operationCases[index];
+    if (operationCase !== undefined) {
+      void it(`${operationCase.name} rejects with a VirtualFileSystemError carrying the fs error as cause`, async () => {
+        await NodeFileSystemFailureRunner.assertRejects(operationCase);
+      });
+    }
   }
 });

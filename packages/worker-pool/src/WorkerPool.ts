@@ -688,7 +688,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
     worker: Worker,
     taskContext: TaskContextInterface<TMessage, TResult>
   ): void {
-    worker.terminate().catch((cause: unknown) => {
+    this.terminateWorker(worker).catch((cause: unknown) => {
       this.#reportTerminationFailure(state, cause, taskContext.index);
     });
   }
@@ -917,7 +917,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       this.#reportWorkerError(state, error, context.index);
       context.reject(error);
     });
-    worker.terminate().catch((terminationCause: unknown) => {
+    this.terminateWorker(worker).catch((terminationCause: unknown) => {
       this.#reportTerminationFailure(state, terminationCause, workerIndex);
     });
   }
@@ -1095,6 +1095,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
 
   async #dispatch(state: WorkerPoolRunState<TMessage, TResult>, item: TMessage, index: number): Promise<TResult> {
     const completion = Promise.withResolvers<TResult>();
+    completion.promise.catch(() => {});
     const entry: PendingEntryInterface<TMessage, TResult> = {
       'index': WorkerPool.validateIndex(index),
       'item': item,
@@ -1114,6 +1115,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   async #dispatchAndTrack(state: WorkerPoolRunState<TMessage, TResult>, entry: IndexedItemInterface<TMessage>): Promise<TResult> {
     const result = this.#dispatch(state, entry.item, entry.index);
 
+    result.catch(() => {});
     state.allDispatchedPromises.push(result);
 
     return await result;
@@ -1138,7 +1140,7 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   /** Terminates one worker at run shutdown; a platform termination failure is reported through `onWorkerError`. */
   async #terminateAtShutdown(state: WorkerPoolRunState<TMessage, TResult>, worker: Worker, index: number): Promise<void> {
     try {
-      await worker.terminate();
+      await this.terminateWorker(worker);
     } catch (cause) {
       this.#reportTerminationFailure(state, cause, index);
     }
@@ -1176,6 +1178,16 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
   // Overrides must not throw or block.
   // ---------------------------------------------------------------------------
 
+  /** Terminates a worker through the overrideable boundary used by every pool shutdown path. */
+  protected async terminateWorker(worker: Worker): Promise<number> {
+    try {
+      const result = await worker.terminate();
+      return result;
+    } catch (cause) {
+      throw WorkerPoolError.from(cause, 'workerPool.terminationFailed', 'WorkerPool: worker termination failed');
+    }
+  }
+
   /** Fires for every envelope a worker posts back — `log`, `progress`, `result`, and `error` alike. */
   protected onMessage(
     _envelope:
@@ -1184,14 +1196,14 @@ export class WorkerPool<TMessage = unknown, TResult = unknown> implements Worker
       | WorkerProgressEnvelopeEntity.Type
       | WorkerResultEnvelopeInterface<TResult>,
     _index: number
-  ): void {}
+  ): void | Promise<void> {}
 
   /** Fires when a task exceeds its configured `timeoutMs`, immediately before the worker is terminated. */
-  protected onWorkerTimeout(_index: number): void {}
+  protected onWorkerTimeout(_index: number): void | Promise<void> {}
 
   /** Fires when a task rejects or worker termination fails. */
-  protected onWorkerError(_error: BaseError, _index: number): void {}
+  protected onWorkerError(_error: BaseError, _index: number): void | Promise<void> {}
 
   /** Fires whenever the pool constructs a Worker — the initial per-run spin-up and any crash-triggered replacement alike. */
-  protected onWorkerCreated(_threadId: number): void {}
+  protected onWorkerCreated(_threadId: number): void | Promise<void> {}
 }

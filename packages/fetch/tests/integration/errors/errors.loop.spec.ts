@@ -1,94 +1,93 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
 
 import { AbortError, FetchClient, TimeoutError } from '../../../src/node/index.js';
-import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-
+import { FetchTestError } from '../../helpers/FetchTestError.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
 import { ErrorsScenarioCaseEntity } from './entities/ErrorsScenarioCaseEntity.js';
-import scenarioGroups from './errors.scenarios.json' with { type: 'json' };
+import scenarioGroups from './errors.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = ErrorsScenarioCaseEntity.Type;
+class ErrorsRunners {
+  private static readonly client = FetchClient.create();
 
-const fileIntake = ScenarioFileCompiler.compileIntake(ErrorsScenarioCaseEntity.Schema, ErrorsScenarioCaseEntity.Node);
+  static async 'rejects'(scenarioCase: ScenarioCaseOfType<ErrorsScenarioCaseEntity.Type, 'rejects'>): Promise<void> {
+    using server = TestServer.start();
+    const url = ErrorsRunners.resolveUrl(scenarioCase.input.url, server.url);
+    const options = ErrorsRunners.createOptions(scenarioCase.input);
+    let caught: unknown;
+    try {
+      await ErrorsRunners.client.get(url, options);
+    } catch (error) {
+      caught = error;
+    }
+    assert.ok(caught instanceof Error, 'the request rejects with an error');
+    ErrorsRunners.assertRejection(caught, scenarioCase.expected);
+  }
 
-const client = FetchClient.create();
+  static async 'resolves'(scenarioCase: ScenarioCaseOfType<ErrorsScenarioCaseEntity.Type, 'resolves'>): Promise<void> {
+    using server = TestServer.start();
+    const url = ErrorsRunners.resolveUrl(scenarioCase.input.url, server.url);
+    const options = ErrorsRunners.createOptions(scenarioCase.input);
+    const response = await ErrorsRunners.client.get(url, options);
+    assert.strictEqual(response.status, scenarioCase.expected.status);
+    assert.strictEqual(response.ok, scenarioCase.expected.ok);
+  }
 
-let testUrl: string;
+  private static assertRejection(caught: Error, expected: ScenarioCaseOfType<ErrorsScenarioCaseEntity.Type, 'rejects'>['expected']): void {
+    ErrorsRunners.assertErrorKind(caught, expected);
+    if (expected.messageIncludes !== undefined) {
+      for (let index = 0; index < expected.messageIncludes.length; index += 1) {
+        assert.ok(caught.message.includes(expected.messageIncludes[index] ?? ''));
+      }
+    }
 
-void before(async () => {
-  testUrl = await startTestServer();
-});
+    if (expected.urlIncludes !== undefined) {
+      assert.ok(caught.message.includes(expected.urlIncludes) || ('url' in caught && typeof caught.url === 'string' && caught.url.includes(expected.urlIncludes)));
+    }
+  }
 
-void after(async () => {
-  await stopTestServer();
-});
+  private static assertErrorKind(caught: Error, expected: ScenarioCaseOfType<ErrorsScenarioCaseEntity.Type, 'rejects'>['expected']): void {
+    if (expected.error === 'TimeoutError') {
+      assert.ok(caught instanceof TimeoutError);
+      if (expected.timeoutMs !== undefined) {
+        assert.strictEqual(caught.timeoutMs, expected.timeoutMs);
+      }
+    } else if (expected.error === 'AbortError') {
+      assert.ok(caught instanceof AbortError);
+    }
+  }
 
-function materializeSignal(flag: 'abort-after-ms' | undefined): AbortSignal | undefined {
-  if (flag === undefined) {
+  private static createOptions(input: { 'signal'?: 'abort-after-ms'; 'timeout'?: number }): { 'signal'?: AbortSignal; 'timeout'?: number } {
+    const signal = ErrorsRunners.materializeSignal(input.signal);
+    const options = {
+      ...(input.timeout === undefined ? {} : { 'timeout': input.timeout }),
+      ...(signal === undefined ? {} : { 'signal': signal })
+    };
+    return options;
+  }
+
+  private static materializeSignal(flag: 'abort-after-ms' | undefined): AbortSignal | undefined {
+    if (flag === 'abort-after-ms') {
+      const controller = new AbortController();
+      setTimeout(() => {
+        controller.abort(new FetchTestError('abort requested by the scenario'));
+      }, 10);
+      return controller.signal;
+    }
     return undefined;
   }
 
-  if (flag === 'abort-after-ms') {
-    const controller = new AbortController();
-    setTimeout(() => {
-      controller.abort();
-    }, 10);
-    return controller.signal;
+  private static resolveUrl(requestUrl: string, serverUrl: string): string {
+    const url = requestUrl.startsWith('http') ? requestUrl : `${serverUrl}${requestUrl}`;
+    return url;
   }
-
-  return undefined;
 }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const request = scenarioCase.input;
-  const url = request.url.startsWith('http') ? request.url : `${testUrl}${request.url}`;
-  const signal = 'signal' in request ? materializeSignal(request.signal) : undefined;
-  const options = {
-    ...(request.timeout === undefined ? {} : { timeout: request.timeout }),
-    ...(signal === undefined ? {} : { signal })
-  };
-
-  const { expected } = scenarioCase;
-  if ('error' in expected) {
-    await assert.rejects(async () => {
-      await client.get(url, options);
-    }, (error: Error) => {
-      if (expected.error === 'TimeoutError') {
-        assert.ok(error instanceof TimeoutError);
-        if (expected.timeoutMs !== undefined && error instanceof TimeoutError) {
-          assert.strictEqual(error.timeoutMs, expected.timeoutMs);
-        }
-      } else if (expected.error === 'AbortError') {
-        assert.ok(error instanceof AbortError);
-      } else {
-        assert.ok(error instanceof Error);
-      }
-
-      if (expected.messageIncludes !== undefined) {
-        for (const expectedMessagePart of expected.messageIncludes) {
-          assert.ok(error.message.includes(expectedMessagePart));
-        }
-      }
-
-      if (expected.urlIncludes !== undefined) {
-        assert.ok(error.message.includes(expected.urlIncludes) || ('url' in error && typeof error.url === 'string' && error.url.includes(expected.urlIncludes)));
-      }
-
-      return true;
-    });
-    return;
-  }
-
-  const response = await client.get(url, options);
-  assert.strictEqual(response.status, expected.status);
-  assert.strictEqual(response.ok, expected.ok);
-}
-
-void describe('Error Handling', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ErrorsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Error Handling',
+  'runners': ErrorsRunners
 });

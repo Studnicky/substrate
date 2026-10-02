@@ -8,7 +8,8 @@
       "input": {
         "entrypoint": "acquireRelease.ts"
       },
-      "name": "runs acquireRelease without throwing"
+      "name": "runs acquireRelease without throwing",
+      "shape": "smoke"
     },
     {
       "description": "runs keyedMutex without throwing",
@@ -18,7 +19,8 @@
       "input": {
         "entrypoint": "keyedMutex.ts"
       },
-      "name": "runs keyedMutex without throwing"
+      "name": "runs keyedMutex without throwing",
+      "shape": "smoke"
     },
     {
       "description": "runs keyedWorkGateComposition without throwing",
@@ -28,7 +30,8 @@
       "input": {
         "entrypoint": "keyedWorkGateComposition.ts"
       },
-      "name": "runs keyedWorkGateComposition without throwing"
+      "name": "runs keyedWorkGateComposition without throwing",
+      "shape": "smoke"
     },
     {
       "description": "runs observedMutex without throwing",
@@ -38,7 +41,8 @@
       "input": {
         "entrypoint": "observedMutex.ts"
       },
-      "name": "runs observedMutex without throwing"
+      "name": "runs observedMutex without throwing",
+      "shape": "smoke"
     },
     {
       "description": "runs observedKeyedWorkGate without throwing",
@@ -48,7 +52,8 @@
       "input": {
         "entrypoint": "observedKeyedWorkGate.ts"
       },
-      "name": "runs observedKeyedWorkGate without throwing"
+      "name": "runs observedKeyedWorkGate without throwing",
+      "shape": "smoke"
     }
   ]
 }

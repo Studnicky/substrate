@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { SocketDispatcherStatsEntity } from '../../../src/entities/SocketDispatcherStatsEntity.js';
@@ -44,58 +46,116 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'type': 'object'
   } as const;
   const ConstructorInvalidAgentNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'throws' as const) }, ['message', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': BoundedJsonValueEntity.Node }, ['agent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'constructor-invalid-agent' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    ...caseNodeFields,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'type': 'string' } as const), 'shape': SchemaNode.defineConst({}, 'throws' as const) }, ['message', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': BoundedJsonValueEntity.Node }, ['agent'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'constructor-invalid-agent' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
-  function healthyStatsBranch<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': { ...caseFields, 'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'healthy' } }, 'required': ['shape'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'origin': originField, 'stats': statsBagSchema }, 'required': ['origin'], 'type': 'object' }, 'shape': { 'const': shape } },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function healthyStatsBranchNode<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
+  class UndiciDispatcherScenarioCaseEntityBuilders {
+    static healthyStatsBranch<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': { ...caseFields, 'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'healthy' } }, 'required': ['shape'], 'type': 'object' }, 'input': { 'additionalProperties': false, 'properties': { 'origin': originField, 'stats': statsBagSchema }, 'required': ['origin'], 'type': 'object' }, 'shape': { 'const': shape } },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static healthyStatsBranchNode<TShape extends 'health-invalid-stats' | 'health-no-stats'>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
         'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'healthy' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': StatsBagNode }, ['origin'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'shape': SchemaNode.defineConst({}, shape)
       }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  }
+      return result;
+    }
 
-  function healthBranch<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': {
-        ...caseFields,
-        'expected': {
-          'additionalProperties': false,
-          'properties': { 'healthy': { 'type': 'boolean' }, 'recommendationIncludes': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'health' } },
-          'required': ['healthy', 'shape'],
-          'type': 'object'
+    static healthBranch<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': {
+          ...caseFields,
+          'expected': {
+            'additionalProperties': false,
+            'properties': { 'healthy': { 'type': 'boolean' }, 'recommendationIncludes': { 'minLength': 1, 'type': 'string' }, 'shape': { 'const': 'health' } },
+            'required': ['healthy', 'shape'],
+            'type': 'object'
+          },
+          'input': { 'additionalProperties': false, 'properties': { 'origin': originField, 'stats': connectionStatsSchema }, 'required': ['origin', 'stats'], 'type': 'object' },
+          'shape': { 'const': shape }
         },
-        'input': { 'additionalProperties': false, 'properties': { 'origin': originField, 'stats': connectionStatsSchema }, 'required': ['origin', 'stats'], 'type': 'object' },
-        'shape': { 'const': shape }
-      },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function healthBranchNode<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static healthBranchNode<TShape extends 'health-ok' | 'health-overload' | 'health-pressure'>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
         ...caseNodeFields,
         'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-            'healthy': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-            'recommendationIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-            'shape': SchemaNode.defineConst({}, 'health' as const)
-          }, ['healthy', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+          'healthy': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+          'recommendationIncludes': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+          'shape': SchemaNode.defineConst({}, 'health' as const)
+        }, ['healthy', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': ConnectionStatsNode }, ['origin', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
         'shape': SchemaNode.defineConst({}, shape)
       }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
+
+    static agentOperationBranch<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': {
+          ...caseFields,
+          'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'called' } }, 'required': ['shape'], 'type': 'object' },
+          'input': { 'additionalProperties': false, 'properties': { 'agent': agentOptionsSchema, 'timeout': { 'type': 'integer' } }, 'required': [], 'type': 'object' },
+          'shape': { 'const': shape }
+        },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static agentOperationBranchNode<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
+        ...caseNodeFields,
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': AgentOptionsNode, 'timeout': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
+
+    static testDispatcherCalledBranch<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
+      const result = {
+        'additionalProperties': false,
+        'properties': {
+          ...caseFields,
+          'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'called' } }, 'required': ['shape'], 'type': 'object' },
+          'input': { 'additionalProperties': false, 'properties': { 'testDispatcher': testDispatcherSchema }, 'required': ['testDispatcher'], 'type': 'object' },
+          'shape': { 'const': shape }
+        },
+        'required': ['description', 'expected', 'input', 'name', 'shape'],
+        'type': 'object'
+      } as const;
+      return result;
+    }
+
+    static testDispatcherCalledBranchNode<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
+      const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
+        ...caseNodeFields,
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'testDispatcher': TestDispatcherNode }, ['testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'shape': SchemaNode.defineConst({}, shape)
+      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+      return result;
+    }
   }
 
   const getStatsFreezeSchema = {
@@ -110,33 +170,11 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'type': 'object'
   } as const;
   const GetStatsFreezeNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'frozen' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ConnectionStatsNode, 'patternProperties': {} }) }, ['origin', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'get-stats-freeze' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-  function agentOperationBranch<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': {
-        ...caseFields,
-        'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'called' } }, 'required': ['shape'], 'type': 'object' },
-        'input': { 'additionalProperties': false, 'properties': { 'agent': agentOptionsSchema, 'timeout': { 'type': 'integer' } }, 'required': [], 'type': 'object' },
-        'shape': { 'const': shape }
-      },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function agentOperationBranchNode<TShape extends 'close-agent' | 'destroy-agent' | 'destroy-agent-delay' | 'destroy-agent-zero'>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
-        ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'agent': AgentOptionsNode, 'timeout': SchemaNode.defineNumber({ 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'shape': SchemaNode.defineConst({}, shape)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  }
+    ...caseNodeFields,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'frozen' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'stats': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': ConnectionStatsNode, 'patternProperties': {} }) }, ['origin', 'stats'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'get-stats-freeze' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const testDispatcherHealthSchema = {
     'additionalProperties': false,
@@ -150,68 +188,49 @@ export namespace UndiciDispatcherScenarioCaseEntity {
     'type': 'object'
   } as const;
   const TestDispatcherHealthNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      ...caseNodeFields,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'healthy' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'testDispatcher': TestDispatcherNode }, ['origin', 'testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'shape': SchemaNode.defineConst({}, 'test-dispatcher-health' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-
-  function testDispatcherCalledBranch<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
-    return {
-      'additionalProperties': false,
-      'properties': {
-        ...caseFields,
-        'expected': { 'additionalProperties': false, 'properties': { 'shape': { 'const': 'called' } }, 'required': ['shape'], 'type': 'object' },
-        'input': { 'additionalProperties': false, 'properties': { 'testDispatcher': testDispatcherSchema }, 'required': ['testDispatcher'], 'type': 'object' },
-        'shape': { 'const': shape }
-      },
-      'required': ['description', 'expected', 'input', 'name', 'shape'],
-      'type': 'object'
-    } as const;
-  }
-  function testDispatcherCalledBranchNode<TShape extends 'test-dispatcher-close' | 'test-dispatcher-destroy'>(shape: TShape) {
-    return SchemaNode.defineObject({ 'type': 'object' } as const, {
-        ...caseNodeFields,
-        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'called' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'testDispatcher': TestDispatcherNode }, ['testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-        'shape': SchemaNode.defineConst({}, shape)
-      }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
-  }
+    ...caseNodeFields,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'shape': SchemaNode.defineConst({}, 'healthy' as const) }, ['shape'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'origin': OriginNode, 'testDispatcher': TestDispatcherNode }, ['origin', 'testDispatcher'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'shape': SchemaNode.defineConst({}, 'test-dispatcher-health' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
       constructorInvalidAgentSchema,
-      healthyStatsBranch('health-no-stats'),
-      healthyStatsBranch('health-invalid-stats'),
-      healthBranch('health-pressure'),
-      healthBranch('health-overload'),
-      healthBranch('health-ok'),
+      UndiciDispatcherScenarioCaseEntityBuilders.healthyStatsBranch('health-no-stats'),
+      UndiciDispatcherScenarioCaseEntityBuilders.healthyStatsBranch('health-invalid-stats'),
+      UndiciDispatcherScenarioCaseEntityBuilders.healthBranch('health-pressure'),
+      UndiciDispatcherScenarioCaseEntityBuilders.healthBranch('health-overload'),
+      UndiciDispatcherScenarioCaseEntityBuilders.healthBranch('health-ok'),
       getStatsFreezeSchema,
-      agentOperationBranch('close-agent'),
-      agentOperationBranch('destroy-agent'),
-      agentOperationBranch('destroy-agent-delay'),
-      agentOperationBranch('destroy-agent-zero'),
+      UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranch('close-agent'),
+      UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranch('destroy-agent'),
+      UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranch('destroy-agent-delay'),
+      UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranch('destroy-agent-zero'),
       testDispatcherHealthSchema,
-      testDispatcherCalledBranch('test-dispatcher-close'),
-      testDispatcherCalledBranch('test-dispatcher-destroy')
+      UndiciDispatcherScenarioCaseEntityBuilders.testDispatcherCalledBranch('test-dispatcher-close'),
+      UndiciDispatcherScenarioCaseEntityBuilders.testDispatcherCalledBranch('test-dispatcher-destroy')
     ]
   } as const;
 
   export const Node = SchemaNode.defineOneOf({}, [
     ConstructorInvalidAgentNode,
-    healthyStatsBranchNode('health-no-stats'),
-    healthyStatsBranchNode('health-invalid-stats'),
-    healthBranchNode('health-pressure'),
-    healthBranchNode('health-overload'),
-    healthBranchNode('health-ok'),
+    UndiciDispatcherScenarioCaseEntityBuilders.healthyStatsBranchNode('health-no-stats'),
+    UndiciDispatcherScenarioCaseEntityBuilders.healthyStatsBranchNode('health-invalid-stats'),
+    UndiciDispatcherScenarioCaseEntityBuilders.healthBranchNode('health-pressure'),
+    UndiciDispatcherScenarioCaseEntityBuilders.healthBranchNode('health-overload'),
+    UndiciDispatcherScenarioCaseEntityBuilders.healthBranchNode('health-ok'),
     GetStatsFreezeNode,
-    agentOperationBranchNode('close-agent'),
-    agentOperationBranchNode('destroy-agent'),
-    agentOperationBranchNode('destroy-agent-delay'),
-    agentOperationBranchNode('destroy-agent-zero'),
+    UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranchNode('close-agent'),
+    UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranchNode('destroy-agent'),
+    UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranchNode('destroy-agent-delay'),
+    UndiciDispatcherScenarioCaseEntityBuilders.agentOperationBranchNode('destroy-agent-zero'),
     TestDispatcherHealthNode,
-    testDispatcherCalledBranchNode('test-dispatcher-close'),
-    testDispatcherCalledBranchNode('test-dispatcher-destroy')
+    UndiciDispatcherScenarioCaseEntityBuilders.testDispatcherCalledBranchNode('test-dispatcher-close'),
+    UndiciDispatcherScenarioCaseEntityBuilders.testDispatcherCalledBranchNode('test-dispatcher-destroy')
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }

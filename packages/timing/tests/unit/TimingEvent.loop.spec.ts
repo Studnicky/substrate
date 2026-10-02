@@ -1,72 +1,53 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { TIMING_STATUS } from '../../src/constants/index.js';
-import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import { TimingEventInputEntity } from '../../src/entities/TimingEventInputEntity.js';
+import { TimingEvent } from '../../src/modules/TimingEvent.js';
 import { TimingEventScenarioCaseEntity } from './entities/TimingEventScenarioCaseEntity.js';
-import scenarioGroups from './TimingEvent.scenarios.json' with { type: 'json' };
+import scenarioGroups from './TimingEvent.scenarios.json' with { 'type': 'json' };
 
-type TimingStatus = (typeof TIMING_STATUS)[keyof typeof TIMING_STATUS];
-
-type ScenarioCase = TimingEventScenarioCaseEntity.Type;
-type ScenarioShape = ScenarioCase['shape'];
-type ScenarioRunner<Shape extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
-type RunnerMap = { [Shape in ScenarioShape]: ScenarioRunner<Shape> };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(TimingEventScenarioCaseEntity.Schema, TimingEventScenarioCaseEntity.Node);
-
-function assertInvalidTimingEvent(input: { component?: string; operation?: string; status?: TimingStatus }): void {
-  assert.throws(() => { TimingEventInputEntity.intake(input); });
-}
-
-const runnerMap: RunnerMap = {
-  'component-operation-format': (scenarioCase) => {
+class TimingEventRunners {
+  static 'component-operation-format'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'component-operation-format'>): void {
     const data = TimingEvent.create(scenarioCase.input);
-    assert.deepEqual(data, { event: scenarioCase.expected.event });
-    return;
-  },
-  'domain-specific-status': (scenarioCase) => {
+    assert.deepEqual(data, { 'event': scenarioCase.expected.event });
+  }
+
+  static 'domain-specific-status'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'domain-specific-status'>): void {
     const data = TimingEvent.create(scenarioCase.input);
     assert.equal(data.event, scenarioCase.expected.event);
-    return;
-  },
-  'immutable-event-data': (scenarioCase) => {
+  }
+
+  static 'immutable-event-data'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'immutable-event-data'>): void {
     const data = TimingEvent.create(scenarioCase.input);
     assert.equal(Object.isFrozen(data), scenarioCase.expected.frozen);
-    return;
-  },
-  'includes-status': (scenarioCase) => {
+  }
+
+  static 'includes-status'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'includes-status'>): void {
     const data = TimingEvent.create(scenarioCase.input);
-    assert.deepEqual(data, { event: scenarioCase.expected.event });
-    return;
-  },
-  'independent-event-values': (scenarioCase) => {
+    assert.deepEqual(data, { 'event': scenarioCase.expected.event });
+  }
+
+  static 'independent-event-values'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'independent-event-values'>): void {
     const first = TimingEvent.create(scenarioCase.input.first);
     const second = TimingEvent.create(scenarioCase.input.second);
     assert.equal(first.event, scenarioCase.expected.firstEvent);
     assert.equal(second.event, scenarioCase.expected.secondEvent);
-    return;
-  },
-  'missing-component': (scenarioCase) => {
-    assertInvalidTimingEvent({ operation: scenarioCase.input.operation });
-    return;
-  },
-  'missing-operation': (scenarioCase) => {
-    assertInvalidTimingEvent({ component: scenarioCase.input.component });
-    return;
   }
-};
 
-function runCase<Shape extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'missing-component'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'missing-component'>): void {
+    assert.throws(() => { TimingEventInputEntity.intake({ 'operation': scenarioCase.input.operation }); });
+  }
+
+  static 'missing-operation'(scenarioCase: ScenarioCaseOfType<TimingEventScenarioCaseEntity.Type, 'missing-operation'>): void {
+    assert.throws(() => { TimingEventInputEntity.intake({ 'component': scenarioCase.input.component }); });
+  }
 }
 
-void describe('TimingEvent', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': TimingEventScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'TimingEvent',
+  'runners': TimingEventRunners
 });

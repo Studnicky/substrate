@@ -590,7 +590,7 @@
         }
       },
       "expected": {
-        "sameRef": true
+        "sameReference": true
       }
     },
     {

@@ -26,7 +26,7 @@
       "description": "Same-key runSerialized calls never overlap",
       "shape": "same-key-serialized-exclusion",
       "input": { "delayMs": 15, "key": "user1" },
-      "expected": { "calls": 3, "completionOrder": [0, 1, 2], "maxActive": 1, "results": [0, 1, 2] }
+      "expected": { "calls": 3, "completionOrder": [0, 1, 2], "maximumActive": 1, "results": [0, 1, 2] }
     },
     {
       "name": "different-keys-do-not-block",
