@@ -2,9 +2,9 @@ name: semgrep
 
 on:
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [opened, synchronize, reopened]
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
@@ -32,7 +32,7 @@ jobs:
 
   scan:
     name: Semgrep scan
-    needs: [ check-ghas ]
+    needs: [check-ghas]
     runs-on: ubuntu-latest
     container:
       image: semgrep/semgrep
@@ -50,10 +50,10 @@ jobs:
       - run: sh scripts/security-suite.sh semgrep-sarif-range "$DIFF_RANGE" semgrep.sarif
         env:
           DIFF_RANGE: ${{ steps.diff.outputs.range }}
-          SECURITY_SUITE_REQUIRE_TOOLS: 'true'
+          SECURITY_SUITE_REQUIRE_TOOLS: "true"
       - name: Upload SARIF
         if: always() && needs.check-ghas.outputs.enabled == 'true'
-        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd
         with:
           sarif_file: semgrep.sarif
           category: semgrep

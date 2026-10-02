@@ -53,15 +53,11 @@ class RealTimeSchedulerRunners {
 
     class AsyncRejectingFireScheduler extends RealTimeScheduler {
       protected override readonly hooks: HookInvoker = new RecordingSwallowingInvoker();
+      public readonly rejectionError = rejectionError;
+      protected override readonly onFire = RealTimeSchedulerRunners.rejectFireAfterTick;
       public constructor() { super(); }
       public static make(): AsyncRejectingFireScheduler {
-        const scheduler = new AsyncRejectingFireScheduler();
-        const rejectFire = (): Promise<void> => {
-          const rejection = RealTimeSchedulerRunners.rejectFireAfterTick(rejectionError);
-          return rejection;
-        };
-        Object.defineProperty(scheduler, 'onFire', { 'value': rejectFire });
-        return scheduler;
+        return new AsyncRejectingFireScheduler();
       }
     }
 
@@ -587,9 +583,9 @@ class RealTimeSchedulerRunners {
     assert.strictEqual(idSet.size === taskCount, expected.uniqueIds);
   }
 
-  private static async rejectFireAfterTick(rejectionError: RuntimeError): Promise<void> {
+  private static async rejectFireAfterTick(this: { readonly 'rejectionError': RuntimeError }, _id: string): Promise<void> {
     await Promise.resolve();
-    throw rejectionError;
+    throw this.rejectionError;
   }
 }
 

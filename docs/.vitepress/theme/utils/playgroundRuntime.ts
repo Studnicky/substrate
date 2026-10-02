@@ -193,63 +193,70 @@ async function settle(input: (() => Promise<unknown>) | Promise<unknown>): Promi
   return undefined;
 }
 
-function makeAssertShim(): AssertShimInterface {
-  const equal = (a: unknown, b: unknown, message?: string | Error): void => {
-    if (Object.is(a, b) === false) {
-      throw failure(message, `Expected values to be strictly equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
-    }
-  };
-  const notEqual = (a: unknown, b: unknown, message?: string | Error): void => {
-    if (Object.is(a, b)) {
-      throw failure(message, `Expected "actual" to be strictly unequal to: ${describeValue(b)}`);
-    }
-  };
-  const deepEqual = (a: unknown, b: unknown, message?: string | Error): void => {
-    if (isDeepStrictEqual(a, b) === false) {
-      throw failure(message, `Expected values to be strictly deep-equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
-    }
-  };
-  const notDeepEqual = (a: unknown, b: unknown, message?: string | Error): void => {
-    if (isDeepStrictEqual(a, b)) {
-      throw failure(message, `Expected "actual" not to be strictly deep-equal to: ${describeValue(b)}`);
-    }
-  };
-  const throws = (fn: () => unknown, expected?: unknown, message?: string | Error): void => {
-    let thrown: unknown;
-    let didThrow = false;
-    try {
-      fn();
-    } catch (error: unknown) {
-      thrown = error;
-      didThrow = true;
-    }
-    if (didThrow === false) {
-      throw failure(typeof expected === 'string' ? expected : message, 'Missing expected exception.');
-    }
-    if (matchesExpectation(thrown, typeof expected === 'string' ? undefined : expected) === false) {
-      throw failure(message, `The thrown error does not satisfy the expectation: ${describeValue(thrown)}`);
-    }
-  };
-  const rejects = async (input: (() => Promise<unknown>) | Promise<unknown>, expected?: unknown, message?: string | Error): Promise<void> => {
-    const rejection = await settle(input);
-    if (rejection === undefined) {
-      throw failure(typeof expected === 'string' ? expected : message, 'Missing expected rejection.');
-    }
-    if (matchesExpectation(rejection, typeof expected === 'string' ? undefined : expected) === false) {
-      throw failure(message, `The rejection does not satisfy the expectation: ${describeValue(rejection)}`);
-    }
-  };
-  const match = (value: string, pattern: RegExp, message?: string | Error): void => {
-    if (pattern.test(value) === false) {
-      throw failure(message, `The input did not match the regular expression ${String(pattern)}: ${describeValue(value)}`);
-    }
-  };
-  const doesNotMatch = (value: string, pattern: RegExp, message?: string | Error): void => {
-    if (pattern.test(value)) {
-      throw failure(message, `The input was expected to not match ${String(pattern)}: ${describeValue(value)}`);
-    }
-  };
+function equal(a: unknown, b: unknown, message?: string | Error): void {
+  if (Object.is(a, b) === false) {
+    throw failure(message, `Expected values to be strictly equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
+  }
+}
 
+function notEqual(a: unknown, b: unknown, message?: string | Error): void {
+  if (Object.is(a, b)) {
+    throw failure(message, `Expected "actual" to be strictly unequal to: ${describeValue(b)}`);
+  }
+}
+
+function deepEqual(a: unknown, b: unknown, message?: string | Error): void {
+  if (isDeepStrictEqual(a, b) === false) {
+    throw failure(message, `Expected values to be strictly deep-equal:\n  ${describeValue(a)}\n  ${describeValue(b)}`);
+  }
+}
+
+function notDeepEqual(a: unknown, b: unknown, message?: string | Error): void {
+  if (isDeepStrictEqual(a, b)) {
+    throw failure(message, `Expected "actual" not to be strictly deep-equal to: ${describeValue(b)}`);
+  }
+}
+
+function throws(fn: () => unknown, expected?: unknown, message?: string | Error): void {
+  let thrown: unknown;
+  let didThrow = false;
+  try {
+    fn();
+  } catch (error: unknown) {
+    thrown = error;
+    didThrow = true;
+  }
+  if (didThrow === false) {
+    throw failure(typeof expected === 'string' ? expected : message, 'Missing expected exception.');
+  }
+  if (matchesExpectation(thrown, typeof expected === 'string' ? undefined : expected) === false) {
+    throw failure(message, `The thrown error does not satisfy the expectation: ${describeValue(thrown)}`);
+  }
+}
+
+async function rejects(input: (() => Promise<unknown>) | Promise<unknown>, expected?: unknown, message?: string | Error): Promise<void> {
+  const rejection = await settle(input);
+  if (rejection === undefined) {
+    throw failure(typeof expected === 'string' ? expected : message, 'Missing expected rejection.');
+  }
+  if (matchesExpectation(rejection, typeof expected === 'string' ? undefined : expected) === false) {
+    throw failure(message, `The rejection does not satisfy the expectation: ${describeValue(rejection)}`);
+  }
+}
+
+function assertMatch(value: string, pattern: RegExp, message?: string | Error): void {
+  if (pattern.test(value) === false) {
+    throw failure(message, `The input did not match the regular expression ${String(pattern)}: ${describeValue(value)}`);
+  }
+}
+
+function doesNotMatch(value: string, pattern: RegExp, message?: string | Error): void {
+  if (pattern.test(value)) {
+    throw failure(message, `The input was expected to not match ${String(pattern)}: ${describeValue(value)}`);
+  }
+}
+
+function makeAssertShim(): AssertShimInterface {
   return Object.assign((value: unknown, message?: string | Error): void => { assert(value, message); }, {
     'deepEqual': deepEqual,
     'deepStrictEqual': deepEqual,
@@ -268,7 +275,7 @@ function makeAssertShim(): AssertShimInterface {
         throw value instanceof Error ? value : new Error(`ifError got unwanted exception: ${describeValue(value)}`);
       }
     },
-    'match': match,
+    'match': assertMatch,
     'notDeepEqual': notDeepEqual,
     'notDeepStrictEqual': notDeepEqual,
     'notEqual': notEqual,
