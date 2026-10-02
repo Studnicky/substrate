@@ -16,7 +16,7 @@ repo=$(make_repo)
   cp "$TEST_SUITE" scripts/test-suite.ts
 
   cat > package.json <<'JSON'
-{"name":"@test/repo","private":true,"workspaces":["packages/*"]}
+{"name":"@test/repo","private":true,"type":"module","workspaces":["packages/*"]}
 JSON
 
   printf '%s\n' '{"name":"@test/foo"}' > packages/foo/package.json

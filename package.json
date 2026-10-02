@@ -78,7 +78,6 @@
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.5",
     "@codemirror/view": "^6.43.12",
-    "@faker-js/faker": "^10.6.0",
     "@lezer/highlight": "^1.2.3",
     "@studnicky/drilldown": "workspace:*",
     "@studnicky/eslint-config": "workspace:*",
@@ -88,7 +87,7 @@
     "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-fcose": "^2.2.0",
     "dayjs": "^1.11.23",
-    "eslint": "^10.11.0",
+    "eslint": "^10.12.0",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-perfectionist": "^5.11.1",
     "eslint-plugin-regexp": "^3.3.1",
@@ -104,8 +103,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "vite": "^8.3.0",
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitepress": "2.0.0-alpha.20",
+    "vitepress-mermaid-plugin": "3.0.0",
     "vue": "^3.5.43"
   },
   "engines": {

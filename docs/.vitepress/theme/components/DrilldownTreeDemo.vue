@@ -1,35 +1,42 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { faker } from '@faker-js/faker';
-import { DrillDown } from '@studnicky/drilldown/browser';
-import type { GroupNodeInterface } from '@studnicky/drilldown/interfaces';
-import DrilldownTreeNode from './DrilldownTreeNode.vue';
+import { ref } from "vue";
+import { DrillDown } from "@studnicky/drilldown/browser";
+import type { GroupNodeInterface } from "@studnicky/drilldown/interfaces";
+import DrilldownTreeNode from "./DrilldownTreeNode.vue";
 
 const RECORD_COUNT = 320;
-const REGIONS = ['North America', 'Europe', 'Asia Pacific', 'Latin America'];
-const CATEGORIES = ['Electronics', 'Home Goods', 'Apparel', 'Outdoors'];
-const STATUSES = ['fulfilled', 'processing', 'returned', 'cancelled'];
+const REGIONS = ["North America", "Europe", "Asia Pacific", "Latin America"];
+const CATEGORIES = ["Electronics", "Home Goods", "Apparel", "Outdoors"];
+const STATUSES = ["fulfilled", "processing", "returned", "cancelled"];
+const BRANDS = [
+  "Acme Analytics",
+  "Beacon Commerce",
+  "Cedar & Co.",
+  "Delta Works",
+  "Ember Systems",
+  "Fjord Supply",
+  "Granite Group",
+  "Harbor Labs",
+];
 
 interface OrderRecord {
-  'brand': string
-  'category': string
-  'orderId': string
-  'region': string
-  'status': string
-  'total': number
+  brand: string;
+  category: string;
+  orderId: string;
+  region: string;
+  status: string;
+  total: number;
 }
 
 function generateOrders(count: number): OrderRecord[] {
-  return Array.from({ 'length': count }, (): OrderRecord => {
-    return {
-      'brand': faker.company.name(),
-      'category': faker.helpers.arrayElement(CATEGORIES),
-      'orderId': faker.string.uuid(),
-      'region': faker.helpers.arrayElement(REGIONS),
-      'status': faker.helpers.arrayElement(STATUSES),
-      'total': faker.number.float({ 'fractionDigits': 2, 'max': 850, 'min': 12 })
-    };
-  });
+  return Array.from({ length: count }, (_, index): OrderRecord => ({
+    brand: BRANDS[index % BRANDS.length],
+    category: CATEGORIES[index % CATEGORIES.length],
+    orderId: `ORD-${String(index + 1).padStart(4, "0")}`,
+    region: REGIONS[index % REGIONS.length],
+    status: STATUSES[index % STATUSES.length],
+    total: Number((12 + ((index * 73) % 838) + ((index * 29) % 100) / 100).toFixed(2)),
+  }));
 }
 
 const orders = ref<OrderRecord[]>([]);
@@ -45,9 +52,9 @@ function generateAndDrillDown(): void {
 
     const drillDown = new DrillDown();
     tree.value = drillDown.group(records, {
-      'maximumDepth': 4,
-      'minimumGroupSize': 1,
-      'propertyPriority': ['region', 'category', 'status', 'brand']
+      maximumDepth: 4,
+      minimumGroupSize: 1,
+      propertyPriority: ["region", "category", "status", "brand"],
     });
   } finally {
     generating.value = false;
@@ -61,10 +68,16 @@ generateAndDrillDown();
   <div class="drilldown-demo">
     <div class="drilldown-demo__header">
       <div class="drilldown-demo__summary">
-        {{ orders.length }} synthetic orders, drilled down by <code>region → category → status → brand</code>
+        {{ orders.length }} synthetic orders, drilled down by
+        <code>region → category → status → brand</code>
       </div>
-      <button type="button" class="drilldown-demo__regenerate" :disabled="generating" @click="generateAndDrillDown">
-        {{ generating ? 'Generating…' : '↻ Regenerate dataset' }}
+      <button
+        type="button"
+        class="drilldown-demo__regenerate"
+        :disabled="generating"
+        @click="generateAndDrillDown"
+      >
+        {{ generating ? "Generating…" : "↻ Regenerate dataset" }}
       </button>
     </div>
 

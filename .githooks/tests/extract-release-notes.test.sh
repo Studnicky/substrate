@@ -17,7 +17,7 @@ make_workspace() {
   mkdir -p "$tmp/scripts" "$tmp/packages"
   cp "$REPO_ROOT/scripts/extract-release-notes.ts" "$tmp/scripts/extract-release-notes.ts"
 
-  printf '{"name":"@test/root","version":"%s","repository":{"type":"git","url":"git+https://github.com/Test/workspace.git"}}\n' \
+  printf '{"name":"@test/root","version":"%s","type":"module","repository":{"type":"git","url":"git+https://github.com/Test/workspace.git"}}\n' \
     "$version" > "$tmp/package.json"
 
   body=$(head -c "$section_size" < /dev/zero | tr '\0' 'x')
