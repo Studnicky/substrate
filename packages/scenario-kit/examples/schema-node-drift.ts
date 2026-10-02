@@ -9,7 +9,7 @@ import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
 
 // #region usage
-import { ScenarioFileCompiler } from '../src/index.js';
+import { ScenarioFileCompiler } from '../src/node/index.js';
 
 // the entity's Node declares an 'age' property its Schema never mentions
 namespace DriftedEntity {

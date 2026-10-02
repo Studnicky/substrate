@@ -8,7 +8,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 import assert from 'node:assert/strict';
 
 // #region usage
-import { ScenarioFileCompiler } from '../src/index.js';
+import { ScenarioFileCompiler } from '../src/ScenarioFileCompiler.js';
 
 namespace SumCaseEntity {
   export const Schema = {
