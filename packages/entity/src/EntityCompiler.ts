@@ -33,22 +33,26 @@ interface SchemaRegistryInterface {
 
 export class EntityCompiler {
   private static readonly patternPropertyValidators = new WeakMap<object, Map<string, EntityValidateFunctionInterface<Record<string, null>>>>();
+  private static readonly assertionValidatorsBySchemaId = new Map<string, EntityValidateFunctionInterface<never>>();
   /**
    * Compiles `schema` into a type-guard predicate. The returned function
    * narrows `unknown` to `TValidated` and carries Ajv's `.errors` array after
    * each call, so callers needing detail can pair it with {@link formatErrors}.
    *
-   * Compile once at module load and reuse; compilation is the expensive step.
+   * Defers compilation until first validation, then reuses the compiled validator.
    */
   public static compile<TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> {
     const id = EntityCompiler.schemaId(schema);
     if (id !== undefined) {
-      const existing = EntityAjvInstance.assert.getSchema<TValidated>(id);
-      if (existing !== undefined) {
-        return existing;
+      let validator = EntityCompiler.assertionValidatorsBySchemaId.get(id);
+      if (validator === undefined) {
+        validator = EntityCompiler.lazySchemaValidator(EntityAjvInstance.assert, schema);
+        EntityCompiler.assertionValidatorsBySchemaId.set(id, validator);
       }
+      return validator;
     }
-    const result = EntityAjvInstance.assert.compile<TValidated>(schema);
+
+    const result = EntityCompiler.lazySchemaValidator(EntityAjvInstance.assert, schema);
     return result;
   }
 
@@ -61,7 +65,7 @@ export class EntityCompiler {
    * string for a `boolean` field is rejected, not silently accepted as `true`.
    */
   public static compileIntake<TValidated>(schema: object): EntityIntakeFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.intake, schema);
+    const validate = EntityCompiler.lazySchemaValidator(EntityAjvInstance.intake, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
       if (Predicates.hasCycle(input)) {
@@ -93,7 +97,7 @@ export class EntityCompiler {
   public static compileCreate<TValidated extends object>(
     schema: object
   ): EntityCreateFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.create, schema);
+    const validate = EntityCompiler.lazySchemaValidator(EntityAjvInstance.create, schema);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const create: EntityCreateFunctionInterface<TValidated> = (partial = {}) => {
       const cloned = structuredClone(partial);
@@ -582,6 +586,24 @@ export class EntityCompiler {
       }
     }
     const result = registry.compile<TValidated>(schema);
+    return result;
+  }
+
+  private static lazySchemaValidator(
+    registry: SchemaRegistryInterface,
+    schema: object
+  ): EntityValidateFunctionInterface<never> {
+    let validator: EntityValidateFunctionInterface<never> | undefined;
+    const lazy: EntityValidateFunctionInterface<never> = (data): data is never => {
+      validator ??= EntityCompiler.schemaValidator<never>(registry, schema);
+      const resolvedValidator = validator;
+      const result = resolvedValidator(data);
+      Reflect.set(lazy, 'errors', resolvedValidator.errors);
+      return result;
+    };
+
+    Reflect.set(lazy, 'errors', undefined);
+    const result = lazy;
     return result;
   }
 

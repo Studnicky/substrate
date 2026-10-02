@@ -20,7 +20,11 @@ void describe('EntityCompiler schema boundaries', () => {
     const input = { 'port': 8080 };
 
     assert.equal(first, second);
+    const initialErrors = first.errors;
+    assert.equal(initialErrors, undefined);
     assert.equal(first(input), true);
+    const successfulErrors = first.errors;
+    assert.equal(successfulErrors, null);
     assert.deepEqual(input, { 'port': 8080 });
     assert.equal(first({ 'port': '8080' }), false);
     const errors = first.errors;
@@ -29,6 +33,17 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.equal(errors[0]?.keyword, 'type');
     assert.equal(errors[0]?.params.missingProperty, undefined);
     assert.equal(EntityCompiler.formatErrors(null), 'invalid payload');
+  });
+
+  void it('defers schema compilation until each factory validates', () => {
+    const schema = { 'type': 'not-a-json-schema-type' };
+    const validate = EntityCompiler.compile(schema);
+    const intake = EntityCompiler.compileIntake(schema);
+    const create = EntityCompiler.compileCreate<Record<string, unknown>>(schema);
+
+    assert.throws(() => validate({}), /schema|type/u);
+    assert.throws(() => intake({}), /schema|type/u);
+    assert.throws(() => create(), /schema|type/u);
   });
 
   void it('exposes normalized diagnostic parameters', () => {
