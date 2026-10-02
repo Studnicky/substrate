@@ -10,6 +10,7 @@ test-reports/
 .claude/
 docs/.vitepress/dist
 docs/.vitepress/cache
+/.vitepress/
 *.csv
 npm-audit-report.json
 plans/
