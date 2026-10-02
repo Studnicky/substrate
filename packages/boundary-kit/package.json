@@ -1,7 +1,34 @@
 {
   "name": "@studnicky/boundary-kit",
-  "version": "14.0.0",
-  "description": "Boundary Kit \u2014 composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern",
+  "version": "15.0.0",
+  "description": "Boundary Kit — composes @studnicky/throttle, /resilience, and /retry into a fixed-order boundary call pattern",
+  "keywords": [
+    "boundary",
+    "circuit-breaker",
+    "nodejs",
+    "pattern",
+    "resilience",
+    "retry",
+    "throttle",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/boundary-kit",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/boundary-kit"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,47 +45,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/boundary-kit"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/boundary-kit",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "throttle",
-    "circuit-breaker",
-    "retry",
-    "resilience",
-    "boundary",
-    "pattern",
-    "typescript",
-    "nodejs"
-  ],
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/errors": "workspace:*",
@@ -71,5 +67,9 @@
     "@studnicky/entity": "workspace:*",
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

@@ -1,7 +1,32 @@
 {
   "name": "@studnicky/flag-evaluator",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Local deterministic feature-flag evaluation with percentage rollout and observability hooks",
+  "keywords": [
+    "feature-flag",
+    "flag",
+    "registry",
+    "rollout",
+    "toggle",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/flag-evaluator",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/flag-evaluator"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,44 +43,15 @@
       "import": "./dist/entities/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/flag-evaluator"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/flag-evaluator",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "feature-flag",
-    "flag",
-    "rollout",
-    "toggle",
-    "registry",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
@@ -65,5 +61,9 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

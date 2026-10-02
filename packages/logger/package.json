@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/logger",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Pluggable logging interface with portable transport architecture",
+  "keywords": [
+    "child-logger",
+    "logger",
+    "logging",
+    "structured-logging",
+    "transport"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/logger",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/logger"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,12 +46,10 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
@@ -35,41 +57,19 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "keywords": [
-    "logger",
-    "logging",
-    "structured-logging",
-    "child-logger",
-    "transport"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/logger"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/logger",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/entity": "workspace:*",
-    "@studnicky/json": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

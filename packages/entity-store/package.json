@@ -1,7 +1,32 @@
 {
   "name": "@studnicky/entity-store",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Normalized, ID-indexed entity collection with CRUD operations and O(1) lookup",
+  "keywords": [
+    "data-structure",
+    "entity-adapter",
+    "entity-store",
+    "normalized-state",
+    "studnicky",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/entity-store",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/entity-store"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,45 +43,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/entity-store"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/entity-store",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "entity-store",
-    "normalized-state",
-    "entity-adapter",
-    "data-structure",
-    "typescript",
-    "studnicky"
-  ],
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
@@ -66,5 +62,9 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

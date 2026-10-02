@@ -1,7 +1,34 @@
 {
   "name": "@studnicky/json",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch",
+  "keywords": [
+    "clone",
+    "deep-merge",
+    "equal",
+    "freeze",
+    "json",
+    "patch",
+    "path",
+    "sort"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/json",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,47 +49,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "keywords": [
-    "json",
-    "deep-merge",
-    "clone",
-    "equal",
-    "freeze",
-    "patch",
-    "path",
-    "sort"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/json"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/json",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
@@ -74,5 +70,9 @@
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*",
     "ajv": "^8.20.0"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

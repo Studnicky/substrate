@@ -1,5 +1,59 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- c91c4eb: `RequestDeadlineEntity.create` accepts `RequestDeadlineEntity.InputType` — a plain, unbranded literal — instead of demanding the branded `minimum`-constrained `Type`, which no caller outside the compiler could construct.
+
+### Patch Changes
+
+- c50bd4e: `Signal.compose()` returns a disposable composed-signal handle with a `signal` property. The handle cancels pending deadline timers, removes listeners, and disposes automatically when its signal aborts; callers dispose it with explicit resource management or `dispose()` when the operation ends.`
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [94f3657]
+- Updated dependencies [c50bd4e]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies [5e556ed]
+- Updated dependencies [a264cc0]
+- Updated dependencies [a664914]
+- Updated dependencies [245e85a]
+- Updated dependencies
+- Updated dependencies [4d50c88]
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+- Updated dependencies [a43f308]
+- Updated dependencies [a2bd8ca]
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [59e5a5b]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+  - @studnicky/entity@15.0.0
+  - @studnicky/fetch@15.0.0
+  - @studnicky/json@15.0.0
+  - @studnicky/retry@15.0.0
+  - @studnicky/signal@15.0.0
+  - @studnicky/pipeline@15.0.0
+
 ## 14.0.0
 
 ### Minor Changes
@@ -132,7 +186,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -188,7 +242,6 @@
   - `RequestExecutor` composes `@studnicky/fetch`, `@studnicky/retry`, `@studnicky/signal`, and `@studnicky/context`. `timing` is not a field on `RequestExecutorConfigInterface` or `RequestExecutorDepsInterface`, and `package.json` carries no `@studnicky/timing` dependency.
 
   ### Added
-
   - `RequestExecutor` exposes three protected lifecycle hooks bracketing the retry loop: `onExecuteStart()`, `onExecuteComplete<T>(result)`, and `onExecuteError(error)`. All three are no-ops by default and run through an internal `HookInvoker` that swallows a throwing override — a rejected hook is recorded via `hookErrorCount`/`getHookErrors()` but never replaces `execute()`'s resolved result or thrown error.
 
 ### Patch Changes

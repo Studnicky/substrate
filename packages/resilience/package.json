@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/resilience",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Async resilience primitives: CircuitBreaker, TokenBucket, KeyedRateLimiter, SlidingWindowLimiter, DeadLetterQueue",
+  "keywords": [
+    "circuit-breaker",
+    "dead-letter-queue",
+    "rate-limiter",
+    "resilience",
+    "sliding-window",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/resilience"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -34,45 +58,18 @@
       "import": "./dist/keyed/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/resilience"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "circuit-breaker",
-    "rate-limiter",
-    "sliding-window",
-    "dead-letter-queue",
-    "resilience",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0"
-  },
   "dependencies": {
-    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/cache": "workspace:*",
+    "@studnicky/circular-buffer": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
@@ -83,5 +80,8 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

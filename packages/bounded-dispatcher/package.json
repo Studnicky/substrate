@@ -1,7 +1,34 @@
 {
   "name": "@studnicky/bounded-dispatcher",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Bounded work dispatch pattern composing @studnicky/concurrency's Semaphore, /event-bus, and /scheduler",
+  "keywords": [
+    "backpressure",
+    "concurrency",
+    "event-bus",
+    "nodejs",
+    "pattern",
+    "scheduler",
+    "semaphore",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/bounded-dispatcher",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/bounded-dispatcher"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,47 +49,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/bounded-dispatcher"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/bounded-dispatcher",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "concurrency",
-    "semaphore",
-    "event-bus",
-    "scheduler",
-    "backpressure",
-    "pattern",
-    "typescript",
-    "nodejs"
-  ],
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/concurrency": "workspace:*",
@@ -78,5 +74,9 @@
     "@studnicky/clock": "workspace:*",
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

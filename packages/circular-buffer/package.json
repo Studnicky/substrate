@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/circular-buffer",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Generic circular buffer with O(1) push and shift operations",
+  "keywords": [
+    "circular-buffer",
+    "data-structure",
+    "queue",
+    "studnicky",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/circular-buffer",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/circular-buffer"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,12 +46,10 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -35,40 +57,18 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": [
-    "circular-buffer",
-    "queue",
-    "data-structure",
-    "typescript",
-    "studnicky"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/circular-buffer"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/circular-buffer",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
   "dependencies": {
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
   },
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

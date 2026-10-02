@@ -1,5 +1,59 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- c91c4eb: `InterpreterHistoryRecordMetadataEntity.create` accepts `InterpreterHistoryRecordMetadataEntity.InputType` — a plain, unbranded literal — instead of demanding the branded `minimum`-constrained `Type`, which no caller outside the compiler could construct.
+- d554abf: `EffectInterpreter.create` and `InterpreterHistory.create` take `machine` as a required, non-nullable positional parameter instead of a field inside their options object. Both previously typed `machine` as a required key whose value could still be `undefined`, enforced only by a runtime throw — a required collaborator belongs to the type system, not a runtime check. A caller that omits `machine` now fails to compile instead of throwing `FsmConfigError` at construction; there is no runtime path left to reach that throw, so it is removed along with the `'missing-machine'` test that exercised it. `packages/fsm/tests/unit/types/machine-required.negative.type-check.ts` asserts both `create()` calls fail to compile without `machine`.
+- a66465c: `CircularBuffer.create` and its protected constructor take `config: unknown`, validated through `CircularBufferOptionsEntity.intake`. The constructor previously took `CircularBufferOptionsEntity.InputType` pre-typed and hand-rolled `capacity <= 0 || !Number.isInteger(capacity)` even though `intake` was already compiled and exported — `capacity`/`overflow` are now actually schema-validated instead of only re-checked by hand for `capacity`.
+
+  `InterpreterHistory.create` takes `(config: unknown, collaborators: InterpreterHistoryCollaboratorsInterface = {})` instead of a single pre-typed options object. `capacity` is forwarded unvalidated to `CircularBuffer.create`, which now owns that constraint — `InterpreterHistory`'s own capacity check is gone; a `CircularBufferError` from the composed buffer is caught and rethrown as `FsmConfigError` so the public contract is unchanged. `machineId` is schema-validated via the new `InterpreterHistoryOptionsEntity`, with a message that now reflects the real schema constraint (`/machineId: must NOT have fewer than 1 characters`) rather than a hand-written string. `clock`/`handler`/`machine` are typed collaborators (`machine` still required at runtime). `InterpreterHistoryCreateOptionsInterface` is replaced by `InterpreterHistoryCollaboratorsInterface`.
+
+  `EffectInterpreter.create`'s `mailboxCapacity` guard is gone the same way — `MailboxBuffer.createMailbox` now forwards to `CircularBuffer.create`'s real intake, and a caught `CircularBufferError` is rethrown as `FsmConfigError('mailboxCapacity must be a positive integer')`, keeping the existing message and error class stable.
+
+### Patch Changes
+
+- f6d568e: `RegisteredInterpreterMetricsEntity` gains `InputType`, threaded through `create`'s second type parameter. `EffectInterpreter.hookErrorCount` returned a plain `number` while `RegisteredInterpreterInterface.hookErrorCount` demanded `RegisteredInterpreterMetricsEntity.Type['hookErrorCount']`, making `EffectInterpreter` structurally fail to satisfy the interface it implements. The getter now earns the brand via a positive `validate()` guard before returning.
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [94f3657]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies
+- Updated dependencies [a66465c]
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+- Updated dependencies [a2bd8ca]
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+  - @studnicky/circular-buffer@15.0.0
+  - @studnicky/clock@15.0.0
+  - @studnicky/entity@15.0.0
+  - @studnicky/json@15.0.0
+  - @studnicky/pipeline@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -112,7 +166,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,

@@ -1,7 +1,30 @@
 {
   "name": "@studnicky/filters",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Composable declarative filtering primitives for @studnicky/substrate",
+  "keywords": [
+    "composition",
+    "filter",
+    "predicate",
+    "validation"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/filters",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/filters"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -26,43 +49,16 @@
       "import": "./dist/entities/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "keywords": [
-    "filter",
-    "predicate",
-    "composition",
-    "validation"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/filters"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/filters",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.12.0",
-    "npm": ">=11.0.0"
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
@@ -75,5 +71,9 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.12.0",
+    "npm": ">=11.0.0"
   }
 }

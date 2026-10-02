@@ -1,7 +1,33 @@
 {
   "name": "@studnicky/mutex",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Key-based async mutex for preventing race conditions in concurrent operations",
+  "keywords": [
+    "async",
+    "concurrency",
+    "lock",
+    "mutex",
+    "nodejs",
+    "race-condition",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/mutex",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/mutex"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -26,12 +52,10 @@
       "import": "./dist/gate/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
@@ -39,40 +63,12 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/mutex"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/mutex",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "mutex",
-    "lock",
-    "concurrency",
-    "async",
-    "race-condition",
-    "typescript",
-    "nodejs"
-  ],
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
     "@studnicky/concurrency": "workspace:*",
     "@studnicky/config": "workspace:*",
-    "@studnicky/errors": "workspace:*",
     "@studnicky/entity": "workspace:*",
+    "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
@@ -80,5 +76,9 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

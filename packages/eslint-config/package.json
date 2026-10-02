@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Shared ESLint flat config for @studnicky packages",
+  "keywords": [
+    "eslint",
+    "eslint-config",
+    "flat-config",
+    "studnicky",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/eslint-config",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/eslint-config"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,12 +42,10 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
@@ -31,48 +53,10 @@
     "test": "tsx ../../scripts/test-suite.ts all --package .",
     "type-check": "tsc --noEmit"
   },
-  "keywords": [
-    "eslint",
-    "eslint-config",
-    "flat-config",
-    "studnicky",
-    "typescript"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/eslint-config"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/eslint-config",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*"
-  },
-  "peerDependencies": {
-    "@stylistic/eslint-plugin": ">=5.0.0",
-    "@typescript-eslint/eslint-plugin": ">=8.0.0",
-    "@typescript-eslint/parser": ">=8.0.0",
-    "eslint": ">=10.0.0",
-    "eslint-plugin-import-x": ">=4.0.0",
-    "eslint-plugin-perfectionist": ">=5.0.0",
-    "eslint-plugin-regexp": ">=3.0.0",
-    "eslint-plugin-unused-imports": ">=4.0.0",
-    "typescript": ">=6.0.0",
-    "typescript-eslint": ">=8.0.0"
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.52",
@@ -89,5 +73,21 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
     "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "@stylistic/eslint-plugin": ">=5.0.0",
+    "@typescript-eslint/eslint-plugin": ">=8.0.0",
+    "@typescript-eslint/parser": ">=8.0.0",
+    "eslint": ">=10.0.0",
+    "eslint-plugin-import-x": ">=4.0.0",
+    "eslint-plugin-perfectionist": ">=5.0.0",
+    "eslint-plugin-regexp": ">=3.0.0",
+    "eslint-plugin-unused-imports": ">=4.0.0",
+    "typescript": ">=6.0.0",
+    "typescript-eslint": ">=8.0.0"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

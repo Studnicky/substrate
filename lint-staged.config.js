@@ -1,16 +1,10 @@
-const CODE_PATTERN = '**/*.{js,mjs,cjs,ts,tsx}';
-const FORMAT_PATTERN = '**/*.{json,jsonc,css,scss,html,md,mdx,yml,yaml}';
-
-const shellQuote = (value) => {
-  return `'${value.replaceAll("'", "'\\''")}'`;
-};
+const CODE_PATTERN = "**/*.{js,mjs,cjs,ts,tsx}";
+const FORMAT_PATTERN = "**/*.{json,jsonc,css,scss,html,md,mdx,yml,yaml}";
 
 export default {
   [CODE_PATTERN]: [
-    'oxlint --fix --no-error-on-unmatched-pattern',
-    'eslint --fix --no-warn-ignored'
+    "oxlint --fix --no-error-on-unmatched-pattern",
+    "eslint --fix --no-warn-ignored",
   ],
-  [FORMAT_PATTERN]: (files) => {
-    return `node scripts/lint-staged-format.ts ${files.map(shellQuote).join(' ')}`;
-  }
+  [FORMAT_PATTERN]: "oxfmt --write --no-error-on-unmatched-pattern",
 };

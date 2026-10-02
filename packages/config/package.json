@@ -1,7 +1,30 @@
 {
   "name": "@studnicky/config",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Configuration validation utilities and type guards",
+  "keywords": [
+    "config",
+    "configuration",
+    "type-guards",
+    "validation"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/config",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/config"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -18,12 +41,10 @@
       "import": "./dist/entities/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
@@ -40,27 +61,6 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": [
-    "config",
-    "validation",
-    "type-guards",
-    "configuration"
-  ],
-  "homepage": "https://studnicky.github.io/substrate/packages/config",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/config"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
   },
   "engines": {
     "node": ">=24.0.0",

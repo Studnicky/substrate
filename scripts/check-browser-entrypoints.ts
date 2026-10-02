@@ -39,14 +39,19 @@ interface ResolvedWorkspaceTargetInterface {
 const checkerRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const executeFile = promisify(execFile);
 const rootOptionIndex = process.argv.indexOf('--root');
-const repositoryRoot = rootOptionIndex === -1
-  ? process.cwd()
-  : resolve(process.argv[rootOptionIndex + 1] ?? process.cwd());
+const repositoryRoot =
+  rootOptionIndex === -1
+    ? process.cwd()
+    : resolve(process.argv[rootOptionIndex + 1] ?? process.cwd());
 const packageRoot = join(repositoryRoot, 'packages');
 const validateOnly = process.argv.includes('--validate-only');
 const packageDirectories = (await readdir(packageRoot, { 'withFileTypes': true }))
-  .filter((directory) => {return directory.isDirectory();})
-  .map((directory) => {return directory.name;})
+  .filter((directory) => {
+    return directory.isDirectory();
+  })
+  .map((directory) => {
+    return directory.name;
+  })
   .toSorted();
 const errors: string[] = [];
 const browserEntrypoints: BrowserEntrypointInterface[] = [];
@@ -55,7 +60,11 @@ const visitedBrowserFiles = new Set<string>();
 // Ajv compiles validator functions via `new Function()` at runtime.
 const dynamicCodeConstructionPackages = new Set(['ajv']);
 
-function executableTarget(exportEntry: unknown, packageName: string, subpath: string): ExecutableTargetInterface | undefined {
+function executableTarget(
+  exportEntry: unknown,
+  packageName: string,
+  subpath: string
+): ExecutableTargetInterface | undefined {
   if (typeof exportEntry !== 'object' || exportEntry === null || Array.isArray(exportEntry)) {
     errors.push(`${packageName} ${subpath} must declare import and types targets`);
     return undefined;
@@ -72,9 +81,15 @@ function executableTarget(exportEntry: unknown, packageName: string, subpath: st
   return { 'importTarget': importTarget, 'typesTarget': typesTarget };
 }
 
-function sourceEntrypoint(packageDirectory: string, packageName: string, target: string): string | undefined {
+function sourceEntrypoint(
+  packageDirectory: string,
+  packageName: string,
+  target: string
+): string | undefined {
   if (!target.startsWith('./dist/') || !target.endsWith('.js')) {
-    errors.push(`${packageName} browser import target ${target} must map from ./dist/*.js to source`);
+    errors.push(
+      `${packageName} browser import target ${target} must map from ./dist/*.js to source`
+    );
     return undefined;
   }
 
@@ -83,7 +98,10 @@ function sourceEntrypoint(packageDirectory: string, packageName: string, target:
 
 const neutralFeatureNames = ['interfaces', 'entities', 'types'];
 
-async function hasSourceFeatureEntrypoint(packageDirectory: string, featureName: string): Promise<boolean> {
+async function hasSourceFeatureEntrypoint(
+  packageDirectory: string,
+  featureName: string
+): Promise<boolean> {
   try {
     return (await stat(join(packageDirectory, 'src', featureName, 'index.ts'))).isFile();
   } catch (error) {
@@ -103,7 +121,7 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
     const path = join(directory, entry.name);
 
     if (entry.isDirectory()) {
-      files.push(...await collectTypeScriptFiles(path));
+      files.push(...(await collectTypeScriptFiles(path)));
     } else if (entry.isFile() && entry.name.endsWith('.ts') && !entry.name.endsWith('.d.ts')) {
       files.push(path);
     }
@@ -112,38 +130,64 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
   return files;
 }
 
-function reportBarePackageSpecifier(sourceFile: ts.SourceFile, node: ts.Node, specifier: string): void {
+function reportBarePackageSpecifier(
+  sourceFile: ts.SourceFile,
+  node: ts.Node,
+  specifier: string
+): void {
   if (!/^@studnicky\/[^/]+$/u.test(specifier)) {
     return;
   }
 
   const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
-  errors.push(`${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)} imports ${specifier} without /node or /browser`);
+  errors.push(
+    `${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)} imports ${specifier} without /node or /browser`
+  );
 }
 
 function extractImportExportSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
-  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier !== undefined && ts.isStringLiteral(node.moduleSpecifier)) {
+  if (
+    (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+    node.moduleSpecifier !== undefined &&
+    ts.isStringLiteral(node.moduleSpecifier)
+  ) {
     return { 'node': node.moduleSpecifier, 'specifier': node.moduleSpecifier.text };
   }
   return undefined;
 }
 
 function extractImportEqualsSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
-  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference) && node.moduleReference.expression !== undefined && ts.isStringLiteral(node.moduleReference.expression)) {
-    return { 'node': node.moduleReference.expression, 'specifier': node.moduleReference.expression.text };
+  if (
+    ts.isImportEqualsDeclaration(node) &&
+    ts.isExternalModuleReference(node.moduleReference) &&
+    node.moduleReference.expression !== undefined &&
+    ts.isStringLiteral(node.moduleReference.expression)
+  ) {
+    return {
+      'node': node.moduleReference.expression,
+      'specifier': node.moduleReference.expression.text
+    };
   }
   return undefined;
 }
 
 function extractImportTypeSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
-  if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+  if (
+    ts.isImportTypeNode(node) &&
+    ts.isLiteralTypeNode(node.argument) &&
+    ts.isStringLiteral(node.argument.literal)
+  ) {
     return { 'node': node.argument.literal, 'specifier': node.argument.literal.text };
   }
   return undefined;
 }
 
 function extractDynamicImportSpecifier(node: ts.Node): ImportSpecifierEntryInterface | undefined {
-  if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
+  if (
+    ts.isCallExpression(node) &&
+    node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+    node.arguments.length === 1
+  ) {
     const [firstArgument] = node.arguments;
     if (firstArgument !== undefined && ts.isStringLiteral(firstArgument)) {
       return { 'node': firstArgument, 'specifier': firstArgument.text };
@@ -153,7 +197,9 @@ function extractDynamicImportSpecifier(node: ts.Node): ImportSpecifierEntryInter
 }
 
 // Each extractor guards a disjoint ts.Node shape; at most one matches per node.
-const specifierExtractors: readonly ((node: ts.Node) => ImportSpecifierEntryInterface | undefined)[] = [
+const specifierExtractors: readonly ((
+  node: ts.Node
+) => ImportSpecifierEntryInterface | undefined)[] = [
   extractImportExportSpecifier,
   extractImportEqualsSpecifier,
   extractImportTypeSpecifier,
@@ -187,7 +233,10 @@ function inspectEmittedModuleSpecifiers(sourceFile: ts.SourceFile, packageName: 
   }
 }
 
-async function inspectBrowserBuildOutput(outputDirectory: string, packageName: string): Promise<void> {
+async function inspectBrowserBuildOutput(
+  outputDirectory: string,
+  packageName: string
+): Promise<void> {
   const outputFiles = await readdir(outputDirectory);
 
   for (const outputFile of outputFiles) {
@@ -211,7 +260,11 @@ function inspectStaticSpecifiers(sourceFile: ts.SourceFile): void {
 }
 
 function describeChain(chain: string[]): string {
-  return chain.map((filePath) => {return relative(repositoryRoot, filePath);}).join(' -> ');
+  return chain
+    .map((filePath) => {
+      return relative(repositoryRoot, filePath);
+    })
+    .join(' -> ');
 }
 
 function parseWorkspaceSpecifier(specifier: string): WorkspaceSpecifierInterface | undefined {
@@ -223,7 +276,10 @@ function parseWorkspaceSpecifier(specifier: string): WorkspaceSpecifierInterface
   return { 'packageName': match[1] ?? '', 'subpath': match[2] ?? '' };
 }
 
-function resolveWorkspaceTarget(packageName: string, subpath: string): ResolvedWorkspaceTargetInterface | undefined {
+function resolveWorkspaceTarget(
+  packageName: string,
+  subpath: string
+): ResolvedWorkspaceTargetInterface | undefined {
   const manifestEntry = packageManifests.get(packageName);
   if (manifestEntry === undefined) {
     return undefined;
@@ -236,11 +292,19 @@ function resolveWorkspaceTarget(packageName: string, subpath: string): ResolvedW
   }
 
   const importTarget = (exportEntry as Record<string, unknown>).import;
-  if (typeof importTarget !== 'string' || !importTarget.startsWith('./dist/') || !importTarget.endsWith('.js')) {
+  if (
+    typeof importTarget !== 'string' ||
+    !importTarget.startsWith('./dist/') ||
+    !importTarget.endsWith('.js')
+  ) {
     return undefined;
   }
 
-  const sourcePath = join(manifestEntry.packageDirectory, 'src', `${importTarget.slice('./dist/'.length, -'.js'.length)}.ts`);
+  const sourcePath = join(
+    manifestEntry.packageDirectory,
+    'src',
+    `${importTarget.slice('./dist/'.length, -'.js'.length)}.ts`
+  );
   return { 'exportKey': exportKey, 'sourcePath': sourcePath };
 }
 
@@ -262,12 +326,22 @@ function thirdPartyPackageName(specifier: string): string {
   return specifier.startsWith('@') ? `${segments[0]}/${segments[1]}` : (segments[0] ?? specifier);
 }
 
-async function inspectReachableSpecifier(specifier: string, node: ts.Node, sourceFile: ts.SourceFile, packageName: string, chain: string[]): Promise<void> {
+async function inspectReachableSpecifier(
+  specifier: string,
+  node: ts.Node,
+  sourceFile: ts.SourceFile,
+  packageName: string,
+  chain: string[]
+): Promise<void> {
   const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
   const location = `${relative(repositoryRoot, sourceFile.fileName)}:${String(position.line + 1)}:${String(position.character + 1)}`;
 
   if (specifier.startsWith('.') || specifier.startsWith('/')) {
-    await inspectBrowserReachableFile(resolveRelativeImport(sourceFile.fileName, specifier), packageName, chain);
+    await inspectBrowserReachableFile(
+      resolveRelativeImport(sourceFile.fileName, specifier),
+      packageName,
+      chain
+    );
     return;
   }
 
@@ -277,13 +351,18 @@ async function inspectReachableSpecifier(specifier: string, node: ts.Node, sourc
       return;
     }
 
-    const resolved = resolveWorkspaceTarget(workspaceSpecifier.packageName, workspaceSpecifier.subpath);
+    const resolved = resolveWorkspaceTarget(
+      workspaceSpecifier.packageName,
+      workspaceSpecifier.subpath
+    );
     if (resolved === undefined) {
       return;
     }
 
     if (isNodeRuntimeExport(resolved.exportKey)) {
-      errors.push(`${packageName} browser graph imports ${specifier} (a Node-only export) at ${location} via ${describeChain(chain)}`);
+      errors.push(
+        `${packageName} browser graph imports ${specifier} (a Node-only export) at ${location} via ${describeChain(chain)}`
+      );
       return;
     }
 
@@ -296,11 +375,17 @@ async function inspectReachableSpecifier(specifier: string, node: ts.Node, sourc
   }
 
   if (dynamicCodeConstructionPackages.has(thirdPartyPackageName(specifier))) {
-    errors.push(`${packageName} browser graph imports ${specifier} (constructs code at runtime) at ${location} via ${describeChain(chain)}`);
+    errors.push(
+      `${packageName} browser graph imports ${specifier} (constructs code at runtime) at ${location} via ${describeChain(chain)}`
+    );
   }
 }
 
-async function inspectBrowserReachableFile(filePath: string, packageName: string, chain: string[]): Promise<void> {
+async function inspectBrowserReachableFile(
+  filePath: string,
+  packageName: string,
+  chain: string[]
+): Promise<void> {
   if (visitedBrowserFiles.has(filePath)) {
     return;
   }
@@ -314,7 +399,13 @@ async function inspectBrowserReachableFile(filePath: string, packageName: string
     return;
   }
 
-  const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    sourceText,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
   const nextChain = [...chain, filePath];
 
   for (const { node, specifier } of collectImportSpecifiers(sourceFile)) {
@@ -339,11 +430,14 @@ for (const directoryName of packageDirectories) {
     continue;
   }
 
-  const packageName = typeof manifest.name === 'string' ? manifest.name : `packages/${directoryName}`;
+  const packageName =
+    typeof manifest.name === 'string' ? manifest.name : `packages/${directoryName}`;
 
   for (const legacyField of ['main', 'module', 'types']) {
     if (legacyField in manifest) {
-      errors.push(`${packageName} must not declare ${legacyField}; use ./node and ./browser exports`);
+      errors.push(
+        `${packageName} must not declare ${legacyField}; use ./node and ./browser exports`
+      );
     }
   }
 
@@ -354,7 +448,10 @@ for (const directoryName of packageDirectories) {
   }
 
   const typedExportsMap = exportsMap as Record<string, unknown>;
-  packageManifests.set(packageName, { 'exportsMap': typedExportsMap, 'packageDirectory': packageDirectory });
+  packageManifests.set(packageName, {
+    'exportsMap': typedExportsMap,
+    'packageDirectory': packageDirectory
+  });
 
   if (Object.hasOwn(typedExportsMap, '.')) {
     errors.push(`${packageName} must not declare a root export; use ./node or ./browser`);
@@ -381,7 +478,9 @@ for (const directoryName of packageDirectories) {
     const counterpartRuntime = runtime === 'node' ? 'browser' : 'node';
     const counterpartSubpath = `./${counterpartRuntime}/${featureName}`;
     if (!Object.hasOwn(typedExportsMap, counterpartSubpath)) {
-      errors.push(`${packageName} ${subpath} requires matching ${counterpartSubpath} runtime feature export`);
+      errors.push(
+        `${packageName} ${subpath} requires matching ${counterpartSubpath} runtime feature export`
+      );
       continue;
     }
 
@@ -391,42 +490,64 @@ for (const directoryName of packageDirectories) {
   for (const featureName of runtimeFeatureNames) {
     const nodeFeatureSubpath = `./node/${featureName}`;
     const browserFeatureSubpath = `./browser/${featureName}`;
-    const nodeFeatureTarget = executableTarget(typedExportsMap[nodeFeatureSubpath], packageName, nodeFeatureSubpath);
-    const browserFeatureTarget = executableTarget(typedExportsMap[browserFeatureSubpath], packageName, browserFeatureSubpath);
+    const nodeFeatureTarget = executableTarget(
+      typedExportsMap[nodeFeatureSubpath],
+      packageName,
+      nodeFeatureSubpath
+    );
+    const browserFeatureTarget = executableTarget(
+      typedExportsMap[browserFeatureSubpath],
+      packageName,
+      browserFeatureSubpath
+    );
 
     if (nodeFeatureTarget === undefined || browserFeatureTarget === undefined) {
       continue;
     }
 
-    if (nodeFeatureTarget.importTarget === browserFeatureTarget.importTarget && nodeFeatureTarget.typesTarget !== browserFeatureTarget.typesTarget) {
-      errors.push(`${packageName} ${nodeFeatureSubpath} and ${browserFeatureSubpath} share ${nodeFeatureTarget.importTarget} but declare different type artifacts`);
+    if (
+      nodeFeatureTarget.importTarget === browserFeatureTarget.importTarget &&
+      nodeFeatureTarget.typesTarget !== browserFeatureTarget.typesTarget
+    ) {
+      errors.push(
+        `${packageName} ${nodeFeatureSubpath} and ${browserFeatureSubpath} share ${nodeFeatureTarget.importTarget} but declare different type artifacts`
+      );
     }
 
-    const entrypoint = sourceEntrypoint(packageDirectory, packageName, browserFeatureTarget.importTarget);
+    const entrypoint = sourceEntrypoint(
+      packageDirectory,
+      packageName,
+      browserFeatureTarget.importTarget
+    );
     if (entrypoint !== undefined) {
       browserEntrypoints.push({ 'entrypoint': entrypoint, 'packageName': packageName });
     }
   }
 
-  const nodeExport = typedExportsMap['./node'];
+  const nodeTarget = executableTarget(typedExportsMap['./node'], packageName, './node');
   const browserExport = typedExportsMap['./browser'];
-  if (nodeExport !== undefined && browserExport !== undefined) {
-    const nodeTarget = executableTarget(nodeExport, packageName, './node');
-    const browserTarget = executableTarget(browserExport, packageName, './browser');
-    if (nodeTarget !== undefined && browserTarget !== undefined) {
-      if (nodeTarget.importTarget === browserTarget.importTarget && nodeTarget.typesTarget !== browserTarget.typesTarget) {
-        errors.push(`${packageName} ./node and ./browser share ${nodeTarget.importTarget} but declare different type artifacts`);
-      }
+  const browserTarget =
+    browserExport === undefined
+      ? undefined
+      : executableTarget(browserExport, packageName, './browser');
+  if (nodeTarget !== undefined && browserTarget !== undefined) {
+    if (
+      nodeTarget.importTarget === browserTarget.importTarget &&
+      nodeTarget.typesTarget !== browserTarget.typesTarget
+    ) {
+      errors.push(
+        `${packageName} ./node and ./browser share ${nodeTarget.importTarget} but declare different type artifacts`
+      );
+    }
 
-      const entrypoint = sourceEntrypoint(packageDirectory, packageName, browserTarget.importTarget);
-      if (entrypoint !== undefined) {
-        browserEntrypoints.push({ 'entrypoint': entrypoint, 'packageName': packageName });
-      }
+    const entrypoint = sourceEntrypoint(packageDirectory, packageName, browserTarget.importTarget);
+    if (entrypoint !== undefined) {
+      browserEntrypoints.push({ 'entrypoint': entrypoint, 'packageName': packageName });
     }
   }
 
   for (const featureName of neutralFeatureNames) {
-    if (!await hasSourceFeatureEntrypoint(packageDirectory, featureName)) {
+    if (!(await hasSourceFeatureEntrypoint(packageDirectory, featureName))) {
       continue;
     }
 
@@ -436,14 +557,23 @@ for (const directoryName of packageDirectories) {
       continue;
     }
 
-    const featureTarget = executableTarget(typedExportsMap[featureSubpath], packageName, featureSubpath);
+    const featureTarget = executableTarget(
+      typedExportsMap[featureSubpath],
+      packageName,
+      featureSubpath
+    );
     if (featureTarget === undefined) {
       continue;
     }
 
     const expectedTarget = `./dist/${featureName}/index`;
-    if (featureTarget.importTarget !== `${expectedTarget}.js` || featureTarget.typesTarget !== `${expectedTarget}.d.ts`) {
-      errors.push(`${packageName} ${featureSubpath} must target ${expectedTarget}.js and ${expectedTarget}.d.ts`);
+    if (
+      featureTarget.importTarget !== `${expectedTarget}.js` ||
+      featureTarget.typesTarget !== `${expectedTarget}.d.ts`
+    ) {
+      errors.push(
+        `${packageName} ${featureSubpath} must target ${expectedTarget}.js and ${expectedTarget}.d.ts`
+      );
     }
   }
   const sourceDirectory = join(packageDirectory, 'src');
@@ -451,7 +581,9 @@ for (const directoryName of packageDirectories) {
     const sourceFiles = await collectTypeScriptFiles(sourceDirectory);
     for (const sourcePath of sourceFiles) {
       const sourceText = await readFile(sourcePath, 'utf8');
-      inspectStaticSpecifiers(ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS));
+      inspectStaticSpecifiers(
+        ts.createSourceFile(sourcePath, sourceText, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+      );
     }
   } catch (error) {
     if (error !== null && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
@@ -466,14 +598,19 @@ for (const { entrypoint, packageName } of browserEntrypoints) {
   try {
     await stat(entrypoint);
   } catch {
-    errors.push(`${packageName} browser export does not resolve to ${relative(repositoryRoot, entrypoint)}`);
+    errors.push(
+      `${packageName} browser export does not resolve to ${relative(repositoryRoot, entrypoint)}`
+    );
   }
 }
 
 await walkBrowserGraph();
 
 if (errors.length > 0) {
-  throw new AggregateError(errors, `runtime export contract failed with ${String(errors.length)} violation(s)`);
+  throw new AggregateError(
+    errors,
+    `runtime export contract failed with ${String(errors.length)} violation(s)`
+  );
 }
 
 if (!validateOnly) {
@@ -505,7 +642,9 @@ if (!validateOnly) {
           ''
         ].join('\n')
       );
-      await executeFile('pnpm', ['exec', 'vite', 'build', '--config', configPath], { 'cwd': checkerRoot });
+      await executeFile('pnpm', ['exec', 'vite', 'build', '--config', configPath], {
+        'cwd': checkerRoot
+      });
       await inspectBrowserBuildOutput(outputDirectory, packageName);
     } finally {
       await rm(temporaryDirectory, { 'force': true, 'recursive': true });
@@ -513,4 +652,6 @@ if (!validateOnly) {
   }
 }
 
-console.log(`runtime-exports: OK (${String(packageDirectories.length)} package(s), ${String(browserEntrypoints.length)} browser entrypoint(s))`);
+console.log(
+  `runtime-exports: OK (${String(packageDirectories.length)} package(s), ${String(browserEntrypoints.length)} browser entrypoint(s))`
+);

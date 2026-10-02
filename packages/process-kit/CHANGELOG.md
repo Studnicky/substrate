@@ -1,5 +1,42 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+
+### Patch Changes
+
+- 01799ea: `RateLimiterStrategyInterface`'s `consume`/`waitForToken` take the branded, validated `RateLimitRequestEntity.Type['tokens']` instead of a plain `number`. With plain `number`, `tokenBucket.consume(-5)` compiled even though `RateLimitRequestEntity`'s schema declares `exclusiveMinimum: 0` for `tokens` — the type could not express the guarantee the doc comment claimed. `KeyedRateLimiter.consume`/`waitForToken`'s own `key`/`tokens` parameters are `unknown`, matching every other public parameter that is about to be intaken; both were previously pre-typed with `RateLimitRequestEntity.InputType`, an unvalidated shape, immediately before the call that validates it.
+
+  `@studnicky/resilience` gains `TokenCountEntity` (`exclusiveMinimum: 0`, `default: 1`) — the constraint `TokenBucket.consume`/`waitForToken` and `RateLimitRequestEntity.tokens` both enforce, declared once. `RateLimitRequestEntity` composes it rather than restating the constraint, so the brand `TokenBucket` produces and the brand `KeyedRateLimiter` intakes are the same brand by construction. `TokenBucket.consume`/`waitForToken` validate `tokens` via `TokenCountEntity.validate` (a type-guard, not `intake` — no clone or cycle check needed for a scalar) instead of a hand-rolled `Number.isFinite`/`<= 0` check; the `tokens = 1` parameter default is gone, replaced by the schema's own `default: 1`, which `RateLimitRequestEntity.intake` now fills so `request.tokens` is always present.
+
+  `@studnicky/process-kit` and `@studnicky/scheduler` update their `EffectInterpreter.create` call sites for the parameter-shape change landing alongside this in `@studnicky/fsm`.
+
+- Updated dependencies [91ca066]
+- Updated dependencies [94f3657]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [4d24d54]
+- Updated dependencies [f6d568e]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [d554abf]
+- Updated dependencies [a66465c]
+- Updated dependencies [01799ea]
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+  - @studnicky/entity@15.0.0
+  - @studnicky/fsm@15.0.0
+  - @studnicky/scheduler@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -92,7 +129,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -155,7 +192,6 @@
   - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
 
   ### Left as-is (verified, not a defect)
-
   - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
 
 - 789da06: ### Fixed

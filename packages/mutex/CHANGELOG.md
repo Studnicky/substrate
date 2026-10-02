@@ -1,5 +1,69 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- 4c71e9b: `MutexCreateOptionsInterface` (`Mutex.create`'s public parameter) references `Partial<MutexConfigEntity.InputType>` instead of the branded `.Type`; `MutexConfigEntity` gains `InputType`, threaded through `create`'s second type parameter — it previously demanded already-branded input. `configInternal.ConfigValidator.validate`'s own parameter is `unknown`, matching the `intake` call it forwards to one line later.
+
+  Internally computed values (`acquiredAt`/`queuedAt` clock readings, `getStats()`'s counters) earn their brand via a positive `validate()` guard before entering `LockMetricsEntity`/`MutexQueueEntryEntity`/`MutexStatsEntity`-typed fields, rather than being assigned as plain numbers.
+
+- 420bdb5: `MutexConfigEntity`'s schema listed `enableCoalescing`, `maximumQueueSize`, and `timeout` as `required` despite every one carrying a `default` — a self-contradictory pair, since `required` means validation rejects a payload where a default would otherwise apply. None of the three is required now; `MutexConfigEntity.create()`/`intake()` still fill their declared defaults, and `MutexCreateOptionsInterface` drops the `Partial<>` wrapper it used to compensate for the defect, since `MutexConfigEntity.InputType` is genuinely optional on its own.
+
+  Breaking: `MutexConfigEntity.validate()` is a structural predicate with no default-filling. It previously rejected a payload missing any of the three fields; it now accepts one. No call site in this codebase calls `validate()` on this entity directly, so nothing here changes behavior, but external code that validates untrusted mutex configuration and relies on all three fields being present afterward must fill defaults itself or call `intake()`/`create()` instead.
+
+- c91c4eb: `AbortResultEntity.create`, `LockMetricsEntity.create`, and `MutexQueueEntryEntity.create` accept their respective `InputType` — a plain, unbranded literal — instead of demanding the branded `minimum`-constrained `Type`, which no caller outside the compiler could construct.
+
+### Patch Changes
+
+- 94f3657: `RealTimeClockProviderOptionsEntity`, `CancellableTaskTransitionEventEntity`, `WorkerLogEnvelopeEntity`, `LruCacheOptionsEntity`, `MkdirOptionsEntity`, `SchedulerTaskDataEntity`, `MutexStatsEntity`, `VectorSearchOptionsEntity`, `QueryParametersEntity`, `CpuInfoEntity`, `PaginatorHasMoreStateEntity`, and `SemaphoreGrantStateEntity` gain `InputType`, threaded through `create`'s second type parameter. Each entity's own `create()` previously demanded already-branded input, because `EntityCreateFunctionInterface<TStatic, TInput = TStatic>` defaults `TInput` to the branded type when only one type argument is given.
+- c50bd4e: `Signal.compose()` returns a disposable composed-signal handle with a `signal` property. The handle cancels pending deadline timers, removes listeners, and disposes automatically when its signal aborts; callers dispose it with explicit resource management or `dispose()` when the operation ends.
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [2ad109d]
+- Updated dependencies [d8e0c5a]
+- Updated dependencies [94f3657]
+- Updated dependencies [c50bd4e]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies [245e85a]
+- Updated dependencies [f6d568e]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [d554abf]
+- Updated dependencies
+- Updated dependencies [a66465c]
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+- Updated dependencies [a43f308]
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+  - @studnicky/clock@15.0.0
+  - @studnicky/concurrency@15.0.0
+  - @studnicky/config@15.0.0
+  - @studnicky/entity@15.0.0
+  - @studnicky/fsm@15.0.0
+  - @studnicky/signal@15.0.0
+
 ## 14.0.0
 
 ### Minor Changes
@@ -129,7 +193,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -198,7 +262,6 @@
   - `folder-content-shape` no longer exempts a file from the constants-placement or inline-regex checks by path (`constants/`, `fixtures/`, `tests/`, the `eslint-config` package, `eslint.config.mjs`, `entities/`, or an `index.ts` basename) or by declared name (`ajv`, `compiledValidator`, `Schema`, `validate`). A file is exempt only when it is structurally one of: a pure constants module (every top-level declaration is an import, a type declaration, or a data `const`), a module exporting an `*Entity`-named namespace, or a pure re-export barrel. Renaming a directory, moving a file into `constants/`, or naming a declaration `Schema`/`validate`/`ajv` no longer buys an escape on its own.
 
   ### Fixed
-
   - Thirteen domain error classes (`VisibleRangeError`, `VirtualFileSystemError`, `SampleBufferError`, `CircularBufferError`, `BatchError`, `QueueSizeExceededError`, `FileLockTimeoutError`, `ConnectTimeoutError`, `TimeoutError`, `BodyTimeoutError`, `HeadersTimeoutError`, `SocketError`, `CoalesceTimeoutError`) hoist their `DomainErrorArgs.build()` message builder to a `private static` class method instead of an inline arrow rebuilt on every construction call.
 
 - 789da06: ### Fixed

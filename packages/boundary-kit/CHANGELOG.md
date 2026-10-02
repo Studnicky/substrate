@@ -1,5 +1,47 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- 2731ee6: `CircuitBreaker.create` and its protected constructor take `(config: unknown, collaborators: CircuitBreakerCollaboratorsInterface = {})` instead of a single pre-typed options object. `failureThreshold`/`resetTimeoutMs`/`successThreshold`/`name` go through `CircuitBreakerOptionsEntity.intake`, which now actually runs — the constructor previously hand-rolled `failureThreshold < 1`/`resetTimeoutMs < 0` checks duplicating constraints the schema already declared and never validated `successThreshold`, `name`, or unknown properties at all. `clock` and `errorClassifier` are typed collaborators passed separately. `CircuitBreakerOptionsInterface` is replaced by `CircuitBreakerCollaboratorsInterface`, which carries only `clock` and `errorClassifier`.
+
+  `BoundaryKitConfigInterface['circuitBreaker']` accepts a `CircuitBreaker` instance or `CircuitBreakerCollaboratorsInterface & CircuitBreakerOptionsEntity.InputType`, splitting the merged shape into schema config and collaborators before calling `CircuitBreaker.create`.
+
+### Patch Changes
+
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [e378c1c]
+- Updated dependencies [2731ee6]
+- Updated dependencies [c50bd4e]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies
+- Updated dependencies [80611b8]
+- Updated dependencies [01799ea]
+- Updated dependencies [820cb71]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [4d50c88]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [f820efa]
+- Updated dependencies [888f35b]
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+  - @studnicky/resilience@15.0.0
+  - @studnicky/retry@15.0.0
+  - @studnicky/throttle@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -115,7 +157,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -189,7 +231,6 @@
   - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
 
   ### Left as-is (verified, not a defect)
-
   - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
 
 - 789da06: ### Fixed

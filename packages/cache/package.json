@@ -1,7 +1,30 @@
 {
   "name": "@studnicky/cache",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "In-process LRU + TTL cache with O(1) promotion",
+  "keywords": [
+    "cache",
+    "lru",
+    "lru-cache",
+    "ttl",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/cache"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,40 +45,14 @@
       "import": "./dist/entities/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/cache"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "cache",
-    "lru",
-    "ttl",
-    "lru-cache",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0"
   },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
@@ -67,5 +64,8 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

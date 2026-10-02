@@ -1,5 +1,46 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- cf88dc6: `BaseError` lives in `@studnicky/types`, the dependency-free root package, so `@studnicky/entity` and `@studnicky/types` can throw `BaseError` subclasses. Import it from `@studnicky/types/node` or `@studnicky/types/browser`, alongside `BaseErrorArgumentsInterface`, `ProblemDetailsInterface`, `CauseNodeInterface`, `ThrownValueInterface`, `ThrownValueProjection`, and the `CAUSE_*` and `PROBLEM_TYPE_*`/`PROBLEM_TITLE_*` constants. `@studnicky/errors` builds `ModuleError`, `RuntimeError`, `ValidationError`, and the rest of its hierarchy on `BaseError` and does not export it. `BaseError.toJSON()` output is unchanged.
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- f66779c: `CauseNodeEntity` and `ProblemDetailsEntity` derive an open `Type` for `context` — `Record<string, unknown>` — matching the runtime `Schema`, which declares that field as `{ 'type': 'object' }` with no `properties` and no `additionalProperties: false`, so the validator already accepted any object there. Both `Node`s previously declared `context` with zero properties and the constructor's implicit closed default, so their derived static `Type` had no members and no index signature, rejecting real call sites (`context: { resultCount: 42 }`, `context: { query: '...' }`) at compile time for data the validator itself always accepted. `context` is caller-supplied structured metadata neither entity interprets, so an open type is correct.
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- c91c4eb: `ProblemDetailsEntity.create`, `ThrownValueEntity.create`, and `ValidationReportOptionsEntity.create` accept their respective `InputType` — a plain, unbranded literal — instead of demanding the branded `minimum`/`maximum`/`maxItems`-constrained `Type`, which no caller outside the compiler could construct.
+- b554549: Error and plugin names are declared as literals instead of read from class names, so they survive minification. `BaseError` declares `public abstract override readonly name: string`; every concrete subclass declares `public override readonly name: string = '<ClassName>'`, and a subclass of a concrete error declares its own. `Plugin` declares `protected abstract readonly namespace: string`, and `getNamespace()` returns it as the registry key; every concrete plugin declares `protected override readonly namespace: string = '<PluginName>'`. Assigning `this.name` in a subclass constructor is a type error because `name` is readonly.
+- 79e33e6: `ValidationReportOptionsEntity`'s `status` field declares the same `minimum: 100`/`maximum: 599` range as `ProblemDetailsEntity`'s `status`, and `ValidationErrors.report()` parses its `options` argument through `ValidationReportOptionsEntity.intake()` before building the RFC 9457 payload. A `status` override outside that range throws instead of flowing unchecked into the emitted Problem Details. `report()`'s parameter type is `unknown`; a caller passes untrusted or unvalidated data directly and the boundary validates it.
+- 5374a59: `ValidationViolationDetailEntity`'s `details` field derives an open `Type` — `Record<string, unknown>` — matching the runtime `Schema`, which declares that field as `{ 'type': 'object' }` with no `properties` and no `additionalProperties: false`, so Ajv/the browser validator already accepted any object there. `ValidationViolationDetailEntity.Node` previously declared `details` with zero properties and the constructor's implicit closed default, so its derived static `Type` had no members and no index signature, rejecting `violation.details?.tags`/`.plain`/`.instance`/`.limit` at compile time for data the validator itself always accepted. `details` is caller-supplied structured metadata that `ValidationError` snapshots defensively and never interprets, so an open type is correct: any object key on `details` now typechecks as `unknown`, narrowed at each read site rather than assumed.
+
+### Patch Changes
+
+- ebd9f1c: Removes the circular imports in `RuntimeValueArrayInterface`/`RuntimeValueMapInterface`/`RuntimeValueRecordInterface`/`RuntimeValueSetInterface` (now declared together in `RuntimeValueContainerInterfaces.ts`, since they are mutually recursive by definition) and in `ThrownValueEntity`/`thrownValueProjection` (the projection logic now lives inside `ThrownValueEntity.ts`, since `intake` wires directly to it and typing the projection's return value needs the entity's own `Type`). Public export names and subpaths are unchanged.
+- bb7bb62: Removes every non-`as const` type assertion from `errors`/`types` source. `BaseError.toJSON()` types its assembled Problem Details object directly instead of asserting the shape at the end. `TypeGuardPredicates.isEmptyTypedArray` reads `byteLength` (present on every `ArrayBufferView`, including `DataView`) instead of casting to `Uint8Array` to read `.length`, which also fixes it reporting an empty `DataView` as non-empty. `TypeGuardPredicates.isPromise` reads the `then` member via `Reflect.get` instead of casting to `Record<string, unknown>`. `RuntimeValuePredicates.areReferenceEqual` was a hand-rolled reimplementation of `Object.is`, reachable only through a cast; `Predicates.areReferenceEqual` now binds directly to `Object.is`.
+- 5681045: `ThrownValueProjection.assemble()` builds the `causes` array element by destructuring a `ThrownValueEntity.Type` node and dropping `causes`/`stack`, then validates the resulting array against `CauseNodeEntity`'s own schema (including its `maxItems` bound) with a type-predicate guard before attaching it, instead of assigning the subtracted array directly. Subtraction produces a structurally similar object, but `CauseNodeEntity.Type` and the `causes` array's `maxItems` bound both carry brands keyed by non-exported `unique symbol`s that only the entity's own compiled validator can mint; a schema addition to `CauseNodeEntity` that the subtraction path doesn't account for would previously flow an invalid cause node through undetected. An assembled chain that fails `CauseNodeEntity`'s schema throws, since that means `Classifier` produced a node its own schema rejects — a genuine invariant break, not a caller error the total `ThrownValueProjection.project()` should paper over silently.
+- 543de66: `@studnicky/types` exports `Empty`, `Hash`, `JsonObject`, `JsonValue`, `Predicate`, `Predicates`, `RuntimeValue` and `StructuralHash`; `PickDefined` is not part of the package. Callers assemble optional fields with conditional spreads, which the compiler checks under `exactOptionalPropertyTypes`. `DomainErrorArgumentList.build` assembles its optional `cause`, `correlationId`, `metadata` and `retryable` fields that way.
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+  - @studnicky/types@15.0.0
+  - @studnicky/entity@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -53,11 +94,11 @@
 ### Major Changes
 
 - 46e9a40: Serialize every error as an RFC 9457 Problem Details object, and extract `filters` into its own package.
-  
+
   **Breaking — `@studnicky/errors`**
-  
+
   `toJSON()` now returns an RFC 9457 Problem Details object, and it is the only serialized form.
-  
+
   - `message` → `detail` (RFC 9457 §3.1.4: the occurrence-specific explanation)
   - `name` → `title` (§3.1.2: names the problem TYPE and does not vary per occurrence)
   - `cause` (nested object) → `causes` (flat array, nearest first, bounded and cycle-safe)
@@ -66,24 +107,24 @@
   - `BaseError.toSerializedError()` removed — `toJSON()` is the single serialized form
   - `ValidationProblemDetailsEntity` removed; `ValidationErrors.report()` returns `ProblemDetailsEntity.Type`
   - `ThrownValueEntity`/`CauseNodeEntity` carry `type`/`title`/`detail` instead of `kind`/`message`; the problem type URI is the discriminant, so no separate classification member exists
-  
+
   New `type` (from the error's `code`), `status`, and `instance` members, plus `code`, `correlationId`, `timestamp`, `retryable`, `context`, `stack` and `causes` as RFC §3.2 extension members. `ProblemDetailsEntity` makes every member optional per §3.1 and keeps the object open per §3.2, so extension members survive intake.
-  
+
   Subclass extras merged by `serializeExtra()` can no longer displace a registered member, and absent members are omitted rather than emitted as `undefined`.
-  
+
   **Breaking — `@studnicky/eslint-config`**
-  
+
   Layer bindings rename their discriminant: `kind` → `unit`. Every `bindings` entry in an `eslint.config.mjs` must be updated.
-  
+
   **Added**
-  
+
   - `@studnicky/eslint-config`: `no-threaded-vocabulary` bans closed-vocabulary tokens (booleans, enums, literal unions) in parameter, field and property positions outside a declared resolution site; `no-function-registries` bans object literals aggregating multiple function implementations.
   - `@studnicky/filters`: extracted from `@studnicky/types`.
   - `@studnicky/matching`, `@studnicky/matching-filters`, `@studnicky/semantic-matching`, `@studnicky/topic-router`, `@studnicky/topic-router-models`, `@studnicky/drilldown`.
   - `@studnicky/types`: `Predicates`, replacing per-package structural guards.
-  
+
   **Fixed**
-  
+
   - `@studnicky/fetch`: `HTTPError` no longer shadows the inherited `status`, and reports the fetched URL as RFC `instance`.
   - `eslint.config.mjs`: six packages had no layer binding, silently disabling all four architecture rules for 214 files.
 
@@ -120,7 +161,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -140,17 +181,17 @@
 
 - 3e5575a: Rule behaviour is now derived from measurement, and abbreviated exported identifiers are
   expanded across every package.
-  
+
   ## `@studnicky/eslint-config`
-  
+
   Every rule claim is now backed by evidence recorded in the rule source, and rule identity
   is resolved through the TypeScript checker rather than matched on spelling.
-  
+
   **Rules whose premise was disproven and retargeted.** Measured at 5,000,000 elements:
   `dynamic-property-access` now targets variable keys on plain objects only — literal keys
   compile to the same `GetNamedProperty` bytecode as dot access, and indexed access lands in
   the elements store without touching the hidden class. `memoize-array-length` keeps only its
-  reassignment check (memoizing measured 1.40x *slower*). `try-catch-in-loops` and
+  reassignment check (memoizing measured 1.40x _slower_). `try-catch-in-loops` and
   `switch-statements` keep their constraints but drop the `v8Optimization/` framing —
   try/catch in a loop measures 1.007x, and delegated versus inlined 20-case switches emit
   identical `SwitchOnSmiNoFeedback` bytecode. `define-property` targets redefinition and
@@ -158,40 +199,40 @@
   identical map. `array-from-iterators` is inverted: the manual drain it implied is 7.5x
   slower than `Array.from`. `max-switch-cases` splits by discriminant — dense integers get no
   cap, strings cap at 6.
-  
+
   **Rules that were enforcing nothing.** `computed-class-properties` selected `Property`
   nodes, which never occur in a class body. Four `arch/*` rules, `no-mixed-callable-shapes`,
   and `descriptive-identifiers` were defined but never enabled.
-  
+
   **Contradictions resolved.** Well-known symbols are exempt from the computed-property
   rules — `Symbol.iterator` has no non-computed spelling, so flagging it made an iterable
   unimplementable. `inline-trivial-logic` exempts a function passed as a call argument: such
   a callback is a deferred computation, and "inline it at the call site" would convert lazy
   evaluation to eager. `lexical-this-only` permits `this` as a constructor reference in
   static context while denying every escape from an instance method.
-  
+
   **All three autofixers are removed.** `clean-diagnostics` deleted code — its range ran from
   the comment start to end-of-line, so an inline block comment took the rest of the line with
   it. `type-alias-invariants` stripped `readonly`, which typechecks and therefore silently
   converts an immutability guarantee into permitted mutation. `explicit-return-binding` bound
   returned expressions to a `const`, stripping contextual typing. An autofixer is permitted
   only where it cannot break the build or change program meaning.
-  
+
   **New rule** `explicit-return-binding` requires a returned operation to be bound to a
   `const` first.
-  
+
   ### Breaking for `@studnicky/eslint-config` consumers
-  
+
   Rule behaviour changes throughout: code that passed may now report, and vice versa. The
   `require-options-object` option `minOptionals` is renamed `minimumOptionals`, and the rule
   module `maxSwitchCases` is renamed `maximumSwitchCases`.
-  
+
   ## Exported identifier expansion
-  
+
   Every exported symbol carrying an abbreviation is renamed, and its module filename follows,
   because `single-export` requires a file's basename to match the symbol it exports. No
   deprecated aliases are provided.
-  
+
   ```
   DEFAULT_BATCH_MAX_CONCURRENT   -> DEFAULT_BATCH_MAXIMUM_CONCURRENT
   DomainErrorArgs                -> DomainErrorArgumentList
@@ -219,72 +260,72 @@
   DEFAULT_MAX_EVENTS             -> DEFAULT_MAXIMUM_EVENTS
   MAX_PRECISION                  -> MAXIMUM_PRECISION
   ```
-  
+
   Consumers importing any of these must update both the imported name and, where they
   deep-import, the module path.
-  
+
   ## `@studnicky/predicates` removes `satisfiesConst`
-  
+
   `Predicates.satisfiesConst` is removed. It forwarded 1:1 to `DataType.deepEqual` and added no
   behaviour of its own — the JSON Schema `const` keyword IS deep equality.
-  
+
   Consumers call `DataType.deepEqual(value, constantValue)` from `@studnicky/json` directly, which
   requires declaring `@studnicky/json` as a dependency; `@studnicky/predicates` does not re-export
   it. The semantics are unchanged, and `@studnicky/json` already owns the tests for them.
-  
+
   The rest of the `satisfies*` family — `satisfiesEnum`, `satisfiesMinimum`, `satisfiesContains`
   and the others — is unaffected. Each of those applies logic of its own beyond a forward.
-  
+
   ## `@studnicky/errors` cause installation
-  
+
   `BaseError` installs an own `cause` property only when a cause is actually supplied. `Error`
   installs `cause` whenever the options object HAS the key, regardless of its value, so passing
   `{ 'cause': undefined }` created an own `cause` holding `undefined`. Both spellings leave
   `error.cause === undefined` and no consumer can read them apart, but the first forced any
   subclass wanting a cause-free instance to `delete` the property — which drops every instance of
   that subclass into dictionary mode.
-  
+
   Measured at 2,000,000 instances: the deletion costs 7.2x on property reads (300.6ms against
   41.8ms) and `%HasFastProperties` reports false. Constructing the options object conditionally
   splits the error family into two hidden classes, which measures free (13.8ms bimorphic against
   15.2ms monomorphic) because inline caches stay polymorphic well past two shapes.
-  
+
   `RetryError` consequently drops its `Reflect.deleteProperty(this, 'cause')`, keeping its
   detached-projection contract with no property to remove.
-  
+
   Consumers reading `error.cause` are unaffected. Code testing for the property's PRESENCE —
   `'cause' in error` or `Object.hasOwn(error, 'cause')` — now reports `false` on an error
   constructed without a cause, where it previously reported `true`.
-  
+
   ## `@studnicky/worker-pool` path resolution
-  
+
   Worker paths were built with `new URL(path, import.meta.url).pathname`, which returns the
   URL-ENCODED path. Any directory containing a space resolved to a `%20` filename that does
   not exist, so the worker never started and callers hung until they timed out. The package
   README and public API example taught consumers the same broken pattern. All call sites now
   use `fileURLToPath()`.
-  
+
   Consumers who copied the README example should switch to
   `fileURLToPath(new URL('./worker.mjs', import.meta.url))`. The old form silently fails on
   any path containing a space, which is routine on macOS.
-  
+
   ## Security
-  
+
   All 17 outstanding advisories are cleared. The one reaching consumers was `undici`
   8.8.0 to 8.10.0, a runtime dependency of `@studnicky/fetch` carrying one high and four
   moderate advisories.
-  
+
   `pnpm.overrides` carries one entry where it previously carried seven. An override applies to
   every resolution in the graph regardless of what a dependent declares, so it is kept only where
   no dependency bump reaches the fix. Six were removed after verifying, against GitHub's advisory
   database at the exact version natural resolution selects, that each resolves clean without the
   pin: `brace-expansion` 5.0.9, `dompurify` 3.4.14, `fast-uri` 3.1.6, `nanoid` 3.3.18, `postcss`
   8.5.26, and `esbuild`.
-  
+
   The `esbuild` pin was also incorrect. `tsx` declares `~0.28.0`, and the unconditional override
   served it 0.25.12 — three minors below its own declared floor, in the loader the whole test
   suite runs under. Both `tsx` and `vite` now resolve inside their declared ranges.
-  
+
   `vite: ^6.4.3` remains, and `SECURITY.md` records why: `vitepress` 1.6.4 is the latest stable
   release, it declares `vite: ^5.4.14`, and the vite 5.x line carries an unfixed HIGH
   (GHSA-fx2h-pf6j-xcff) whose fix ships only in 6.4.3. None of this affects published package

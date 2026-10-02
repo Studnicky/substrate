@@ -1,7 +1,32 @@
 {
   "name": "@studnicky/sample-buffer",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Fixed-capacity circular buffer for numeric samples with percentile calculation",
+  "keywords": [
+    "data-structure",
+    "percentile",
+    "sample-buffer",
+    "sliding-window",
+    "studnicky",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/sample-buffer",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/sample-buffer"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,45 +47,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
-  },
-  "license": "MIT",
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": [
-    "sample-buffer",
-    "percentile",
-    "sliding-window",
-    "data-structure",
-    "typescript",
-    "studnicky"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/sample-buffer"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/sample-buffer",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
   },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
@@ -71,5 +67,9 @@
   },
   "devDependencies": {
     "@studnicky/scenario-kit": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

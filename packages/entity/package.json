@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/entity",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
+  "keywords": [
+    "boundary",
+    "entity",
+    "intake",
+    "schema",
+    "validation"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/entity",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/entity"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,12 +46,10 @@
       "import": "./dist/types/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "benchmark": "pnpm run build && tsc --project benchmarks/tsconfig.json && tsx benchmarks/entityCompiler.ts",
@@ -36,32 +58,6 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "keywords": [
-    "intake",
-    "boundary",
-    "schema",
-    "entity",
-    "validation"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/entity"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/entity",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
   "dependencies": {
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
@@ -69,5 +65,9 @@
   "devDependencies": {
     "@studnicky/example-smoke-kit": "workspace:*",
     "json-schema-to-ts": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }
