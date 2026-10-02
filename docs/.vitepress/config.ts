@@ -34,6 +34,18 @@ function workspaceSourceId(id: string): string {
   return source !== id && existsSync(source) ? source : id;
 }
 
+function workspaceExportSourceId(source: string): string | undefined {
+  const match = /^@studnicky\/([^/]+)\/(browser|entities|interfaces|node|types)$/u.exec(source);
+  if (match?.[1] === undefined || match[2] === undefined) {
+    return undefined;
+  }
+
+  const packageSourceDirectory = `${REPO_ROOT  }packages/${  match[1]  }/src/`;
+  const exportedEntrypoint = `${packageSourceDirectory + match[2]  }/index.ts`;
+  const entrypoint = existsSync(exportedEntrypoint) ? exportedEntrypoint : `${packageSourceDirectory  }index.ts`;
+  return existsSync(entrypoint) ? entrypoint : undefined;
+}
+
 const substrateBrowserSwap = (): {
   'enforce': 'pre';
   'name': string;
@@ -43,6 +55,10 @@ const substrateBrowserSwap = (): {
     'enforce': 'pre',
     'name': 'substrate-browser-swap',
     'resolveId': async function (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType): Promise<string | null> {
+      const workspaceSource = workspaceExportSourceId(source);
+      if (workspaceSource !== undefined) {
+        return workspaceSource;
+      }
       // SSR runs in Node, where the Node providers work; only swap for the client.
       if (options?.ssr === true || importer === undefined) {
         return null;
@@ -314,18 +330,6 @@ export default withMermaid(defineConfig({
   },
 
   'vite': {
-    'esbuild': {
-      // VitePress 1.6.4 uses Vite 5/esbuild 0.21 which does not recognise
-      // the ES2024 target from tsconfig.base.json. Override via tsconfigRaw
-      // to ES2022 for the docs build — the built output still targets modern
-      // browsers via Vite's own build target, so no functionality is lost.
-      'tsconfigRaw': {
-        'compilerOptions': {
-          'target': 'ES2022',
-          'useDefineForClassFields': true
-        }
-      }
-    },
     'plugins': [substrateBrowserSwap()],
     'resolve': {
       'alias': [

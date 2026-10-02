@@ -75,7 +75,7 @@
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "rollup": "^4.63.1",
+    "rollup": "^4.63.4",
     "typescript": "^6.0.3"
   },
   "devDependencies": {

@@ -137,7 +137,7 @@ class CircuitBreakerRunners {
 
   static async 'cb-config-classifier-failing'(scenarioCase: ScenarioCaseOfType<CircuitBreakerScenarioCaseEntity.Type, 'cb-config-classifier-failing'>): Promise<void> {
     const input = scenarioCase.input.resilience;
-    const classifier = (error: Error): ErrorClassificationEntity.Type => {return { 'retryable': error instanceof TransientError };};
+    const classifier = CircuitBreakerRunners.classifyTransientError;
     const circuitBreaker = CircuitBreaker.create(...CircuitBreakerRunners.circuitBreakerOptions(input, { 'errorClassifier': classifier }));
     await assert.rejects(() => {
       const result = circuitBreaker.execute(async () => { await Promise.resolve(); throw new RealError('real'); });
@@ -154,7 +154,7 @@ class CircuitBreakerRunners {
   static async 'cb-config-classifier-retryable'(scenarioCase: ScenarioCaseOfType<CircuitBreakerScenarioCaseEntity.Type, 'cb-config-classifier-retryable'>): Promise<void> {
     const input = scenarioCase.input.resilience;
     const expected = scenarioCase.expected;
-    const classifier = (error: Error): ErrorClassificationEntity.Type => {return { 'retryable': error instanceof TransientError };};
+    const classifier = CircuitBreakerRunners.classifyTransientError;
     const circuitBreaker = CircuitBreaker.create(...CircuitBreakerRunners.circuitBreakerOptions(input, { 'errorClassifier': classifier }));
     for (let count = 0; count < expected.retryableFailures; count += 1) {
       await assert.rejects(() => {
@@ -618,6 +618,10 @@ class CircuitBreakerRunners {
       return result;
     });
     assert.equal(circuitBreaker.state, 'open');
+  }
+
+  private static classifyTransientError(error: Error): ErrorClassificationEntity.Type {
+    return { 'retryable': error instanceof TransientError };
   }
 
   private static createErrorClassifier(retryable: boolean): () => ErrorClassificationEntity.Type {

@@ -495,8 +495,12 @@ if (!validateOnly) {
       await writeFile(
         configPath,
         [
+          'import { existsSync } from "node:fs";',
+          'import { join } from "node:path";',
+          `const repositoryRoot = ${JSON.stringify(repositoryRoot)};`,
           `const config = ${JSON.stringify(config)};`,
-          'config.build.rollupOptions = { external: (specifier) => specifier.startsWith("node:") };',
+          'config.build.rolldownOptions = { external: (specifier) => specifier.startsWith("node:") };',
+          'config.plugins = [{ name: "substrate-workspace-source", resolveId(source) { const match = /^@studnicky\\/([^/]+)\\/(browser|entities|interfaces|node|types)$/u.exec(source); if (match === null) return null; const sourceDirectory = join(repositoryRoot, "packages", match[1], "src"); const exportedEntrypoint = join(sourceDirectory, match[2], "index.ts"); const entrypoint = existsSync(exportedEntrypoint) ? exportedEntrypoint : join(sourceDirectory, "index.ts"); return existsSync(entrypoint) ? entrypoint : null; } }];',
           'export default config;',
           ''
         ].join('\n')
