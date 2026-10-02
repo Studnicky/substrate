@@ -385,4 +385,3 @@ export class TypeContractClassification {
     return result;
   }
 }
-
