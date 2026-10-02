@@ -1,75 +1,78 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
-import { fileURLToPath } from 'node:url';
+import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { WorkerPool } from '../../src/WorkerPool.js';
 import type { WorkerPoolConfigInterface } from '../../src/interfaces/WorkerPoolConfigInterface.js';
+
+import { WorkerPool } from '../../src/node/index.js';
+import { WorkerFixturePath } from '../helpers/WorkerFixturePath.js';
 import { PoolingScenarioCaseEntity } from './entities/PoolingScenarioCaseEntity.js';
-import scenarioGroups from './pooling.scenarios.json' with { type: 'json' };
+import scenarioGroups from './pooling.scenarios.json' with { 'type': 'json' };
 
-type ItemType = { ms?: number; value: string };
+class PoolingSupport {
+  static resolveWorkerPath(relativePath: string): string {
+    const absolutePath = WorkerFixturePath.resolveFromModule(
+      relativePath,
+      import.meta.url
+    );
+    return absolutePath;
+  }
 
-type ScenarioCase = PoolingScenarioCaseEntity.Type;
-type WorkerPoolInputInterface = ScenarioCase['input']['workerPool'];
-type WorkloadBatchInputInterface = ScenarioCase['input']['batch'];
+  static resolvePoolConfig(
+    config: PoolingScenarioCaseEntity.Type['input']['workerPool']
+  ): WorkerPoolConfigInterface {
+    const resolved: WorkerPoolConfigInterface = {
+      'workerPath': PoolingSupport.resolveWorkerPath(config.workerPath)
+    };
+    if (config.batch?.concurrency !== undefined) { resolved.batchConcurrency = config.batch.concurrency; }
+    if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
+    return resolved;
+  }
 
-const fileIntake = ScenarioFileCompiler.compileIntake(PoolingScenarioCaseEntity.Schema, PoolingScenarioCaseEntity.Node);
-
-function resolveWorkerPath(relativePath: string): string {
-  return fileURLToPath(new URL(relativePath, import.meta.url));
+  static createWorkloadItems(batch: PoolingScenarioCaseEntity.Type['input']['batch']): { 'ms'?: number; 'value': string }[] {
+    const items: { 'ms'?: number; 'value': string }[] = [];
+    for (let i = 0; i < batch.itemCount; i += 1) {
+      items.push({
+        'ms': batch.itemMs,
+        'value': `${batch.valuePrefix}-${String(i)}`
+      });
+    }
+    return items;
+  }
 }
 
-function resolvePoolConfig(config: WorkerPoolInputInterface): WorkerPoolConfigInterface {
-  const resolved: WorkerPoolConfigInterface = {
-    workerPath: resolveWorkerPath(config.workerPath)
-  };
-  if (config.batch?.concurrency !== undefined) { resolved.batchConcurrency = config.batch.concurrency; }
-  if (config.concurrency !== undefined) { resolved.concurrency = config.concurrency; }
-  return resolved;
-}
-
-function createWorkloadItems(batch: WorkloadBatchInputInterface): ItemType[] {
-  return Array.from({ length: batch.itemCount }, (_unused, index) => ({
-    ms: batch.itemMs,
-    value: `${batch.valuePrefix}-${String(index)}`
-  }));
-}
-
-const runnerMap: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'reuses-workers': async (scenarioCase) => {
+class PoolingRunners {
+  static 'reuses-workers'(scenarioCase: ScenarioCaseOfType<PoolingScenarioCaseEntity.Type, 'reuses-workers'>): Promise<void> {
     const threadIds: number[] = [];
 
-    class ObservingPool extends WorkerPool<ItemType, string> {
+    class ObservingPool extends WorkerPool<{ 'ms'?: number; 'value': string }, string> {
       protected override onWorkerCreated(threadId: number): void {
         threadIds.push(threadId);
       }
     }
 
-    const pool = ObservingPool.create(resolvePoolConfig(scenarioCase.input.workerPool));
+    const pool = ObservingPool.create<{ 'ms'?: number; 'value': string }, string, ObservingPool>(PoolingSupport.resolvePoolConfig(scenarioCase.input.workerPool));
 
-    const items = createWorkloadItems(scenarioCase.input.batch);
+    const items = PoolingSupport.createWorkloadItems(scenarioCase.input.batch);
 
-    return pool.run(items).then((results) => {
+    const result = (async (): Promise<void> => {
+      const results = await pool.run(items);
       assert.equal(results.length, scenarioCase.expected.resultLength);
       assert.deepStrictEqual(results, scenarioCase.expected.results);
       const distinctThreadIds = new Set(threadIds);
-      const { concurrency } = scenarioCase.input.workerPool;
-      assert.ok(concurrency !== undefined);
-      assert.equal(distinctThreadIds.size <= concurrency, scenarioCase.expected.distinctThreadIdsLessThanOrEqualConcurrency);
+      const poolConcurrency = scenarioCase.input.workerPool.concurrency;
+      assert.ok(poolConcurrency !== undefined);
+      assert.equal(distinctThreadIds.size <= poolConcurrency, scenarioCase.expected.distinctThreadIdsLessThanOrEqualConcurrency);
       assert.equal(distinctThreadIds.size < scenarioCase.input.batch.itemCount, scenarioCase.expected.distinctThreadIdsLessThanItemCount);
-    });
+    })();
+    return result;
   }
-};
-
-function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  return runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('WorkerPool pooling', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': PoolingScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'WorkerPool pooling',
+  'runners': PoolingRunners
 });

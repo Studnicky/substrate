@@ -1,5 +1,4 @@
-import type { EntityIntakeFunctionInterface, SchemaNodeInterface } from '@studnicky/entity/interfaces';
-import type { NodeStaticType } from '@studnicky/entity/types';
+import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { Predicates } from '@studnicky/types/node';
@@ -21,27 +20,9 @@ export class ScenarioFileCompiler {
 
   /**
    * `TCase` is inferred from the entity's `intake`, so the returned type can never name a shape other than the one the entity proves.
-   * The `(caseSchema, caseNode, remoteSchemas?)` argument list adapts a bare Schema/Node pair by compiling its `intake`; it is removed once every caller passes its entity namespace.
    */
-  static compileIntake<TCase = never, TCaseNode extends SchemaNodeInterface<unknown, unknown> = never>(
-    ...sources: [ScenarioCaseEntityInterface<TCase>]
-      | [Record<string, unknown>, TCaseNode, ReadonlyMap<string, object | boolean>]
-      | [Record<string, unknown>, TCaseNode]
-  ): EntityIntakeFunctionInterface<ScenarioFileTypeInterface<NodeStaticType<TCaseNode> | TCase>> {
-    if (sources.length === 1) {
-      const entityIntake = ScenarioFileCompiler.compileEntityIntake(sources[0]);
-      return entityIntake;
-    }
-    const pair: ScenarioCaseEntityInterface<NodeStaticType<TCaseNode>> = {
-      'intake': EntityCompiler.compileIntake<NodeStaticType<TCaseNode>>(sources[0], sources[2]),
-      'Node': sources[1],
-      'Schema': sources[0]
-    };
-    const pairIntake = ScenarioFileCompiler.compileEntityIntake(pair);
-    return pairIntake;
-  }
 
-  private static compileEntityIntake<TCase>(entity: ScenarioCaseEntityInterface<TCase>): EntityIntakeFunctionInterface<ScenarioFileTypeInterface<TCase>> {
+  static compileIntake<TCase>(entity: ScenarioCaseEntityInterface<TCase>): EntityIntakeFunctionInterface<ScenarioFileTypeInterface<TCase>> {
     NodeSchemaAgreement.assertMatches(entity.Schema, entity.Node);
     const envelopeIntake = EntityCompiler.compileIntake<ScenarioFileTypeInterface<unknown>>(ScenarioFileCompiler.ENVELOPE_SCHEMA);
 

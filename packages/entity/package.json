@@ -30,6 +30,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "benchmark": "pnpm run build && tsc --project benchmarks/tsconfig.json && tsx benchmarks/entityCompiler.ts",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",

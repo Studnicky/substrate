@@ -1,11 +1,21 @@
 import type { Rule } from 'eslint';
 
 import { Predicates } from '@studnicky/types/browser';
-import { isObjectLiteralExpression, type Program, type SourceFile, type Symbol, type Type, type TypeChecker } from 'typescript';
+import {
+  isObjectLiteralExpression,
+  type Program,
+  type SourceFile,
+  type Symbol,
+  type Type,
+  type TypeChecker
+} from 'typescript';
 
 import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import {
-  BANNED_SHORTENINGS, EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES, IDENTIFIER_NAME_PATTERN, JSON_SCHEMA_VOCABULARY_KEYS
+  BANNED_SHORTENINGS,
+  EXTERNAL_GLOBAL_TYPE_NAME_SUFFIXES,
+  IDENTIFIER_NAME_PATTERN,
+  JSON_SCHEMA_VOCABULARY_KEYS
 } from './constants/DescriptiveIdentifiersConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
 import { PackageBoundary } from './shared/PackageBoundary.js';
@@ -160,7 +170,12 @@ class ExternalPropertyProvenance {
       return true;
     }
     const result = symbols.every((symbol) => {
-      const matches = ExternalPropertyProvenance.isDeclaredOutsideCurrentPackage(symbol, property.getSourceFile(), services.program, context);
+      const matches = ExternalPropertyProvenance.isDeclaredOutsideCurrentPackage(
+        symbol,
+        property.getSourceFile(),
+        services.program,
+        context
+      );
 
       return matches;
     });
@@ -240,12 +255,16 @@ class ExternalPropertyProvenance {
 // `quote-props` represents quoted keys as literals. This keeps quoted identifiers in
 // scope while leaving opaque string keys such as rule IDs and URLs alone.
 class KeyName {
-  public static extract(node: Rule.Node, context: Rule.RuleContext): string | undefined {
+  public static extract(
+    node: Rule.Node,
+    context: Rule.RuleContext,
+    schemaNodeImportNames: ReadonlySet<string>
+  ): string | undefined {
     const key = AstHelpers.getNodeProperty(node, 'key');
     const identifierName = AstHelpers.getIdentifierName(key);
 
     if (identifierName !== undefined) {
-      const result = KeyName.checked(node, identifierName, context);
+      const result = KeyName.checked(node, identifierName, context, schemaNodeImportNames);
 
       return result;
     }
@@ -259,7 +278,7 @@ class KeyName {
       return undefined;
     }
 
-    const result = KeyName.checked(node, value, context);
+    const result = KeyName.checked(node, value, context, schemaNodeImportNames);
 
     return result;
   }
@@ -267,7 +286,16 @@ class KeyName {
   // JSON Schema's own keyword vocabulary is exempt regardless of provenance — a project cannot
   // rename a specification's terms, and the exemption must not depend on resolving a contextual
   // type from any particular schema-authoring package.
-  private static checked(node: Rule.Node, name: string, context: Rule.RuleContext): string | undefined {
+  private static checked(
+    node: Rule.Node,
+    name: string,
+    context: Rule.RuleContext,
+    schemaNodeImportNames: ReadonlySet<string>
+  ): string | undefined {
+    if (SchemaNodeDefinitionProperty.isDefinitionProperty(node, schemaNodeImportNames)) {
+      return undefined;
+    }
+
     if (JSON_SCHEMA_VOCABULARY_KEYS.has(name)) {
       return undefined;
     }
@@ -278,12 +306,40 @@ class KeyName {
   }
 }
 
+class SchemaNodeDefinitionProperty {
+  public static isDefinitionProperty(node: Rule.Node, schemaNodeImportNames: ReadonlySet<string>): boolean {
+    const objectExpression = AstHelpers.getNodeProperty(node, 'parent');
+
+    if (!Predicates.isRecord(objectExpression) || objectExpression.type !== 'ObjectExpression') {
+      return false;
+    }
+
+    const result = SchemaNodeDefinitionCall.isDefinitionCall(objectExpression.parent, schemaNodeImportNames);
+
+    return result;
+  }
+}
+
+class SchemaNodeDefinitionCall {
+  public static isDefinitionCall(callExpression: unknown, schemaNodeImportNames: ReadonlySet<string>): boolean {
+    if (!Predicates.isRecord(callExpression) || callExpression.type !== 'CallExpression') {
+      return false;
+    }
+    const callee = callExpression.callee;
+
+    if (!Predicates.isRecord(callee) || callee.type !== 'MemberExpression' || callee.computed === true) {
+      return false;
+    }
+    const objectName = AstHelpers.getIdentifierName(callee.object);
+    const propertyName = AstHelpers.getIdentifierName(callee.property);
+    const result = objectName !== undefined && schemaNodeImportNames.has(objectName) && propertyName?.startsWith('define') === true;
+
+    return result;
+  }
+}
+
 class ViolationReporter {
-  public static reportIfBanned(
-    name: string,
-    node: Rule.Node,
-    context: Rule.RuleContext
-  ): void {
+  public static reportIfBanned(name: string, node: Rule.Node, context: Rule.RuleContext): void {
     const bannedToken = BannedToken.find(name);
 
     if (bannedToken !== undefined) {
@@ -331,10 +387,7 @@ class DescriptiveIdentifiers {
     }
     const parentType: unknown = parent.type;
 
-    if (
-      (parentType === 'FunctionDeclaration' || parentType === 'VariableDeclarator')
-      && parent.id === node
-    ) {
+    if ((parentType === 'FunctionDeclaration' || parentType === 'VariableDeclarator') && parent.id === node) {
       return true;
     }
     if (typeof parentType === 'string' && DescriptiveIdentifiers.EXEMPT_PARENT_TYPES.has(parentType)) {
@@ -350,6 +403,38 @@ class DescriptiveIdentifiers {
   }
 
   public static create(context: Rule.RuleContext): Rule.RuleListener {
+    const schemaNodeImportNames = new Set<string>();
+
+    function onImportDeclaration(node: Rule.Node): void {
+      const rawNode: unknown = node;
+
+      if (
+        !Predicates.isRecord(rawNode) ||
+        !Predicates.isRecord(rawNode.source) ||
+        rawNode.source.value !== '@studnicky/entity/types' ||
+        !Array.isArray(rawNode.specifiers)
+      ) {
+        return;
+      }
+
+      const specifiers: unknown[] = rawNode.specifiers;
+      const specifierCount = specifiers.length;
+
+      for (let index = 0; index < specifierCount; index += 1) {
+        const specifier: unknown = specifiers.at(index);
+
+        if (!Predicates.isRecord(specifier) || specifier.type !== 'ImportSpecifier' || AstHelpers.getIdentifierName(specifier.imported) !== 'SchemaNode') {
+          continue;
+        }
+
+        const localName = AstHelpers.getIdentifierName(specifier.local);
+
+        if (localName !== undefined) {
+          schemaNodeImportNames.add(localName);
+        }
+      }
+    }
+
     function onNodeWithId(node: Rule.Node): void {
       const name = AstHelpers.getIdentifierName(AstHelpers.getNodeProperty(node, 'id'));
 
@@ -371,7 +456,7 @@ class DescriptiveIdentifiers {
     }
 
     function onNodeWithKey(node: Rule.Node): void {
-      const name = KeyName.extract(node, context);
+      const name = KeyName.extract(node, context, schemaNodeImportNames);
 
       if (name !== undefined) {
         ViolationReporter.reportIfBanned(name, node, context);
@@ -389,6 +474,7 @@ class DescriptiveIdentifiers {
     return {
       'FunctionDeclaration': onNodeWithId,
       'Identifier': onIdentifier,
+      'ImportDeclaration': onImportDeclaration,
       'MethodDefinition': onNodeWithKey,
       'Property': onNodeWithKey,
       'PropertyDefinition': onNodeWithKey,
@@ -417,10 +503,14 @@ export const descriptiveIdentifiers: Rule.RuleModule = {
   'create': DescriptiveIdentifiers.create,
   'meta': {
     'docs': {
-      'description': 'Bans internal shorthand identifiers (cb, dlq, cfg, opts, ctx, idx, etc.) in favour of descriptive names.',
+      'description':
+        'Bans internal shorthand identifiers (cb, dlq, cfg, opts, ctx, idx, etc.) in favour of descriptive names.',
       'recommended': false
     },
-    'messages': { 'banned-shortening': 'Identifier \'{{name}}\' contains the banned shortening \'{{token}}\'. Rename to a descriptive form. Suggested replacements: cb→callback, dlq→deadLetterQueue, cfg→config, opts→options, ctx→context, idx→index, mgr→manager, svc→service, lst→list, val→value, tmp→temporary, fn→function, ret→returnValue, err→error, msg→message, args→argumentList, params→parameters, prev→previous, curr→current, nxt→next, doc→document, env→environment, src→source, dst→destination, num→number, str→string, obj→object, arr→array, len→length, cnt→count, buf→buffer, ptr→pointer, ref→reference, repo→repository, conf→configuration.' },
+    'messages': {
+      'banned-shortening':
+        "Identifier '{{name}}' contains the banned shortening '{{token}}'. Rename to a descriptive form. Suggested replacements: cb→callback, dlq→deadLetterQueue, cfg→config, opts→options, ctx→context, idx→index, mgr→manager, svc→service, lst→list, val→value, tmp→temporary, fn→function, ret→returnValue, err→error, msg→message, args→argumentList, params→parameters, prev→previous, curr→current, nxt→next, doc→document, env→environment, src→source, dst→destination, num→number, str→string, obj→object, arr→array, len→length, cnt→count, buf→buffer, ptr→pointer, ref→reference, repo→repository, conf→configuration."
+    },
     'schema': [],
     'type': 'problem'
   }

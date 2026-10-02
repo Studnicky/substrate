@@ -1,393 +1,454 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { RuntimeError } from '@studnicky/errors/node';
+import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import { CircularBufferScenarioCaseEntity } from '../entities/CircularBufferScenarioCaseEntity.js';
-import scenarioGroups from './CircularBuffer.scenarios.json' with { type: 'json' };
+import scenarioGroups from './CircularBuffer.scenarios.json' with { 'type': 'json' };
 
-const fileIntake = ScenarioFileCompiler.compileIntake(CircularBufferScenarioCaseEntity.Schema, CircularBufferScenarioCaseEntity.Node);
+class GrowOperationResults {
+  public readonly allShifted: number[];
+  public readonly finalDrained: number[];
+  public readonly lengthBeforeDrain: number;
 
-type ScenarioCase = CircularBufferScenarioCaseEntity.Type;
-type ScenarioShape = ScenarioCase['shape'];
-type ExpectedObject = CircularBufferScenarioCaseEntity.ExpectedObjectType;
-type BatchInput = NonNullable<ScenarioCase['input']['batch']>;
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-
-const pushAll = (buf: CircularBuffer<number>, items: number[]): void => {
-  for (const item of items) buf.push(item);
-};
-
-const drain = (buf: CircularBuffer<number>): number[] => {
-  const result: number[] = [];
-  while (buf.length > 0) {
-    const value = buf.shift();
-    if (value !== undefined) result.push(value);
+  public constructor(allShifted: number[], finalDrained: number[], lengthBeforeDrain: number) {
+    this.allShifted = allShifted;
+    this.finalDrained = finalDrained;
+    this.lengthBeforeDrain = lengthBeforeDrain;
   }
-  return result;
-};
-
-const requireBatch = (scenarioCase: ScenarioCase): BatchInput => {
-  const { batch } = scenarioCase.input;
-  assert.ok(batch !== undefined, `${scenarioCase.name} must define input.batch`);
-  return batch;
-};
-
-/**
- * Drives a `push`/`shift`/`drainAll` operation sequence from `input.batch.operations`
- * against a live buffer, instead of a hardcoded call sequence. Pushed values are
- * sequential integers starting at `batch.startValue` (default 0).
- *
- * Returns three views, since sibling scenarios assert different slices of the same run:
- * - `allShifted` — every value removed by any `shift` or `drainAll` step, in call order
- * - `finalDrained` — only the values removed by the terminal `drainAll` step
- * - `lengthBeforeDrain` — `buf.length` immediately before the terminal `drainAll` step,
- *   matching where these scenarios' `expected.length` checks are taken
- */
-const runGrowOperations = (buf: CircularBuffer<number>, scenarioCase: ScenarioCase): { allShifted: number[]; finalDrained: number[]; lengthBeforeDrain: number } => {
-  const batch = requireBatch(scenarioCase);
-  const { operations } = batch;
-  assert.ok(Array.isArray(operations), `${scenarioCase.name} must define input.batch.operations`);
-  let counter = batch.startValue ?? 0;
-  const allShifted: number[] = [];
-  let finalDrained: number[] = [];
-  let lengthBeforeDrain = buf.length;
-  for (const operation of operations) {
-    if ('push' in operation) {
-      for (let i = 0; i < operation.push; i++) {
-        buf.push(counter);
-        counter++;
-      }
-      lengthBeforeDrain = buf.length;
-    } else if ('shift' in operation) {
-      for (let i = 0; i < operation.shift; i++) {
-        const value = buf.shift();
-        if (value !== undefined) allShifted.push(value);
-      }
-      lengthBeforeDrain = buf.length;
-    } else {
-      const drained: number[] = [];
-      while (buf.length > 0) {
-        const value = buf.shift();
-        if (value !== undefined) {
-          drained.push(value);
-          allShifted.push(value);
-        }
-      }
-      finalDrained = drained;
-    }
-  }
-  return { allShifted, finalDrained, lengthBeforeDrain };
-};
-
-const requireBatchItemCount = (scenarioCase: ScenarioCase): number => {
-  const { itemCount } = requireBatch(scenarioCase);
-  assert.ok(typeof itemCount === 'number', `${scenarioCase.name} must define input.batch.itemCount`);
-  return itemCount;
-};
-
-const requireBatchItems = (scenarioCase: ScenarioCase): number[] => {
-  const { items } = requireBatch(scenarioCase);
-  assert.ok(Array.isArray(items), `${scenarioCase.name} must define input.batch.items`);
-  return items;
-};
-
-const requireExpectedObject = (scenarioCase: ScenarioCase): ExpectedObject => {
-  const { expected } = scenarioCase;
-  assert.ok(expected !== undefined && !Array.isArray(expected), `${scenarioCase.name} must define object expected`);
-  return expected;
-};
-
-const requireExpectedArray = (scenarioCase: ScenarioCase): number[] => {
-  const { expected } = scenarioCase;
-  assert.ok(Array.isArray(expected), `${scenarioCase.name} must define array expected`);
-  return expected;
-};
-
-const requireExpectedDrained = (scenarioCase: ScenarioCase): number[] => {
-  const { drained } = requireExpectedObject(scenarioCase);
-  assert.ok(Array.isArray(drained), `${scenarioCase.name} must define expected.drained`);
-  return drained;
-};
-
-const requireExpectedLengths = (scenarioCase: ScenarioCase): number[] => {
-  const { lengths } = requireExpectedObject(scenarioCase);
-  assert.ok(Array.isArray(lengths), `${scenarioCase.name} must define expected.lengths`);
-  return lengths;
-};
-
-const requireExpectedFlag = (scenarioCase: ScenarioCase, name: 'preservedIdentity' | 'shiftedMatchesPushed'): boolean => {
-  const flag = requireExpectedObject(scenarioCase)[name];
-  assert.equal(typeof flag, 'boolean', `${scenarioCase.name} must define expected.${name}`);
-  return flag === true;
-};
-
-const requireExpectedLength = (scenarioCase: ScenarioCase): number => {
-  const { length } = requireExpectedObject(scenarioCase);
-  assert.ok(typeof length === 'number', `${scenarioCase.name} must define expected.length`);
-  return length;
-};
-
-const requireExpectedMessage = (scenarioCase: ScenarioCase): string => {
-  const { message } = requireExpectedObject(scenarioCase);
-  assert.ok(typeof message === 'string', `${scenarioCase.name} must define expected.message`);
-  return message;
-};
-
-const requireExpectedShiftValue = (scenarioCase: ScenarioCase): number | undefined => {
-  const { value } = requireExpectedObject(scenarioCase);
-  assert.ok(value === null || typeof value === 'number', `${scenarioCase.name} must define expected.value`);
-  return value === null ? undefined : value;
-};
-
-const requireExpectedShifts = (scenarioCase: ScenarioCase): readonly [null, null, null] => {
-  const { shifts } = requireExpectedObject(scenarioCase);
-  assert.ok(shifts !== undefined, `${scenarioCase.name} must define expected.shifts`);
-  return shifts;
-};
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { shape } = scenarioCase;
-  const { options } = scenarioCase.input;
-
-  const assertConstructionEmpty = (): void => {
-    const buf = CircularBuffer.create<number>(options);
-    assert.equal(buf.length, 0);
-  };
-
-  const assertPushLength = (): void => {
-    const buf = CircularBuffer.create<number>(options);
-    for (let i = 0; i < requireBatchItemCount(scenarioCase); i++) buf.push(i);
-    assert.equal(buf.length, requireExpectedLength(scenarioCase));
-  };
-
-  const assertEmptyShiftValue = (): void => {
-    const buf = CircularBuffer.create<number>(options);
-    assert.equal(buf.shift(), requireExpectedShiftValue(scenarioCase));
-  };
-
-  const runnerMap: Record<ScenarioShape, ScenarioRunner> = {
-    'capacity-one-cycling': () => {
-      const buf = CircularBuffer.create<string>(options);
-      buf.push('A');
-      assert.equal(buf.shift(), 'A');
-      buf.push('B');
-      assert.equal(buf.shift(), 'B');
-      assert.equal(buf.length, 0);
-    },
-    'capacity-two-cycling': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(10);
-      buf.push(20);
-      assert.equal(buf.shift(), 10);
-      buf.push(30);
-      assert.equal(buf.shift(), 20);
-      assert.equal(buf.shift(), 30);
-      assert.equal(buf.length, 0);
-    },
-    'construction-capacity-one-empty': assertConstructionEmpty,
-    'construction-custom-capacity-empty': assertConstructionEmpty,
-    'construction-default-empty': assertConstructionEmpty,
-    'construction-invalid-capacity': () => {
-      assert.throws(() => {
-        CircularBuffer.create<number>(options);
-      }, { message: requireExpectedMessage(scenarioCase) });
-    },
-    'fifo-order': () => {
-      const buf = CircularBuffer.create<number>(options);
-      pushAll(buf, requireBatchItems(scenarioCase));
-      assert.deepEqual(drain(buf), requireExpectedArray(scenarioCase));
-    },
-    'grow-head-wraparound': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const { finalDrained } = runGrowOperations(buf, scenarioCase);
-      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
-    },
-    'grow-multiple-cycles-preserves-order': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const batch = requireBatch(scenarioCase);
-      const { itemCount, shiftEveryNth } = batch;
-      assert.ok(typeof itemCount === 'number', `${scenarioCase.name} must define input.batch.itemCount`);
-      assert.ok(typeof shiftEveryNth === 'number', `${scenarioCase.name} must define input.batch.shiftEveryNth`);
-      const pushed: number[] = [];
-      const shifted: number[] = [];
-
-      for (let i = 0; i < itemCount; i++) {
-        buf.push(i);
-        pushed.push(i);
-        if (i % shiftEveryNth === 0) {
-          const value = buf.shift();
-          if (value !== undefined) shifted.push(value);
-        }
-      }
-      while (buf.length > 0) {
-        const value = buf.shift();
-        if (value !== undefined) shifted.push(value);
-      }
-
-      assert.equal(
-        shifted.every((value, index) => value === pushed[index]) && shifted.length === pushed.length,
-        requireExpectedFlag(scenarioCase, 'shiftedMatchesPushed')
-      );
-      assert.deepEqual(shifted, pushed);
-    },
-    'grow-order-preserved-after-grow': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      buf.push(3);
-      assert.equal(buf.shift(), 1);
-      assert.equal(buf.shift(), 2);
-      assert.equal(buf.shift(), 3);
-    },
-    'grow-past-capacity': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const { finalDrained, lengthBeforeDrain } = runGrowOperations(buf, scenarioCase);
-      assert.equal(lengthBeforeDrain, requireExpectedLength(scenarioCase));
-      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
-    },
-    'grow-preserves-items-head-not-zero': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const { finalDrained, lengthBeforeDrain } = runGrowOperations(buf, scenarioCase);
-      assert.equal(lengthBeforeDrain, requireExpectedLength(scenarioCase));
-      assert.deepEqual(finalDrained, requireExpectedDrained(scenarioCase));
-    },
-    'grow-wraparound-order': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const { allShifted } = runGrowOperations(buf, scenarioCase);
-
-      assert.deepEqual(allShifted, requireExpectedDrained(scenarioCase));
-    },
-    'length-reflects-count-not-capacity': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      assert.equal(buf.length, 2);
-    },
-    'non-primitive-values': () => {
-      const buf = CircularBuffer.create<{ id: number }>(options);
-      const a = { id: 1 };
-      const b = { id: 2 };
-      buf.push(a);
-      buf.push(b);
-      const preservedIdentity = buf.shift() === a && buf.shift() === b;
-      assert.equal(preservedIdentity, requireExpectedFlag(scenarioCase, 'preservedIdentity'));
-    },
-    'overwrite-capacity-one-holds-last': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      buf.push(3);
-      assert.equal(buf.length, 1);
-      assert.equal(buf.shift(), 3);
-    },
-    'overwrite-fifo-after-multiple-evictions': () => {
-      const buf = CircularBuffer.create<number>(options);
-      for (let i = 1; i <= 7; i++) buf.push(i);
-      assert.equal(buf.length, 3);
-      assert.equal(buf.shift(), 5);
-      assert.equal(buf.shift(), 6);
-      assert.equal(buf.shift(), 7);
-    },
-    'overwrite-length-stays-at-capacity': () => {
-      const buf = CircularBuffer.create<number>(options);
-      for (let i = 0; i < 10; i++) buf.push(i);
-      assert.equal(buf.length, 4);
-    },
-    'overwrite-oldest-evicted': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      buf.push(3);
-      buf.push(4);
-      assert.equal(buf.length, 3);
-      assert.equal(buf.shift(), 2);
-      assert.equal(buf.shift(), 3);
-      assert.equal(buf.shift(), 4);
-    },
-    'push-after-shift-order': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      buf.shift();
-      buf.push(3);
-      assert.equal(buf.shift(), 2);
-      assert.equal(buf.shift(), 3);
-    },
-    'push-increments-length': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const lengths = requireExpectedLengths(scenarioCase);
-      const observed: number[] = [];
-
-      lengths.forEach((_length, index) => {
-        buf.push(index + 1);
-        observed.push(buf.length);
-      });
-
-      assert.deepEqual(observed, lengths);
-    },
-    'push-length-grow': assertPushLength,
-    'push-length-overwrite': assertPushLength,
-    'push-shift-cycling': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.push(2);
-      assert.equal(buf.shift(), 1);
-      buf.push(3);
-      buf.push(4);
-      assert.equal(buf.shift(), 2);
-      assert.equal(buf.shift(), 3);
-      assert.equal(buf.shift(), 4);
-    },
-    'push-then-shift-then-push-again': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.shift();
-      buf.push(2);
-      assert.equal(buf.length, 1);
-      assert.equal(buf.shift(), 2);
-    },
-    'shift-after-all-items-returns-undefined': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(1);
-      buf.shift();
-      assert.equal(buf.shift(), requireExpectedShiftValue(scenarioCase));
-    },
-    'shift-empty-does-not-throw': () => {
-      const buf = CircularBuffer.create<number>(options);
-      assert.doesNotThrow(() => buf.shift());
-    },
-    'shift-empty-returns-undefined': assertEmptyShiftValue,
-    'shift-empty-successive-returns-undefined': () => {
-      const buf = CircularBuffer.create<number>(options);
-      const shifts = requireExpectedShifts(scenarioCase).map((value) => (value === null ? undefined : value));
-      assert.equal(buf.shift(), shifts[0]);
-      assert.equal(buf.shift(), shifts[1]);
-      assert.equal(buf.shift(), shifts[2]);
-    },
-    'shift-first-item-and-decrements-length': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(42);
-      buf.push(99);
-      assert.equal(buf.shift(), 42);
-      assert.equal(buf.length, 1);
-    },
-    'shift-only-item-and-leaves-empty': () => {
-      const buf = CircularBuffer.create<number>(options);
-      buf.push(7);
-      assert.equal(buf.shift(), 7);
-      assert.equal(buf.length, 0);
-    }
-  };
-
-  await runnerMap[shape](scenarioCase);
 }
 
-void describe('CircularBuffer core', () => {
-  for (const scenarioCase of fileIntake(scenarioGroups).cases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
+class CircularBufferRunners {
+  static requireBatch(
+    scenarioCase: CircularBufferScenarioCaseEntity.Type
+  ): NonNullable<CircularBufferScenarioCaseEntity.Type['input']['batch']> {
+    const batch = scenarioCase.input.batch;
+    if (batch === undefined) {
+      throw RuntimeError.create(`${scenarioCase.name} must define input.batch`);
+    }
+    return batch;
+  }
+
+  static requireExpectedRecord(scenarioCase: CircularBufferScenarioCaseEntity.Type): Record<string, unknown> {
+    const result = ScenarioValues.requireRecord(scenarioCase.expected, 'expected');
+    return result;
+  }
+
+  static requireExpectedNumber(scenarioCase: CircularBufferScenarioCaseEntity.Type, propertyName: string): number {
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    const result = ScenarioValues.requireNumber(Reflect.get(expected, propertyName), `expected.${propertyName}`);
+    return result;
+  }
+
+  static requireExpectedBoolean(scenarioCase: CircularBufferScenarioCaseEntity.Type, propertyName: string): boolean {
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    const value = Reflect.get(expected, propertyName);
+    if (typeof value !== 'boolean') {
+      throw RuntimeError.create(`expected.${propertyName} must be a boolean`);
+    }
+    return value;
+  }
+
+  static requireExpectedNumberArray(scenarioCase: CircularBufferScenarioCaseEntity.Type, propertyName: string): number[] {
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    const rawValues = ScenarioValues.requireArray(Reflect.get(expected, propertyName), `expected.${propertyName}`);
+    const values: number[] = [];
+    for (let index = 0; index < rawValues.length; index += 1) {
+      values.push(ScenarioValues.requireNumber(rawValues[index], `expected.${propertyName}[${index}]`));
+    }
+    return values;
+  }
+
+  static requireExpectedArray(scenarioCase: CircularBufferScenarioCaseEntity.Type): number[] {
+    const rawValues = ScenarioValues.requireArray(scenarioCase.expected, 'expected');
+    const values: number[] = [];
+    for (let index = 0; index < rawValues.length; index += 1) {
+      values.push(ScenarioValues.requireNumber(rawValues[index], `expected[${index}]`));
+    }
+    return values;
+  }
+
+  static requireBatchItemCount(scenarioCase: CircularBufferScenarioCaseEntity.Type): number {
+    const batch = CircularBufferRunners.requireBatch(scenarioCase);
+    const result = ScenarioValues.requireInteger(batch.itemCount, 'input.batch.itemCount');
+    return result;
+  }
+
+  static requireBatchItems(scenarioCase: CircularBufferScenarioCaseEntity.Type): number[] {
+    const batch = CircularBufferRunners.requireBatch(scenarioCase);
+    const rawItems = ScenarioValues.requireArray(batch.items, 'input.batch.items');
+    const items: number[] = [];
+    for (let index = 0; index < rawItems.length; index += 1) {
+      items.push(ScenarioValues.requireNumber(rawItems[index], `input.batch.items[${index}]`));
+    }
+    return items;
+  }
+
+  static pushAll(buffer: CircularBuffer<number>, items: readonly number[]): void {
+    for (let index = 0; index < items.length; index += 1) {
+      buffer.push(items[index]!);
+    }
+  }
+
+  static drain(buffer: CircularBuffer<number>): number[] {
+    const values: number[] = [];
+    while (buffer.length > 0) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        values.push(value);
+      }
+    }
+    return values;
+  }
+
+  static applyPushOperation(buffer: CircularBuffer<number>, count: number, startValue: number): number {
+    let nextValue = startValue;
+    for (let index = 0; index < count; index += 1) {
+      buffer.push(nextValue);
+      nextValue += 1;
+    }
+    return nextValue;
+  }
+
+  static applyShiftOperation(buffer: CircularBuffer<number>, count: number, allShifted: number[]): void {
+    for (let index = 0; index < count; index += 1) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        allShifted.push(value);
+      }
+    }
+  }
+
+  static drainOperation(buffer: CircularBuffer<number>, allShifted: number[]): number[] {
+    const drained: number[] = [];
+    while (buffer.length > 0) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        drained.push(value);
+        allShifted.push(value);
+      }
+    }
+    return drained;
+  }
+
+  static runGrowOperations(
+    buffer: CircularBuffer<number>,
+    scenarioCase: CircularBufferScenarioCaseEntity.Type
+  ): GrowOperationResults {
+    const batch = CircularBufferRunners.requireBatch(scenarioCase);
+    const operations = batch.operations;
+    if (operations === undefined) {
+      throw RuntimeError.create('input.batch.operations is required');
+    }
+    let nextValue = batch.startValue ?? 0;
+    const allShifted: number[] = [];
+    let finalDrained: number[] = [];
+    let lengthBeforeDrain = buffer.length;
+    for (let index = 0; index < operations.length; index += 1) {
+      const operation = operations[index]!;
+      if ('push' in operation) {
+        nextValue = CircularBufferRunners.applyPushOperation(buffer, operation.push, nextValue);
+        lengthBeforeDrain = buffer.length;
+        continue;
+      }
+      if ('shift' in operation) {
+        CircularBufferRunners.applyShiftOperation(buffer, operation.shift, allShifted);
+        lengthBeforeDrain = buffer.length;
+        continue;
+      }
+      finalDrained = CircularBufferRunners.drainOperation(buffer, allShifted);
+    }
+    const result = new GrowOperationResults(allShifted, finalDrained, lengthBeforeDrain);
+    return result;
+  }
+
+  static assertConstructionEmpty(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    assert.equal(buffer.length, 0);
+  }
+
+  static assertPushLength(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const itemCount = CircularBufferRunners.requireBatchItemCount(scenarioCase);
+    for (let index = 0; index < itemCount; index += 1) {
+      buffer.push(index);
+    }
+    assert.equal(buffer.length, CircularBufferRunners.requireExpectedNumber(scenarioCase, 'length'));
+  }
+
+  static assertEmptyShiftValue(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    const expectedValue = Reflect.get(expected, 'value');
+    assert.equal(expectedValue, null);
+    assert.equal(buffer.shift(), undefined);
+  }
+
+  static 'capacity-one-cycling'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<string>(scenarioCase.input.options);
+    buffer.push('A');
+    assert.equal(buffer.shift(), 'A');
+    buffer.push('B');
+    assert.equal(buffer.shift(), 'B');
+    assert.equal(buffer.length, 0);
+  }
+
+  static 'capacity-two-cycling'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(10);
+    buffer.push(20);
+    assert.equal(buffer.shift(), 10);
+    buffer.push(30);
+    assert.equal(buffer.shift(), 20);
+    assert.equal(buffer.shift(), 30);
+    assert.equal(buffer.length, 0);
+  }
+
+  static 'construction-capacity-one-empty'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertConstructionEmpty(scenarioCase);
+  }
+
+  static 'construction-custom-capacity-empty'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertConstructionEmpty(scenarioCase);
+  }
+
+  static 'construction-default-empty'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertConstructionEmpty(scenarioCase);
+  }
+
+  static 'construction-invalid-capacity'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    assert.throws(() => { CircularBuffer.create<number>(scenarioCase.input.options); }, {
+      'message': ScenarioValues.requireString(Reflect.get(expected, 'message'), 'expected.message')
     });
   }
+
+  static 'fifo-order'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferRunners.pushAll(buffer, CircularBufferRunners.requireBatchItems(scenarioCase));
+    assert.deepEqual(CircularBufferRunners.drain(buffer), CircularBufferRunners.requireExpectedArray(scenarioCase));
+  }
+
+  static 'grow-head-wraparound'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const results = CircularBufferRunners.runGrowOperations(buffer, scenarioCase);
+    assert.deepEqual(results.finalDrained, CircularBufferRunners.requireExpectedNumberArray(scenarioCase, 'drained'));
+  }
+
+  static 'grow-multiple-cycles-preserves-order'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const batch = CircularBufferRunners.requireBatch(scenarioCase);
+    const itemCount = ScenarioValues.requireInteger(batch.itemCount, 'input.batch.itemCount');
+    const shiftEveryNth = ScenarioValues.requireInteger(batch.shiftEveryNth, 'input.batch.shiftEveryNth');
+    const pushed: number[] = [];
+    const shifted: number[] = [];
+    for (let index = 0; index < itemCount; index += 1) {
+      buffer.push(index);
+      pushed.push(index);
+      if (index % shiftEveryNth === 0) {
+        const value = buffer.shift();
+        if (value !== undefined) {
+          shifted.push(value);
+        }
+      }
+    }
+    while (buffer.length > 0) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        shifted.push(value);
+      }
+    }
+    const preservesOrder = shifted.every((value, index) => {
+      const result = value === pushed[index];
+      return result;
+    }) && shifted.length === pushed.length;
+    assert.equal(preservesOrder, CircularBufferRunners.requireExpectedBoolean(scenarioCase, 'shiftedMatchesPushed'));
+    assert.deepEqual(shifted, pushed);
+  }
+
+  static 'grow-order-preserved-after-grow'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    buffer.push(3);
+    assert.equal(buffer.shift(), 1);
+    assert.equal(buffer.shift(), 2);
+    assert.equal(buffer.shift(), 3);
+  }
+
+  static 'grow-past-capacity'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const results = CircularBufferRunners.runGrowOperations(buffer, scenarioCase);
+    assert.equal(results.lengthBeforeDrain, CircularBufferRunners.requireExpectedNumber(scenarioCase, 'length'));
+    assert.deepEqual(results.finalDrained, CircularBufferRunners.requireExpectedNumberArray(scenarioCase, 'drained'));
+  }
+
+  static 'grow-preserves-items-head-not-zero'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const results = CircularBufferRunners.runGrowOperations(buffer, scenarioCase);
+    assert.equal(results.lengthBeforeDrain, CircularBufferRunners.requireExpectedNumber(scenarioCase, 'length'));
+    assert.deepEqual(results.finalDrained, CircularBufferRunners.requireExpectedNumberArray(scenarioCase, 'drained'));
+  }
+
+  static 'grow-wraparound-order'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const results = CircularBufferRunners.runGrowOperations(buffer, scenarioCase);
+    assert.deepEqual(results.allShifted, CircularBufferRunners.requireExpectedNumberArray(scenarioCase, 'drained'));
+  }
+
+  static 'length-reflects-count-not-capacity'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    assert.equal(buffer.length, 2);
+  }
+
+  static 'non-primitive-values'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<{ 'id': number }>(scenarioCase.input.options);
+    const first = { 'id': 1 };
+    const second = { 'id': 2 };
+    buffer.push(first);
+    buffer.push(second);
+    const preservesIdentity = buffer.shift() === first && buffer.shift() === second;
+    assert.equal(preservesIdentity, CircularBufferRunners.requireExpectedBoolean(scenarioCase, 'preservedIdentity'));
+  }
+
+  static 'overwrite-capacity-one-holds-last'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    buffer.push(3);
+    assert.equal(buffer.length, 1);
+    assert.equal(buffer.shift(), 3);
+  }
+
+  static 'overwrite-fifo-after-multiple-evictions'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    for (let index = 1; index <= 7; index += 1) {
+      buffer.push(index);
+    }
+    assert.equal(buffer.length, 3);
+    assert.equal(buffer.shift(), 5);
+    assert.equal(buffer.shift(), 6);
+    assert.equal(buffer.shift(), 7);
+  }
+
+  static 'overwrite-length-stays-at-capacity'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    for (let index = 0; index < 10; index += 1) {
+      buffer.push(index);
+    }
+    assert.equal(buffer.length, 4);
+  }
+
+  static 'overwrite-oldest-evicted'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    buffer.push(3);
+    buffer.push(4);
+    assert.equal(buffer.length, 3);
+    assert.equal(buffer.shift(), 2);
+    assert.equal(buffer.shift(), 3);
+    assert.equal(buffer.shift(), 4);
+  }
+
+  static 'push-after-shift-order'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    buffer.shift();
+    buffer.push(3);
+    assert.equal(buffer.shift(), 2);
+    assert.equal(buffer.shift(), 3);
+  }
+
+  static 'push-increments-length'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const expectedLengths = CircularBufferRunners.requireExpectedNumberArray(scenarioCase, 'lengths');
+    const observed: number[] = [];
+    for (let index = 0; index < expectedLengths.length; index += 1) {
+      buffer.push(index + 1);
+      observed.push(buffer.length);
+    }
+    assert.deepEqual(observed, expectedLengths);
+  }
+
+  static 'push-length-grow'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertPushLength(scenarioCase);
+  }
+
+  static 'push-length-overwrite'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertPushLength(scenarioCase);
+  }
+
+  static 'push-shift-cycling'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.push(2);
+    assert.equal(buffer.shift(), 1);
+    buffer.push(3);
+    buffer.push(4);
+    assert.equal(buffer.shift(), 2);
+    assert.equal(buffer.shift(), 3);
+    assert.equal(buffer.shift(), 4);
+  }
+
+  static 'push-then-shift-then-push-again'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.shift();
+    buffer.push(2);
+    assert.equal(buffer.length, 1);
+    assert.equal(buffer.shift(), 2);
+  }
+
+  static 'shift-after-all-items-returns-undefined'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(1);
+    buffer.shift();
+    CircularBufferRunners.assertEmptyShiftValue(scenarioCase);
+  }
+
+  static 'shift-empty-does-not-throw'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    assert.doesNotThrow(() => { buffer.shift(); });
+  }
+
+  static 'shift-empty-returns-undefined'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    CircularBufferRunners.assertEmptyShiftValue(scenarioCase);
+  }
+
+  static 'shift-empty-successive-returns-undefined'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    const expected = CircularBufferRunners.requireExpectedRecord(scenarioCase);
+    const shifts = ScenarioValues.requireArray(Reflect.get(expected, 'shifts'), 'expected.shifts');
+    assert.equal(shifts.length, 3);
+    for (let index = 0; index < shifts.length; index += 1) {
+      assert.equal(shifts[index], null);
+      assert.equal(buffer.shift(), undefined);
+    }
+  }
+
+  static 'shift-first-item-and-decrements-length'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(42);
+    buffer.push(99);
+    assert.equal(buffer.shift(), 42);
+    assert.equal(buffer.length, 1);
+  }
+
+  static 'shift-only-item-and-leaves-empty'(scenarioCase: CircularBufferScenarioCaseEntity.Type): void {
+    const buffer = CircularBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(7);
+    assert.equal(buffer.shift(), 7);
+    assert.equal(buffer.length, 0);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': CircularBufferScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'CircularBuffer core',
+  'runners': CircularBufferRunners
 });

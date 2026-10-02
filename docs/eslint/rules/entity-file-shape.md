@@ -13,6 +13,8 @@ Constrains a file through one of three mutually exclusive categories, with entit
 
 An entity file is a non-barrel file under an `entities/` path segment or with a basename matching `*Entity` plus a TypeScript or JavaScript extension. It must export a namespace whose name matches the filename base. The namespace must export:
 
+A node-support module is exempt only when its filename and sole exported namespace both end in `Node`, and that namespace exposes exactly one public declaration: `Node`. Private helper declarations remain allowed inside that namespace. The entity contract still applies to every other file under `entities/` and to every `*Entity` filename.
+
 - `Schema`: a value-first `const`, either authored with `as const` or built by a schema-builder call;
 - `Type`: a type alias derived from `typeof Schema`; and
 - `validate`: either `EntityCompiler.compile<Type>(Schema)` or a function type guard;

@@ -1,71 +1,73 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
-import {
-  LOG_STATUS,
-  STATUS_CATEGORIES
-} from '../../src/constants/LOG_STATUS.js';
-import { LogStatusEntity } from '../../src/entities/LogStatusEntity.js';
+import type { LogStatusEntity } from '../../src/entities/LogStatusEntity.js';
+
+import { LOG_STATUS, STATUS_CATEGORIES } from '../../src/constants/LOG_STATUS.js';
 import { LogStatus } from '../../src/modules/LogStatus.js';
 import { LogStatusScenarioCaseEntity } from './entities/LogStatusScenarioCaseEntity.js';
-import scenarioGroups from './LogStatus.scenarios.json' with { type: 'json' };
+import scenarioGroups from './LogStatus.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = LogStatusScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(LogStatusScenarioCaseEntity.Schema, LogStatusScenarioCaseEntity.Node);
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-function assertValues(scenarioCase: ScenarioCase, actual: readonly string[]): void {
-  assert.deepStrictEqual(actual, scenarioCase.expected.values);
-}
-
-function assertPredicate(
-  scenarioCase: ScenarioCase,
-  predicate: (value: LogStatusEntity.Type) => boolean,
-  expectedValue: boolean
-): void {
-  for (const value of scenarioCase.expected.values) {
-    assert.strictEqual(predicate(value), expectedValue);
+class LogStatusRunners {
+  static assertValues(scenarioCase: LogStatusScenarioCaseEntity.Type, actual: readonly string[]): void {
+    assert.deepStrictEqual(actual, scenarioCase.expected.values);
   }
-}
 
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'is-failure-false': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isFailure, false);
-  },
-  'is-failure-true': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isFailure, true);
-  },
-  'is-lifecycle-false': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isLifecycle, false);
-  },
-  'is-lifecycle-true': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isLifecycle, true);
-  },
-  'is-success-false': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isSuccess, false);
-  },
-  'is-success-true': (scenarioCase) => {
-    assertPredicate(scenarioCase, LogStatus.isSuccess, true);
-  },
-  'status-categories-failure': (scenarioCase) => {
-    assertValues(scenarioCase, STATUS_CATEGORIES.FAILURE);
-  },
-  'status-categories-lifecycle': (scenarioCase) => {
-    assertValues(scenarioCase, STATUS_CATEGORIES.LIFECYCLE);
-  },
-  'status-categories-retry': (scenarioCase) => {
-    assertValues(scenarioCase, STATUS_CATEGORIES.RETRY);
-  },
-  'status-categories-success': (scenarioCase) => {
-    assertValues(scenarioCase, STATUS_CATEGORIES.SUCCESS);
-  },
-  'status-failure-values': (scenarioCase) => {
-    assertValues(scenarioCase, [
+  static assertPredicate(
+    scenarioCase: LogStatusScenarioCaseEntity.Type,
+    predicate: (value: LogStatusEntity.Type) => boolean,
+    expectedValue: boolean
+  ): void {
+    for (let index = 0; index < scenarioCase.expected.values.length; index += 1) {
+      const value = scenarioCase.expected.values[index];
+      if (value !== undefined) {
+        assert.strictEqual(predicate(value), expectedValue);
+      }
+    }
+  }
+
+  static 'is-failure-false'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isFailure, false);
+  }
+
+  static 'is-failure-true'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isFailure, true);
+  }
+
+  static 'is-lifecycle-false'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isLifecycle, false);
+  }
+
+  static 'is-lifecycle-true'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isLifecycle, true);
+  }
+
+  static 'is-success-false'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isSuccess, false);
+  }
+
+  static 'is-success-true'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertPredicate(scenarioCase, LogStatus.isSuccess, true);
+  }
+
+  static 'status-categories-failure'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, STATUS_CATEGORIES.FAILURE);
+  }
+
+  static 'status-categories-lifecycle'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, STATUS_CATEGORIES.LIFECYCLE);
+  }
+
+  static 'status-categories-retry'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, STATUS_CATEGORIES.RETRY);
+  }
+
+  static 'status-categories-success'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, STATUS_CATEGORIES.SUCCESS);
+  }
+
+  static 'status-failure-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, [
       LOG_STATUS.FAILED,
       LOG_STATUS.TIMEOUT,
       LOG_STATUS.INVALID,
@@ -74,38 +76,36 @@ const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
       LOG_STATUS.RATE_LIMITED,
       LOG_STATUS.UNAVAILABLE
     ]);
-  },
-  'status-lifecycle-values': (scenarioCase) => {
-    assertValues(scenarioCase, [
+  }
+
+  static 'status-lifecycle-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, [
       LOG_STATUS.PENDING,
       LOG_STATUS.IN_PROGRESS,
       LOG_STATUS.COMPLETE
     ]);
-  },
-  'status-retry-values': (scenarioCase) => {
-    assertValues(scenarioCase, [
+  }
+
+  static 'status-retry-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, [
       LOG_STATUS.RETRYING,
       LOG_STATUS.RETRY_EXHAUSTED
     ]);
-  },
-  'status-success-values': (scenarioCase) => {
-    assertValues(scenarioCase, [
+  }
+
+  static 'status-success-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
+    LogStatusRunners.assertValues(scenarioCase, [
       LOG_STATUS.SUCCESS,
       LOG_STATUS.PARTIAL,
       LOG_STATUS.CACHED,
       LOG_STATUS.SKIPPED
     ]);
   }
-};
-
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
 }
 
-void describe('LogStatus', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': LogStatusScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'LogStatus',
+  'runners': LogStatusRunners
 });

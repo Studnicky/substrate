@@ -184,7 +184,6 @@ class TopLevelScope {
   }
 }
 
-
 class FolderShapeHelpers {
   public static getIdName(node: unknown): string | undefined {
     if (!Predicates.isRecord(node)) {
@@ -209,7 +208,6 @@ class FolderShapeHelpers {
     return node.declaration;
   }
 }
-
 
 class NamespaceScanner {
   // Object composition and schema builders can describe an object without a
@@ -238,9 +236,10 @@ class NamespaceScanner {
   }
 
   private static isTypePropertyKey(key: unknown): boolean {
-    const result = Predicates.isRecord(key)
-      && ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type')
-        || (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
+    const result =
+      Predicates.isRecord(key) &&
+      ((AstHelpers.getNodeType(key) === 'Identifier' && key.name === 'type') ||
+        (AstHelpers.getNodeType(key) === 'Literal' && key.value === 'type'));
 
     return result;
   }
@@ -251,7 +250,11 @@ class NamespaceScanner {
     for (let propertyIndex = 0; propertyIndex < propertiesLength; propertyIndex += 1) {
       const property: unknown = properties.at(propertyIndex);
 
-      if (!Predicates.isRecord(property) || AstHelpers.getNodeType(property) !== 'Property' || property.computed === true) {
+      if (
+        !Predicates.isRecord(property) ||
+        AstHelpers.getNodeType(property) !== 'Property' ||
+        property.computed === true
+      ) {
         continue;
       }
 
@@ -260,9 +263,8 @@ class NamespaceScanner {
       }
 
       const value = DeclaratorName.unwrapTsExpression(property.value);
-      const result = Predicates.isRecord(value)
-        && AstHelpers.getNodeType(value) === 'Literal'
-        && value.value === 'object';
+      const result =
+        Predicates.isRecord(value) && AstHelpers.getNodeType(value) === 'Literal' && value.value === 'object';
 
       return result;
     }
@@ -270,7 +272,10 @@ class NamespaceScanner {
     return false;
   }
 
-  private static readonly DECLARATION_SCANNERS = new Map<string, (decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>) => void>([
+  private static readonly DECLARATION_SCANNERS = new Map<
+    string,
+    (decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>) => void
+  >([
     ['FunctionDeclaration', NamespaceScanner.scanFunctionDeclaration],
     ['TSInterfaceDeclaration', NamespaceScanner.scanInterfaceDeclaration],
     ['TSTypeAliasDeclaration', NamespaceScanner.scanTypeAliasDeclaration],
@@ -280,7 +285,11 @@ class NamespaceScanner {
   // `Schema` must be scanned before `Type`, so `Type`'s derivation-defeat check reads a settled
   // `schemaDefeatsDerivation` — a two-pass scan over these declaration-type groups.
   private static readonly SCHEMA_DECL_TYPES: ReadonlySet<string> = new Set(['VariableDeclaration']);
-  private static readonly TYPE_DECL_TYPES: ReadonlySet<string> = new Set(['FunctionDeclaration', 'TSInterfaceDeclaration', 'TSTypeAliasDeclaration']);
+  private static readonly TYPE_DECL_TYPES: ReadonlySet<string> = new Set([
+    'FunctionDeclaration',
+    'TSInterfaceDeclaration',
+    'TSTypeAliasDeclaration'
+  ]);
 
   static scanBody(bodyNode: unknown) {
     const result = {
@@ -352,7 +361,11 @@ class NamespaceScanner {
     }
   }
 
-  private static scanVariableDeclarator(d: unknown, decl: unknown, result: ReturnType<typeof NamespaceScanner.scanBody>): void {
+  private static scanVariableDeclarator(
+    d: unknown,
+    decl: unknown,
+    result: ReturnType<typeof NamespaceScanner.scanBody>
+  ): void {
     if (!Predicates.isRecord(d) || !Predicates.isRecord(d.id)) {
       return;
     }
@@ -389,8 +402,10 @@ class NamespaceScanner {
     // hand-written `Type`) is accepted only when the schema itself proves no structural
     // derivation exists, or — when the schema composes another file's schema this walk cannot
     // see into — when `Type` itself composes that other file's already-justified `.Type`.
-    const structurallyDerived = SchemaMemberGuards.isTypeFromSchema(decl) && !SchemaMemberGuards.derivedTypeHasOverride(decl);
-    const composedFromJustifiedEntity = result.schemaComposesExternalReference && SchemaMemberGuards.typeIsComposedFromEntityType(decl);
+    const structurallyDerived =
+      SchemaMemberGuards.isTypeFromSchema(decl) && !SchemaMemberGuards.derivedTypeHasOverride(decl);
+    const composedFromJustifiedEntity =
+      result.schemaComposesExternalReference && SchemaMemberGuards.typeIsComposedFromEntityType(decl);
 
     result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation || composedFromJustifiedEntity;
   }
@@ -402,7 +417,8 @@ class NamespaceScanner {
 
     result.hasType = true;
 
-    const structurallyDerived = SchemaMemberGuards.isInterfaceSchemaDerived(decl) && !SchemaMemberGuards.interfaceDerivedTypeHasOverride(decl);
+    const structurallyDerived =
+      SchemaMemberGuards.isInterfaceSchemaDerived(decl) && !SchemaMemberGuards.interfaceDerivedTypeHasOverride(decl);
 
     result.hasTypeFromSchema = structurallyDerived || result.schemaDefeatsDerivation;
   }
@@ -416,14 +432,23 @@ class NamespaceScanner {
 }
 
 class EntityNamespaceCheck {
-  static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], expectedName: string): void {
+  static run(
+    context: Rule.RuleContext,
+    program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    expectedName: string
+  ): void {
     const rawProgram: unknown = program;
     const body = Predicates.isRecord(rawProgram) && Array.isArray(rawProgram.body) ? rawProgram.body : [];
     const namespaceExports = EntityNamespaceCheck.getNamespaceExports(body);
 
+    if (EntityNamespaceCheck.isNodeSupportModule(namespaceExports, expectedName)) {
+      return;
+    }
+
     if (namespaceExports.length === 0) {
       context.report({
-        'messageId': 'noNamespace', 'node': program
+        'messageId': 'noNamespace',
+        'node': program
       });
 
       return;
@@ -439,6 +464,57 @@ class EntityNamespaceCheck {
       }
       EntityNamespaceCheck.checkNamespaceExport(context, exportStmt, expectedName);
     }
+  }
+
+  private static isNodeSupportModule(namespaceExports: unknown[], expectedName: string): boolean {
+    if (!expectedName.endsWith('Node')) {
+      return false;
+    }
+    if (namespaceExports.length !== 1) {
+      return false;
+    }
+
+    const namespaceExport = namespaceExports.at(0);
+    const namespaceDeclaration = FolderShapeHelpers.getDeclaration(namespaceExport);
+
+    if (!Predicates.isRecord(namespaceDeclaration)) {
+      return false;
+    }
+    if (FolderShapeHelpers.getIdName(namespaceDeclaration) !== expectedName) {
+      return false;
+    }
+
+    const result = EntityNamespaceCheck.hasSingleNodeExport(namespaceDeclaration);
+
+    return result;
+  }
+
+  private static hasSingleNodeExport(namespaceDeclaration: Record<string, unknown>): boolean {
+    const namespaceBody: unknown = namespaceDeclaration.body;
+
+    if (!Predicates.isRecord(namespaceBody) || !Array.isArray(namespaceBody.body)) {
+      return false;
+    }
+    const exportedDeclarations = namespaceBody.body.filter((statement) => {
+      const result = AstHelpers.getNodeType(statement) === 'ExportNamedDeclaration';
+
+      return result;
+    });
+
+    if (exportedDeclarations.length !== 1) {
+      return false;
+    }
+    const declaration = FolderShapeHelpers.getDeclaration(exportedDeclarations.at(0));
+
+    if (!Predicates.isRecord(declaration) || AstHelpers.getNodeType(declaration) !== 'VariableDeclaration') {
+      return false;
+    }
+    if (!Array.isArray(declaration.declarations) || declaration.declarations.length !== 1) {
+      return false;
+    }
+    const result = FolderShapeHelpers.getIdName(declaration.declarations.at(0)) === 'Node';
+
+    return result;
   }
 
   private static getNamespaceExports(body: unknown[]): unknown[] {
@@ -471,7 +547,8 @@ class EntityNamespaceCheck {
     if (nsName !== expectedName) {
       context.report({
         'data': {
-          'expected': expectedName, 'found': nsName ?? '(unknown)'
+          'expected': expectedName,
+          'found': nsName ?? '(unknown)'
         },
         'messageId': 'namespaceMismatch',
         'node': exportStmt
@@ -490,39 +567,47 @@ class EntityNamespaceCheck {
   ): void {
     if (!members.hasSchema) {
       context.report({
-        'messageId': 'missingSchema', 'node': reportNode
+        'messageId': 'missingSchema',
+        'node': reportNode
       });
     } else if (!members.hasSchemaValueAuthored) {
       context.report({
-        'messageId': 'schemaNotConst', 'node': reportNode
+        'messageId': 'schemaNotConst',
+        'node': reportNode
       });
     }
     if (!members.hasType) {
       context.report({
-        'messageId': 'missingType', 'node': reportNode
+        'messageId': 'missingType',
+        'node': reportNode
       });
     } else if (!members.hasTypeFromSchema) {
       context.report({
-        'messageId': 'typeNotFromSchema', 'node': reportNode
+        'messageId': 'typeNotFromSchema',
+        'node': reportNode
       });
     }
     if (!members.hasValidate) {
       context.report({
-        'messageId': 'missingValidate', 'node': reportNode
+        'messageId': 'missingValidate',
+        'node': reportNode
       });
     } else if (!members.hasValidateTypeGuard) {
       context.report({
-        'messageId': 'validateNotTypeGuard', 'node': reportNode
+        'messageId': 'validateNotTypeGuard',
+        'node': reportNode
       });
     }
     if (!members.hasIntake) {
       context.report({
-        'messageId': 'missingIntake', 'node': reportNode
+        'messageId': 'missingIntake',
+        'node': reportNode
       });
     }
     if (members.hasObjectRootSchema && !members.hasCreate) {
       context.report({
-        'messageId': 'missingCreate', 'node': reportNode
+        'messageId': 'missingCreate',
+        'node': reportNode
       });
     }
   }
@@ -574,7 +659,8 @@ class RegexLiteralCheck {
     }
 
     if (node.type === 'BinaryExpression' && node.operator === '+') {
-      const result = RegexLiteralCheck.isStaticStringArgument(node.left) && RegexLiteralCheck.isStaticStringArgument(node.right);
+      const result =
+        RegexLiteralCheck.isStaticStringArgument(node.left) && RegexLiteralCheck.isStaticStringArgument(node.right);
 
       return result;
     }
@@ -692,22 +778,27 @@ class ModuleShape {
     return result;
   }
 
-  private static classifyPureConstantsStatement(statement: unknown): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
+  private static classifyPureConstantsStatement(
+    statement: unknown
+  ): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
     if (!Predicates.isRecord(statement)) {
       return {
-        'hasConstDeclarator': false, 'isValid': false
+        'hasConstDeclarator': false,
+        'isValid': false
       };
     }
     const statementType: unknown = statement.type;
 
     if (statementType === 'ImportDeclaration') {
       return {
-        'hasConstDeclarator': false, 'isValid': true
+        'hasConstDeclarator': false,
+        'isValid': true
       };
     }
     if (ModuleShape.isTypeOnlyDeclaration(statementType)) {
       return {
-        'hasConstDeclarator': false, 'isValid': true
+        'hasConstDeclarator': false,
+        'isValid': true
       };
     }
 
@@ -715,7 +806,8 @@ class ModuleShape {
       const pure = ModuleShape.isPureConstDeclaration(statement);
 
       return {
-        'hasConstDeclarator': pure, 'isValid': pure
+        'hasConstDeclarator': pure,
+        'isValid': pure
       };
     }
 
@@ -726,14 +818,18 @@ class ModuleShape {
     }
 
     return {
-      'hasConstDeclarator': false, 'isValid': false
+      'hasConstDeclarator': false,
+      'isValid': false
     };
   }
 
-  private static classifyExportedPureConstantsStatement(decl: unknown): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
+  private static classifyExportedPureConstantsStatement(
+    decl: unknown
+  ): Readonly<{ 'hasConstDeclarator': boolean; 'isValid': boolean }> {
     if (decl === null || decl === undefined || !Predicates.isRecord(decl)) {
       return {
-        'hasConstDeclarator': false, 'isValid': false
+        'hasConstDeclarator': false,
+        'isValid': false
       };
     }
 
@@ -741,19 +837,22 @@ class ModuleShape {
 
     if (ModuleShape.isTypeOnlyDeclaration(declType)) {
       return {
-        'hasConstDeclarator': false, 'isValid': true
+        'hasConstDeclarator': false,
+        'isValid': true
       };
     }
     if (declType === 'VariableDeclaration') {
       const pure = ModuleShape.isPureConstDeclaration(decl);
 
       return {
-        'hasConstDeclarator': pure, 'isValid': pure
+        'hasConstDeclarator': pure,
+        'isValid': pure
       };
     }
 
     return {
-      'hasConstDeclarator': false, 'isValid': false
+      'hasConstDeclarator': false,
+      'isValid': false
     };
   }
 
@@ -835,9 +934,10 @@ class ModuleShape {
   }
 
   static isStructurallyExemptFromConstantsCheck(program: unknown): boolean {
-    const result = ModuleShape.isPureConstantsModule(program)
-      || ModuleShape.hasEntityNamespaceExport(program)
-      || ModuleShape.isPureBarrel(program);
+    const result =
+      ModuleShape.isPureConstantsModule(program) ||
+      ModuleShape.hasEntityNamespaceExport(program) ||
+      ModuleShape.isPureBarrel(program);
 
     return result;
   }
@@ -860,7 +960,11 @@ class ModuleShape {
 // grouping can never satisfy the paired rule. `export-shape` itself is
 // unchanged; the fix is only to stop this rule from pointing at a dead end.
 class ConstantsCountCheck {
-  static run(context: Rule.RuleContext, program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0], physicalFilename: string): void {
+  static run(
+    context: Rule.RuleContext,
+    program: Parameters<NonNullable<Rule.RuleListener['Program:exit']>>[0],
+    physicalFilename: string
+  ): void {
     const rawProgram: unknown = program;
 
     if (!Predicates.isRecord(rawProgram)) {
@@ -910,7 +1014,9 @@ class ConstantsCountCheck {
     return constNames;
   }
 
-  private static constVariableDeclarationForStatement(statement: Record<string, unknown>): Record<string, unknown> | undefined {
+  private static constVariableDeclarationForStatement(
+    statement: Record<string, unknown>
+  ): Record<string, unknown> | undefined {
     const statementType: unknown = statement.type;
     let variableDeclaration: unknown;
 
@@ -962,19 +1068,29 @@ class ConstantsCountCheck {
 }
 
 namespace FileCategorySchema {
-  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
-    'shape': SchemaNode.defineEnum({}, ['constants', 'declaration', 'entity', 'none'] as const),
-    'underInterfacesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-    'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
-  }, ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export const Node = SchemaNode.defineObject(
+    { 'type': 'object' } as const,
+    {
+      'expectedName': SchemaNode.defineString({ 'type': 'string' } as const),
+      'shape': SchemaNode.defineEnum({}, ['constants', 'declaration', 'entity', 'none'] as const),
+      'underInterfacesFolder': SchemaNode.defineBoolean({
+        'type': 'boolean'
+      } as const),
+      'underTypesFolder': SchemaNode.defineBoolean({ 'type': 'boolean' } as const)
+    },
+    ['expectedName', 'shape', 'underInterfacesFolder', 'underTypesFolder'] as const,
+    { 'additionalProperties': false, 'patternProperties': {} }
+  );
 }
 
 class FileCategoryResolver {
   static resolve(filename: string): NodeStaticType<typeof FileCategorySchema.Node> {
     if (FolderCategory.isEmptyFilename(filename)) {
       return {
-        'expectedName': '', 'shape': 'none', 'underInterfacesFolder': false, 'underTypesFolder': false
+        'expectedName': '',
+        'shape': 'none',
+        'underInterfacesFolder': false,
+        'underTypesFolder': false
       };
     }
 
@@ -992,7 +1108,10 @@ class FileCategoryResolver {
 
     if (underInterfacesFolder || underTypesFolder) {
       return {
-        'expectedName': '', 'shape': 'declaration', 'underInterfacesFolder': underInterfacesFolder, 'underTypesFolder': underTypesFolder
+        'expectedName': '',
+        'shape': 'declaration',
+        'underInterfacesFolder': underInterfacesFolder,
+        'underTypesFolder': underTypesFolder
       };
     }
 
@@ -1000,7 +1119,10 @@ class FileCategoryResolver {
     // structurally, from the parsed Program, at Program:exit — see
     // `ModuleShape.isStructurallyExemptFromConstantsCheck`.
     return {
-      'expectedName': '', 'shape': 'constants', 'underInterfacesFolder': false, 'underTypesFolder': false
+      'expectedName': '',
+      'shape': 'constants',
+      'underInterfacesFolder': false,
+      'underTypesFolder': false
     };
   }
 }
@@ -1061,11 +1183,11 @@ export const entityFileShape: Rule.RuleModule = {
     }
 
     if (category.shape === 'declaration') {
-      const {
-        underInterfacesFolder, underTypesFolder
-      } = category;
+      const { underInterfacesFolder, underTypesFolder } = category;
 
-      const visitTSTypeAliasDeclaration: NonNullable<Rule.RuleListener['TSTypeAliasDeclaration']> = (node: Rule.Node) => {
+      const visitTSTypeAliasDeclaration: NonNullable<Rule.RuleListener['TSTypeAliasDeclaration']> = (
+        node: Rule.Node
+      ) => {
         if (!underInterfacesFolder) {
           return;
         }
@@ -1083,7 +1205,9 @@ export const entityFileShape: Rule.RuleModule = {
         });
       };
 
-      const visitTSInterfaceDeclaration: NonNullable<Rule.RuleListener['TSInterfaceDeclaration']> = (node: Rule.Node) => {
+      const visitTSInterfaceDeclaration: NonNullable<Rule.RuleListener['TSInterfaceDeclaration']> = (
+        node: Rule.Node
+      ) => {
         if (!underTypesFolder) {
           return;
         }
@@ -1116,7 +1240,8 @@ export const entityFileShape: Rule.RuleModule = {
       };
 
       return {
-        ...regexListeners, 'Program:exit': onProgramExit
+        ...regexListeners,
+        'Program:exit': onProgramExit
       };
     }
 
@@ -1130,7 +1255,8 @@ export const entityFileShape: Rule.RuleModule = {
     };
 
     return {
-      ...regexListeners, 'Program:exit': onProgramExit
+      ...regexListeners,
+      'Program:exit': onProgramExit
     };
   },
   'meta': {
@@ -1144,20 +1270,28 @@ export const entityFileShape: Rule.RuleModule = {
         "File '{{file}}' declares {{count}} top-level constants ({{names}}) alongside other top-level declarations (re-exports, functions, classes, or mutable bindings), so it is not a self-contained constants module. Extract these constants into their own '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) file, isolated from the other declarations, grouped under one exported frozen object literal.",
       'interfaceInTypesFolder':
         "Interface '{{name}}' is declared in a 'types/' folder, which is reserved for data shapes (`type` alias declarations). Move this contract to an 'interfaces/' folder, or — if it's actually a pure data shape with no contract signal — declare it as a `type {{name}}` instead.",
-      'missingCreate': 'Entity namespace with a literal object `Schema` must export `create` as `const create = EntityCompiler.compileCreate<Type>(Schema)` for locally produced partial data.',
-      'missingIntake': 'Entity namespace must export `intake` as `const intake = EntityCompiler.compileIntake<Type>(Schema)`, so callers hold a value proven to have crossed the input boundary.',
-      'missingSchema': 'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`, or a schema-builder call (e.g. `Type.Object({...})`).',
-      'missingType': 'Entity namespace must export `type Type` derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`).',
-      'missingValidate': 'Entity namespace must export `validate` — either `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
+      'missingCreate':
+        'Entity namespace with a literal object `Schema` must export `create` as `const create = EntityCompiler.compileCreate<Type>(Schema)` for locally produced partial data.',
+      'missingIntake':
+        'Entity namespace must export `intake` as `const intake = EntityCompiler.compileIntake<Type>(Schema)`, so callers hold a value proven to have crossed the input boundary.',
+      'missingSchema':
+        'Entity namespace must export `const Schema` — a JSON Schema object literal declared `as const`, or a schema-builder call (e.g. `Type.Object({...})`).',
+      'missingType':
+        'Entity namespace must export `type Type` derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`).',
+      'missingValidate':
+        'Entity namespace must export `validate` — either `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type`.',
       'namespaceMismatch': 'Namespace name `{{found}}` must match the filename base `{{expected}}`.',
       'noNamespace': 'Entity files must export exactly one namespace (e.g. `export namespace XxxEntity { ... }`).',
       'regexBelongsInConstants':
         "Regex literals must not be declared inline — they are data constants, like magic numbers and enums, and must live alongside them. Move this pattern into '<area>/constants/<Name>.ts' (or '<area>/fixtures/<Name>.ts' for test/example data) and import it from there.",
-      'schemaNotConst': 'Entity `Schema` must be value-first authored — declared `as const` (to preserve the literal type for `FromSchema<typeof Schema>`) or built via a schema-builder call (e.g. `Type.Object({...})`).',
+      'schemaNotConst':
+        'Entity `Schema` must be value-first authored — declared `as const` (to preserve the literal type for `FromSchema<typeof Schema>`) or built via a schema-builder call (e.g. `Type.Object({...})`).',
       'typeInInterfacesFolder':
         "Type alias '{{name}}' is declared in an 'interfaces/' folder, which is reserved for runtime contracts (`interface` declarations). Move this data shape to a 'types/' folder, or declare it as an actual `interface` if it has a genuine contract signal (call/construct signature, or a member typed as a function/constructor/class instance).",
-      'typeNotFromSchema': 'Entity `type Type` must be derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`) — do not hand-write the type.',
-      'validateNotTypeGuard': 'Entity `validate` must be a type guard: `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type { ... }`.'
+      'typeNotFromSchema':
+        'Entity `type Type` must be derived from `typeof Schema` (e.g. `FromSchema<typeof Schema>` or `Static<typeof Schema>`) — do not hand-write the type.',
+      'validateNotTypeGuard':
+        'Entity `validate` must be a type guard: `const validate = EntityCompiler.compile<Type>(Schema)` (preferred) or `function validate(candidate: unknown): candidate is Type { ... }`.'
     },
     'schema': [],
     'type': 'problem'

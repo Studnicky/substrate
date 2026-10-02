@@ -70,9 +70,10 @@ export class EntityClosureRegistry {
 
   /** The predicate's declared type is a phantom over `TValidated`; `never` is the sound universal witness a caller's generic narrows from. */
   private static toPredicate(node: CompiledNodeInterface, fillDefaults: boolean): MutableValidateFunctionInterface<never> {
+    const options = { 'fillDefaults': fillDefaults };
     const predicate: MutableValidateFunctionInterface<never> = (data: unknown): data is never => {
       const context: ValidationExecutionContextInterface = {
-        'dynamicScope': [], 'options': { 'fillDefaults': fillDefaults }
+        'dynamicScope': [], 'options': options
       };
       const valid = node.check(data, context);
       predicate.errors = valid ? null : node.collect(data, context, '', '');

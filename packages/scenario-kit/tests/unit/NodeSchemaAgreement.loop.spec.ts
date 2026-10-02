@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 
 import type { ScenarioCaseOfType } from '../../src/types/ScenarioCaseOfType.js';
 
+import { ScenarioSuite } from '../../src/node/ScenarioSuite.js';
 import { NodeSchemaAgreement } from '../../src/NodeSchemaAgreement.js';
-import { ScenarioSuite } from '../../src/ScenarioSuite.js';
 import { ScenarioValues } from '../../src/ScenarioValues.js';
 import { NodeSchemaAgreementScenarioCaseEntity } from './entities/NodeSchemaAgreementScenarioCaseEntity.js';
 import { AgreementPairFixtures } from './fixtures/AgreementPairFixtures.js';

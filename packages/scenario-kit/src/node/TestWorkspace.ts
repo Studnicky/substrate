@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpath
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { TestWorkspaceError } from './errors/TestWorkspaceError.js';
+import { TestWorkspaceError } from '../errors/TestWorkspaceError.js';
 
 /**
  * A temporary directory for a test. Every path argument is relative to the workspace root (an absolute path is used as given). Each platform failure is rethrown as `TestWorkspaceError` with the platform error as `cause`.

@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 
 import type { ScenarioCaseOfType } from '../../src/types/ScenarioCaseOfType.js';
 
+import { ScenarioSuite } from '../../src/node/ScenarioSuite.js';
 import { ScenarioFileCompiler } from '../../src/ScenarioFileCompiler.js';
-import { ScenarioSuite } from '../../src/ScenarioSuite.js';
 import { ScenarioValues } from '../../src/ScenarioValues.js';
 import { ScenarioFileCompilerScenarioCaseEntity } from './entities/ScenarioFileCompilerScenarioCaseEntity.js';
 import { ArithmeticScenarioCaseEntity } from './fixtures/ArithmeticScenarioCaseEntity.js';

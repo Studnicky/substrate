@@ -4,7 +4,7 @@ import { it } from 'node:test';
 import type { ScenarioCaseOfType } from '../../src/types/ScenarioCaseOfType.js';
 
 import { ScenarioValueError } from '../../src/errors/ScenarioValueError.js';
-import { ScenarioSuite } from '../../src/ScenarioSuite.js';
+import { ScenarioSuite } from '../../src/node/ScenarioSuite.js';
 import { ScenarioValues } from '../../src/ScenarioValues.js';
 import { ScenarioValuesScenarioCaseEntity } from './entities/ScenarioValuesScenarioCaseEntity.js';
 import scenarioGroups from './ScenarioValues.scenarios.json' with { 'type': 'json' };

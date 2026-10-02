@@ -16,6 +16,31 @@ class CompilerProbe {
   }
 }
 
+class UnknownEnumerablePropertyHandler implements ProxyHandler<Record<PropertyKey, unknown>> {
+  public reads = 0;
+
+  public get(target: Record<PropertyKey, unknown>, property: string | symbol, _receiver: object): unknown {
+    if (property === 'unknown') {
+      this.reads += 1;
+      return 'ignored';
+    }
+    const value = target[property];
+    return value;
+  }
+
+  public getOwnPropertyDescriptor(target: Record<PropertyKey, unknown>, property: string | symbol): PropertyDescriptor | undefined {
+    if (property === 'unknown') {
+      return { 'configurable': true, 'enumerable': true, 'value': 'ignored', 'writable': true };
+    }
+    const descriptor = Reflect.getOwnPropertyDescriptor(target, property);
+    return descriptor;
+  }
+
+  public ownKeys(target: Record<PropertyKey, unknown>): ArrayLike<string | symbol> {
+    const keys = [...Reflect.ownKeys(target), 'unknown'];
+    return keys;
+  }
+}
 void describe('EntityCompiler schema boundaries', () => {
   void it('compiles idempotent pure assertion validators', () => {
     const schema = {
@@ -41,6 +66,17 @@ void describe('EntityCompiler schema boundaries', () => {
     assert.equal(errors[0]?.keyword, 'type');
     assert.equal(errors[0]?.parameters.missingProperty, undefined);
     assert.equal(EntityCompiler.formatErrors(null), 'invalid payload');
+  });
+
+  void it('defers schema compilation until factory use', () => {
+    const schema = { 'patternProperties': { '[': {} }, 'type': 'object' };
+    const validate = EntityCompiler.compile(schema);
+    const intake = EntityCompiler.compileIntake(schema);
+    const create = EntityCompiler.compileCreate<Record<string, unknown>>(schema);
+
+    assert.throws(() => { validate({}); });
+    assert.throws(() => { intake(1); });
+    assert.throws(() => { create(); });
   });
 
   void it('exposes normalized diagnostic parameters', () => {
@@ -332,5 +368,105 @@ void describe('EntityCompiler schema boundaries: remote schemas', () => {
       'type': 'object'
     });
     CompilerProbe.rejectsWith(() => { unresolved({ 'rules': {} }); }, 'Unresolvable reference');
+  });
+});
+
+void describe('EntityCompiler schema boundaries: direct property collector parity', () => {
+  void it('collects declared-property errors in runtime input insertion order', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-order',
+      'properties': {
+        'first': { 'type': 'string' },
+        'second': { 'type': 'integer' }
+      },
+      'type': 'object'
+    });
+
+    const input: Record<string, unknown> = {};
+    input.second = 'invalid';
+    input.first = 0;
+
+    assert.equal(validate(input), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const instancePaths = errors.map((error) => {
+      const instancePath = error.instancePath;
+      return instancePath;
+    });
+    assert.deepEqual(instancePaths, ['/second', '/first']);
+  });
+
+  void it('retains escaped property pointer spelling for slash and tilde names', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-escaping',
+      'properties': { 'a/b~c': { 'type': 'integer' } },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'a/b~c': 'invalid' }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/a~1b~0c');
+    assert.equal(error.schemaPath, '/properties~1a~1b~0c/type');
+  });
+
+  void it('concatenates nested direct-property instance and schema paths', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-nesting',
+      'properties': {
+        'outer': {
+          'properties': { 'inner': { 'type': 'integer' } },
+          'type': 'object'
+        }
+      },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'outer': { 'inner': 'invalid' } }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/outer/inner');
+    assert.equal(error.schemaPath, '/properties~1outer/properties~1inner/type');
+  });
+
+  void it('retains the caller-site schema path through allOf and local references', () => {
+    const validate = EntityCompiler.compile({
+      '$defs': {
+        'base': {
+          'properties': { 'count': { 'type': 'integer' } },
+          'type': 'object'
+        }
+      },
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-reference',
+      'properties': {
+        'config': { 'allOf': [{ '$ref': '#/$defs/base' }] }
+      },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'config': { 'count': 'invalid' } }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/config/count');
+    assert.equal(error.schemaPath, '/properties~1config/allOf~10/properties~1count/type');
+  });
+
+  void it('reads unknown enumerable getters once before skipping them', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-unknown-getter',
+      'properties': { 'known': { 'type': 'string' } },
+      'type': 'object'
+    });
+    const handler = new UnknownEnumerablePropertyHandler();
+    const input = new Proxy<Record<PropertyKey, unknown>>({ 'known': 'valid' }, handler);
+
+    assert.equal(validate(input), true);
+    assert.equal(handler.reads, 1);
   });
 });

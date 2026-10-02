@@ -1,11 +1,11 @@
 import { describe, it } from 'node:test';
 
-import type { ScenarioSuiteOptionsInterface } from './interfaces/ScenarioSuiteOptionsInterface.js';
-import type { ScenarioCaseOfType } from './types/ScenarioCaseOfType.js';
-import type { ScenarioCaseType } from './types/ScenarioCaseType.js';
-import type { ScenarioRunnerMapType } from './types/ScenarioRunnerMapType.js';
+import type { ScenarioSuiteOptionsInterface } from '../interfaces/ScenarioSuiteOptionsInterface.js';
+import type { ScenarioCaseOfType } from '../types/ScenarioCaseOfType.js';
+import type { ScenarioCaseType } from '../types/ScenarioCaseType.js';
+import type { ScenarioRunnerMapType } from '../types/ScenarioRunnerMapType.js';
 
-import { ScenarioFileCompiler } from './ScenarioFileCompiler.js';
+import { ScenarioFileCompiler } from '../ScenarioFileCompiler.js';
 
 /** Registers a scenario file with `node:test`: one `it` per case, each routed to the runner its discriminant names. */
 export class ScenarioSuite {

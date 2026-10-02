@@ -292,7 +292,7 @@ export class Timing implements TimingInterface {
    * Lifecycle hook called before the timing cache is cleared.
    * Subclasses override to react to clear events.
    */
-  protected onClear(): void { return; }
+  protected onClear(): void | Promise<void> { return; }
 
   /**
    * Lifecycle hook called after an event is added to the cache.
@@ -301,7 +301,7 @@ export class Timing implements TimingInterface {
    * @param _data - The event data that was recorded
    * @param _timestamp - The hrtime timestamp at which the event was recorded
    */
-  protected onEvent(_data: TimingEventDataEntity.Type, _timestamp: bigint): void { return; }
+  protected onEvent(_data: TimingEventDataEntity.Type, _timestamp: bigint): void | Promise<void> { return; }
 
   /**
    * Lifecycle hook called before an event is evicted from the cache.
@@ -309,13 +309,13 @@ export class Timing implements TimingInterface {
    *
    * @param _name - The name of the event being evicted
    */
-  protected onEvict(_name: string): void { return; }
+  protected onEvict(_name: string): void | Promise<void> { return; }
 
   /** Fires after the instance is fully initialized. _startTime is the hrtime bigint captured at creation. */
-  protected onInitialize(_startTime: bigint): void { return; }
+  protected onInitialize(_startTime: bigint): void | Promise<void> { return; }
 
   /** Fires at the start of each getEvents() call, before computing elapsed times. _eventCount is the number of entries in the cache at that moment. */
-  protected onGetEvents(_eventCount: number): void { return; }
+  protected onGetEvents(_eventCount: number): void | Promise<void> { return; }
 
   /**
    * Returns the current high-resolution time as a bigint nanosecond value.

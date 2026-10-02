@@ -39,11 +39,15 @@ export class StructuralNodeCompiler {
 
   /** Compiles the child pieces once, then closes each keyword-group step over them — no threaded state object. */
   private static buildEvaluators(plan: SchemaNodePlanInterface, compileChild: CompileChildFunctionInterface): CompiledNodeInterface {
+    const properties = StructuralNodeCompiler.compileProperties(plan, compileChild);
+    const propertyNodes = new Map<string, CompiledNodeInterface>();
+    properties.forEach((descriptor, name) => { propertyNodes.set(name, descriptor.node); });
     const applicators: StructuralApplicatorsInterface = {
       'additionalNode': StructuralNodeCompiler.compileAdditionalProperties(plan, compileChild),
       'patterns': StructuralNodeCompiler.compilePatterns(plan, compileChild),
-      'properties': StructuralNodeCompiler.compileProperties(plan, compileChild),
-      'propertyNamesNode': plan.propertyNames === undefined ? undefined : compileChild(plan.propertyNames, 'propertyNames')
+      'properties': properties,
+      'propertyNamesNode': plan.propertyNames === undefined ? undefined : compileChild(plan.propertyNames, 'propertyNames'),
+      'propertyNodes': propertyNodes
     };
     const dependentSchemas = StructuralNodeCompiler.compileDependentSchemas(plan, compileChild);
     const defaults = StructuralNodeCompiler.extractDefaults(plan);
@@ -55,7 +59,7 @@ export class StructuralNodeCompiler {
     const checkDependentRequired = StructuralNodeCompiler.makeDependentRequiredChecker(plan);
     const collectDependentRequired = StructuralNodeCompiler.makeDependentRequiredCollector(plan);
     const checkProperties = StructuralNodeCompiler.makePropertiesChecker(applicators);
-    const collectProperties = StructuralNodeCompiler.makePropertiesCollector(applicators);
+    const collectProperties = StructuralNodeCompiler.makePropertiesCollector(applicators, plan.schemaPointer);
     const checkDependentSchemas = StructuralNodeCompiler.makeDependentSchemasChecker(dependentSchemas);
     const collectDependentSchemas = StructuralNodeCompiler.makeDependentSchemasCollector(dependentSchemas);
 
@@ -89,10 +93,14 @@ export class StructuralNodeCompiler {
     return result;
   }
 
-  private static compileProperties(plan: SchemaNodePlanInterface, compileChild: CompileChildFunctionInterface): ReadonlyMap<string, CompiledNodeInterface> {
-    const result = new Map<string, CompiledNodeInterface>();
+  private static compileProperties(plan: SchemaNodePlanInterface, compileChild: CompileChildFunctionInterface): StructuralApplicatorsInterface['properties'] {
+    const result = new Map<string, StructuralApplicatorsInterface['properties'] extends ReadonlyMap<string, infer PropertyDescriptor> ? PropertyDescriptor : never>();
     plan.properties.forEach((subschema, name) => {
-      result.set(name, compileChild(subschema, `properties/${name}`));
+      result.set(name, {
+        'instancePathSuffix': `/${name.replaceAll('~', '~0').replaceAll('/', '~1')}`,
+        'node': compileChild(subschema, `properties/${name}`),
+        'schemaPathSuffix': `properties/${name}`
+      });
     });
     return result;
   }
@@ -264,7 +272,7 @@ export class StructuralNodeCompiler {
     // `undefined` on a `properties`/`patternProperties` failure; otherwise whether either matched the key.
     const matchNamedOrPattern = (key: string, propertyValue: unknown, context: ValidationExecutionContextInterface): boolean | undefined => {
       let matched = false;
-      const namedNode = applicators.properties.get(key);
+      const namedNode = applicators.propertyNodes.get(key);
       if (namedNode !== undefined) {
         if (!namedNode.check(propertyValue, context)) { return undefined; }
         matched = true;
@@ -305,19 +313,59 @@ export class StructuralNodeCompiler {
     };
   }
 
-  private static makePropertiesCollector(applicators: StructuralApplicatorsInterface): (
+  private static makePropertiesCollector(applicators: StructuralApplicatorsInterface, staticSchemaPointer: string): (
     value: Record<string, unknown>, context: ValidationExecutionContextInterface, instancePath: string, schemaPathPrefix: string,
     evaluated: EvaluatedTrackerInterface | undefined
   ) => EntityValidationErrorInterface[] {
+    if (applicators.patterns.length === 0 && applicators.additionalNode === undefined && applicators.propertyNamesNode === undefined) {
+      const properties = applicators.properties;
+      const normalizedStaticSchemaPointer = staticSchemaPointer.startsWith('#') ? staticSchemaPointer.slice(1) : staticSchemaPointer;
+      const staticSchemaPaths = new Map<string, string>();
+      const staticSchemaPathsByPrefix = new Map<string, ReadonlyMap<string, string>>();
+      const normalizedStaticSchemaPaths = normalizedStaticSchemaPointer === staticSchemaPointer ? staticSchemaPaths : new Map<string, string>();
+      staticSchemaPathsByPrefix.set(staticSchemaPointer, staticSchemaPaths);
+      staticSchemaPathsByPrefix.set(normalizedStaticSchemaPointer, normalizedStaticSchemaPaths);
+      properties.forEach((descriptor, name) => {
+        staticSchemaPaths.set(name, SchemaPointer.append(staticSchemaPointer, descriptor.schemaPathSuffix));
+        normalizedStaticSchemaPaths.set(name, SchemaPointer.append(normalizedStaticSchemaPointer, descriptor.schemaPathSuffix));
+      });
+      return (value, context, instancePath, schemaPathPrefix, evaluated) => {
+        const errors: EntityValidationErrorInterface[] = [];
+        const keys = Object.keys(value);
+        const count = keys.length;
+        for (let index = 0; index < count; index += 1) {
+          const key = keys[index]!;
+          const descriptor = properties.get(key);
+          if (descriptor === undefined) { continue; }
+          const propertyValue = Reflect.get(value, key);
+          const propertyPath = `${instancePath}${descriptor.instancePathSuffix}`;
+          const pathsForPrefix = staticSchemaPathsByPrefix.get(schemaPathPrefix);
+          const schemaPath = pathsForPrefix?.get(key) ?? SchemaPointer.append(schemaPathPrefix, descriptor.schemaPathSuffix);
+          const renderedBaseAppender = pathsForPrefix === undefined ? undefined : descriptor.node.appendErrorsAtRenderedSchemaBase;
+          if (renderedBaseAppender !== undefined) {
+            renderedBaseAppender(propertyValue, propertyPath, schemaPath, errors);
+          } else if (descriptor.node.appendErrors !== undefined) {
+            descriptor.node.appendErrors(propertyValue, propertyPath, schemaPath, errors);
+          } else {
+            errors.push(...descriptor.node.collect(propertyValue, context, propertyPath, schemaPath));
+          }
+          if (evaluated !== undefined) { evaluated.properties.add(key); }
+        }
+        return errors;
+      };
+    }
+
     return (value, context, instancePath, schemaPathPrefix, evaluated) => {
       // Collects one key's errors against every applicator; unlike `matchKey`, never short-circuits.
       const collectKey = (key: string, propertyValue: unknown, propertyPath: string): EntityValidationErrorInterface[] => {
         const errors: EntityValidationErrorInterface[] = [];
         let matched = false;
-        const namedNode = applicators.properties.get(key);
-        if (namedNode !== undefined) {
+        const namedDescriptor = applicators.properties.get(key);
+        if (namedDescriptor !== undefined) {
           matched = true;
-          errors.push(...namedNode.collect(propertyValue, context, propertyPath, SchemaPointer.append(schemaPathPrefix, `properties/${key}`)));
+          errors.push(...namedDescriptor.node.collect(
+            propertyValue, context, propertyPath, SchemaPointer.append(schemaPathPrefix, namedDescriptor.schemaPathSuffix)
+          ));
         }
         const patternCount = applicators.patterns.length;
         for (let patternIndex = 0; patternIndex < patternCount; patternIndex += 1) {

@@ -36,6 +36,11 @@
       "name": "[entities] index.ts barrel under entities/ is exempt from namespace checks (index-file exclusion)"
     },
     {
+      "code": "export namespace TimingScenarioCaseNode { const internalNode = {}; export const Node = internalNode; }",
+      "filename": "/project/src/entities/TimingScenarioCaseNode.ts",
+      "name": "[entities] a matching Node support namespace with only an exported Node does not require an entity intake contract"
+    },
+    {
       "code": "export interface FooInterface { readonly id: string; run(): void; }",
       "filename": "/project/src/interfaces/FooInterface.ts",
       "name": "[interfaces/types] interface declared under interfaces/ folder -> not flagged"

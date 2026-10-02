@@ -36,6 +36,7 @@ import { SchemaPattern } from './SchemaPattern.js';
 
 export class EntityCompiler {
   private static readonly patternPropertyMatchers = new WeakMap<object, Map<string, RegExp>>();
+  private static readonly lazyValidatorsByRegistry = new WeakMap<SchemaCompilerInterface, Map<string, EntityValidateFunctionInterface<never>>>();
 
   /** The compilation backend to dispatch to. Every runtime entrypoint overrides this. */
   protected static get registries(): SchemaRegistrySetInterface {
@@ -53,14 +54,7 @@ export class EntityCompiler {
   public static compile<TValidated>(
     schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityValidateFunctionInterface<TValidated> {
-    const id = SchemaId.of(schema);
-    if (id !== undefined) {
-      const existing = this.registries.assert.getSchema<TValidated>(id);
-      if (existing !== undefined) {
-        return existing;
-      }
-    }
-    const result = this.registries.assert.compile<TValidated>(schema, remoteSchemas);
+    const result = EntityCompiler.lazySchemaValidator<TValidated>(this.registries.assert, schema, remoteSchemas);
     return result;
   }
 
@@ -78,7 +72,7 @@ export class EntityCompiler {
   public static compileIntake<TValidated>(
     schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityIntakeFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(this.registries.intake, schema, remoteSchemas);
+    const validate = EntityCompiler.lazySchemaValidator<TValidated>(this.registries.intake, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
       if (Predicates.hasCycle(input)) {
@@ -113,7 +107,7 @@ export class EntityCompiler {
   public static compileCreate<TStatic extends object, TInput extends object = TStatic>(
     schema: object, remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityCreateFunctionInterface<TStatic, TInput> {
-    const validate = EntityCompiler.schemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
+    const validate = EntityCompiler.lazySchemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
       let cloned: Partial<TInput>;
@@ -604,6 +598,46 @@ export class EntityCompiler {
   }
 
   /** Compiles or reuses the cached validator a registry keeps for a schema's `$id`. */
+  private static lazySchemaValidator<TValidated>(
+    registry: SchemaCompilerInterface,
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<TValidated> {
+    const id = SchemaId.of(schema);
+    if (id === undefined) {
+      const result = EntityCompiler.createLazySchemaValidator(registry, schema, remoteSchemas);
+      return result;
+    }
+    const validators = EntityCompiler.lazyValidatorsByRegistry.get(registry) ?? new Map<string, EntityValidateFunctionInterface<never>>();
+    EntityCompiler.lazyValidatorsByRegistry.set(registry, validators);
+    const existing = validators.get(id);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const validator = EntityCompiler.createLazySchemaValidator(registry, schema, remoteSchemas);
+    validators.set(id, validator);
+    return validator;
+  }
+
+  private static createLazySchemaValidator(
+    registry: SchemaCompilerInterface,
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<never> {
+    let validator: EntityValidateFunctionInterface<never> | undefined;
+    const lazy: EntityValidateFunctionInterface<never> = (data): data is never => {
+      validator ??= EntityCompiler.schemaValidator<never>(registry, schema, remoteSchemas);
+      const result = validator(data);
+      const errors = validator.errors;
+      if (lazy.errors !== errors) {
+        Reflect.set(lazy, 'errors', errors);
+      }
+      return result;
+    };
+    Reflect.set(lazy, 'errors', undefined);
+    return lazy;
+  }
+
   private static schemaValidator<TValidated>(
     registry: SchemaCompilerInterface,
     schema: object | boolean,

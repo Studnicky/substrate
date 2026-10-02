@@ -6,7 +6,7 @@ import { ContextError } from '../../../src/errors/ContextError.js';
 import scenarioGroups from './context-error.scenarios.json' with { 'type': 'json' };
 import { ContextErrorScenarioCaseEntity } from './entities/ContextErrorScenarioCaseEntity.js';
 
-const fileIntake = ScenarioFileCompiler.compileIntake(ContextErrorScenarioCaseEntity.Schema, ContextErrorScenarioCaseEntity.Node);
+const fileIntake = ScenarioFileCompiler.compileIntake(ContextErrorScenarioCaseEntity);
 
 class ContextErrorScenarioRunner {
   static construction(scenarioCase: ContextErrorScenarioCaseEntity.Type): void {

@@ -1,24 +1,13 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
+import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
 import { EVENT_COMPONENTS } from '../../src/constants/EVENT_COMPONENTS.js';
 import { LogEventName } from '../../src/modules/LogEventName.js';
 import { LogEventNameScenarioCaseEntity } from './entities/LogEventNameScenarioCaseEntity.js';
-import scenarioGroups from './LogEventName.scenarios.json' with { type: 'json' };
+import scenarioGroups from './LogEventName.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase = LogEventNameScenarioCaseEntity.Type;
-
-const fileIntake = ScenarioFileCompiler.compileIntake(LogEventNameScenarioCaseEntity.Schema, LogEventNameScenarioCaseEntity.Node);
-
-type ScenarioRunner<K extends ScenarioCase['shape']> =
-  (scenarioCase: Extract<ScenarioCase, { shape: K }>) => void;
-type RunnerMap = { [K in ScenarioCase['shape']]: ScenarioRunner<K> };
-
-const runnerMap: RunnerMap = {
-  'component-prefixes': (scenarioCase) => {
+class LogEventNameRunners {
+  static 'component-prefixes'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'component-prefixes' }>): void {
     assert.strictEqual(scenarioCase.expected.components.API, EVENT_COMPONENTS.API);
     assert.strictEqual(scenarioCase.expected.components.AUTH, EVENT_COMPONENTS.AUTH);
     assert.strictEqual(scenarioCase.expected.components.QUERY_TRANSLATE, EVENT_COMPONENTS.QUERY_TRANSLATE);
@@ -34,38 +23,40 @@ const runnerMap: RunnerMap = {
     assert.strictEqual(scenarioCase.expected.components.DATA_SOURCE, EVENT_COMPONENTS.DATA_SOURCE);
     assert.strictEqual(scenarioCase.expected.components.SCHEMA, EVENT_COMPONENTS.SCHEMA);
     assert.strictEqual(scenarioCase.expected.components.TIMING, EVENT_COMPONENTS.TIMING);
-  },
-  'create-constant-component': (scenarioCase) => {
+  }
+
+  static 'create-constant-component'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'create-constant-component' }>): void {
     assert.strictEqual(LogEventName.create(scenarioCase.input.component, scenarioCase.input.operation), scenarioCase.expected);
-  },
-  'create-graph-query': (scenarioCase) => {
+  }
+
+  static 'create-graph-query'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'create-graph-query' }>): void {
     assert.strictEqual(LogEventName.create(scenarioCase.input.component, scenarioCase.input.operation), scenarioCase.expected);
-  },
-  'create-query-planner': (scenarioCase) => {
+  }
+
+  static 'create-query-planner'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'create-query-planner' }>): void {
     assert.strictEqual(LogEventName.create(scenarioCase.input.component, scenarioCase.input.operation), scenarioCase.expected);
-  },
-  'parse-graph-query': (scenarioCase) => {
-    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
-  },
-  'parse-multiple-dots': (scenarioCase) => {
-    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
-  },
-  'parse-query-planner': (scenarioCase) => {
-    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
-  },
-  'parse-standalone': (scenarioCase) => {
+  }
+
+  static 'parse-graph-query'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'parse-graph-query' }>): void {
     assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
   }
-};
 
-function runCase<K extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: K }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'parse-multiple-dots'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'parse-multiple-dots' }>): void {
+    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
+  }
+
+  static 'parse-query-planner'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'parse-query-planner' }>): void {
+    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
+  }
+
+  static 'parse-standalone'(scenarioCase: Extract<LogEventNameScenarioCaseEntity.Type, { 'shape': 'parse-standalone' }>): void {
+    assert.deepStrictEqual(LogEventName.parse(scenarioCase.input.event), scenarioCase.expected);
+  }
 }
 
-void describe('LogEventName', () => {
-  for (const scenario of fileIntake(scenarioGroups).cases) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': LogEventNameScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'LogEventName',
+  'runners': LogEventNameRunners
 });

@@ -5,6 +5,11 @@ import type { PatternApplicatorInterface } from './PatternApplicatorInterface.js
 export interface StructuralApplicatorsInterface {
   readonly 'additionalNode': CompiledNodeInterface | undefined;
   readonly 'patterns': readonly PatternApplicatorInterface[];
-  readonly 'properties': ReadonlyMap<string, CompiledNodeInterface>;
+  readonly 'properties': ReadonlyMap<string, {
+    readonly 'instancePathSuffix': string;
+    readonly 'node': CompiledNodeInterface;
+    readonly 'schemaPathSuffix': string;
+  }>;
   readonly 'propertyNamesNode': CompiledNodeInterface | undefined;
+  readonly 'propertyNodes': ReadonlyMap<string, CompiledNodeInterface>;
 }

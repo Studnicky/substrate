@@ -7,9 +7,9 @@ import { it } from 'node:test';
 import type { ScenarioCaseOfType } from '../../src/types/ScenarioCaseOfType.js';
 
 import { TestWorkspaceError } from '../../src/errors/TestWorkspaceError.js';
-import { ScenarioSuite } from '../../src/ScenarioSuite.js';
+import { ScenarioSuite } from '../../src/node/ScenarioSuite.js';
+import { TestWorkspace } from '../../src/node/TestWorkspace.js';
 import { ScenarioValues } from '../../src/ScenarioValues.js';
-import { TestWorkspace } from '../../src/TestWorkspace.js';
 import { TestWorkspaceScenarioCaseEntity } from './entities/TestWorkspaceScenarioCaseEntity.js';
 import scenarioGroups from './TestWorkspace.scenarios.json' with { 'type': 'json' };
 

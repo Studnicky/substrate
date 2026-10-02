@@ -11,6 +11,8 @@ The rule checks declaration IDs, identifier references, enum members, method/pro
 
 A property key that is JSON Schema's own published vocabulary (`minLength`, `maxLength`, `minItems`, `maxItems`, `minProperties`, `maxProperties`, `minContains`, `maxContains`, `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`) is exempt by exact name, independent of the contextual-type provenance check above — the specification chose these names, not this codebase, and the exemption does not depend on any particular schema-authoring package being imported.
 
+Every literal object key supplied directly to a `SchemaNode.define*` call imported from `@studnicky/entity/types` is also out of scope. Such keys describe schema data and may be an external input field name rather than a project-owned local identifier. Calls through a local value named `SchemaNode` do not qualify.
+
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect

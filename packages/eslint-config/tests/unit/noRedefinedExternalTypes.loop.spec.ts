@@ -1,9 +1,9 @@
+import { TestWorkspace } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import parser from '@typescript-eslint/parser';
 import { Linter } from 'eslint';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import ts from 'typescript';
@@ -47,53 +47,6 @@ class FixtureData {
     } catch (cause) {
       throw new FixtureError(`cannot read ${filename}`, cause);
     }
-  }
-}
-
-/** A disposable temporary project directory whose platform failures surface as FixtureError. */
-class FixtureWorkspace implements Disposable {
-  readonly root: string;
-
-  private constructor(root: string) {
-    this.root = root;
-  }
-
-  static create(prefix: string): FixtureWorkspace {
-    try {
-      const root = mkdtempSync(join(tmpdir(), prefix));
-      const workspace = new FixtureWorkspace(root);
-      return workspace;
-    } catch (cause) {
-      throw new FixtureError(`cannot create workspace ${prefix}`, cause);
-    }
-  }
-
-  [Symbol.dispose](): void {
-    try {
-      rmSync(this.root, { 'force': true, 'recursive': true });
-    } catch (cause) {
-      throw new FixtureError(`cannot remove workspace ${this.root}`, cause);
-    }
-  }
-
-  mkdir(path: string): string {
-    const absolute = join(this.root, path);
-    try {
-      mkdirSync(absolute, { 'recursive': true });
-    } catch (cause) {
-      throw new FixtureError(`cannot create directory ${absolute}`, cause);
-    }
-    return absolute;
-  }
-
-  write(path: string, content: string): string {
-    const absolute = join(this.root, path);
-    try {
-      writeFileSync(absolute, content);
-    } catch (cause) {
-      throw new FixtureError(`cannot write ${absolute}`, cause);
-    }
-    return absolute;
   }
 }
 
@@ -295,7 +248,7 @@ class NoRedefinedExternalTypesHarness {
     return result;
   }
 
-  static prepareFixtureProject(workspace: FixtureWorkspace): void {
+  static prepareFixtureProject(workspace: TestWorkspace): void {
     workspace.write('tsconfig.json', FixtureData.json({
       'compilerOptions': {
         'lib': ['ES2022', 'DOM'],
@@ -311,7 +264,7 @@ class NoRedefinedExternalTypesHarness {
 
 class NoRedefinedExternalTypesScenarios {
   static requiresPublicDirectDependencyTypes(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-');
     workspace.mkdir('src');
     workspace.mkdir('node_modules/@fixture/contracts');
     workspace.mkdir('node_modules/@fixture/transitive');
@@ -375,7 +328,7 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static usesSemanticIdentity(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-semantic-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-semantic-');
     workspace.mkdir('src');
     workspace.write('package.json', FixtureData.json({
       'name': 'semantic-fixture',
@@ -443,7 +396,7 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static exemptsCanonicalEntityTypes(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-canonical-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-canonical-');
     workspace.mkdir('src');
     workspace.mkdir('node_modules/@fixture/contracts');
     workspace.mkdir('node_modules/@studnicky/entity/interfaces');
@@ -500,7 +453,7 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static exemptsCanonicalInputType(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-input-type-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-input-type-');
     workspace.mkdir('src');
     workspace.mkdir('node_modules/@studnicky/entity/interfaces');
     workspace.mkdir('node_modules/@studnicky/entity/types');
@@ -549,7 +502,7 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static reportsHandWrittenInputType(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-input-type-invalid-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-input-type-invalid-');
     workspace.mkdir('src');
     workspace.mkdir('node_modules/@fixture/bundler');
     workspace.write('package.json', FixtureData.json({
@@ -579,7 +532,7 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static cachesDirectDependencyCandidates(): void {
-    using workspace = FixtureWorkspace.create('no-redefined-external-types-cache-');
+    using workspace = TestWorkspace.create('no-redefined-external-types-cache-');
     const code = 'export interface RebuiltOptions { readonly label: string; }';
     workspace.mkdir('src');
     workspace.mkdir('node_modules/fixture-contracts');

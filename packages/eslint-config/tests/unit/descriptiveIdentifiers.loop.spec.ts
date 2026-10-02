@@ -86,7 +86,7 @@ void describe('descriptive-identifiers', () => {
     ruleTester.run('descriptive-identifiers', descriptiveIdentifiers, scenarioGroups.rule);
   });
 
-  void it('exempts JSON Schema vocabulary by exact name inside a SchemaNode.defineX(...) call, never by enclosing-call position', () => {
+  void it('exempts literal SchemaNode definition-property keys while retaining locally declared property checks', () => {
     const packageRuleTester = new RuleTester({
       'languageOptions': {
         'parser': parser,
@@ -99,13 +99,13 @@ void describe('descriptive-identifiers', () => {
 
     packageRuleTester.run('descriptive-identifiers', descriptiveIdentifiers, {
       'invalid': [{
-        'code': "import { SchemaNode } from '@studnicky/entity/types';\nexport const Node = SchemaNode.defineObject({ type: 'object' } as const, { minVal: SchemaNode.defineNumber({ type: 'number' } as const) });",
-        'errors': [{ 'messageId': 'banned-shortening' }],
-        'filename': 'BadFieldInSchemaNodeCall.ts'
+        'code': 'interface LocalDefinition { minVal: number; }\nconst localDefinition: LocalDefinition = { minVal: 1 };\nvoid localDefinition;',
+        'errors': [{ 'messageId': 'banned-shortening' }, { 'messageId': 'banned-shortening' }],
+        'filename': 'LocalDefinition.ts'
       }],
       'valid': [{
-        'code': "import { SchemaNode } from '@studnicky/entity/types';\nexport const Node = SchemaNode.defineObject({ type: 'object' } as const, { field: SchemaNode.defineString({ minLength: 3, type: 'string' } as const) });",
-        'filename': 'VocabKeyInSchemaNodeCall.ts'
+        'code': "import { SchemaNode } from '@studnicky/entity/types';\nexport const Node = SchemaNode.defineObject({ type: 'object' } as const, { minVal: SchemaNode.defineNumber({ type: 'number' } as const) });",
+        'filename': 'SchemaNodeDefinitionProperty.ts'
       }]
     });
   });

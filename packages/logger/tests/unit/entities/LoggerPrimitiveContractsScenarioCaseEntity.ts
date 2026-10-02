@@ -1,5 +1,7 @@
+import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
 import { LogLevelEntity } from '../../../src/entities/LogLevelEntity.js';
@@ -20,13 +22,13 @@ const numberLevelsSchema = {
   'type': 'object'
 } as const;
 const numberLevelsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'DEBUG': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'ERROR': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'INFO': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'SILENT': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'TRACE': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'WARN': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-  }, ['DEBUG', 'ERROR', 'INFO', 'SILENT', 'TRACE', 'WARN'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'DEBUG': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'ERROR': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'INFO': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'SILENT': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'TRACE': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'WARN': SchemaNode.defineNumber({ 'type': 'integer' } as const)
+}, ['DEBUG', 'ERROR', 'INFO', 'SILENT', 'TRACE', 'WARN'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const lowercaseLevelsSchema = {
   'additionalProperties': false,
   'properties': { 'debug': { 'type': 'integer' }, 'error': { 'type': 'integer' }, 'info': { 'type': 'integer' }, 'silent': { 'type': 'integer' }, 'trace': { 'type': 'integer' }, 'warn': { 'type': 'integer' } },
@@ -34,13 +36,13 @@ const lowercaseLevelsSchema = {
   'type': 'object'
 } as const;
 const lowercaseLevelsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'debug': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'error': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'info': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'silent': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'trace': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'warn': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-  }, ['debug', 'error', 'info', 'silent', 'trace', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'debug': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'error': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'info': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'silent': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'trace': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'warn': SchemaNode.defineNumber({ 'type': 'integer' } as const)
+}, ['debug', 'error', 'info', 'silent', 'trace', 'warn'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const invalidStringLevelsSchema = {
   'additionalProperties': false,
   'properties': {
@@ -51,14 +53,14 @@ const invalidStringLevelsSchema = {
   'type': 'object'
 } as const;
 const invalidStringLevelsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'empty': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'invalid': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'large': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'negative': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'spaced': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'title': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-    'uppercase': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-  }, ['empty', 'invalid', 'large', 'negative', 'spaced', 'title', 'uppercase'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'empty': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'invalid': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'large': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'negative': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'spaced': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'title': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+  'uppercase': SchemaNode.defineNumber({ 'type': 'integer' } as const)
+}, ['empty', 'invalid', 'large', 'negative', 'spaced', 'title', 'uppercase'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const anyObjectSchema = { 'additionalProperties': true, 'properties': {}, 'required': [], 'type': 'object' } as const;
 const anyObjectNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} });
 
@@ -79,16 +81,16 @@ const faultConfigSchema = {
   'type': 'object'
 } as const;
 const faultConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'context': anyObjectNode,
-    'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'status': LogStatusEntity.Node
-  }, ['component', 'context', 'message', 'name', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'context': anyObjectNode,
+  'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'status': LogStatusEntity.Node
+}, ['component', 'context', 'message', 'name', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const partialFaultConfigSchema = {
   'additionalProperties': false,
   'properties': faultConfigSchema.properties,
@@ -96,16 +98,16 @@ const partialFaultConfigSchema = {
   'type': 'object'
 } as const;
 const partialFaultConfigNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'context': anyObjectNode,
-    'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'status': LogStatusEntity.Node
-  }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'context': anyObjectNode,
+  'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'status': LogStatusEntity.Node
+}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
 const faultConfigWithoutIdentitySchema = {
   'additionalProperties': false,
   'properties': {
@@ -121,14 +123,14 @@ const faultConfigWithoutIdentitySchema = {
   'type': 'object'
 } as const;
 const faultConfigWithoutIdentityNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-    'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'context': anyObjectNode,
-    'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-    'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-    'status': LogStatusEntity.Node
-  }, ['component', 'context', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'context': anyObjectNode,
+  'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+  'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+  'status': LogStatusEntity.Node
+}, ['component', 'context', 'operation', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
 const emptyInputSchema = { 'additionalProperties': false, 'properties': {}, 'required': [], 'type': 'object' } as const;
 const emptyInputNode = SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
@@ -142,12 +144,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const levelValuesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numberLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numberLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'level-values' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numberLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numberLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'level-values' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const levelOrderSchema = {
     'additionalProperties': false,
@@ -162,12 +164,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const levelOrderNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'ordered': SchemaNode.defineConst({}, true as const) }, ['ordered'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'ordered': SchemaNode.defineConst({}, true as const) }, ['ordered'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'level-order' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'ordered': SchemaNode.defineConst({}, true as const) }, ['ordered'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'ordered': SchemaNode.defineConst({}, true as const) }, ['ordered'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'level-order' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const levelMapSchema = {
     'additionalProperties': false,
@@ -176,12 +178,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const levelMapNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': lowercaseLevelsNode }, ['resolved'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': lowercaseLevelsNode }, ['resolved'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'level-map' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': lowercaseLevelsNode }, ['resolved'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'resolved': lowercaseLevelsNode }, ['resolved'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'level-map' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const numericArraySchema = { 'items': { 'type': 'integer' }, 'type': 'array' } as const;
   const numericArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineNumber({ 'type': 'integer' } as const), undefined);
@@ -192,12 +194,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const parseNumericNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numericArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numericArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'parse-numeric' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numericArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': numericArrayNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'parse-numeric' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const parseStringSchema = {
     'additionalProperties': false,
@@ -206,12 +208,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const parseStringNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': lowercaseLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': lowercaseLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'parse-string' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': lowercaseLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': lowercaseLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'parse-string' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const parseInvalidStringSchema = {
     'additionalProperties': false,
@@ -220,12 +222,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const parseInvalidStringNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': invalidStringLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': invalidStringLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'parse-invalid-string' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': invalidStringLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'values': invalidStringLevelsNode }, ['values'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'parse-invalid-string' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const stringArraySchema = { 'items': { 'type': 'string' }, 'type': 'array' } as const;
   const stringArrayNode = SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined);
@@ -236,12 +238,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const safeStringifyBasicNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'outputs': stringArrayNode }, ['outputs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'outputs': stringArrayNode }, ['outputs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'safe-stringify-basic' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'outputs': stringArrayNode }, ['outputs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'outputs': stringArrayNode }, ['outputs'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'safe-stringify-basic' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const containsPairSchema = {
     'additionalProperties': false,
@@ -272,13 +274,13 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const parsedTypesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'array': numericArrayNode,
-      'boolean': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
-      'nested': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'nullValue': SchemaNode.defineNull({ 'type': 'null' } as const),
-      'number': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-      'string': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    }, ['array', 'boolean', 'nested', 'nullValue', 'number', 'string'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'array': numericArrayNode,
+    'boolean': SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    'nested': SchemaNode.defineObject({ 'type': 'object' } as const, { 'key': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const) }, ['key'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'nullValue': SchemaNode.defineNull({ 'type': 'null' } as const),
+    'number': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+    'string': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+  }, ['array', 'boolean', 'nested', 'nullValue', 'number', 'string'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const containsAndParsedSchema = {
     'additionalProperties': false,
     'properties': { 'contains': stringArraySchema, 'parsed': parsedTypesSchema },
@@ -301,11 +303,11 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const primitivesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'boolean': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'null': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'number': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'string': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-    }, ['boolean', 'null', 'number', 'string'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'boolean': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'null': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'number': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'string': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+  }, ['boolean', 'null', 'number', 'string'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const safeStringifyJsonEdgesSchema = {
     'additionalProperties': false,
     'properties': {
@@ -330,18 +332,18 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const safeStringifyJsonEdgesNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'dateContains': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'emptyArray': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'emptyObject': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'primitives': primitivesNode,
-          'symbolObject': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        }, ['dateContains', 'emptyArray', 'emptyObject', 'primitives', 'symbolObject'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': emptyInputNode,
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'safe-stringify-json-edges' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'dateContains': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'emptyArray': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'emptyObject': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'primitives': primitivesNode,
+      'symbolObject': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+    }, ['dateContains', 'emptyArray', 'emptyObject', 'primitives', 'symbolObject'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': emptyInputNode,
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'safe-stringify-json-edges' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const entityCompositionFlagsSchema = {
     'additionalProperties': false,
@@ -356,12 +358,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const entityCompositionFlagsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'cloudwatchValid': SchemaNode.defineConst({}, true as const),
-      'hookShapeInvalid': SchemaNode.defineConst({}, false as const),
-      'hookShapeValid': SchemaNode.defineConst({}, true as const),
-      'logDataInvalid': SchemaNode.defineConst({}, false as const),
-      'logDataValid': SchemaNode.defineConst({}, true as const)
-    }, ['cloudwatchValid', 'hookShapeInvalid', 'hookShapeValid', 'logDataInvalid', 'logDataValid'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'cloudwatchValid': SchemaNode.defineConst({}, true as const),
+    'hookShapeInvalid': SchemaNode.defineConst({}, false as const),
+    'hookShapeValid': SchemaNode.defineConst({}, true as const),
+    'logDataInvalid': SchemaNode.defineConst({}, false as const),
+    'logDataValid': SchemaNode.defineConst({}, true as const)
+  }, ['cloudwatchValid', 'hookShapeInvalid', 'hookShapeValid', 'logDataInvalid', 'logDataValid'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const entityCompositionSchema = {
     'additionalProperties': false,
     'properties': { 'description': nameSchema, 'expected': entityCompositionFlagsSchema, 'input': entityCompositionFlagsSchema, 'name': nameSchema, 'shape': { 'const': 'entity-composition' } },
@@ -395,19 +397,19 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const logFaultBasicNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'event': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'frozen': SchemaNode.defineConst({}, true as const),
-          'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'nestedAttempt': SchemaNode.defineNumber({ 'type': 'integer' } as const),
-          'status': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        }, ['event', 'frozen', 'message', 'name', 'nestedAttempt', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': faultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'log-fault-basic' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'event': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'frozen': SchemaNode.defineConst({}, true as const),
+      'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'nestedAttempt': SchemaNode.defineNumber({ 'type': 'integer' } as const),
+      'status': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+    }, ['event', 'frozen', 'message', 'name', 'nestedAttempt', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': faultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'log-fault-basic' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const logFaultOptionalFieldsSchema = {
     'additionalProperties': false,
@@ -427,16 +429,16 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const logFaultOptionalFieldsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
-          'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        }, ['cause', 'durationMs', 'stack'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': faultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'log-fault-optional-fields' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'durationMs': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const),
+      'stack': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+    }, ['cause', 'durationMs', 'stack'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': faultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'log-fault-optional-fields' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const logFaultMissingFieldSchema = {
     'additionalProperties': false,
@@ -456,12 +458,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const logFaultMissingFieldNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'name': SchemaNode.defineConst({}, 'LogBuildError' as const) }, ['message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': partialFaultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'log-fault-missing-field' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'name': SchemaNode.defineConst({}, 'LogBuildError' as const) }, ['message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'fault': partialFaultConfigNode }, ['fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'log-fault-missing-field' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const logFaultFromErrorFieldsSchema = {
     'additionalProperties': false,
@@ -499,24 +501,24 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const logFaultFromErrorFieldsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'event': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-          'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-        }, ['cause', 'event', 'message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'error': SchemaNode.defineObject({ 'type': 'object' } as const, {
-              'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-              'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-              'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
-            }, ['cause', 'message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-          'fault': faultConfigWithoutIdentityNode
-        }, ['error', 'fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'log-fault-from-error-fields' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'event': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+    }, ['cause', 'event', 'message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'error': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'cause': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const)
+      }, ['cause', 'message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+      'fault': faultConfigWithoutIdentityNode
+    }, ['error', 'fault'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'log-fault-from-error-fields' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const consoleMethodSchema = { 'enum': CONSOLE_METHODS } as const;
   const consoleMethodNode = SchemaNode.defineEnum({}, CONSOLE_METHODS);
@@ -540,12 +542,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const consoleBodyNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'context': anyObjectNode,
-      'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'status': LogStatusEntity.Node,
-      'time': SchemaNode.defineNumber({ 'type': 'integer' } as const)
-    }, ['component', 'context', 'operation', 'status', 'time'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'component': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'context': anyObjectNode,
+    'operation': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+    'status': LogStatusEntity.Node,
+    'time': SchemaNode.defineNumber({ 'type': 'integer' } as const)
+  }, ['component', 'context', 'operation', 'status', 'time'] as const, { 'additionalProperties': false, 'patternProperties': {} });
   const consoleRecordSchema = {
     'additionalProperties': false,
     'properties': { 'level': logLevelEnumSchema, 'message': { 'minLength': 1, 'type': 'string' }, 'metadata': anyObjectSchema, 'method': consoleMethodSchema },
@@ -588,19 +590,19 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const consoleTransportDispatchNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'calls': consoleCallsNode }, ['calls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
-          'body': consoleBodyNode,
-          'records': SchemaNode.defineArray({ 'type': 'array' } as const, consoleRecordNode, undefined),
-          'transport': SchemaNode.defineObject({ 'type': 'object' } as const, {
-              'filtered': SchemaNode.defineObject({ 'type': 'object' } as const, { 'level': LogLevelEntity.Node, 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'minLevel': LogLevelEntity.Node }, ['level', 'message', 'minLevel'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-              'level': LogLevelEntity.Node
-            }, ['filtered', 'level'] as const, { 'additionalProperties': false, 'patternProperties': {} })
-        }, ['body', 'records', 'transport'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'console-transport-dispatch' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'calls': consoleCallsNode }, ['calls'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, {
+      'body': consoleBodyNode,
+      'records': SchemaNode.defineArray({ 'type': 'array' } as const, consoleRecordNode, undefined),
+      'transport': SchemaNode.defineObject({ 'type': 'object' } as const, {
+        'filtered': SchemaNode.defineObject({ 'type': 'object' } as const, { 'level': LogLevelEntity.Node, 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'minLevel': LogLevelEntity.Node }, ['level', 'message', 'minLevel'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+        'level': LogLevelEntity.Node
+      }, ['filtered', 'level'] as const, { 'additionalProperties': false, 'patternProperties': {} })
+    }, ['body', 'records', 'transport'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'console-transport-dispatch' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const consoleTransportInvalidLevelSchema = {
     'additionalProperties': false,
@@ -625,12 +627,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const consoleTransportInvalidLevelNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'name': SchemaNode.defineConst({}, 'ConfigurationError' as const) }, ['message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'transport': SchemaNode.defineObject({ 'type': 'object' } as const, { 'level': emptyInputNode }, ['level'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['transport'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'console-transport-invalid-level' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'message': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'name': SchemaNode.defineConst({}, 'ConfigurationError' as const) }, ['message', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': SchemaNode.defineObject({ 'type': 'object' } as const, { 'transport': SchemaNode.defineObject({ 'type': 'object' } as const, { 'level': emptyInputNode }, ['level'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['transport'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'console-transport-invalid-level' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   const constructorEntrySchema = {
     'additionalProperties': false,
@@ -657,12 +659,12 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     'type': 'object'
   } as const;
   const errorConstructorsNode = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': nameNode,
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'constructors': SchemaNode.defineArray({ 'type': 'array' } as const, constructorEntryNode, undefined) }, ['code', 'constructors'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
-      'input': emptyInputNode,
-      'name': nameNode,
-      'shape': SchemaNode.defineConst({}, 'error-constructors' as const)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    'description': nameNode,
+    'expected': SchemaNode.defineObject({ 'type': 'object' } as const, { 'code': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const), 'constructors': SchemaNode.defineArray({ 'type': 'array' } as const, constructorEntryNode, undefined) }, ['code', 'constructors'] as const, { 'additionalProperties': false, 'patternProperties': {} }),
+    'input': emptyInputNode,
+    'name': nameNode,
+    'shape': SchemaNode.defineConst({}, 'error-constructors' as const)
+  }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
 
   export const Schema = {
     'oneOf': [
@@ -680,4 +682,7 @@ export namespace LoggerPrimitiveContractsScenarioCaseEntity {
     logFaultFromErrorFieldsNode, consoleTransportDispatchNode, consoleTransportInvalidLevelNode, errorConstructorsNode
   ]);
   export type Type = NodeStaticType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
 }
