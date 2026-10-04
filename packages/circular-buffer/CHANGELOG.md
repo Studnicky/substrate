@@ -1,5 +1,8 @@
 # Changelog
 
+<<<<<<< HEAD
+=======
+
 ## 15.0.1
 
 ### Patch Changes
@@ -8,6 +11,8 @@
   - @studnicky/types@15.0.1
   - @studnicky/entity@15.0.1
   - @studnicky/errors@15.0.1
+
+> > > > > > > origin/develop
 
 ## 15.0.0
 

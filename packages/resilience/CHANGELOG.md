@@ -1,5 +1,8 @@
 # Changelog
 
+<<<<<<< HEAD
+=======
+
 ## 15.0.1
 
 ### Patch Changes
@@ -17,6 +20,8 @@
   - @studnicky/fsm@15.0.1
   - @studnicky/scheduler@15.0.1
   - @studnicky/signal@15.0.1
+
+> > > > > > > origin/develop
 
 ## 15.0.0
 

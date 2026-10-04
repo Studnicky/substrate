@@ -1,5 +1,8 @@
 # Changelog
 
+<<<<<<< HEAD
+=======
+
 ## 15.0.1
 
 ### Patch Changes
@@ -10,6 +13,8 @@
   - @studnicky/errors@15.0.1
   - @studnicky/json@15.0.1
   - @studnicky/matching@15.0.1
+
+> > > > > > > origin/develop
 
 ## 15.0.0
 
