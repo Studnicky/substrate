@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/hash.ts. */\nexport namespace HashFixture {\n  export const SchemaWithMeta = { '$id': '#myField', 'description': 'A description', 'title': 'My Field', 'type': 'string' };\n\n  export const SchemaBare = { 'type': 'string' };\n}\n"
+  'source': '/** Static input data for examples/hash.ts. */\nexport namespace HashFixture {\n  export const SchemaWithMeta = { \'$id\': \'#myField\', \'description\': \'A description\', \'title\': \'My Field\', \'type\': \'string\' };\n\n  export const SchemaBare = { \'type\': \'string\' };\n}\n'
 });

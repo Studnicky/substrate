@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "export const MultiSubscriberFixture: { readonly 'receivedA': string[]; readonly 'receivedB': string[] } = Object.freeze({\n  'receivedA': [],\n  'receivedB': []\n});\n"
+  'source': 'export const MultiSubscriberFixture: { readonly \'receivedA\': string[]; readonly \'receivedB\': string[] } = Object.freeze({\n  \'receivedA\': [],\n  \'receivedB\': []\n});\n'
 });

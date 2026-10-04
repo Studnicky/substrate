@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/merge-clone.ts. */\nexport namespace MergeCloneFixture {\n  export const Base = { 'a': 1, 'b': { 'x': 10, 'y': 20 }, 'tags': ['alpha'] };\n\n  export const Overlay = { 'b': { 'y': 99, 'z': 3 }, 'c': 'new', 'tags': ['beta'] };\n\n  export const Original = { 'createdAt': '1970-01-01T00:00:00.000Z', 'items': [1, 2, 3], 'nested': { 'value': 42 } };\n}\n"
+  'source': '/** Static input data for examples/merge-clone.ts. */\nexport namespace MergeCloneFixture {\n  export const Base = { \'a\': 1, \'b\': { \'x\': 10, \'y\': 20 }, \'tags\': [\'alpha\'] };\n\n  export const Overlay = { \'b\': { \'y\': 99, \'z\': 3 }, \'c\': \'new\', \'tags\': [\'beta\'] };\n\n  export const Original = { \'createdAt\': \'1970-01-01T00:00:00.000Z\', \'items\': [1, 2, 3], \'nested\': { \'value\': 42 } };\n}\n'
 });
