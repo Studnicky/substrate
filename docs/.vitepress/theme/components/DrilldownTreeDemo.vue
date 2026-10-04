@@ -5,26 +5,10 @@ import type { GroupNodeInterface } from '@studnicky/drilldown/interfaces';
 import DrilldownTreeNode from './DrilldownTreeNode.vue';
 
 const RECORD_COUNT = 320;
-<<<<<<< HEAD
 const BRANDS = ['Acme Outfitters', 'Apex Electronics', 'Beacon Home', 'Cedar & Co.', 'Harbor Supply', 'Juniper Apparel', 'Northstar Goods', 'Summit Outdoor'];
 const REGIONS = ['North America', 'Europe', 'Asia Pacific', 'Latin America'];
 const CATEGORIES = ['Electronics', 'Home Goods', 'Apparel', 'Outdoors'];
 const STATUSES = ['fulfilled', 'processing', 'returned', 'cancelled'];
-=======
-const REGIONS = ["North America", "Europe", "Asia Pacific", "Latin America"];
-const CATEGORIES = ["Electronics", "Home Goods", "Apparel", "Outdoors"];
-const STATUSES = ["fulfilled", "processing", "returned", "cancelled"];
-const BRANDS = [
-  "Acme Outfitters",
-  "Apex Electronics",
-  "Beacon Home",
-  "Cedar & Co.",
-  "Harbor Supply",
-  "Juniper Apparel",
-  "Northstar Goods",
-  "Summit Outdoor",
-];
->>>>>>> feature/store-entity-unification
 
 interface OrderRecord {
   'brand': string
@@ -39,17 +23,10 @@ function generateOrders(count: number): OrderRecord[] {
   return Array.from({ length: count }, (_, index): OrderRecord => ({
     brand: BRANDS[index % BRANDS.length],
     category: CATEGORIES[Math.floor(index / REGIONS.length) % CATEGORIES.length],
-<<<<<<< HEAD
     orderId: `ORD-${String(index + 1).padStart(4, '0')}`,
     region: REGIONS[index % REGIONS.length],
     status: STATUSES[Math.floor(index / (REGIONS.length * CATEGORIES.length)) % STATUSES.length],
     total: Number((12 + ((index * 37) % 839) + ((index * 13) % 100) / 100).toFixed(2))
-=======
-    orderId: `ORD-${String(index + 1).padStart(4, "0")}`,
-    region: REGIONS[index % REGIONS.length],
-    status: STATUSES[Math.floor(index / (REGIONS.length * CATEGORIES.length)) % STATUSES.length],
-    total: Number((12 + ((index * 37) % 839) + ((index * 13) % 100) / 100).toFixed(2)),
->>>>>>> feature/store-entity-unification
   }));
 }
 
