@@ -114,10 +114,11 @@ function splitIntoChunks(canonicals: readonly string[]): readonly (readonly stri
 }
 
 function printChunk(canonicals: readonly string[], indexes: ReadonlyMap<string, number>): string {
-  const imports = canonicals.map((canonical) => {
+  const imports = canonicals.map((canonical, chunkIndex) => {
     const index = indexes.get(canonical);
     if (index === undefined) { throw new Error(`Missing module index: ${  canonical}`); }
-    return `  import('../../modules/${  String(index)  }').then(({ playgroundModule }) => { return playgroundModule; }),`;
+    const separator = chunkIndex === canonicals.length - 1 ? '' : ',';
+    return `    import('../../modules/${  String(index)  }').then(({ playgroundModule }) => { return playgroundModule; })${  separator}`;
   });
   if (canonicals.length === 1) {
     const index = indexes.get(canonicals[0] ?? '');
