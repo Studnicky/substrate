@@ -3,7 +3,6 @@
     {
       "name": "create-dispatcher-option-branches",
       "description": "createDispatcher accepts a fully populated dispatcher config",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {
           "allowH2": true,
@@ -28,59 +27,53 @@
           "strictContentLength": false
         }
       },
-      "expected": {
-        "shape": "dispatcher"
-      }
+      "expected": {},
+      "shape": "dispatcher-created"
     },
     {
       "name": "validation-reject-invalid-connections",
       "description": "createDispatcher rejects invalid connections before constructing the dispatcher",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {
           "connections": -5
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "shape": "dispatcher-rejected"
     },
     {
       "name": "validation-reject-unknown-keys",
       "description": "createDispatcher rejects unknown keys",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {
           "invalidKey": true
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "not declared in the schema"
         ]
-      }
+      },
+      "shape": "dispatcher-rejected"
     },
     {
       "name": "validation-accept-valid-config",
       "description": "createDispatcher accepts valid config",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {
           "connections": 20
         }
       },
-      "expected": {
-        "shape": "dispatcher"
-      }
+      "expected": {},
+      "shape": "dispatcher-created"
     },
     {
       "name": "validation-reject-invalid-config-via-client",
       "description": "FetchClient.create rejects invalid dispatcher config",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -90,16 +83,15 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "shape": "client-rejected"
     },
     {
       "name": "validation-reject-unknown-keys-via-client",
       "description": "FetchClient.create rejects unknown dispatcher keys",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -109,20 +101,18 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.invalidKey",
           "not declared in the schema"
         ]
-      }
+      },
+      "shape": "client-rejected"
     },
     {
       "name": "default-timeout-values",
       "description": "DEFAULT_DISPATCHER_CONFIG exposes documented timeout defaults",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "connectTimeout": 10000,
           "headersTimeout": 30000,
@@ -131,87 +121,80 @@
           "keepAliveMaximumTimeout": 600000,
           "keepAliveTimeoutThreshold": 1000
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "default-connection-values",
       "description": "DEFAULT_DISPATCHER_CONFIG exposes documented connection defaults",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "connections": 10,
           "pipelining": 1,
           "enabled": false
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "default-size-limit-values",
       "description": "DEFAULT_DISPATCHER_CONFIG exposes documented size limits",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "maximumHeaderSize": 16384,
           "maximumResponseSize": -1
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "default-http2-disabled",
       "description": "DEFAULT_DISPATCHER_CONFIG disables HTTP/2 by default",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "allowH2": false
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "default-ipv6-disabled",
       "description": "DEFAULT_DISPATCHER_CONFIG disables IPv6 autodetection by default",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "autoSelectFamily": false,
           "autoSelectFamilyAttemptTimeout": 250
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "default-strict-content-length",
       "description": "DEFAULT_DISPATCHER_CONFIG enables strict content length by default",
-      "operation": "defaults",
       "input": {},
       "expected": {
-        "shape": "defaults",
         "values": {
           "strictContentLength": true
         }
-      }
+      },
+      "shape": "defaults"
     },
     {
       "name": "dispatcher-create-empty-config",
       "description": "createDispatcher accepts an empty config",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {}
       },
-      "expected": {
-        "shape": "dispatcher"
-      }
+      "expected": {},
+      "shape": "dispatcher-created"
     },
     {
       "name": "dispatcher-create-all-options",
       "description": "createDispatcher accepts the full documented option set",
-      "operation": "create-dispatcher",
       "input": {
         "dispatcher": {
           "allowH2": true,
@@ -235,14 +218,12 @@
           "strictContentLength": false
         }
       },
-      "expected": {
-        "shape": "dispatcher"
-      }
+      "expected": {},
+      "shape": "dispatcher-created"
     },
     {
       "name": "client-reject-zero-connections",
       "description": "FetchClient.create rejects zero connections during construction",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -252,16 +233,15 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "shape": "client-rejected"
     },
     {
       "name": "client-accept-valid-pool-config",
       "description": "FetchClient.create accepts valid dispatcher config",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -270,14 +250,12 @@
           }
         }
       },
-      "expected": {
-        "shape": "fetch-client"
-      }
+      "expected": {},
+      "shape": "client-created"
     },
     {
       "name": "client-create-with-pool-disabled",
       "description": "FetchClient.create returns a client when dispatcher pooling is disabled",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "dispatcher": {
@@ -285,14 +263,12 @@
           }
         }
       },
-      "expected": {
-        "shape": "fetch-client"
-      }
+      "expected": {},
+      "shape": "client-created"
     },
     {
       "name": "client-create-option-branches",
       "description": "FetchClient.create accepts a nested dispatcher config that exercises option branches",
-      "operation": "create-client",
       "input": {
         "fetchClient": {
           "baseURL": "https://api.example.com",
@@ -320,9 +296,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "fetch-client"
-      }
+      "expected": {},
+      "shape": "client-created"
     }
   ]
 }

@@ -12,7 +12,8 @@
     { "name": "return of an array literal (construction, not delegation)", "code": "function f(): number[] { return [1, 2, 3]; }" },
     { "name": "return of a closure (construction, not delegation)", "code": "function f(): () => number { return () => 1; }" },
     { "name": "return await - the await keyword already marks the suspension point, 0/26 bound in the survey", "code": "async function f(): Promise<number> { return await g(); } async function g(): Promise<number> { return 1; }" },
-    { "name": "already bound - the point of the rule, not a violation", "code": "function f(): number { const result = g(); return result; } function g(): number { return 1; }" }
+    { "name": "already bound - the point of the rule, not a violation", "code": "function f(): number { const result = g(); return result; } function g(): number { return 1; }" },
+    { "name": "return of a call directly in a SwitchCase - v8/switch-statements owns that shape and forbids the block a binding would need", "code": "function f(action: string): number | undefined { switch (action) { case 'start': return g(); default: return undefined; } } function g(): number { return 1; }" }
   ],
   "invalid": [
     { "name": "hazard: unbound call - and no fixer is ever emitted, verified via output: null", "code": "function f(): number { return Math.abs(-1); }", "errors": [{ "messageId": "unbound" }], "output": null },
@@ -20,6 +21,7 @@
     { "name": "hazard: unbound logical expression", "code": "function f(a: string | undefined, b: string): string { return a || b; }", "errors": [{ "messageId": "unbound" }] },
     { "name": "hazard: unbound binary expression", "code": "function f(a: number, b: number): number { return a + b; }", "errors": [{ "messageId": "unbound" }] },
     { "name": "hazard: unbound unary expression", "code": "function f(a: number): number { return -a; }", "errors": [{ "messageId": "unbound" }] },
-    { "name": "hazard: unbound optional-chained call", "code": "function f(g?: () => number): number | undefined { return g?.(); }", "errors": [{ "messageId": "unbound" }] }
+    { "name": "hazard: unbound optional-chained call", "code": "function f(g?: () => number): number | undefined { return g?.(); }", "errors": [{ "messageId": "unbound" }] },
+    { "name": "hazard: unbound call inside an if nested in a SwitchCase - not the exempted direct-case shape", "code": "function f(action: string, ready: boolean): number | undefined { switch (action) { case 'start': if (ready) { return g(); } return undefined; default: return undefined; } } function g(): number { return 1; }", "errors": [{ "messageId": "unbound" }] }
   ]
 }

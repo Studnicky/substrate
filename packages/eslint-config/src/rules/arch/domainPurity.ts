@@ -1,16 +1,16 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type {
   Rule, Scope
 } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 
-import { EntityCompiler } from '@studnicky/entity/node';
-import { Predicates } from '@studnicky/types/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Predicates } from '@studnicky/types/browser';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';
+import { AstHelpers } from '../shared/astHelpers.js';
 import { ImportSourceValue } from '../shared/importSourceValue.js';
 
 namespace DomainPurityOptionsEntity {
@@ -38,9 +38,27 @@ namespace DomainPurityOptionsEntity {
     },
     'required': LayerOptionsEntity.Schema.required,
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    ...LayerOptionsEntity.Node.schema.properties,
+    'domainLayerName': SchemaNode.defineString({
+      'default': 'domain',
+      'description': 'Name of the layer treated as the pure-data domain layer, e.g. "domain" or "entities". Defaults to "domain".',
+      'type': 'string'
+    } as const),
+    'forbiddenCalls': SchemaNode.defineArray({
+      'default': [],
+      'description': 'Dotted call expressions forbidden in domain-layer files, e.g. ["Date.now", "Math.random"].',
+      'type': 'array'
+    } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
+    'forbiddenImports': SchemaNode.defineArray({
+      'default': [],
+      'description': 'Bare import specifiers or roots forbidden in domain-layer files, e.g. ["fs", "axios", "node:fs"].',
+      'type': 'array'
+    } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined)
+  }, LayerOptionsEntity.Node.schema.required, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
@@ -67,39 +85,51 @@ class CalleeDottedName {
     }
 
     if (nodeType === 'MemberExpression') {
-      const object: unknown = node.object;
-      const property: unknown = node.property;
-      const computed = node.computed === true;
-
-      const objectName = CalleeDottedName.resolveMemberChain(object);
-
-      if (objectName === undefined) {
-        return undefined;
-      }
-      if (!Predicates.isRecord(property)) {
-        return undefined;
-      }
-
-      if (computed) {
-        if (property.type !== 'Literal') {
-          return undefined;
-        }
-        const value = property.value;
-        const result = typeof value === 'string' ? `${objectName}.${value}` : undefined;
-
-        return result;
-      }
-
-      if (property.type !== 'Identifier') {
-        return undefined;
-      }
-      const propertyName = property.name;
-      const result = typeof propertyName === 'string' ? `${objectName}.${propertyName}` : undefined;
+      const result = CalleeDottedName.resolveMemberExpressionChain(node);
 
       return result;
     }
 
     return undefined;
+  }
+
+  private static resolveMemberExpressionChain(node: Record<string, unknown>): string | undefined {
+    const object: unknown = node.object;
+    const property: unknown = node.property;
+    const computed = node.computed === true;
+
+    const objectName = CalleeDottedName.resolveMemberChain(object);
+
+    if (objectName === undefined) {
+      return undefined;
+    }
+    if (!Predicates.isRecord(property)) {
+      return undefined;
+    }
+
+    if (computed) {
+      const result = CalleeDottedName.resolveComputedMemberName(objectName, property);
+
+      return result;
+    }
+
+    if (property.type !== 'Identifier') {
+      return undefined;
+    }
+    const propertyName = property.name;
+    const result = typeof propertyName === 'string' ? `${objectName}.${propertyName}` : undefined;
+
+    return result;
+  }
+
+  private static resolveComputedMemberName(objectName: string, property: Record<string, unknown>): string | undefined {
+    if (property.type !== 'Literal') {
+      return undefined;
+    }
+    const value = property.value;
+    const result = typeof value === 'string' ? `${objectName}.${value}` : undefined;
+
+    return result;
   }
 
   /**
@@ -117,6 +147,18 @@ class CalleeDottedName {
       return undefined;
     }
 
+    const source = CalleeDottedName.destructuringSource(variable);
+
+    if (source === undefined) {
+      return undefined;
+    }
+
+    const result = CalleeDottedName.matchingDestructuredKey(source.properties, source.objectName, name);
+
+    return result;
+  }
+
+  private static destructuringSource(variable: Scope.Variable): Readonly<{ 'objectName': string; 'properties': unknown[] }> | undefined {
     const def = variable.defs.at(0);
 
     if (def?.type !== 'Variable') {
@@ -151,6 +193,10 @@ class CalleeDottedName {
       return undefined;
     }
 
+    return { 'objectName': objectName, 'properties': properties };
+  }
+
+  private static matchingDestructuredKey(properties: readonly unknown[], objectName: string, name: string): string | undefined {
     const propertiesLength = properties.length;
 
     for (let index = 0; index < propertiesLength; index += 1) {
@@ -215,8 +261,8 @@ class CalleeDottedName {
       return resolved;
     }
 
-    if (Predicates.isRecord(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
-      const scope = context.sourceCode.getScope(callee as unknown as Rule.Node);
+    if (AstHelpers.isNode(callee) && callee.type === 'Identifier' && typeof callee.name === 'string') {
+      const scope = context.sourceCode.getScope(callee);
       const destructured = CalleeDottedName.resolveDestructuredAlias(callee.name, scope);
 
       if (destructured !== undefined) {

@@ -1,0 +1,7 @@
+{
+  "repository": "json-schema-org/JSON-Schema-Test-Suite",
+  "commit": "5b0ee1613e45fcc2bddac00e07c19cd49b00d8a8",
+  "fetchedAt": "2026-09-23T23:41:00Z",
+  "included": ["tests/draft2020-12", "remotes"],
+  "fetchScript": "scripts/fetch-json-schema-test-suite.ts"
+}

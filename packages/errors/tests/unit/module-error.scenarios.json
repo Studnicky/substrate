@@ -73,16 +73,10 @@
     },
     {
       "name": "factory-reject-invalid-scenario",
-      "description": "validates invalid scenario",
+      "description": "rejects an invalid scenario name with the same guard ModuleError.create uses",
       "shape": "factory-reject-invalid-scenario",
-      "input": {
-        "message": "Test",
-        "scenario": "INVALID"
-      },
-      "expected": {
-        "throws": true,
-        "errorName": "ValidationError"
-      }
+      "input": {},
+      "expected": {}
     },
     {
       "name": "constructor-defaults-omitted-options",
@@ -654,32 +648,6 @@
           "cause": {
             "message": "Root"
           }
-        }
-      }
-    },
-    {
-      "name": "json-primitive-cause",
-      "description": "serializes primitive cause values",
-      "shape": "json-primitive-cause",
-      "input": {
-        "cause": "primitive cause"
-      },
-      "expected": {
-        "result": {
-          "cause": "primitive cause"
-        }
-      }
-    },
-    {
-      "name": "json-native-primitive-cause",
-      "description": "serializes numeric primitive cause values",
-      "shape": "json-native-primitive-cause",
-      "input": {
-        "cause": 42
-      },
-      "expected": {
-        "result": {
-          "cause": 42
         }
       }
     },

@@ -1,7 +1,8 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Schema-derived RFC-6902 operation fields shared by every wire variant. */
 export namespace PatchOperationCoreEntity {
@@ -15,9 +16,10 @@ export namespace PatchOperationCoreEntity {
     'required': ['op', 'path'],
     'title': 'PatchOperationCore',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'title': 'PatchOperationCore', 'type': 'object' } as const, { 'from': SchemaNode.defineString({ 'type': 'string' } as const), 'op': SchemaNode.defineEnum({}, ['add', 'copy', 'move', 'remove', 'replace', 'test'] as const), 'path': SchemaNode.defineString({ 'type': 'string' } as const) }, ['op', 'path'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

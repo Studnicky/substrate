@@ -6,12 +6,23 @@ import type { ContextScopeInterface } from '@studnicky/context/interfaces';
 import { Context } from '@studnicky/context/node';
 import assert from 'node:assert/strict';
 
+import { ContextConfigEntity } from '../src/entities/ContextConfigEntity.js';
+import { NodeContextStorage } from '../src/node/NodeContextStorage.js';
+
+
 class ObservedContext extends Context {
   readonly deleteEvents: { 'existed': boolean; 'key': string }[] = [];
   readonly getEvents: { 'key': string; 'value': unknown }[] = [];
   readonly initializeEvents: string[] = [];
   readonly missingContextEvents: string[] = [];
   readonly setEvents: { 'key': string; 'value': unknown }[] = [];
+
+  static override create(
+    config: ContextConfigEntity.InputType,
+    storage: NodeContextStorage = new NodeContextStorage()
+  ): ObservedContext {
+    return new ObservedContext(ContextConfigEntity.create(config), storage);
+  }
 
   protected override onDelete(key: string, existed: boolean): void {
     console.log(`[context] onDelete key=${key} existed=${String(existed)}`);
@@ -56,7 +67,7 @@ scope.execute(() => {
 });
 
 const snapshot = scope.terminate();
-console.log('Final snapshot keys:', Object.keys(snapshot).toSorted());
+console.log('Final snapshot keys:', [...snapshot.keys()].toSorted());
 // #endregion usage
 
 assert.equal(context.initializeEvents.length, 1, 'onInitialize fired once');
@@ -70,7 +81,7 @@ assert.ok(context.deleteEvents.some((event) => {
   const result = event.key === 'nonexistent' && !event.existed;
   return result;
 }));
-assert.ok(!('tempKey' in snapshot));
-assert.equal(snapshot.requestId, 'req-001');
+assert.ok(!snapshot.has('tempKey'));
+assert.equal(snapshot.get('requestId'), 'req-001');
 
 console.log('observedContext: all assertions passed');

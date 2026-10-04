@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** CircuitBreakerMachine event: execute() fast-rejected a call because the circuit is open. */
 export namespace CircuitBreakerCallRejectedEventEntity {
@@ -12,9 +13,10 @@ export namespace CircuitBreakerCallRejectedEventEntity {
     },
     'required': ['type'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineConst({}, 'callRejected' as const) }, ['type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

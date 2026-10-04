@@ -1,43 +1,38 @@
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { BaseError, RuntimeError } from '../../src/index.js';
-import scenarioGroups from './runtime-error.scenarios.json' with { type: 'json' };
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
-type ScenarioCase = {
-  readonly 'description': string;
-  readonly 'expected': {
-    readonly 'code': string;
-    readonly 'hasCause': boolean;
-    readonly 'retryable': boolean;
-  };
-  readonly 'input': {
-    readonly 'causeMessage'?: string;
-    readonly 'message': string;
-  };
-  readonly 'name': string;
-};
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { RuntimeError } from '../../src/index.js';
+import { RuntimeErrorScenarioCaseEntity } from './entities/RuntimeErrorScenarioCaseEntity.js';
+import scenarioGroups from './runtime-error.scenarios.json' with { 'type': 'json' };
 
-function createRuntimeError(input: ScenarioCase['input']): RuntimeError {
-  const result = input.causeMessage === undefined
-    ? RuntimeError.create(input.message)
-    : RuntimeError.create(input.message, { 'cause': RuntimeError.create(input.causeMessage) });
-  return result;
+class RuntimeErrorRunners {
+  static 'basic'(scenarioCase: ScenarioCaseOfType<RuntimeErrorScenarioCaseEntity.Type, 'basic'>): void {
+    const error = RuntimeErrorRunners.createRuntimeError(scenarioCase.input);
+    assert.ok(error instanceof BaseError);
+    assert.ok(error instanceof Error);
+    assert.strictEqual(error.code, scenarioCase.expected.code);
+    assert.strictEqual(error.message, scenarioCase.input.message);
+    assert.strictEqual(error.retryable, scenarioCase.expected.retryable);
+    assert.strictEqual(error.cause instanceof Error, scenarioCase.expected.hasCause);
+    if (error.cause instanceof Error) {
+      assert.strictEqual(error.cause.message, scenarioCase.input.causeMessage);
+    }
+  }
+
+  private static createRuntimeError(input: RuntimeErrorScenarioCaseEntity.Type['input']): RuntimeError {
+    const result = input.causeMessage === undefined
+      ? RuntimeError.create(input.message)
+      : RuntimeError.create(input.message, { 'cause': RuntimeError.create(input.causeMessage) });
+    return result;
+  }
 }
 
-void describe('RuntimeError', () => {
-  for (const scenario of scenarioGroups.cases as readonly ScenarioCase[]) {
-    void it(scenario.name, () => {
-      const error = createRuntimeError(scenario.input);
-      assert.ok(error instanceof BaseError);
-      assert.ok(error instanceof Error);
-      assert.strictEqual(error.code, scenario.expected.code);
-      assert.strictEqual(error.message, scenario.input.message);
-      assert.strictEqual(error.retryable, scenario.expected.retryable);
-      assert.strictEqual(error.cause instanceof Error, scenario.expected.hasCause);
-      if (error.cause instanceof Error) {
-        assert.strictEqual(error.cause.message, scenario.input.causeMessage);
-      }
-    });
-  }
+ScenarioSuite.register({
+  'entity': RuntimeErrorScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'RuntimeError',
+  'runners': RuntimeErrorRunners
 });

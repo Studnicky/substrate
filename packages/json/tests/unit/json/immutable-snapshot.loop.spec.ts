@@ -22,14 +22,20 @@ void describe('ImmutableSnapshot', () => {
   });
 
   void it('detaches and mutation-guards Map and Set values', () => {
-    const source = { 'records': new Map<string, Set<{ id: number }>>([[ 'team', new Set([ { 'id': 1 } ]) ]]) };
+    const source = { 'records': new Map<string, Set<{ 'id': number }>>([[ 'team', new Set([ { 'id': 1 } ]) ]]) };
     const snapshot = ImmutableSnapshot.from(source);
     const members = snapshot.records.get('team');
 
     assert.notStrictEqual(snapshot.records, source.records);
     assert.ok(members instanceof Set);
-    assert.throws(() => snapshot.records.set('other', new Set()), FrozenMutationError);
-    assert.throws(() => members.add({ 'id': 2 }), FrozenMutationError);
+    assert.throws(() => {
+      const result = snapshot.records.set('other', new Set());
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = members.add({ 'id': 2 });
+      return result;
+    }, FrozenMutationError);
     const member = members.values().next().value;
     assert.ok(member !== undefined);
     assert.throws(() => { member.id = 2; }, TypeError);
@@ -44,6 +50,9 @@ void describe('ImmutableSnapshot', () => {
   void it('throws a typed error when a value cannot be structured cloned', () => {
     const source = { 'callback': (): void => {} };
 
-    assert.throws(() => ImmutableSnapshot.from(source), ImmutableSnapshotError);
+    assert.throws(() => {
+      const result = ImmutableSnapshot.from(source);
+      return result;
+    }, ImmutableSnapshotError);
   });
 });

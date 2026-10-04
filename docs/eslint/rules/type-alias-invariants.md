@@ -7,7 +7,7 @@ description: 'Type aliases preserve schema-derived data identity while interface
 
 Enforces one ordered contract for type aliases and imported type identity.
 
-A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes.
+A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes. Canonical, codebase-owned named types are also consumed whole: `Partial<X>`, `Pick<X, K>`, `Omit<X, K>`, and structurally equivalent subsetting forms are rejected wherever they appear, not only inside a type alias declaration.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -32,7 +32,7 @@ A reference to a type-level function from another declaration still composes a c
 Recognition is library-agnostic: it inspects what a schema derivation produced, not the package that produced it. A retained alias satisfies four conditions:
 
 1. **Shape** — the alias body applies a type-level function to a value: `F<typeof Schema>`, `typeof Schema.inferred`, or `(typeof Schema)['inferred']`.
-2. **Deriving function** — `F` is recognized by structure, not by name or origin package. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, and a project-local equivalent are all accepted identically, satisfied by any one of:
+2. **Deriving function** — `F` is recognized by structure, not by name or origin package. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, `NodeStaticType`, and a project-local equivalent are all accepted identically, satisfied by any one of:
    - `F` is a type alias declared with type parameters;
    - `F` is declared in a `.d.ts` file;
    - `F`'s declaration carries a `/** @schemaDerivation */` JSDoc tag — the one in-code extension point, for a project-local schema-to-type function whose declaration is not itself a generic type alias; or
@@ -41,6 +41,22 @@ Recognition is library-agnostic: it inspects what a schema derivation produced, 
 4. **Result plainness** — the *resolved* type that `F<typeof Schema>` produces is JSON-plain: no call or construct signatures, no class instances, no symbol, bigint, `never`, `void`, `undefined`, `any`, or `unknown`. Recognition stops recursing into `F`'s own implementation and checks only what it resolves to, which is what makes this library-agnostic.
 
 Provenance resolution follows TypeScript symbols through local declarations and imports with deterministic cycle and depth protection. An unresolved source is non-canonical; matching field shapes do not substitute for verified provenance.
+
+The examples below use `NodeStaticType<typeof Node>`, the schema-deriving function this codebase builds entities with. It is one of many structurally-accepted forms, not the only one the rule recognizes — it is simply the mechanism a reader here will actually write.
+
+## Hand-written `Type` in an entity namespace
+
+An exported `Type` in an `*Entity` namespace with no schema-deriving shape at all is still retained as canonical pure data — not rejected as inline object data — when the namespace's own `Schema`/`Node` value proves no structural derivation exists: it contains `not`/`if`/`then`/`else` anywhere, is an empty object (`{}`), or refines with `anyOf` alongside `properties`/`required` in the same object. This checks the schema itself, never a marker on `Type`; a schema that derives structurally still reports through the normal diagnostic paths below.
+
+The same acceptance extends to a schema that composes another entity's schema by reference (`items: OtherEntity.Schema`, a spread, or an equivalent member reference this walk cannot derive into): the hand-written `Type` is justified only when it itself composes that other entity's already-justified `.Type` — through array, `readonly`, or union wrapping. A bare inline object literal or a non-entity imported alias in that position is still rejected; composing the referenced schema is not itself proof that any arbitrary hand-written shape is correct.
+
+This predicate is shared, not reimplemented per rule: [`entity-file-shape`](./entity-file-shape.md) and this rule consult the same syntax-only classification for a `Type` declaration in the file being linted, so a file cannot be accepted by one and rejected by the other on this question.
+
+## Union of named, schema-derived constituents
+
+A top-level union where every constituent is a NAMED reference — a pure-data contract interface, or a schema-derived canonical `Type`/`InputType` alias — has no interface remedy: TypeScript has no syntax for a union-shaped interface, so `aliasMustBeInterface` cannot direct one. Each constituent is already a legitimate, independently-declared shape; the union exists only to name "one of these shapes" for a discriminated-union call site, and is retained as a type alias.
+
+An inline object-literal constituent is a different case and is never exempted this way: a codebase-owned shape hiding inside the union still belongs in a named type, so a union with even one non-reference member is not retained by this exemption — it reports through the normal diagnostic paths, same as any other unverified data shape.
 
 ## Diagnostic order
 
@@ -51,6 +67,7 @@ The rule has no subchecks or internal severity settings. ESLint's configured sev
 3. Canonical provenance reports data-shaped aliases without verified schema provenance.
 4. Exported naming requires retained aliases — including type-level functions — to end in `Type`.
 5. Readonly output reports mutable data aliases that author access policy.
+6. Whole-type consumption reports `Partial`/`Pick`/`Omit`, a structurally equivalent custom generic utility, or an inline mapped or indexed-access form that subsets a canonical, codebase-owned named `type`/`interface`, wherever the subsetting form appears — a type alias body, a function parameter, a variable annotation, or any other type position.
 
 An earlier verdict suppresses later advice for the same alias. Structural equality, near-match, and subsumption are not identity evidence: two data types may share a shape while representing different semantics. The rule therefore performs no heuristic imported-shape comparison and does not infer canonical identity from broader or narrower shapes.
 
@@ -87,29 +104,40 @@ type ListType<T> = Array<T>;
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+type ValueType = NodeStaticType<typeof Node>;
 export type ValueListType = readonly ValueType[];
+```
+
+`ValueType` is verified schema-derived data; `ValueListType` fails on `readonly`, not on provenance — pure-data aliases describe mutable data.
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+interface FooInterface { a: number; b: string; }
+function accept(value: Partial<FooInterface>): void {}
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-export type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+export type ValueType = NodeStaticType<typeof Node>;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
 ```ts
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import { SchemaNode } from '@studnicky/entity/types';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-const ValueSchema = { type: 'string' } as const satisfies JSONSchema;
-type ValueType = FromSchema<typeof ValueSchema>;
+const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+type ValueType = NodeStaticType<typeof Node>;
 export type ValueCollectionType = ValueType[] | null;
 ```
 
@@ -123,6 +151,11 @@ type ConditionalType<T> = T extends string ? number : boolean;
 interface HandlerInterface {
   (value: string): void;
 }
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+function accept<T>(value: Partial<T>): void {}
 ```
 
 ## Configuration
@@ -151,4 +184,4 @@ export default [
 - [`all-types-are-entities`](./all-types-are-entities.md) requires the exact entity declaration form.
 - [`interface-must-be-contract`](./interface-must-be-contract.md) rejects pure-data interfaces.
 - [`interfaces-compose-named-types`](./interfaces-compose-named-types.md) extracts pure-data portions from contract interfaces.
-- [`no-mixed-callable-shapes`](./no-mixed-callable-shapes.md) owns a union or intersection that mixes a callable constituent with data — a shape `aliasMustBeInterface` cannot direct to an interface, since TypeScript has no syntax for a union-shaped interface.
+- [`no-mixed-callable-shapes`](./no-mixed-callable-shapes.md) owns a union or intersection that mixes a callable constituent with data — a shape `aliasMustBeInterface` cannot direct to an interface, since TypeScript has no syntax for a union-shaped interface. `any` as a direct constituent is the one exception: `classifyCallability` treats `any` as unconditionally callable, so `type X = any | { a: 1 }` mixes identically to a genuine callable union, but `any` is an escape hatch, not a shape with an interface remedy. `type-alias-invariants` reports that mix directly rather than deferring to `no-mixed-callable-shapes`.

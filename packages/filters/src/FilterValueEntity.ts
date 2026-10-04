@@ -1,12 +1,13 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * The JSON-safe value domain declarative filter configuration uses.
- * It is bounded to five levels of array/object nesting because json-schema-to-ts
- * cannot derive an unbounded self-referential schema.
+ * It is bounded to five levels of array/object nesting because the schema
+ * cannot derive an unbounded self-referential type.
  */
 export namespace FilterValueEntity {
   const leaf = {
@@ -47,9 +48,41 @@ export namespace FilterValueEntity {
       { 'items': level4, 'type': 'array' },
       { 'additionalProperties': level4, 'type': 'object' }
     ]
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  const leafBranches = [
+    SchemaNode.defineString({ 'type': 'string' } as const),
+    SchemaNode.defineNumber({ 'type': 'number' } as const),
+    SchemaNode.defineBoolean({ 'type': 'boolean' } as const),
+    SchemaNode.defineNull({ 'type': 'null' } as const)
+  ] as const;
+  const level1Node = SchemaNode.defineAnyOf({}, [
+    ...leafBranches,
+    SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineAnyOf({}, leafBranches), undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': SchemaNode.defineAnyOf({}, leafBranches), 'patternProperties': {} })
+  ]);
+  const level2Node = SchemaNode.defineAnyOf({}, [
+    ...leafBranches,
+    SchemaNode.defineArray({ 'type': 'array' } as const, level1Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level1Node, 'patternProperties': {} })
+  ]);
+  const level3Node = SchemaNode.defineAnyOf({}, [
+    ...leafBranches,
+    SchemaNode.defineArray({ 'type': 'array' } as const, level2Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level2Node, 'patternProperties': {} })
+  ]);
+  const level4Node = SchemaNode.defineAnyOf({}, [
+    ...leafBranches,
+    SchemaNode.defineArray({ 'type': 'array' } as const, level3Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level3Node, 'patternProperties': {} })
+  ]);
+
+  export const Node = SchemaNode.defineAnyOf({}, [
+    ...leafBranches,
+    SchemaNode.defineArray({ 'type': 'array' } as const, level4Node, undefined),
+    SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': level4Node, 'patternProperties': {} })
+  ]);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

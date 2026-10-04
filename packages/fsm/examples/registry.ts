@@ -24,7 +24,7 @@ class Toggle extends StateMachine<ToggleStateEntity.Type, ToggleEventEntity.Type
   }
 }
 
-const interpreter: EffectInterpreter<ToggleStateEntity.Type, ToggleEventEntity.Type> = EffectInterpreter.create({ 'machine': Toggle.make(), 'machineId': 'toggle-a' });
+const interpreter: EffectInterpreter<ToggleStateEntity.Type, ToggleEventEntity.Type> = EffectInterpreter.create(Toggle.make(), { 'machineId': 'toggle-a' });
 interpreter.start();
 
 const registry = MachineRegistry.create<ToggleStateEntity.Type, ToggleEventEntity.Type>();

@@ -1,105 +1,57 @@
-import { RuntimeError, HookInvoker } from '@studnicky/errors/node';
+import type { BusQueueOptionsEntity } from '@studnicky/concurrency/queue/entities';
+
+import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
+import { getEventListeners } from 'node:events';
+import { it } from 'node:test';
 
-
-
-import { EventBus } from '../../src/EventBus.js';
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { EventSinkInterface } from '../../src/interfaces/index.js';
-import scenarioGroups from './EventBus.scenarios.json' with { type: 'json' };
+import type { HookTopicsEntity } from './entities/HookTopicsEntity.js';
+import type { RetryEventTopicsEntity } from './entities/RetryEventTopicsEntity.js';
+import type { TestTopicsEntity } from './entities/TestTopicsEntity.js';
 
-async function flushMicrotasks(times = 20): Promise<void> {
-  for (let i = 0; i < times; i += 1) {
-    await Promise.resolve();
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { EventBus } from '../../src/EventBus.js';
+import { EventBusScenarioCaseEntity } from './entities/EventBusScenarioCaseEntity.js';
+import scenarioGroups from './EventBus.scenarios.json' with { 'type': 'json' };
+
+class ObservedBus extends EventBus<HookTopicsEntity.Type> {
+  static createObserved(): ObservedBus {
+    return new ObservedBus();
   }
-}
-
-interface TestTopics {
-  ping: string;
-  count: number;
-}
-
-interface HookTopics {
-  'order:created': { 'id': string };
-  'order:updated': { 'id': string };
-}
-
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-delivers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'unsubscribe-stops' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'multiple-subscribers' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topics-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'handler-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'signal-listener-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'subscribe-after-close' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'preaborted-caller-signal' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'close-stops-delivery' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'publish-empty-topic' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-subscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-unsubscribe' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-subscription-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'async-owned-queue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-deliver' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'owned-queues-isolated' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-handler-error' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'enqueue-dequeue-hooks' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-drop-noop' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'on-dispose' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'hook-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'pending-admission-order' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'default-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'forwarded-hwm' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'config-snapshot' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'same-depth-no-overflow' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-publish' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-cleanup' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'topic-entry-kept' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-on-deliver' };
-
-type ScenarioShape = ScenarioCase['shape'];
-
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
-
-type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
-
-class ObservedBus extends EventBus<HookTopics> {
-  readonly publishEvents: Array<{ 'topic': keyof HookTopics; 'payload': HookTopics[keyof HookTopics] }> = [];
-  readonly subscribeEvents: Array<keyof HookTopics> = [];
-  readonly unsubscribeEvents: Array<keyof HookTopics> = [];
-  readonly deliverEvents: Array<{ 'topic': keyof HookTopics; 'payload': HookTopics[keyof HookTopics] }> = [];
-  readonly handlerErrors: Array<{ 'topic': keyof HookTopics; 'error': unknown }> = [];
-  readonly enqueueEvents: Array<keyof HookTopics> = [];
-  readonly dequeueEvents: Array<keyof HookTopics> = [];
-  readonly dropEvents: Array<keyof HookTopics> = [];
+  readonly publishEvents: { 'payload': HookTopicsEntity.Type[keyof HookTopicsEntity.Type]; 'topic': keyof HookTopicsEntity.Type; }[] = [];
+  readonly subscribeEvents: (keyof HookTopicsEntity.Type)[] = [];
+  readonly unsubscribeEvents: (keyof HookTopicsEntity.Type)[] = [];
+  readonly deliverEvents: { 'payload': HookTopicsEntity.Type[keyof HookTopicsEntity.Type]; 'topic': keyof HookTopicsEntity.Type; }[] = [];
+  readonly handlerErrors: { 'error': unknown; 'topic': keyof HookTopicsEntity.Type; }[] = [];
+  readonly enqueueEvents: (keyof HookTopicsEntity.Type)[] = [];
+  readonly dequeueEvents: (keyof HookTopicsEntity.Type)[] = [];
+  readonly dropEvents: (keyof HookTopicsEntity.Type)[] = [];
   readonly disposeCount: number[] = [];
 
-  protected override onPublish<K extends keyof HookTopics>(topic: K, payload: HookTopics[K]): void {
-    this.publishEvents.push({ 'topic': topic, 'payload': payload });
+  protected override onPublish(topic: keyof HookTopicsEntity.Type, payload: HookTopicsEntity.Type[keyof HookTopicsEntity.Type]): void {
+    this.publishEvents.push({ 'payload': payload, 'topic': topic });
   }
-  protected override onSubscribe<K extends keyof HookTopics>(topic: K): void {
+  protected override onSubscribe(topic: keyof HookTopicsEntity.Type): void {
     this.subscribeEvents.push(topic);
   }
-  protected override onUnsubscribe<K extends keyof HookTopics>(topic: K): void {
+  protected override onUnsubscribe(topic: keyof HookTopicsEntity.Type): void {
     this.unsubscribeEvents.push(topic);
   }
-  protected override onDeliver<K extends keyof HookTopics>(topic: K, payload: HookTopics[K]): void {
-    this.deliverEvents.push({ 'topic': topic, 'payload': payload });
+  protected override onDeliver(topic: keyof HookTopicsEntity.Type, payload: HookTopicsEntity.Type[keyof HookTopicsEntity.Type]): void {
+    this.deliverEvents.push({ 'payload': payload, 'topic': topic });
   }
-  protected override onHandlerError<K extends keyof HookTopics, TError>(topic: K, error: TError): void {
-    this.handlerErrors.push({ 'topic': topic, 'error': error });
+  protected override onHandlerError(topic: keyof HookTopicsEntity.Type, error: unknown): void {
+    this.handlerErrors.push({ 'error': error, 'topic': topic });
   }
-  protected override onEnqueue<K extends keyof HookTopics>(topic: K): void {
+  protected override onEnqueue(topic: keyof HookTopicsEntity.Type): void {
     this.enqueueEvents.push(topic);
   }
-  protected override onDequeue<K extends keyof HookTopics>(topic: K): void {
+  protected override onDequeue(topic: keyof HookTopicsEntity.Type): void {
     this.dequeueEvents.push(topic);
   }
-  protected override onDrop<K extends keyof HookTopics>(topic: K): void {
+  protected override onDrop(topic: keyof HookTopicsEntity.Type): void {
     this.dropEvents.push(topic);
   }
   protected override onDispose(): void {
@@ -111,544 +63,509 @@ class RecordingHookInvoker extends HookInvoker {
   readonly hookNames: string[] = [];
   readonly causes: unknown[] = [];
 
-  protected override onHookError(hookName: string, cause: Error): void {
+  protected override onHookError(hookName: string, cause: unknown): void {
     this.hookNames.push(hookName);
     this.causes.push(cause);
   }
 }
 
-class RejectingLifecycleBus extends EventBus<HookTopics> {
+class RejectingLifecycleBus extends EventBus<HookTopicsEntity.Type> {
+  static createRejecting(): RejectingLifecycleBus {
+    return new RejectingLifecycleBus();
+  }
   readonly subscribeFailure = RuntimeError.create('subscribe hook rejected');
   readonly unsubscribeFailure = RuntimeError.create('unsubscribe hook rejected');
   readonly recordingHooks = new RecordingHookInvoker();
   protected override readonly hooks = this.recordingHooks;
 
-  protected override async onSubscribe(): Promise<void> {
-    throw this.subscribeFailure;
+  protected override onSubscribe(): unknown {
+    const rejection = Promise.reject(this.subscribeFailure);
+    return rejection;
   }
 
-  protected override async onUnsubscribe(): Promise<void> {
-    throw this.unsubscribeFailure;
+  protected override onUnsubscribe(): unknown {
+    const rejection = Promise.reject(this.unsubscribeFailure);
+    return rejection;
   }
 }
 
-class RejectingQueueHooksBus extends EventBus<HookTopics> {
+class RejectingQueueHooksBus extends EventBus<HookTopicsEntity.Type> {
+  static createRejecting(): RejectingQueueHooksBus {
+    return new RejectingQueueHooksBus();
+  }
   readonly enqueueFailure = RuntimeError.create('enqueue hook rejected');
   readonly dequeueFailure = RuntimeError.create('dequeue hook rejected');
   readonly deliverFailure = RuntimeError.create('deliver hook rejected');
   readonly recordingHooks = new RecordingHookInvoker();
   protected override readonly hooks = this.recordingHooks;
 
-  protected override async onEnqueue(): Promise<void> {
-    throw this.enqueueFailure;
+  protected override onEnqueue(): Promise<void> {
+    const rejection = Promise.reject(this.enqueueFailure);
+    return rejection;
   }
 
-  protected override async onDequeue(): Promise<void> {
-    throw this.dequeueFailure;
+  protected override onDequeue(): Promise<void> {
+    const rejection = Promise.reject(this.dequeueFailure);
+    return rejection;
   }
 
-  protected override async onDeliver(): Promise<void> {
-    throw this.deliverFailure;
+  protected override onDeliver(): Promise<void> {
+    const rejection = Promise.reject(this.deliverFailure);
+    return rejection;
   }
 }
 
 class OverflowObservedBus extends EventBus<{ 'x': string }> {
+  static createObserved(config?: BusQueueOptionsEntity.InputType): OverflowObservedBus {
+    return new OverflowObservedBus(config);
+  }
   readonly overflowDepths: number[] = [];
 
-  protected override onOverflow<K extends 'x'>(_topic: K, depth: number): void {
+  protected override onOverflow(_topic: 'x', depth: number): void {
     this.overflowDepths.push(depth);
   }
 }
 
-class IntrospectableBus extends EventBus<TestTopics> {
-  readonly #topicSubscriberCounts = new Map<keyof TestTopics, number>();
+class IntrospectableBus extends EventBus<TestTopicsEntity.Type> {
+  static createIntrospectable(): IntrospectableBus {
+    return new IntrospectableBus();
+  }
+  readonly #topicSubscriberCounts = new Map<keyof TestTopicsEntity.Type, number>();
 
-  hasTopic(topic: keyof TestTopics): boolean {
+  hasTopic(topic: keyof TestTopicsEntity.Type): boolean {
     const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
-    return subscriberCount > 0;
+    const hasSubscribers = subscriberCount > 0;
+    return hasSubscribers;
   }
 
-  protected override onSubscribe<K extends keyof TestTopics>(topic: K): void {
+  protected override onSubscribe(topic: keyof TestTopicsEntity.Type): void {
     const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
     this.#topicSubscriberCounts.set(topic, subscriberCount + 1);
   }
 
-  protected override onUnsubscribe<K extends keyof TestTopics>(topic: K): void {
+  protected override onUnsubscribe(topic: keyof TestTopicsEntity.Type): void {
     const subscriberCount = this.#topicSubscriberCounts.get(topic) ?? 0;
-    if (subscriberCount <= 1) {
+    if (subscriberCount > 1) {
+      this.#topicSubscriberCounts.set(topic, subscriberCount - 1);
+    } else {
       this.#topicSubscriberCounts.delete(topic);
-      return;
     }
-    this.#topicSubscriberCounts.set(topic, subscriberCount - 1);
   }
 }
 
-class EmptyTopicPublishBus extends EventBus<TestTopics> {
+class EmptyTopicPublishBus extends EventBus<TestTopicsEntity.Type> {
+  static createEmpty(): EmptyTopicPublishBus {
+    return new EmptyTopicPublishBus();
+  }
   publishFired = false;
   protected override onPublish(): void { this.publishFired = true; }
 }
 
-const runnerMap: RunnerMap = {
-  'publish-delivers': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const bus = EventBus.create<TestTopics>();
+class EventBusRunners {
+  static async 'async-owned-queue-hooks'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'async-owned-queue-hooks'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const hookNames = ScenarioValues.requireDefined(input.hookNames, 'hookNames');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const unhandledRejectionsExpected = ScenarioValues.requireDefined(input.unhandledRejections, 'unhandledRejections');
+    const bus = RejectingQueueHooksBus.createRejecting();
     const received: string[] = [];
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
 
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      })
-      .finally(() => bus.close());
-  },
+    try {
+      bus.subscribe(topic, (payload) => { received.push(payload.id); });
+      await bus.publish(topic, { 'id': payloadId });
+      await bus.drain();
+      await new Promise<void>((resolve) => { setImmediate(resolve); });
+      assert.deepStrictEqual(hookNames, expected.hookNames);
+      assert.strictEqual(unhandledRejectionsExpected, expected.unhandledRejections);
+      assert.deepStrictEqual(received, expected.received);
+      assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
+      assert.deepStrictEqual(bus.recordingHooks.causes, [bus.enqueueFailure, bus.dequeueFailure, bus.deliverFailure]);
+      assert.strictEqual(unhandledRejections.length, expected.unhandledRejections);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+      await bus.close();
+    }
+  }
 
-  'unsubscribe-stops': (scenarioCase) => {
-    const input = scenarioCase.input as { first: string; second: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const bus = EventBus.create<TestTopics>();
+  static async 'async-subscription-hooks'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'async-subscription-hooks'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const hookNames = ScenarioValues.requireDefined(input.hookNames, 'hookNames');
+    const unhandledRejectionsExpected = ScenarioValues.requireDefined(input.unhandledRejections, 'unhandledRejections');
+    const bus = RejectingLifecycleBus.createRejecting();
+    const unhandledRejections: unknown[] = [];
+    const onUnhandledRejection = (reason: unknown): void => { unhandledRejections.push(reason); };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      const unsubscribe = bus.subscribe('order:created', () => {});
+      assert.strictEqual(typeof unsubscribe, 'function');
+      const unsubscribeResult = unsubscribe();
+      assert.strictEqual(unsubscribeResult, undefined);
+
+      await new Promise<void>((resolve) => { setImmediate(resolve); });
+      assert.deepStrictEqual(hookNames, expected.hookNames);
+      assert.strictEqual(unhandledRejectionsExpected, expected.unhandledRejections);
+      assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
+      assert.deepStrictEqual(bus.recordingHooks.causes, [bus.subscribeFailure, bus.unsubscribeFailure]);
+      assert.strictEqual(unhandledRejections.length, expected.unhandledRejections);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+      await bus.close();
+    }
+  }
+
+  static async 'close-stops-delivery'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'close-stops-delivery'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const beforeClose = ScenarioValues.requireDefined(input.beforeClose, 'beforeClose');
+    const afterClose = ScenarioValues.requireDefined(input.afterClose, 'afterClose');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
     const received: string[] = [];
-    const unsub = bus.subscribe(input.topic, async (payload) => { received.push(payload); });
 
-    return bus.publish(input.topic, input.first)
-      .then(() => bus.drain())
-      .then(() => {
-        unsub();
-        return bus.publish(input.topic, input.second);
-      })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      })
-      .finally(() => bus.close());
-  },
+    bus.subscribe(topic, (payload) => { received.push(payload); });
 
-  'multiple-subscribers': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { receivedA: string[]; receivedB: string[] };
-    const bus = EventBus.create<TestTopics>();
+    await bus.publish(topic, beforeClose);
+    await bus.drain();
+    await bus.close();
+    await bus.publish(topic, afterClose);
+    await EventBusRunners.flushMicrotasks();
+    assert.deepStrictEqual(received, expected.received);
+  }
+
+  static async 'config-snapshot'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'config-snapshot'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'x');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const busInput = ScenarioValues.requireDefined(input.bus, 'bus');
+    const mutatedBusInput = ScenarioValues.requireDefined(input.mutatedBus, 'mutatedBus');
+    const config = { 'highWaterMark': ScenarioValues.requireDefined(busInput.highWaterMark, 'bus.highWaterMark') };
+    const bus = OverflowObservedBus.createObserved(config);
+    config.highWaterMark = ScenarioValues.requireDefined(mutatedBusInput.highWaterMark, 'mutatedBus.highWaterMark');
+
+    const blocked = Promise.withResolvers<void>();
+    bus.subscribe(topic, async () => { await blocked.promise; });
+
+    await bus.publish(topic, payload);
+    await EventBusRunners.flushMicrotasks();
+    assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
+    blocked.resolve();
+    await bus.drain();
+    await bus.close();
+  }
+
+  static async 'default-hwm'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'default-hwm'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'x');
+    const items = ScenarioValues.requireDefined(input.items, 'items');
+    const bus = OverflowObservedBus.createObserved();
+    const blockFirst = Promise.withResolvers<void>();
+    let first = true;
+
+    bus.subscribe(topic, async () => {
+      if (first) {
+        first = false;
+        await blockFirst.promise;
+      }
+    });
+
+    const pending: Promise<void>[] = [];
+    const itemCount = items.length;
+    for (let itemIndex = 0; itemIndex < itemCount; itemIndex += 1) {
+      pending.push(bus.publish(topic, ScenarioValues.requireDefined(items[itemIndex], `items[${itemIndex}]`)));
+    }
+
+    await EventBusRunners.flushMicrotasks();
+    assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
+    blockFirst.resolve();
+    await Promise.all(pending);
+    await bus.drain();
+    await bus.close();
+  }
+
+  static async 'enqueue-dequeue-hooks'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'enqueue-dequeue-hooks'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const bus = ObservedBus.createObserved();
+    bus.subscribe(topic, () => {});
+
+    try {
+      await bus.publish(topic, { 'id': payloadId });
+      await bus.drain();
+      assert.strictEqual(bus.enqueueEvents.length, expected.enqueueCount);
+      assert.strictEqual(bus.enqueueEvents[0], topic);
+      assert.strictEqual(bus.dequeueEvents.length, expected.dequeueCount);
+      assert.strictEqual(bus.dequeueEvents[0], topic);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'forwarded-hwm'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'forwarded-hwm'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'x');
+    const items = ScenarioValues.requireDefined(input.items, 'items');
+    const busConfig = ScenarioValues.requireDefined(input.bus, 'bus');
+    const bus = OverflowObservedBus.createObserved(busConfig);
+    const blockFirst = Promise.withResolvers<void>();
+    let first = true;
+
+    bus.subscribe(topic, async () => {
+      if (first) {
+        first = false;
+        await blockFirst.promise;
+      }
+    });
+
+    const pending = items.map((item) => {
+      const publication = bus.publish(topic, item);
+      return publication;
+    });
+
+    await EventBusRunners.flushMicrotasks();
+    assert.strictEqual(bus.overflowDepths.length >= ScenarioValues.requireNumber(expected.overflowCountAtLeast, 'expected.overflowCountAtLeast'), true);
+    blockFirst.resolve();
+    await Promise.all(pending);
+    await bus.drain();
+    await bus.close();
+  }
+
+  static async 'handler-signal'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'handler-signal'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    let capturedSignal: AbortSignal | undefined;
+
+    bus.subscribe(topic, (_payload, signal) => {
+      capturedSignal = signal;
+    });
+
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(capturedSignal instanceof AbortSignal, expected.isAbortSignal);
+      assert.deepStrictEqual(capturedSignal?.aborted, expected.aborted);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'hook-order'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'hook-order'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const order: string[] = [];
+
+    class OrderedBus extends EventBus<HookTopicsEntity.Type> {
+      static createOrdered(): OrderedBus {
+        return new OrderedBus();
+      }
+      protected override onSubscribe(): void { order.push('subscribe'); }
+      protected override onPublish(): void { order.push('publish'); }
+      protected override onEnqueue(): void { order.push('enqueue'); }
+      protected override onDequeue(): void { order.push('dequeue'); }
+      protected override onDeliver(): void { order.push('deliver'); }
+    }
+
+    const bus = OrderedBus.createOrdered();
+    bus.subscribe(topic, () => {});
+    try {
+      await bus.publish(topic, { 'id': payloadId });
+      await bus.drain();
+      assert.deepStrictEqual(order, expected.order);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'multiple-subscribers'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'multiple-subscribers'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
     const receivedA: string[] = [];
     const receivedB: string[] = [];
 
-    bus.subscribe(input.topic, async (payload) => { receivedA.push(payload); });
-    bus.subscribe(input.topic, async (payload) => { receivedB.push(payload); });
+    bus.subscribe(topic, (value) => { receivedA.push(value); });
+    bus.subscribe(topic, (value) => { receivedB.push(value); });
 
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(receivedA, expected.receivedA);
-        assert.deepStrictEqual(receivedB, expected.receivedB);
-      })
-      .finally(() => bus.close());
-  },
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(receivedA, expected.receivedA);
+      assert.deepStrictEqual(receivedB, expected.receivedB);
+    } finally {
+      await bus.close();
+    }
+  }
 
-  'topics-isolated': (scenarioCase) => {
-    const input = scenarioCase.input as { countPayload: number; pingPayload: string };
-    const expected = scenarioCase.expected as { counts: number[]; pings: string[] };
-    const bus = EventBus.create<TestTopics>();
-    const pings: string[] = [];
-    const counts: number[] = [];
+  static async 'on-deliver'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-deliver'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const bus = ObservedBus.createObserved();
+    bus.subscribe(topic, () => {});
+    bus.subscribe(topic, () => {});
 
-    bus.subscribe('ping', async (payload) => { pings.push(payload); });
-    bus.subscribe('count', async (payload) => { counts.push(payload); });
+    try {
+      await bus.publish(topic, { 'id': payloadId });
+      await bus.drain();
+      assert.strictEqual(bus.deliverEvents.length, expected.deliverCount);
+      assert.deepStrictEqual(bus.deliverEvents[0], { 'payload': expected.firstPayload, 'topic': topic });
+    } finally {
+      await bus.close();
+    }
+  }
 
-    return bus.publish('ping', input.pingPayload)
-      .then(() => bus.publish('count', input.countPayload))
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(pings, expected.pings);
-        assert.deepStrictEqual(counts, expected.counts);
-      })
-      .finally(() => bus.close());
-  },
+  static async 'on-dispose'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-dispose'>): Promise<void> {
+    const { input } = scenarioCase;
+    const disposeCount = ScenarioValues.requireDefined(input.disposeCount, 'disposeCount');
+    const bus = ObservedBus.createObserved();
+    assert.strictEqual(bus.disposeCount.length, 0);
+    await bus.close();
+    assert.strictEqual(bus.disposeCount.length, disposeCount);
+  }
 
-  'handler-signal': (scenarioCase) => {
-    const expected = scenarioCase.expected as { aborted: boolean; isAbortSignal: boolean; topic: 'ping' };
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const bus = EventBus.create<TestTopics>();
-    let capturedSignal: AbortSignal | undefined;
-
-    bus.subscribe(input.topic, (_payload, signal) => {
-      capturedSignal = signal;
-    });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(capturedSignal instanceof AbortSignal, expected.isAbortSignal);
-        assert.deepStrictEqual(capturedSignal?.aborted, expected.aborted);
-      })
-      .finally(() => bus.close());
-  },
-
-  'signal-after-unsubscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { abortedAfterUnsubscribe: boolean; abortedBeforeUnsubscribe: boolean };
-    const bus = EventBus.create<TestTopics>();
-    let capturedSignal: AbortSignal | undefined;
-    const unsub = bus.subscribe(input.topic, (_payload, signal) => {
-      capturedSignal = signal;
-    });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeUnsubscribe);
-        unsub();
-        assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedAfterUnsubscribe);
-      })
-      .finally(() => bus.close());
-  },
-
-  'signal-after-close': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { abortedAfterClose: boolean; abortedBeforeClose: boolean };
-    const bus = EventBus.create<TestTopics>();
-    let capturedSignal: AbortSignal | undefined;
-
-    bus.subscribe(input.topic, (_payload, signal) => {
-      capturedSignal = signal;
-    });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeClose);
-        return bus.close();
-      })
-      .then(() => {
-        assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedAfterClose);
-      });
-  },
-
-  'signal-listener-cleanup': (scenarioCase) => {
-    const input = scenarioCase.input as { cycles: number; topic: 'ping' };
-    const expected = scenarioCase.expected as { addMinusRemoveAfterAdd: number; addMinusRemoveAfterRemove: number };
-    const bus = EventBus.create<TestTopics>();
+  static async 'on-drop-noop'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-drop-noop'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const bus = ObservedBus.createObserved();
     const controller = new AbortController();
+    controller.abort(RuntimeError.create('caller aborted before subscribing'));
+    bus.subscribe(topic, () => {}, { 'signal': controller.signal });
 
-    let addCount = 0;
-    let removeCount = 0;
-    const originalAdd = controller.signal.addEventListener.bind(controller.signal);
-    const originalRemove = controller.signal.removeEventListener.bind(controller.signal);
-    controller.signal.addEventListener = ((...args: Parameters<typeof originalAdd>) => {
-      addCount += 1;
-      return originalAdd(...args);
-    }) as typeof controller.signal.addEventListener;
-    controller.signal.removeEventListener = ((...args: Parameters<typeof originalRemove>) => {
-      removeCount += 1;
-      return originalRemove(...args);
-    }) as typeof controller.signal.removeEventListener;
+    try {
+      await bus.publish(topic, { 'id': payloadId });
+      assert.strictEqual(bus.dropEvents.length, expected.dropCount);
+    } finally {
+      await bus.close();
+    }
+  }
 
-    for (let i = 0; i < input.cycles; i += 1) {
-      const unsub = bus.subscribe(input.topic, async () => {}, { 'signal': controller.signal });
-      assert.strictEqual(addCount - removeCount, expected.addMinusRemoveAfterAdd);
-      unsub();
-      assert.strictEqual(addCount - removeCount, expected.addMinusRemoveAfterRemove);
+  static async 'on-handler-error'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-handler-error'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const errorMessage = ScenarioValues.requireDefined(input.errorMessage, 'errorMessage');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const bus = ObservedBus.createObserved();
+    bus.subscribe(topic, () => { throw RuntimeError.create(errorMessage); });
+
+    try {
+      await bus.publish(topic, { 'id': payloadId });
+      await bus.drain();
+      const handlerError = ScenarioValues.requireDefined(bus.handlerErrors[0], 'handlerErrors[0]');
+      assert.strictEqual(bus.handlerErrors.length, expected.handlerErrors);
+      assert.strictEqual(handlerError.topic, expected.topic);
+      assert.strictEqual(EventBusRunners.requireError(handlerError.error).message, expected.message);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'on-publish'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-publish'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const firstId = ScenarioValues.requireDefined(input.firstId, 'firstId');
+    const secondId = ScenarioValues.requireDefined(input.secondId, 'secondId');
+    const bus = ObservedBus.createObserved();
+    bus.subscribe(topic, () => {});
+
+    try {
+      await bus.publish(topic, { 'id': firstId });
+      await bus.publish(topic, { 'id': secondId });
+      await bus.drain();
+      assert.strictEqual(bus.publishEvents.length, expected.publishCount);
+      assert.deepStrictEqual(bus.publishEvents[0], { 'payload': expected.firstPayload, 'topic': topic });
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'on-subscribe'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-subscribe'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topics = ScenarioValues.requireDefined(input.topics, 'topics').map((topic: string) => {
+      const hookTopic = EventBusRunners.requireHookTopic(topic);
+      return hookTopic;
+    });
+    const bus = ObservedBus.createObserved();
+    const topicCount = topics.length;
+    for (let topicIndex = 0; topicIndex < topicCount; topicIndex += 1) {
+      bus.subscribe(ScenarioValues.requireDefined(topics[topicIndex], `topics[${topicIndex}]`), () => {});
     }
 
-    return bus.close();
-  },
-
-  'subscribe-after-close': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { ok: boolean };
-    const bus = EventBus.create<TestTopics>();
-    return bus.close().then(() => {
-      const unsub = bus.subscribe(input.topic, async () => {});
-      assert.strictEqual(typeof unsub === 'function', expected.ok);
-      unsub();
-    });
-  },
-
-  'preaborted-caller-signal': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const bus = EventBus.create<TestTopics>();
-    const controller = new AbortController();
-    controller.abort();
-    const signal = controller.signal;
-    const received: string[] = [];
-    bus.subscribe(input.topic, async (_payload) => {
-      received.push(_payload);
-    }, { 'signal': signal });
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      })
-      .finally(() => bus.close());
-  },
-
-  'close-stops-delivery': (scenarioCase) => {
-    const input = scenarioCase.input as { afterClose: string; beforeClose: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const bus = EventBus.create<TestTopics>();
-    const received: string[] = [];
-
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
-
-    return bus.publish(input.topic, input.beforeClose)
-      .then(() => bus.drain())
-      .then(() => bus.close())
-      .then(() => bus.publish(input.topic, input.afterClose))
-      .then(() => flushMicrotasks())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      });
-  },
-
-  'publish-empty-topic': (scenarioCase) => {
-    const input = scenarioCase.input as { payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { publishFired: boolean };
-    const bus = EmptyTopicPublishBus.create();
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => bus.close())
-      .then(() => {
-        assert.strictEqual(bus.publishFired, expected.publishFired);
-      });
-  },
-
-  'on-publish': (scenarioCase) => {
-    const input = scenarioCase.input as { firstId: string; secondId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { publishCount: number; firstPayload: { id: string } };
-    const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
-
-    return bus.publish(input.topic, { 'id': input.firstId })
-      .then(() => bus.publish(input.topic, { 'id': input.secondId }))
-      .then(() => bus.drain())
-      .then(() => {
-        assert.strictEqual(bus.publishEvents.length, expected.publishCount);
-        assert.deepStrictEqual(bus.publishEvents[0], { 'topic': input.topic, 'payload': expected.firstPayload });
-      })
-      .finally(() => bus.close());
-  },
-
-  'on-subscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { topics: Array<keyof HookTopics> };
-    const expected = scenarioCase.expected as { subscribeCount: number; firstTopic: keyof HookTopics; lastTopic: keyof HookTopics };
-    const bus = ObservedBus.create();
-    for (const topic of input.topics) {
-      bus.subscribe(topic, async () => {});
-    }
-
-    return Promise.resolve().then(() => {
+    try {
       assert.strictEqual(bus.subscribeEvents.length, expected.subscribeCount);
       assert.strictEqual(bus.subscribeEvents[0], expected.firstTopic);
       assert.strictEqual(bus.subscribeEvents.at(-1), expected.lastTopic);
-    }).finally(() => bus.close());
-  },
+    } finally {
+      await bus.close();
+    }
+  }
 
-  'on-unsubscribe': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: keyof HookTopics };
-    const expected = scenarioCase.expected as { unsubscribeCount: number; topic: keyof HookTopics };
-    const bus = ObservedBus.create();
-    const unsub = bus.subscribe(input.topic, async () => {});
+  static async 'on-unsubscribe'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'on-unsubscribe'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireHookTopic(ScenarioValues.requireDefined(input.topic, 'topic'));
+    const bus = ObservedBus.createObserved();
+    const unsubscribe = bus.subscribe(topic, () => {});
     assert.strictEqual(bus.unsubscribeEvents.length, 0);
-    unsub();
+    unsubscribe();
     assert.strictEqual(bus.unsubscribeEvents.length, expected.unsubscribeCount);
     assert.strictEqual(bus.unsubscribeEvents[0], expected.topic);
-    return bus.close();
-  },
+    await bus.close();
+  }
 
-  'async-subscription-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { hookNames: string[]; unhandledRejections: number };
-    const expected = scenarioCase.expected as { hookNames: string[]; unhandledRejections: number };
-    const bus = RejectingLifecycleBus.create();
-    const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
-    process.on('unhandledRejection', onUnhandledRejection);
-
-    const unsubscribe = bus.subscribe('order:created', async () => {});
-    assert.strictEqual(typeof unsubscribe, 'function');
-    const unsubscribeResult = unsubscribe();
-    assert.strictEqual(unsubscribeResult, undefined);
-
-    return new Promise<void>((resolve) => { setImmediate(resolve); })
-      .then(() => {
-        assert.deepStrictEqual(input.hookNames, expected.hookNames);
-        assert.strictEqual(input.unhandledRejections, expected.unhandledRejections);
-        assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
-        assert.deepStrictEqual(bus.recordingHooks.causes, [bus.subscribeFailure, bus.unsubscribeFailure]);
-        assert.strictEqual(unhandledRejections.length, expected.unhandledRejections);
-      })
-      .finally(() => {
-        process.off('unhandledRejection', onUnhandledRejection);
-        return bus.close();
-      });
-  },
-
-  'async-owned-queue-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { hookNames: string[]; payloadId: string; topic: 'order:created'; unhandledRejections: number };
-    const expected = scenarioCase.expected as { hookNames: string[]; received: string[]; unhandledRejections: number };
-    const bus = RejectingQueueHooksBus.create();
+  static async 'owned-queues-isolated'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'owned-queues-isolated'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const firstId = ScenarioValues.requireDefined(input.firstId, 'firstId');
+    const secondId = ScenarioValues.requireDefined(input.secondId, 'secondId');
+    const first = ObservedBus.createObserved();
+    const second = ObservedBus.createObserved();
     const received: string[] = [];
-    const unhandledRejections: unknown[] = [];
-    const onUnhandledRejection = (reason: Error): void => { unhandledRejections.push(reason); };
-    process.on('unhandledRejection', onUnhandledRejection);
-
-    return Promise.resolve()
-      .then(() => {
-        bus.subscribe(input.topic, async (payload) => { received.push(payload.id); });
-        return bus.publish(input.topic, { 'id': input.payloadId });
-      })
-      .then(() => bus.drain())
-      .then(() => new Promise<void>((resolve) => { setImmediate(resolve); }))
-      .then(() => {
-        assert.deepStrictEqual(input.hookNames, expected.hookNames);
-        assert.strictEqual(input.unhandledRejections, expected.unhandledRejections);
-        assert.deepStrictEqual(received, expected.received);
-        assert.deepStrictEqual(bus.recordingHooks.hookNames, expected.hookNames);
-        assert.deepStrictEqual(bus.recordingHooks.causes, [bus.enqueueFailure, bus.dequeueFailure, bus.deliverFailure]);
-        assert.strictEqual(unhandledRejections.length, expected.unhandledRejections);
-      })
-      .finally(() => {
-        process.off('unhandledRejection', onUnhandledRejection);
-        return bus.close();
-      });
-  },
-
-  'on-deliver': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { deliverCount: number; firstPayload: { id: string } };
-    const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
-    bus.subscribe(input.topic, async () => {});
-
-    return bus.publish(input.topic, { 'id': input.payloadId })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.strictEqual(bus.deliverEvents.length, expected.deliverCount);
-        assert.deepStrictEqual(bus.deliverEvents[0], { 'topic': input.topic, 'payload': expected.firstPayload });
-      })
-      .finally(() => bus.close());
-  },
-
-  'owned-queues-isolated': (scenarioCase) => {
-    const input = scenarioCase.input as { firstId: string; secondId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as {
-      firstDeliver: { payload: { id: string }; topic: 'order:created' };
-      received: string[];
-      secondDeliver: { payload: { id: string }; topic: 'order:created' };
-    };
-    const first = ObservedBus.create();
-    const second = ObservedBus.create();
-    const received: string[] = [];
-    const sharedHandler = async (payload: { 'id': string }): Promise<void> => {
+    const sharedHandler = (payload: HookTopicsEntity.Type['order:created']): void => {
       received.push(payload.id);
     };
 
-    first.subscribe(input.topic, sharedHandler);
-    second.subscribe(input.topic, sharedHandler);
+    first.subscribe(topic, sharedHandler);
+    second.subscribe(topic, sharedHandler);
 
-    return Promise.all([
-      first.publish(input.topic, { 'id': input.firstId }),
-      second.publish(input.topic, { 'id': input.secondId })
-    ])
-      .then(() => Promise.all([first.drain(), second.drain()]))
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-        assert.deepStrictEqual(first.enqueueEvents, [input.topic]);
-        assert.deepStrictEqual(second.enqueueEvents, [input.topic]);
-        assert.deepStrictEqual(first.deliverEvents, [expected.firstDeliver]);
-        assert.deepStrictEqual(second.deliverEvents, [expected.secondDeliver]);
-      })
-      .finally(() => Promise.all([first.close(), second.close()]));
-  },
-
-  'on-handler-error': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { handlerErrors: number; message: string; topic: 'order:created' };
-    const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => { throw RuntimeError.create(input.errorMessage); });
-
-    return bus.publish(input.topic, { 'id': input.payloadId })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.strictEqual(bus.handlerErrors.length, expected.handlerErrors);
-        assert.strictEqual(bus.handlerErrors[0]!.topic, expected.topic);
-        assert.strictEqual((bus.handlerErrors[0]!.error as Error).message, expected.message);
-      })
-      .finally(() => bus.close());
-  },
-
-  'enqueue-dequeue-hooks': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { dequeueCount: number; enqueueCount: number };
-    const bus = ObservedBus.create();
-    bus.subscribe(input.topic, async () => {});
-
-    return bus.publish(input.topic, { 'id': input.payloadId })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.strictEqual(bus.enqueueEvents.length, expected.enqueueCount);
-        assert.strictEqual(bus.enqueueEvents[0], input.topic);
-        assert.strictEqual(bus.dequeueEvents.length, expected.dequeueCount);
-        assert.strictEqual(bus.dequeueEvents[0], input.topic);
-      })
-      .finally(() => bus.close());
-  },
-
-  'on-drop-noop': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { dropCount: number; topic: 'order:created' };
-    const bus = ObservedBus.create();
-    const controller = new AbortController();
-    controller.abort();
-    bus.subscribe(input.topic, async () => {}, { 'signal': controller.signal });
-
-    return bus.publish(input.topic, { 'id': input.payloadId })
-      .then(() => {
-        assert.strictEqual(bus.dropEvents.length, expected.dropCount);
-      })
-      .finally(() => bus.close());
-  },
-
-  'on-dispose': (scenarioCase) => {
-    const input = scenarioCase.input as { disposeCount: number };
-    const bus = ObservedBus.create();
-    assert.strictEqual(bus.disposeCount.length, 0);
-    return bus.close().then(() => {
-      assert.strictEqual(bus.disposeCount.length, input.disposeCount);
-    });
-  },
-
-  'hook-order': (scenarioCase) => {
-    const input = scenarioCase.input as { payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { order: string[] };
-    const order: string[] = [];
-
-    class OrderedBus extends EventBus<HookTopics> {
-      protected override onSubscribe<K extends keyof HookTopics>(_topic: K): void { order.push('subscribe'); }
-      protected override onPublish<K extends keyof HookTopics>(_topic: K, _payload: HookTopics[K]): void { order.push('publish'); }
-      protected override onEnqueue<K extends keyof HookTopics>(_topic: K): void { order.push('enqueue'); }
-      protected override onDequeue<K extends keyof HookTopics>(_topic: K): void { order.push('dequeue'); }
-      protected override onDeliver<K extends keyof HookTopics>(_topic: K, _payload: HookTopics[K]): void { order.push('deliver'); }
+    try {
+      await Promise.all([
+        first.publish(topic, { 'id': firstId }),
+        second.publish(topic, { 'id': secondId })
+      ]);
+      await Promise.all([first.drain(), second.drain()]);
+      assert.deepStrictEqual(received, expected.received);
+      assert.deepStrictEqual(first.enqueueEvents, [topic]);
+      assert.deepStrictEqual(second.enqueueEvents, [topic]);
+      assert.deepStrictEqual(first.deliverEvents, [expected.firstDeliver]);
+      assert.deepStrictEqual(second.deliverEvents, [expected.secondDeliver]);
+    } finally {
+      await Promise.all([first.close(), second.close()]);
     }
+  }
 
-    const bus = OrderedBus.create();
-    bus.subscribe(input.topic, async () => {});
-    return bus.publish(input.topic, { 'id': input.payloadId })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(order, expected.order);
-      })
-      .finally(() => bus.close());
-  },
-
-  'pending-admission-order': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; payloadId: string; topic: 'order:created' };
-    const expected = scenarioCase.expected as { order: string[] };
+  static async 'pending-admission-order'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'pending-admission-order'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'order:created');
+    const payloadId = ScenarioValues.requireDefined(input.payloadId, 'payloadId');
+    const busConfig = ScenarioValues.requireDefined(input.bus, 'bus');
     const enqueueGate = Promise.withResolvers<void>();
     const enqueueStarted = Promise.withResolvers<void>();
     const overflowGate = Promise.withResolvers<void>();
     const overflowStarted = Promise.withResolvers<void>();
     const order: string[] = [];
 
-    class PendingAdmissionBus extends EventBus<HookTopics> {
+    class PendingAdmissionBus extends EventBus<HookTopicsEntity.Type> {
+      static createPending(config?: BusQueueOptionsEntity.InputType): PendingAdmissionBus {
+        return new PendingAdmissionBus(config);
+      }
       protected override onPublish(): void {
         order.push('publish');
       }
@@ -676,296 +593,408 @@ const runnerMap: RunnerMap = {
       }
     }
 
-    const bus = PendingAdmissionBus.create(input.bus);
-    bus.subscribe(input.topic, async () => { order.push('handler'); });
+    const bus = PendingAdmissionBus.createPending(busConfig);
+    bus.subscribe(topic, () => { order.push('handler'); });
 
-    const publish = bus.publish(input.topic, { 'id': input.payloadId });
-    return enqueueStarted.promise
-      .then(() => {
-        assert.deepStrictEqual(order, expected.order.slice(0, 2));
-        enqueueGate.resolve();
-        return overflowStarted.promise;
-      })
-      .then(() => {
-        assert.deepStrictEqual(order, expected.order.slice(0, 4));
-        overflowGate.resolve();
-        return publish;
-      })
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(order, expected.order);
-      });
-  },
-
-  'default-hwm': (scenarioCase) => {
-    const input = scenarioCase.input as { items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
-    const bus = OverflowObservedBus.create();
-    let resolveBlock!: () => void;
-    const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
-    let first = true;
-
-    bus.subscribe(input.topic, async () => {
-      if (first) {
-        first = false;
-        await blockFirst;
-      }
-    });
-
-    const pending: Promise<void>[] = [];
-    for (const item of input.items) {
-      pending.push(bus.publish(input.topic, item));
-    }
-
-    return flushMicrotasks()
-      .then(() => {
-        assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
-        resolveBlock();
-        return Promise.all(pending);
-      })
-      .then(() => bus.drain())
-      .then(() => bus.close());
-  },
-
-  'forwarded-hwm': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCountAtLeast: number };
-    const bus = OverflowObservedBus.create(input.bus);
-    let resolveBlock!: () => void;
-    const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
-    let first = true;
-
-    bus.subscribe(input.topic, async () => {
-      if (first) {
-        first = false;
-        await blockFirst;
-      }
-    });
-
-    const pending = input.items.map((item) => bus.publish(input.topic, item));
-
-    return flushMicrotasks()
-      .then(() => {
-        assert.strictEqual(bus.overflowDepths.length >= expected.overflowCountAtLeast, true);
-        resolveBlock();
-        return Promise.all(pending);
-      })
-      .then(() => bus.drain())
-      .then(() => bus.close());
-  },
-
-  'config-snapshot': (scenarioCase) => {
-    const input = scenarioCase.input as { bus: { highWaterMark: number }; mutatedBus: { highWaterMark: number }; payload: string; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
-    const config = { 'highWaterMark': input.bus.highWaterMark };
-    const bus = OverflowObservedBus.create(config);
-    config.highWaterMark = input.mutatedBus.highWaterMark;
-
-    const blocked = Promise.withResolvers<void>();
-    bus.subscribe(input.topic, async () => { await blocked.promise; });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => flushMicrotasks())
-      .then(() => {
-        assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
-        blocked.resolve();
-      })
-      .then(() => bus.drain())
-      .then(() => bus.close());
-  },
-
-  'same-depth-no-overflow': (scenarioCase) => {
-    const input = scenarioCase.input as { items: string[]; topic: 'x' };
-    const expected = scenarioCase.expected as { overflowCount: number };
-    const bus = OverflowObservedBus.create();
-    let resolveBlock!: () => void;
-    const blockFirst = new Promise<void>((resolve) => { resolveBlock = resolve; });
-    let first = true;
-
-    bus.subscribe(input.topic, async () => {
-      if (first) {
-        first = false;
-        await blockFirst;
-      }
-    });
-
-    const pending = input.items.map((item) => bus.publish(input.topic, item));
-
-    return flushMicrotasks()
-      .then(() => {
-        assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
-        resolveBlock();
-        return Promise.all(pending);
-      })
-      .then(() => bus.drain())
-      .then(() => bus.close());
-  },
-
-  'throwing-on-publish': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const received: string[] = [];
-
-    class ThrowingPublishBus extends EventBus<TestTopics> {
-      protected override onPublish(): void {
-        throw RuntimeError.create(input.errorMessage);
-      }
-    }
-
-    const bus = ThrowingPublishBus.create();
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      })
-      .finally(() => bus.close());
-  },
-
-  'topic-entry-cleanup': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { after: boolean; before: boolean; during: boolean };
-    const bus = IntrospectableBus.create();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.before);
-    const unsub = bus.subscribe(input.topic, async () => {});
-    assert.strictEqual(bus.hasTopic(input.topic), expected.during);
-    unsub();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.after);
-    return bus.close();
-  },
-
-  'topic-entry-kept': (scenarioCase) => {
-    const input = scenarioCase.input as { topic: 'ping' };
-    const expected = scenarioCase.expected as { after: boolean };
-    const bus = IntrospectableBus.create();
-    const unsubA = bus.subscribe(input.topic, async () => {});
-    bus.subscribe(input.topic, async () => {});
-    unsubA();
-    assert.strictEqual(bus.hasTopic(input.topic), expected.after);
-    return bus.close();
-  },
-
-  'throwing-on-deliver': (scenarioCase) => {
-    const input = scenarioCase.input as { errorMessage: string; payload: string; topic: 'ping' };
-    const expected = scenarioCase.expected as { received: string[] };
-    const received: string[] = [];
-
-    class ThrowingDeliverBus extends EventBus<TestTopics> {
-      protected override onDeliver(): void {
-        throw RuntimeError.create(input.errorMessage);
-      }
-    }
-
-    const bus = ThrowingDeliverBus.create();
-    bus.subscribe(input.topic, async (payload) => { received.push(payload); });
-
-    return bus.publish(input.topic, input.payload)
-      .then(() => bus.drain())
-      .then(() => {
-        assert.deepStrictEqual(received, expected.received);
-      })
-      .finally(() => bus.close());
+    const publish = bus.publish(topic, { 'id': payloadId });
+    const expectedOrder = ScenarioValues.requireStringArray(expected.order, 'expected.order');
+    await enqueueStarted.promise;
+    assert.deepStrictEqual(order, expectedOrder.slice(0, 2));
+    enqueueGate.resolve();
+    await overflowStarted.promise;
+    assert.deepStrictEqual(order, expectedOrder.slice(0, 4));
+    overflowGate.resolve();
+    await publish;
+    await bus.drain();
+    assert.deepStrictEqual(order, expected.order);
   }
-};
 
-function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> | void {
-  return runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('EventBus', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario as ScenarioCase);
-    });
-  }
-});
-
-
-interface RetryEventTopics {
-  readonly 'retry:failed': { readonly 'attempt': number };
-}
-
-function acceptEventSink<TTopicMap extends object>(sink: EventSinkInterface<TTopicMap>): EventSinkInterface<TTopicMap> {
-  return sink;
-}
-
-void describe('EventSinkInterface', () => {
-  void it('accepts a custom sink with only publish', async () => {
-    const published: string[] = [];
-    const sink = acceptEventSink<RetryEventTopics>({
-      async publish(topic, payload): Promise<void> {
-        published.push(`${topic}:${payload.attempt}`);
-      }
-    });
-
-    await sink.publish('retry:failed', { 'attempt': 2 });
-
-    assert.deepStrictEqual(published, ['retry:failed:2']);
-  });
-
-  void it('is implemented by EventBus without requiring lifecycle capabilities', async () => {
-    const bus = EventBus.create<RetryEventTopics>();
-    const sink = acceptEventSink<RetryEventTopics>(bus);
-
-    await sink.publish('retry:failed', { 'attempt': 1 });
-    await bus.close();
-  });
-});
-
-
-void describe("EventBus subscription ownership", () => {
-  void it("aborting a live caller signal removes its subscription with explicit-unsubscribe semantics", async () => {
-    class AbortObservedBus extends EventBus<TestTopics> {
-      unsubscribeCount = 0;
-
-      protected override onUnsubscribe(): void {
-        this.unsubscribeCount += 1;
-      }
-    }
-
-    const bus = AbortObservedBus.create();
+  static async 'preaborted-caller-signal'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'preaborted-caller-signal'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
     const controller = new AbortController();
+    controller.abort(RuntimeError.create('caller aborted before subscribing'));
+    const signal = controller.signal;
     const received: string[] = [];
-    const unsubscribe = bus.subscribe("ping", async (payload) => {
-      received.push(payload);
-    }, { 'signal': controller.signal });
+    bus.subscribe(topic, (value) => {
+      received.push(value);
+    }, { 'signal': signal });
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(received, expected.received);
+    } finally {
+      await bus.close();
+    }
+  }
 
-    controller.abort();
+  static async 'publish-delivers'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'publish-delivers'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    const received: string[] = [];
+    bus.subscribe(topic, (value) => { received.push(value); });
 
-    assert.strictEqual(bus.unsubscribeCount, 1);
-    await bus.publish("ping", "after-abort");
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(received, expected.received);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'publish-empty-topic'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'publish-empty-topic'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EmptyTopicPublishBus.createEmpty();
+    await bus.publish(topic, payload);
     await bus.drain();
-    assert.deepStrictEqual(received, []);
+    await bus.close();
+    assert.strictEqual(bus.publishFired, expected.publishFired);
+  }
 
+  static async 'same-depth-no-overflow'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'same-depth-no-overflow'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'x');
+    const items = ScenarioValues.requireDefined(input.items, 'items');
+    const bus = OverflowObservedBus.createObserved();
+    const blockFirst = Promise.withResolvers<void>();
+    let first = true;
+
+    bus.subscribe(topic, async () => {
+      if (first) {
+        first = false;
+        await blockFirst.promise;
+      }
+    });
+
+    const pending = items.map((item) => {
+      const publication = bus.publish(topic, item);
+      return publication;
+    });
+
+    await EventBusRunners.flushMicrotasks();
+    assert.strictEqual(bus.overflowDepths.length, expected.overflowCount);
+    blockFirst.resolve();
+    await Promise.all(pending);
+    await bus.drain();
+    await bus.close();
+  }
+
+  static async 'signal-after-close'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'signal-after-close'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    let capturedSignal: AbortSignal | undefined;
+
+    bus.subscribe(topic, (_payload, signal) => {
+      capturedSignal = signal;
+    });
+
+    await bus.publish(topic, payload);
+    await bus.drain();
+    assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeClose);
+    await bus.close();
+    assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedAfterClose);
+  }
+
+  static async 'signal-after-unsubscribe'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'signal-after-unsubscribe'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    let capturedSignal: AbortSignal | undefined;
+    const unsubscribe = bus.subscribe(topic, (_payload, signal) => {
+      capturedSignal = signal;
+    });
+
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedBeforeUnsubscribe);
+      unsubscribe();
+      assert.deepStrictEqual(capturedSignal?.aborted, expected.abortedAfterUnsubscribe);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'signal-listener-cleanup'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'signal-listener-cleanup'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const cycles = ScenarioValues.requireDefined(input.cycles, 'cycles');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    const controller = new AbortController();
+
+    for (let cycle = 0; cycle < cycles; cycle += 1) {
+      const unsubscribe = bus.subscribe(topic, () => {}, { 'signal': controller.signal });
+      assert.strictEqual(getEventListeners(controller.signal, 'abort').length, expected.addMinusRemoveAfterAdd);
+      unsubscribe();
+      assert.strictEqual(getEventListeners(controller.signal, 'abort').length, expected.addMinusRemoveAfterRemove);
+    }
+
+    await bus.close();
+  }
+
+  static async 'subscribe-after-close'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'subscribe-after-close'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    await bus.close();
+    const unsubscribe = bus.subscribe(topic, () => {});
+    assert.strictEqual(typeof unsubscribe === 'function', expected.ok);
     unsubscribe();
-    assert.strictEqual(bus.unsubscribeCount, 1);
-    await bus.close();
-  });
+  }
 
-  void it("keeps duplicate handler subscriptions independent", async () => {
-    const bus = EventBus.create<TestTopics>();
+  static async 'throwing-on-deliver'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'throwing-on-deliver'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const errorMessage = ScenarioValues.requireDefined(input.errorMessage, 'errorMessage');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
     const received: string[] = [];
-    const handler = async (payload: string): Promise<void> => {
-      received.push(payload);
-    };
-    const unsubscribeFirst = bus.subscribe("ping", handler);
-    const unsubscribeSecond = bus.subscribe("ping", handler);
 
-    await bus.publish("ping", "first");
-    await bus.drain();
+    class ThrowingDeliverBus extends EventBus<TestTopicsEntity.Type> {
+      static createThrowing(): ThrowingDeliverBus {
+        return new ThrowingDeliverBus();
+      }
+      protected override onDeliver(): void {
+        throw RuntimeError.create(errorMessage);
+      }
+    }
 
-    unsubscribeFirst();
+    const bus = ThrowingDeliverBus.createThrowing();
+    bus.subscribe(topic, (value) => { received.push(value); });
 
-    await bus.publish("ping", "second");
-    await bus.drain();
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(received, expected.received);
+    } finally {
+      await bus.close();
+    }
+  }
 
-    unsubscribeSecond();
+  static async 'throwing-on-publish'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'throwing-on-publish'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const errorMessage = ScenarioValues.requireDefined(input.errorMessage, 'errorMessage');
+    const payload = ScenarioValues.requireDefined(input.payload, 'payload');
+    const received: string[] = [];
 
-    await bus.publish("ping", "third");
-    await bus.drain();
+    class ThrowingPublishBus extends EventBus<TestTopicsEntity.Type> {
+      static createThrowing(): ThrowingPublishBus {
+        return new ThrowingPublishBus();
+      }
+      protected override onPublish(): void {
+        throw RuntimeError.create(errorMessage);
+      }
+    }
 
-    assert.deepStrictEqual(received, ["first", "first", "second"]);
+    const bus = ThrowingPublishBus.createThrowing();
+    bus.subscribe(topic, (value) => { received.push(value); });
+
+    try {
+      await bus.publish(topic, payload);
+      await bus.drain();
+      assert.deepStrictEqual(received, expected.received);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'topic-entry-cleanup'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'topic-entry-cleanup'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const bus = IntrospectableBus.createIntrospectable();
+    assert.strictEqual(bus.hasTopic(topic), expected.before);
+    const unsubscribe = bus.subscribe(topic, () => {});
+    assert.strictEqual(bus.hasTopic(topic), expected.during);
+    unsubscribe();
+    assert.strictEqual(bus.hasTopic(topic), expected.after);
     await bus.close();
-  });
+  }
+
+  static async 'topic-entry-kept'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'topic-entry-kept'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const bus = IntrospectableBus.createIntrospectable();
+    const unsubscribeFirst = bus.subscribe(topic, () => {});
+    bus.subscribe(topic, () => {});
+    unsubscribeFirst();
+    assert.strictEqual(bus.hasTopic(topic), expected.after);
+    await bus.close();
+  }
+
+  static async 'topics-isolated'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'topics-isolated'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const countPayload = ScenarioValues.requireDefined(input.countPayload, 'countPayload');
+    const pingPayload = ScenarioValues.requireDefined(input.pingPayload, 'pingPayload');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    const pings: string[] = [];
+    const counts: number[] = [];
+
+    bus.subscribe('ping', (payload) => { pings.push(payload); });
+    bus.subscribe('count', (payload) => { counts.push(payload); });
+
+    try {
+      await bus.publish('ping', pingPayload);
+      await bus.publish('count', countPayload);
+      await bus.drain();
+      assert.deepStrictEqual(pings, expected.pings);
+      assert.deepStrictEqual(counts, expected.counts);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static async 'unsubscribe-stops'(scenarioCase: ScenarioCaseOfType<EventBusScenarioCaseEntity.Type, 'unsubscribe-stops'>): Promise<void> {
+    const { expected, input } = scenarioCase;
+    const topic = EventBusRunners.requireTopic(input.topic, 'ping');
+    const first = ScenarioValues.requireDefined(input.first, 'first');
+    const second = ScenarioValues.requireDefined(input.second, 'second');
+    const bus = EventBus.create<TestTopicsEntity.Type>();
+    const received: string[] = [];
+    const unsubscribe = bus.subscribe(topic, (payload) => { received.push(payload); });
+
+    try {
+      await bus.publish(topic, first);
+      await bus.drain();
+      unsubscribe();
+      await bus.publish(topic, second);
+      await bus.drain();
+      assert.deepStrictEqual(received, expected.received);
+    } finally {
+      await bus.close();
+    }
+  }
+
+  static declaresExtraTests(): void {
+    EventBusRunners.declaresEventSinkInterface();
+    EventBusRunners.declaresBusSubscriptionOwnership();
+  }
+
+  private static declaresEventSinkInterface(): void {
+    void it('accepts a custom sink with only publish', async () => {
+      const published: string[] = [];
+      const sink: EventSinkInterface<RetryEventTopicsEntity.Type> = {
+        'publish': (topic, payload): Promise<void> => {
+          published.push(`${topic}:${payload.attempt}`);
+          const completion = Promise.resolve();
+          return completion;
+        }
+      };
+
+      await sink.publish('retry:failed', { 'attempt': 2 });
+
+      assert.deepStrictEqual(published, ['retry:failed:2']);
+    });
+
+    void it('is implemented by EventBus without requiring lifecycle capabilities', async () => {
+      const bus = EventBus.create<RetryEventTopicsEntity.Type>();
+      const sink: EventSinkInterface<RetryEventTopicsEntity.Type> = bus;
+
+      await sink.publish('retry:failed', { 'attempt': 1 });
+      await bus.close();
+    });
+  }
+
+  private static declaresBusSubscriptionOwnership(): void {
+    void it('aborting a live caller signal removes its subscription with explicit-unsubscribe semantics', async () => {
+      class AbortObservedBus extends EventBus<TestTopicsEntity.Type> {
+        static createAbortObserved(): AbortObservedBus {
+          return new AbortObservedBus();
+        }
+        unsubscribeCount = 0;
+
+        protected override onUnsubscribe(): void {
+          this.unsubscribeCount += 1;
+        }
+      }
+
+      const bus = AbortObservedBus.createAbortObserved();
+      const controller = new AbortController();
+      const received: string[] = [];
+      const unsubscribe = bus.subscribe('ping', (payload) => {
+        received.push(payload);
+      }, { 'signal': controller.signal });
+
+      controller.abort(RuntimeError.create('caller aborted a live subscription'));
+
+      assert.strictEqual(bus.unsubscribeCount, 1);
+      await bus.publish('ping', 'after-abort');
+      await bus.drain();
+      assert.deepStrictEqual(received, []);
+
+      unsubscribe();
+      assert.strictEqual(bus.unsubscribeCount, 1);
+      await bus.close();
+    });
+
+    void it('keeps duplicate handler subscriptions independent', async () => {
+      const bus = EventBus.create<TestTopicsEntity.Type>();
+      const received: string[] = [];
+      const handler = (payload: string): void => {
+        received.push(payload);
+      };
+      const unsubscribeFirst = bus.subscribe('ping', handler);
+      const unsubscribeSecond = bus.subscribe('ping', handler);
+
+      await bus.publish('ping', 'first');
+      await bus.drain();
+
+      unsubscribeFirst();
+
+      await bus.publish('ping', 'second');
+      await bus.drain();
+
+      unsubscribeSecond();
+
+      await bus.publish('ping', 'third');
+      await bus.drain();
+
+      assert.deepStrictEqual(received, ['first', 'first', 'second']);
+      await bus.close();
+    });
+  }
+
+  private static async flushMicrotasks(times = 20): Promise<void> {
+    for (let tick = 0; tick < times; tick += 1) {
+      await Promise.resolve();
+    }
+  }
+
+  private static requireError(value: unknown): Error {
+    if (value instanceof Error) {
+      return value;
+    }
+    throw RuntimeError.create('Expected an Error instance');
+  }
+
+  private static requireTopic<TTopic extends string>(topic: string | undefined, expected: TTopic): TTopic {
+    if (topic === expected) {
+      return expected;
+    }
+    throw RuntimeError.create(`Expected topic ${expected}, received ${String(topic)}`);
+  }
+
+  private static requireHookTopic(topic: string): keyof HookTopicsEntity.Type {
+    if (topic === 'order:created' || topic === 'order:updated') {
+      return topic;
+    }
+    throw RuntimeError.create(`Unknown hook topic: ${topic}`);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': EventBusScenarioCaseEntity,
+  'extraTests': EventBusRunners.declaresExtraTests,
+  'file': scenarioGroups,
+  'name': 'EventBus',
+  'runners': EventBusRunners
 });

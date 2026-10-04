@@ -16,6 +16,8 @@ import { LoggerError } from './LoggerError.js';
  * ```
  */
 export class FileDestinationError<TCause = unknown> extends LoggerError<TCause> {
+  public override readonly name: string = 'FileDestinationError';
+
   /**
    * Creates a new FileDestinationError
    *

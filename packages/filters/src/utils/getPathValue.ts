@@ -6,7 +6,7 @@
 import {
   Predicates,
   RuntimeValue
-} from '@studnicky/types/node';
+} from '@studnicky/types/browser';
 
 import { FilterTypeGuards } from '../interfaces.js';
 import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';
@@ -132,70 +132,112 @@ export class GetPathValue {
       return targetValue;
     }
 
-    // Handle bracket notation with quoted keys like ["special.key"]
-    if (path.startsWith('[') && path.includes('"]')) {
-      // Extract the key from ["key"] or ["key"]["otherKey"]
-      const matches = [...path.matchAll(BRACKETED_KEY_PATTERN)];
+    const bracketResult = GetPathValue.tryBracketNotation(targetValue, path);
 
-      if (matches.length > 0) {
-        let current: unknown = targetValue;
-
-        for (let matchIndex = 0; matchIndex < matches.length; matchIndex++) {
-          const key = matches[matchIndex]![0].slice(2, -2); // Remove [" and "]
-
-          if (current === null || current === undefined) {
-            return undefined;
-          }
-          current = GetPathValue.readField(current, key);
-        }
-
-        const bracketResult = RuntimeValue.intake(current);
-
-        return bracketResult;
-      }
+    if (bracketResult.applied) {
+      return bracketResult.value;
     }
 
     const parts = path.split('.');
-    let current: unknown = targetValue;
-    const partsLength = parts.length;
 
     // Check if path depth exceeds maximum
-    if (maximumDepth !== undefined && partsLength > maximumDepth) {
+    if (maximumDepth !== undefined && parts.length > maximumDepth) {
       // Return undefined for paths that are too deep
       return undefined;
     }
 
-    for (let i = 0; i < partsLength; i++) {
+    const traversal = GetPathValue.traverseParts(targetValue, path, parts);
+
+    if (traversal.isWildcard) {
+      const wildcardResult = FilterTypeGuards.isArrayWildcardValue(traversal.value) ? traversal.value : RuntimeValue.intake(traversal.value);
+
+      return wildcardResult;
+    }
+
+    const finalResult = RuntimeValue.intake(traversal.value);
+
+    return finalResult;
+  }
+
+  /** Handles bracket notation with quoted keys like `["special.key"]`; `applied` is false when `path` isn't that shape. */
+  private static tryBracketNotation(targetValue: unknown, path: string): { 'applied': boolean, 'value': unknown } {
+    if (!path.startsWith('[') || !path.includes('"]')) {
+      return { 'applied': false, 'value': undefined };
+    }
+
+    // Extract the key from ["key"] or ["key"]["otherKey"]
+    const matches = [...path.matchAll(BRACKETED_KEY_PATTERN)];
+
+    if (matches.length === 0) {
+      return { 'applied': false, 'value': undefined };
+    }
+
+    let current: unknown = targetValue;
+
+    for (let matchIndex = 0; matchIndex < matches.length; matchIndex++) {
+      const key = matches[matchIndex]![0].slice(2, -2); // Remove [" and "]
+
+      if (current === null || current === undefined) {
+        return { 'applied': true, 'value': undefined };
+      }
+      current = GetPathValue.readField(current, key);
+    }
+
+    const bracketResult = RuntimeValue.intake(current);
+
+    return { 'applied': true, 'value': bracketResult };
+  }
+
+  private static traverseParts(targetValue: unknown, path: string, parts: string[]): { 'isWildcard': boolean, 'value': unknown } {
+    let current: unknown = targetValue;
+
+    for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
 
       if (part === undefined || part === '') {
         continue;
       }
 
-      if (current === null || current === undefined) {
-        return undefined;
+      const step = GetPathValue.advancePart(current, part, path, parts, i);
+
+      if (step.stop) {
+        return { 'isWildcard': step.isWildcard, 'value': step.value };
       }
 
-      if (part.includes('[') && part.includes(']')) {
-        const result = GetPathValue.processArrayIndexing(part, current, path, parts, i);
-
-        if (result.isWildcard) {
-          const wildcardResult = FilterTypeGuards.isArrayWildcardValue(result.value) ? result.value : RuntimeValue.intake(result.value);
-
-          return wildcardResult;
-        }
-        current = result.value;
-      } else {
-        // Security check: prevent access to dangerous properties
-        if (!GetPathValue.isSafeProperty(part)) {
-          return undefined;
-        }
-        current = GetPathValue.readField(current, part);
-      }
+      current = step.value;
     }
 
-    const finalResult = RuntimeValue.intake(current);
+    return { 'isWildcard': false, 'value': current };
+  }
 
-    return finalResult;
+  private static advancePart(
+    current: unknown,
+    part: string,
+    path: string,
+    parts: string[],
+    index: number
+  ): { 'isWildcard': boolean, 'stop': boolean, 'value': unknown } {
+    if (current === null || current === undefined) {
+      return { 'isWildcard': false, 'stop': true, 'value': undefined };
+    }
+
+    if (part.includes('[') && part.includes(']')) {
+      const result = GetPathValue.processArrayIndexing(part, current, path, parts, index);
+
+      if (result.isWildcard) {
+        return { 'isWildcard': true, 'stop': true, 'value': result.value };
+      }
+
+      return { 'isWildcard': false, 'stop': false, 'value': result.value };
+    }
+
+    // Security check: prevent access to dangerous properties
+    if (!GetPathValue.isSafeProperty(part)) {
+      return { 'isWildcard': false, 'stop': true, 'value': undefined };
+    }
+
+    const value = GetPathValue.readField(current, part);
+
+    return { 'isWildcard': false, 'stop': false, 'value': value };
   }
 }

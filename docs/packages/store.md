@@ -1,5 +1,5 @@
 ---
-title: '@studnicky/store'
+title: "@studnicky/store"
 description: Observable browser-ready state stores with interchangeable persistence.
 ---
 
@@ -15,7 +15,13 @@ pnpm add @studnicky/store
 
 ## Runtime imports
 
-Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import entities and contracts from the neutral `@studnicky/store/entities` and `@studnicky/store/interfaces` paths.
+Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import normalized entity facilities from the neutral `@studnicky/store/entity` path, persistence configuration entities from `@studnicky/store/entities`, and contracts from `@studnicky/store/interfaces`. Import the layered Node composition from `@studnicky/store/strata`, its browser runtime from `@studnicky/store/strata/browser`, and its contract from `@studnicky/store/strata/interfaces`.
+
+## Northstar Books checkout state
+
+Northstar Books gives a shopper an immediate cart and checkout-progress view while keeping a durable recovery point. A `StrataStore` from `@studnicky/store/strata` places the fast working store before the durable browser store: a committed write propagates source-to-target, and `hydrate()` restores the durable checkout snapshot back through the layers after a reload.
+
+The guarantee is that subscribers receive committed, detached snapshots only after persistence succeeds, while matching store keys serialize local writes. The composition does not make browser storage a shared transaction coordinator; multiple tabs or server instances require a durable persistence implementation with the coordination semantics the application needs.
 
 ## Core store
 
@@ -23,15 +29,24 @@ Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/br
 
 <<< ../../packages/store/examples/memory-store.ts#usage
 
+## Normalized entity state
+
+`@studnicky/store/entity` exports `EntityCollection`, `EntityStore`, `EntityStateInterface`, and `EntityStoreOptionsInterface`. This is the only entity-store import path.
+
+`EntityStateInterface<TEntity>` is normalized JSON-safe state: an `entities` record keyed by string ID and an ordered `ids` array. When a JSON codec persists the state, choose an entity type whose fields are JSON-safe. `EntityCollection` supplies the pure normalized-state transformations and selectors.
+
+`EntityStore<TEntity>` is an entity-oriented facade over a caller-provided `StoreInterface<EntityStateInterface<TEntity>>`. It delegates mutation and subscription to that store, so a generic `Store` or `StrataStore` supplies persistence, mutex coordination, hydration, snapshots, and subscriptions. The facade owns none of those mechanisms independently; call lifecycle methods such as `hydrate` and `clear` on the backing store.
+
 ## Shared mutation coordination
 
-Pass the same `MutexInterface<string>` to independent stores that write the same persistence key. `Store` uses its existing `key` as the mutex key, so equal store keys serialize while different keys continue independently. Import the concrete mutex from the runtime entry point and the contract from the neutral interfaces entry point.
+Pass the same `MutexInterface<string>` to independent stores that write the same persistence key. `Store` uses its existing `key` as the mutex key, so equal store keys serialize while different keys continue independently. Import the concrete mutex from `@studnicky/concurrency/mutex` and the contract from `@studnicky/concurrency/interfaces`.
 
 <!-- inline-ts-ok: Independent Store instances coordinate writes through a canonical Mutex. -->
+
 ```typescript
-import { Mutex } from "@studnicky/mutex/node";
+import { Mutex } from "@studnicky/concurrency/mutex";
 import { Store } from "@studnicky/store/node";
-import type { MutexInterface } from "@studnicky/mutex/interfaces";
+import type { MutexInterface } from "@studnicky/concurrency/interfaces";
 
 const mutex: MutexInterface<string> = Mutex.create<string>();
 const first = Store.create({ initialState: 0, key: "cart", mutex, persistence });
@@ -40,11 +55,24 @@ const second = Store.create({ initialState: 0, key: "cart", mutex, persistence }
 
 A layered composition uses a distinct mutex and key pair from every layer. `StoreInterface` implementations provide `getSynchronizationIdentity()` for this composition contract.
 
+## Strata
+
+`StrataStore<TState>` composes stores from source to target. Consumer writes enter the source and propagate through every layer before they resolve. Reads and subscriptions observe the target.
+
+`hydrate()` restores the target, then seeds the source so the value propagates across the chain. `clear()` clears every layer, and `dispose()` releases the propagation subscriptions.
+
+Pass a shared `MutexInterface<string>` and matching `mutexKey` to coordinate independent strata. The pair differs from every layer synchronization identity; construction rejects a layer that would reacquire the composition lock.
+
+<RunnableExample src="packages/store/examples/layered-browser-store" title="Memory cache → localStorage → consumer" />
+
+<<< ../../packages/store/examples/layered-browser-store.ts#usage
+
 ## Entity-backed persistence
 
 Bind JSON storage directly to the entity that owns the persisted shape. `JsonStateCodec.fromEntity` parses the storage string and passes the resulting unknown value to the entity intake exactly once.
 
 <!-- inline-ts-ok: Consumer persistence composition through the browser runtime entry point. -->
+
 ```typescript
 import { BrowserPersistence, JsonStateCodec, StorageTarget } from "@studnicky/store/browser";
 
@@ -57,39 +85,6 @@ const persistence = BrowserPersistence.create({
 ```
 
 Use `JsonStateCodec.create({ decode })` only when the state is not a JSON entity and its domain supplies a different typed decoder.
-
-## Context-scoped state
-
-`ContextStore` is available from both runtime entry points and resolves one backing `Store` per active `Context` scope. It implements `StoreInterface<TState>`, so one long-lived `StrataStore` can relay every scope's updates to a durable layer. Supply its stable `synchronizationIdentity`; every backing Store is checked against it when that scope first uses the ContextStore.
-
-<!-- inline-ts-ok: Consumer composition example showing the published Node runtime and neutral interface imports. -->
-```typescript
-import { Context } from '@studnicky/context/node';
-import { Mutex } from '@studnicky/mutex/node';
-import { ContextStore, MemoryPersistence, Store } from '@studnicky/store/node';
-import type { ContextStoreOptionsInterface } from '@studnicky/store/interfaces';
-
-const context = Context.create({ name: 'request' });
-const mutex = Mutex.create<string>();
-const options: ContextStoreOptionsInterface<{ readonly items: string[] }> = {
-  context,
-  key: 'request.cart',
-  synchronizationIdentity: { key: 'request.cart', mutex },
-  createStore: () => Store.create({
-    initialState: { items: [] },
-    key: 'request.cart',
-    mutex,
-    persistence: MemoryPersistence.create(),
-  }),
-};
-const cart = ContextStore.create(options);
-const scope = context.initialize();
-
-await scope.execute(async () => {
-  await cart.update((state) => ({ items: [...state.items, 'sku-42'] }));
-});
-scope.terminate();
-```
 
 ## Try it
 
@@ -109,37 +104,74 @@ The runnable sample writes, hydrates, reports, and clears one counter for every 
 
 ## Composition seams
 
-| Surface | Consumer use |
-|---|---|
-| `StoreInterface<TState>` | Depend on a state container without coupling to a concrete implementation. |
-| `StoreSynchronizationIdentityInterface` | Expose the mutex and key that serialize a store's mutations. |
-| `StatePersistenceInterface<TState>` | Supply a persistence adapter for another environment or backing service. |
-| `StateCodecInterface<TState>` | Validate and serialize persisted values at the storage boundary. |
-| `MemoryPersistence<TState>` | Keep transient state in process memory. |
-| `BrowserPersistence<TState>` | Persist state through a browser-native target. |
-| `StorageTarget` | Select `Memory`, `LocalStorage`, `SessionStorage`, or `IndexedDb`. |
+| Surface                                 | Consumer use                                                               |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| `StoreInterface<TState>`                | Depend on a state container without coupling to a concrete implementation. |
+| `StoreSynchronizationIdentityInterface` | Expose the mutex and key that serialize a store's mutations.               |
+| `StatePersistenceInterface<TState>`     | Supply a persistence adapter for another environment or backing service.   |
+| `StateCodecInterface<TState>`           | Validate and serialize persisted values at the storage boundary.           |
+| `MemoryPersistence<TState>`             | Keep transient state in process memory.                                    |
+| `BrowserPersistence<TState>`            | Persist state through a browser-native target.                             |
+| `StorageTarget`                         | Select `Memory`, `LocalStorage`, `SessionStorage`, or `IndexedDb`.         |
 
 The same runtime symbols are available from `@studnicky/store/browser`; select the entry point for the active runtime.
 
+## What it is
+
+`@studnicky/store` is an observable state and persistence-composition primitive. It provides a generic store, normalized entity facade, codecs, browser persistence, and ordered store layering; it does not provide a checkout, catalogue, entity product, or cross-tab transaction coordinator.
+
+## What it is for
+
+Northstar Books composes a `Store` with the persistence and synchronization semantics appropriate for cart, checkout, or bookseller interface state. It uses the entity subpath only for normalized records over a backing store, and `strata` only to layer stores from a fast source to a durable target. Node and browser are runtime-specific alternatives; entities validate persistence configuration and interfaces define injectable composition seams.
+
+## Northstar Books examples
+
+- **Memory cache → localStorage → consumer** solves the “keep a shopper’s cart responsive while retaining it across a reload” problem. It layers a fast memory store ahead of browser storage, proving that writes propagate and hydration restores the durable snapshot through Northstar’s chosen layers.
+- **Store with MemoryPersistence** solves the “hold transient bookseller filter state with observable updates” problem. It updates, observes, and hydrates one named state value, proving that persistence completes before subscribers receive detached snapshots.
+- **One store interface across every browser target** solves the “choose the browser durability appropriate to a checkout draft” problem. It exercises memory, local storage, session storage, and IndexedDB through one store contract, proving that Northstar can change the backing target without changing the consuming state port.
+
+## Public entrypoints
+
+| Import path                          | Use it when                                                                                              |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `@studnicky/store/node`              | Northstar creates a server-side observable store, memory persistence, or JSON state codec.               |
+| `@studnicky/store/browser`           | Northstar persists reader or bookseller state through a browser-native target.                           |
+| `@studnicky/store/interfaces`        | Northstar accepts a store, persistence, codec, listener, or synchronization identity through a contract. |
+| `@studnicky/store/entities`          | Northstar validates browser-persistence configuration at the storage boundary.                           |
+| `@studnicky/store/entity`            | Northstar composes normalized book records over its own generic backing store.                           |
+| `@studnicky/store/strata`            | Northstar layers fast and durable stores for a state flow it owns.                                       |
+| `@studnicky/store/strata/browser`    | Northstar uses the browser-safe runtime surface of ordered store layering.                               |
+| `@studnicky/store/strata/interfaces` | Northstar defines strata composition options and ports without selecting layer implementations.          |
+
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `Store` | Observable state container with serialized writes. | `@studnicky/store/node` |
-| `MemoryPersistence` | In-memory persistence adapter. | `@studnicky/store/node` |
-| `JsonStateCodec` | JSON serialization with direct entity intake or a caller-provided typed decoder. | `@studnicky/store/node` |
-| `ContextStore` | Resolves one backing store per active Context scope. | `@studnicky/store/node` |
-| `StoreInterface` | Store contract for consumer dependencies and composition. | `@studnicky/store/interfaces` |
-| `StoreListenerInterface` | Subscriber callback contract for store state updates. | `@studnicky/store/interfaces` |
-| `StatePersistenceInterface` | Persistence port implemented by storage adapters. | `@studnicky/store/interfaces` |
-| `StateCodecInterface` | Codec contract for persisted values. | `@studnicky/store/interfaces` |
-| `ContextStoreOptionsInterface` | Context, storage key, and backing-store factory for ContextStore. | `@studnicky/store/interfaces` |
-| `BrowserPersistenceOptionsEntity` | Validates browser persistence target configuration. | `@studnicky/store/entities` |
-| `BrowserPersistence` | Browser-native persistence adapter. | `@studnicky/store/browser` |
-| `StorageTarget` | Browser persistence target selector. | `@studnicky/store/browser` |
-
-## Layered state
-
-Use [@studnicky/strata-store-kit](/packages/strata-store-kit) to connect a fast in-memory store to a durable browser store while retaining the `StoreInterface<TState>` API.
+| Symbol                            | Purpose                                                                                         | Import path                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `EntityCollection`                | Pure normalized entity-state transformations and selectors.                                     | `@studnicky/store/entity`            |
+| `EntityStateInterface`            | JSON-safe normalized entity record and ordered ID state.                                        | `@studnicky/store/entity`            |
+| `EntityStore`                     | Entity facade composed over a caller-provided StoreInterface.                                   | `@studnicky/store/entity`            |
+| `EntityStoreOptionsInterface`     | Entity selector, optional ordering, and backing StoreInterface contract.                        | `@studnicky/store/entity`            |
+| `Store`                           | Observable state container with serialized writes.                                              | `@studnicky/store/node`              |
+| `StrataStore`                     | Ordered source-to-target store composition.                                                     | `@studnicky/store/strata`            |
+| `StrataStoreOptionsInterface`     | Source-to-target layers and optional composition coordination.                                  | `@studnicky/store/strata/interfaces` |
+| `MemoryPersistence`               | In-memory persistence adapter.                                                                  | `@studnicky/store/node`              |
+| `JsonStateCodec`                  | JSON serialization with direct entity intake or a caller-provided typed decoder.                | `@studnicky/store/node`              |
+| `StoreInterface`                  | Store contract for consumer dependencies and composition.                                       | `@studnicky/store/interfaces`        |
+| `StoreListenerInterface`          | Subscriber callback contract for store state updates.                                           | `@studnicky/store/interfaces`        |
+| `StatePersistenceInterface`       | Persistence port implemented by storage adapters.                                               | `@studnicky/store/interfaces`        |
+| `StateCodecInterface`             | Codec contract for persisted values.                                                            | `@studnicky/store/interfaces`        |
+| `BrowserPersistenceOptionsEntity` | Validates browser persistence target configuration.                                             | `@studnicky/store/entities`          |
+| `BrowserPersistence`              | Browser-native persistence adapter.                                                             | `@studnicky/store/browser`           |
+| `StorageTarget`                   | Browser persistence target selector.                                                            | `@studnicky/store/browser`           |
+| `StoreError`                      | Abstract base of every store error.                                                             | `@studnicky/store/node`              |
+| `BrowserStorageError`             | Web Storage access or an operation on it failed; the platform error is the `cause`.             | `@studnicky/store/node`              |
+| `IndexedDbEntryError`             | An IndexedDB state entry is not a serialized string.                                            | `@studnicky/store/node`              |
+| `IndexedDbError`                  | An IndexedDB open, transaction, or request failed; the platform error is the `cause`.           | `@studnicky/store/node`              |
+| `IndexedDbUnavailableError`       | IndexedDB persistence is selected in a runtime without IndexedDB.                               | `@studnicky/store/node`              |
+| `StateDecodeError`                | Serialized state is not valid JSON; the platform `SyntaxError` is the `cause`.                  | `@studnicky/store/node`              |
+| `StateEncodeError`                | State cannot be serialized to a JSON string.                                                    | `@studnicky/store/node`              |
+| `StoreListenerMutationError`      | A Store mutation is requested from inside a Store listener.                                     | `@studnicky/store/node`              |
+| `StrataLayerUnavailableError`     | A StrataStore cannot resolve one of its layers.                                                 | `@studnicky/store/strata`            |
+| `StrataStoreOptionsError`         | `StrataStore.create` received layers or a mutex identity that violate the composition contract. | `@studnicky/store/strata`            |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/store)

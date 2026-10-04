@@ -1,302 +1,191 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DispatcherAgent } from '../../src/config/DispatcherAgent.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';
-import scenarioGroups from './dispatcher-health.scenarios.json' with { type: 'json' };
+import { InvalidDispatcherFactory } from '../helpers/InvalidDispatcherFactory.js';
+import { RejectionProbe } from '../helpers/RejectionProbe.js';
+import { TestTransportFlag } from '../helpers/TestTransportFlag.js';
+import scenarioGroups from './dispatcher-health.scenarios.json' with { 'type': 'json' };
+import { DispatcherHealthScenarioCaseEntity } from './entities/DispatcherHealthScenarioCaseEntity.js';
 
-type EmptyStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: false; objectKeys: number };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
-
-type FrozenStatsScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { frozen: true };
-  input: { dispatcher: { connections: number } };
-  shape: Shape;
-  name: string;
-};
-
-type TestTransportScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { healthy: boolean; queueRatio: number; recommendationIncludes: string };
-  input: { origin: string; path: string; queuedPath?: string; testDispatcher: { connections: number; enabled: boolean } };
-  shape: Shape;
-  name: string;
-};
-
-type ScenarioCase =
-  | EmptyStatsScenarioCase<'empty-stats'>
-  | EmptyStatsScenarioCase<'stats-object-after-requests'>
-  | EmptyStatsScenarioCase<'structure-after-get-stats'>
-  | FrozenStatsScenarioCase<'frozen-stats-object'>
-  | FrozenStatsScenarioCase<'deeply-frozen-stats'>
-  | {
-      description: string;
-      expected: { healthy: true; queueRatio: '__UNDEFINED__'; recommendation: '__UNDEFINED__'; stats: '__UNDEFINED__' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-non-existent-origin';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; objectKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'healthy-new-dispatcher';
-      name: string;
-    }
-  | TestTransportScenarioCase<'test-transport-overloaded'>
-  | TestTransportScenarioCase<'test-transport-pressure'>
-  | {
-      description: string;
-      expected: { healthyType: 'boolean'; queueRatioType: 'number-or-undefined'; recommendationType: 'string-or-undefined'; statsType: 'object-or-undefined' };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'health-interface-shape';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { closed: true };
-      input: { dispatcher: { connections: number } };
-      shape: 'close-after-idle';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { destroyedAfterWait: true };
-      input: { destroy: { timeout: number }; dispatcher: { connections: number } };
-      shape: 'destroy-with-timeout';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { message: string };
-      input: Record<string, never>;
-      shape: 'reject-invalid-agent';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: { healthy: true; statsKeys: number };
-      input: { dispatcher: { connections: number }; origin: string };
-      shape: 'test-transport-delegates';
-      name: string;
-    };
-
-function createDispatcher(config: { connections: number }): UndiciDispatcher {
-  const agent = DispatcherAgent.create(config);
-  return UndiciDispatcher.create(agent);
-}
-
-function matchesTypeDescriptor(value: boolean | number | object | string | undefined, descriptor: string): boolean {
-  const orUndefinedSuffix = '-or-undefined';
-  if (descriptor.endsWith(orUndefinedSuffix)) {
-    const base = descriptor.slice(0, -orUndefinedSuffix.length);
-    return value === undefined || typeof value === base;
-  }
-  return typeof value === descriptor;
-}
-
-/** Materializes the `__UNDEFINED__` JSON sentinel into a real `undefined`. */
-function materializeSentinel(value: string): undefined | string {
-  return value === '__UNDEFINED__' ? undefined : value;
-}
-
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-
-const runnerMap: RunnerMap = {
-  'empty-stats': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.equal(typeof stats, 'object');
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    assert.equal(Object.isFrozen(stats), true);
-    await dispatcher.destroy();
-  },
-  'stats-object-after-requests': async (scenarioCase) => {
-    const previous = process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-    process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
-
-    try {
-      const agent = TestDispatcher.create(scenarioCase.input.dispatcher);
-      const dispatcher = UndiciDispatcher.create(agent);
-      const origin = 'http://127.0.0.1:41234';
-      await agent.fetch(`${origin}/ok`, {});
-      const stats = dispatcher.getStats();
-      assert.equal(typeof stats, 'object');
-      assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-      assert.ok(origin in stats, 'stats must key the origin that actually issued a request');
-      assert.equal(Object.isFrozen(stats), true);
-      await dispatcher.destroy();
-    } finally {
-      if (previous === undefined) {
-        delete process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-      } else {
-        process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = previous;
-      }
-    }
-  },
-  'frozen-stats-object': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.ok(Object.isFrozen(stats));
-    assert.throws(() => {
-      Object.assign(stats, { 'new-origin': { test: 'value' } });
-    }, TypeError);
-    assert.equal(Object.isFrozen(stats), scenarioCase.expected.frozen);
-    await dispatcher.destroy();
-  },
-  'deeply-frozen-stats': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.ok(Object.isFrozen(stats));
-    const attemptMutation = (): void => {
-      Object.assign(stats, { test: 'value' });
-    };
-    assert.throws(attemptMutation, TypeError);
-    assert.equal(Object.isFrozen(stats), scenarioCase.expected.frozen);
-    await dispatcher.destroy();
-  },
-  'healthy-non-existent-origin': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-    assert.equal(health.healthy, scenarioCase.expected.healthy);
-    assert.equal(health.stats, materializeSentinel(scenarioCase.expected.stats));
-    assert.equal(health.queueRatio, materializeSentinel(scenarioCase.expected.queueRatio));
-    assert.equal(health.recommendation, materializeSentinel(scenarioCase.expected.recommendation));
-    await dispatcher.destroy();
-  },
-  'healthy-new-dispatcher': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-    assert.equal(health.healthy, scenarioCase.expected.healthy);
-    await dispatcher.destroy();
-  },
-  'health-interface-shape': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-    assert.equal(typeof health.healthy, scenarioCase.expected.healthyType);
-    assert.equal(matchesTypeDescriptor(health.queueRatio, scenarioCase.expected.queueRatioType), true);
-    assert.equal(matchesTypeDescriptor(health.recommendation, scenarioCase.expected.recommendationType), true);
-    assert.equal(matchesTypeDescriptor(health.stats, scenarioCase.expected.statsType), true);
-    await dispatcher.destroy();
-  },
-  'test-transport-pressure': async (scenarioCase) => {
-    const previous = process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-    process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
-
-    try {
-      const agent = TestDispatcher.create(scenarioCase.input.testDispatcher);
-      const dispatcher = UndiciDispatcher.create(agent);
-      const request = agent.fetch(scenarioCase.input.path, {});
-      await Promise.resolve();
-      const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-      assert.equal(health.healthy, scenarioCase.expected.healthy);
-      assert.equal(health.queueRatio, scenarioCase.expected.queueRatio);
-      assert.equal(typeof health.recommendation, 'string');
-      assert.equal(health.recommendation?.includes(scenarioCase.expected.recommendationIncludes), true);
-      await request;
-      await dispatcher.destroy();
-    } finally {
-      if (previous === undefined) {
-        delete process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-      } else {
-        process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = previous;
-      }
-    }
-  },
-  'test-transport-overloaded': async (scenarioCase) => {
-    const previous = process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-    process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
-
-    try {
-      const agent = TestDispatcher.create(scenarioCase.input.testDispatcher);
-      const dispatcher = UndiciDispatcher.create(agent);
-      const request = agent.fetch(scenarioCase.input.path, {});
-      const queuedRequest = agent.fetch(scenarioCase.input.queuedPath ?? scenarioCase.input.path, {});
-      await Promise.resolve();
-      const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-      assert.equal(health.healthy, scenarioCase.expected.healthy);
-      assert.equal(health.queueRatio, scenarioCase.expected.queueRatio);
-      assert.equal(typeof health.recommendation, 'string');
-      assert.equal(health.recommendation?.includes(scenarioCase.expected.recommendationIncludes), true);
-      await request;
-      await queuedRequest;
-      await dispatcher.destroy();
-    } finally {
-      if (previous === undefined) {
-        delete process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-      } else {
-        process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = previous;
-      }
-    }
-  },
-  'close-after-idle': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
+class DispatcherHealthRunners {
+  static async 'close-after-idle'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'close-after-idle'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
     await dispatcher.close();
     assert.equal(scenarioCase.expected.closed, true);
-  },
-  'destroy-with-timeout': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    await dispatcher.destroy(scenarioCase.input.destroy);
-    assert.equal(scenarioCase.expected.destroyedAfterWait, true);
-  },
-  'reject-invalid-agent': async (scenarioCase) => {
-    assert.throws(() => {
-      Reflect.apply(UndiciDispatcher.create, UndiciDispatcher, [{}]);
-    }, (error): boolean => {
-      return error instanceof Error && error.message === scenarioCase.expected.message;
-    });
-  },
-  'test-transport-delegates': async (scenarioCase) => {
-    const previous = process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-    process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = '1';
+  }
 
-    try {
-      const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-      const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
-      assert.equal(health.healthy, scenarioCase.expected.healthy);
-      assert.equal(health.queueRatio, undefined);
-      assert.equal(health.recommendation, undefined);
-      assert.equal(health.stats, undefined);
-      assert.equal(Object.keys(dispatcher.getStats()).length, scenarioCase.expected.statsKeys);
-      await dispatcher.close();
-      await dispatcher.destroy({ timeout: 1 });
-    } finally {
-      if (previous === undefined) {
-        delete process.env.SUBSTRATE_FETCH_TEST_TRANSPORT;
-      } else {
-        process.env.SUBSTRATE_FETCH_TEST_TRANSPORT = previous;
-      }
-    }
-  },
-  'structure-after-get-stats': async (scenarioCase) => {
-    const dispatcher = createDispatcher(scenarioCase.input.dispatcher);
-    const stats = dispatcher.getStats();
-    assert.equal(typeof stats, 'object');
-    assert.ok(Object.isFrozen(stats));
-    assert.equal(Object.keys(stats).length, scenarioCase.expected.objectKeys);
-    assert.equal(Object.isFrozen(stats), true);
+  static async 'deeply-frozen-stats'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'deeply-frozen-stats'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    assert.equal(DispatcherHealthRunners.allStatsFrozen(dispatcher), scenarioCase.expected.frozen);
     await dispatcher.destroy();
   }
-};
 
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  static async 'destroy-with-timeout'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'destroy-with-timeout'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    await dispatcher.destroy(scenarioCase.input.destroy);
+    assert.equal(scenarioCase.expected.destroyedAfterWait, true);
+  }
+
+  static async 'empty-stats'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'empty-stats'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const stats = dispatcher.getStats();
+    assert.ok(stats instanceof Map);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
+    await dispatcher.destroy();
+  }
+
+  static async 'frozen-stats-object'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'frozen-stats-object'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    assert.equal(DispatcherHealthRunners.allStatsFrozen(dispatcher), scenarioCase.expected.frozen);
+    await dispatcher.destroy();
+  }
+
+  static async 'health-interface-shape'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'health-interface-shape'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(typeof health.healthy, scenarioCase.expected.healthyType);
+    assert.equal(DispatcherHealthRunners.matchesTypeDescriptor(health.queueRatio, scenarioCase.expected.queueRatioType), true);
+    assert.equal(DispatcherHealthRunners.matchesTypeDescriptor(health.recommendation, scenarioCase.expected.recommendationType), true);
+    assert.equal(DispatcherHealthRunners.matchesTypeDescriptor(health.stats, scenarioCase.expected.statsType), true);
+    await dispatcher.destroy();
+  }
+
+  static async 'healthy-new-dispatcher'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'healthy-new-dispatcher'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const stats = dispatcher.getStats();
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(health.healthy, scenarioCase.expected.healthy);
+    await dispatcher.destroy();
+  }
+
+  static async 'healthy-non-existent-origin'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'healthy-non-existent-origin'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(health.healthy, scenarioCase.expected.healthy);
+    assert.equal(health.stats, DispatcherHealthRunners.materializeSentinel(scenarioCase.expected.stats));
+    assert.equal(health.queueRatio, DispatcherHealthRunners.materializeSentinel(scenarioCase.expected.queueRatio));
+    assert.equal(health.recommendation, DispatcherHealthRunners.materializeSentinel(scenarioCase.expected.recommendation));
+    await dispatcher.destroy();
+  }
+
+  static 'reject-invalid-agent'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'reject-invalid-agent'>): void {
+    const caught = RejectionProbe.captureSync(() => {
+      const created = InvalidDispatcherFactory.create({});
+      return created;
+    });
+    assert.ok(caught instanceof Error);
+    assert.equal(caught.message, scenarioCase.expected.message);
+  }
+
+  static async 'stats-object-after-requests'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'stats-object-after-requests'>): Promise<void> {
+    using _ = TestTransportFlag.enable();
+    const agent = TestDispatcher.create(scenarioCase.input.dispatcher);
+    const dispatcher = UndiciDispatcher.create(agent);
+    const origin = 'http://127.0.0.1:41234';
+    await agent.fetch(`${origin}/ok`, {});
+    const stats = dispatcher.getStats();
+    assert.ok(stats instanceof Map);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
+    assert.ok(stats.has(origin), 'stats must key the origin that actually issued a request');
+    await dispatcher.destroy();
+  }
+
+  static async 'structure-after-get-stats'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'structure-after-get-stats'>): Promise<void> {
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const stats = dispatcher.getStats();
+    assert.ok(stats instanceof Map);
+    assert.equal(stats.size, scenarioCase.expected.objectKeys);
+    assert.equal(DispatcherHealthRunners.allStatsFrozen(dispatcher), scenarioCase.expected.frozen);
+    await dispatcher.destroy();
+  }
+
+  static async 'test-transport-delegates'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'test-transport-delegates'>): Promise<void> {
+    using _ = TestTransportFlag.enable();
+    const dispatcher = DispatcherHealthRunners.createDispatcher(scenarioCase.input.dispatcher);
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(health.healthy, scenarioCase.expected.healthy);
+    assert.equal(health.queueRatio, undefined);
+    assert.equal(health.recommendation, undefined);
+    assert.equal(health.stats, undefined);
+    assert.equal(dispatcher.getStats().size, scenarioCase.expected.statsKeys);
+    await dispatcher.close();
+    await dispatcher.destroy({ 'timeout': 1 });
+  }
+
+  static async 'test-transport-overloaded'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'test-transport-overloaded'>): Promise<void> {
+    using _ = TestTransportFlag.enable();
+    const agent = TestDispatcher.create(scenarioCase.input.testDispatcher);
+    const dispatcher = UndiciDispatcher.create(agent);
+    const request = agent.fetch(scenarioCase.input.path, {});
+    const queuedRequest = agent.fetch(scenarioCase.input.queuedPath ?? scenarioCase.input.path, {});
+    await Promise.resolve();
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(health.healthy, scenarioCase.expected.healthy);
+    assert.equal(health.queueRatio, scenarioCase.expected.queueRatio);
+    assert.equal(typeof health.recommendation, 'string');
+    assert.equal(health.recommendation?.includes(scenarioCase.expected.recommendationIncludes), true);
+    await request;
+    await queuedRequest;
+    await dispatcher.destroy();
+  }
+
+  static async 'test-transport-pressure'(scenarioCase: ScenarioCaseOfType<DispatcherHealthScenarioCaseEntity.Type, 'test-transport-pressure'>): Promise<void> {
+    using _ = TestTransportFlag.enable();
+    const agent = TestDispatcher.create(scenarioCase.input.testDispatcher);
+    const dispatcher = UndiciDispatcher.create(agent);
+    const request = agent.fetch(scenarioCase.input.path, {});
+    await Promise.resolve();
+    const health = dispatcher.checkDispatcherHealth(scenarioCase.input.origin);
+    assert.equal(health.healthy, scenarioCase.expected.healthy);
+    assert.equal(health.queueRatio, scenarioCase.expected.queueRatio);
+    assert.equal(typeof health.recommendation, 'string');
+    assert.equal(health.recommendation?.includes(scenarioCase.expected.recommendationIncludes), true);
+    await request;
+    await dispatcher.destroy();
+  }
+
+  private static allStatsFrozen(dispatcher: UndiciDispatcher): boolean {
+    const entries = Array.from(dispatcher.getStats().values());
+    let allValuesFrozen = true;
+    for (let index = 0; index < entries.length; index += 1) {
+      allValuesFrozen = allValuesFrozen && Object.isFrozen(entries[index]);
+    }
+    return allValuesFrozen;
+  }
+
+  private static createDispatcher(config: { 'connections': number }): UndiciDispatcher {
+    const agent = DispatcherAgent.create(config);
+    const dispatcher = UndiciDispatcher.create(agent);
+    return dispatcher;
+  }
+
+  /** Materializes the `__UNDEFINED__` JSON sentinel into a real `undefined`. */
+  private static materializeSentinel(value: string): string | undefined {
+    const materialized = value === '__UNDEFINED__' ? undefined : value;
+    return materialized;
+  }
+
+  private static matchesTypeDescriptor(value: boolean | number | object | string | undefined, descriptor: string): boolean {
+    const orUndefinedSuffix = '-or-undefined';
+    if (descriptor.endsWith(orUndefinedSuffix)) {
+      const base = descriptor.slice(0, -orUndefinedSuffix.length);
+      const matches = value === undefined || typeof value === base;
+      return matches;
+    }
+    const matches = typeof value === descriptor;
+    return matches;
+  }
 }
 
-void describe('dispatcher health monitoring', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': DispatcherHealthScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'dispatcher health monitoring',
+  'runners': DispatcherHealthRunners
 });

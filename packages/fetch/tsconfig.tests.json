@@ -5,20 +5,23 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": [
-    "tests/**/*",
-    "examples/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
+    },
     {
       "path": "./tsconfig.json"
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../resilience"
+    },
+    {
+      "path": "../signal"
     }
   ]
 }

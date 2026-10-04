@@ -7,7 +7,7 @@ description: 'Reports computed object-literal properties and Object.fromEntries 
 
 Reports a computed property that is a direct child of an object literal, and every `Object.fromEntries(...)` call. Both forms build an object whose property list is not fully available to V8’s fast boilerplate-clone path. The rule does not inspect computed properties in nested expressions as though they belonged to an enclosing literal, and it leaves post-creation bracket writes to [`dynamic-property-access`](./dynamic-property-access).
 
-Computed syntax remains in scope even when its key is a string literal: object creation does not fold `{ ['name']: value }` into the direct-key creation path. At 5,000,000 literal creations, direct properties took 2.01 ms, literal computed properties 26.52 ms (13.2×), and variable keys 43.92 ms (21.9×). `Symbol.*` keys are exempt because a well-known symbol has no non-computed spelling; this is an ergonomics exception, not a claim that the creation cost disappears.
+Computed syntax remains in scope even when its key is a string literal: object creation does not fold `{ ['name']: value }` into the direct-key creation path. At 5,000,000 literal creations, direct properties took 2.01 ms, literal computed properties 26.52 ms (13.2×), a well-known symbol key 44.05 ms and a variable key 43.92 ms (21.9× each). `Symbol.*` keys are exempt because a well-known symbol has no non-computed spelling; this is an ergonomics exception, not a claim that the creation cost disappears.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 

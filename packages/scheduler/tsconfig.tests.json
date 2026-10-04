@@ -28,6 +28,9 @@
     },
     {
       "path": "../signal"
+    },
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

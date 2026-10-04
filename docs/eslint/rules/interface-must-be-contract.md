@@ -1,13 +1,15 @@
 ---
 title: '@studnicky/interface-must-be-contract'
-description: 'Interfaces express runtime, callable, nominal, and readonly access contracts; pure data is schema-derived.'
+description: 'Interfaces express runtime, callable, nominal, and readonly access contracts; pure data is schema-derived. Every retained contract interface name ends with Interface.'
 ---
 
 # @studnicky/interface-must-be-contract
 
-Requires every non-canonical interface to carry a runtime or access-contract signal. The rule requires TypeScript parser services; when they are unavailable, it does not report.
+Requires every non-canonical interface to carry a runtime or access-contract signal, and requires every retained contract interface's name to end with `Interface`, including inside a namespace. The rule requires TypeScript parser services; when they are unavailable, it does not report.
 
-Pure JSON data belongs in a schema-derived entity type or a named composition of canonical entity types. An interface containing only serializable data is reported, including an empty interface, an index-only interface, and a generic data container. The canonical schema-derived entity-interface form is exempt: an exported interface named `Type`, with exactly one schema-derived `extends` type, in an `*Entity` namespace that exports its own `Schema`.
+Pure JSON data belongs in a schema-derived entity type or a named composition of canonical entity types. An interface containing only serializable data is reported (`dataShapeMustBeType`), including an empty interface, an index-only interface, and a generic data container. The canonical schema-derived entity-interface form is exempt: an exported interface named `Type`, with exactly one schema-derived `extends` type, in an `*Entity` namespace that exports its own `Schema`.
+
+A contract interface whose name does not end with `Interface` is reported separately (`missing-interface-suffix`). The suffix makes contract interfaces visually distinct from type aliases and classes at every call site.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -25,7 +27,13 @@ An interface is a contract when its own or inherited shape includes at least one
 
 Readonly on an interface describes consumer access policy. A lone readonly member does not establish a contract when the interface also has three or more mutable pure-data members; make the access policy comprehensive or use a runtime, callable, nominal, or type-level contract signal instead.
 
-Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal.
+The `toString`/`valueOf` decoy exclusion catches both ways of spelling a zero-parameter builtin-shadow method: a method signature (`toString(): string;`) and a property whose value is itself a zero-parameter function type (`'toString': () => string;`) are the same decoy through different syntax, and a quoted string-literal key (`'toString'`) is checked the same as the unquoted identifier spelling. Either spelling with parameters, or any other method name, is ordinary — and sufficient — contract evidence. The same exclusion applies to a builtin-shadow member nested inside an inline object member's own type (`interface X { nested: { toString(): string }; }`).
+
+Named references are resolved through the TypeScript checker. A reference to canonical data remains data. A reference to a class, callable contract, readonly contract, or other interface contract supplies a contract signal, including through a heritage clause that names a type alias rather than another interface — the alias might itself resolve to a callable, constructable, branded, or readonly object type. A member typed as a bare reference to the interface's own generic type parameter (`handler: Fn` where `Fn extends () => void`) is checked through that parameter's declared constraint, since the reference itself resolves to neither a callable nor a readonly TypeScript type and a constraint-carried contract signal would otherwise go undetected.
+
+## Interface suffix
+
+Every interface classified as a contract must have a name ending in `Interface`, everywhere including inside a namespace. A pure-data interface is outside the suffix check's scope; its `dataShapeMustBeType` diagnostic above applies instead. Disable the rule (see Scoped exceptions) rather than mixing suffixed and unsuffixed contract interfaces in the same file set.
 
 ## ✗ Incorrect
 
@@ -57,6 +65,20 @@ interface UserEnvelopeInterface {
 interface RecordInterface {
   toString(): string;
   value: string;
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// contract interface missing the Interface suffix
+interface Foo { run(): void; }
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// namespace-nested interface missing the suffix — no namespace exemption
+namespace X {
+  interface Foo { run(): void; }
 }
 ```
 
@@ -94,6 +116,20 @@ interface RecordInterface {
   a: string;
   b: number;
   c: boolean;
+}
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// contract interface name ends with Interface
+interface FooInterface { run(): void; }
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+```ts
+// namespace-nested interface with the suffix — not flagged
+namespace X {
+  interface FooInterface { run(): void; }
 }
 ```
 

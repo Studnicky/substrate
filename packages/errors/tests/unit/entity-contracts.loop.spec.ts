@@ -3,109 +3,204 @@ import {
   describe, it
 } from 'node:test';
 
-import { ErrorWithCodeEntity } from '../../src/entities/ErrorWithCodeEntity.js';
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { ErrorClassificationEntity } from '../../src/entities/ErrorClassificationEntity.js';
+import { ErrorCodeDescriptorEntity } from '../../src/entities/ErrorCodeDescriptorEntity.js';
+import { ErrorDiagnosticEntity } from '../../src/entities/ErrorDiagnosticEntity.js';
 import { ErrorWithAddressEntity } from '../../src/entities/ErrorWithAddressEntity.js';
+import { ErrorWithCodeEntity } from '../../src/entities/ErrorWithCodeEntity.js';
 import { ErrorWithErrnoEntity } from '../../src/entities/ErrorWithErrnoEntity.js';
 import { ErrorWithHostnameEntity } from '../../src/entities/ErrorWithHostnameEntity.js';
 import { ErrorWithPortEntity } from '../../src/entities/ErrorWithPortEntity.js';
 import { ErrorWithRetryAfterEntity } from '../../src/entities/ErrorWithRetryAfterEntity.js';
-import { ErrorDiagnosticEntity } from '../../src/entities/ErrorDiagnosticEntity.js';
 import { ErrorWithStatusCodeEntity } from '../../src/entities/ErrorWithStatusCodeEntity.js';
 import { ErrorWithStatusEntity } from '../../src/entities/ErrorWithStatusEntity.js';
 import { ErrorWithSyscallEntity } from '../../src/entities/ErrorWithSyscallEntity.js';
-import { ErrorClassificationEntity } from '../../src/entities/ErrorClassificationEntity.js';
-import { ErrorCodeDescriptorEntity } from '../../src/entities/ErrorCodeDescriptorEntity.js';
-import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
-import { ValidationAggregateViewEntity } from '../../src/entities/ValidationAggregateViewEntity.js';
 import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
-import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
+import { ValidationAggregateViewEntity } from '../../src/entities/ValidationAggregateViewEntity.js';
 import { ValidationErrorArgumentsEntity } from '../../src/entities/ValidationErrorArgumentsEntity.js';
-import scenarioGroups from './entity-contracts.scenarios.json' with { type: 'json' };
+import { ValidationReportOptionsEntity } from '../../src/entities/ValidationReportOptionsEntity.js';
+import { ValidationViolationDetailEntity } from '../../src/entities/ValidationViolationDetailEntity.js';
+import { EntityContractsScenarioCaseEntity } from './entities/EntityContractsScenarioCaseEntity.js';
+import scenarioGroups from './entity-contracts.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-with-address-invalid' | 'error-with-address-valid' | 'error-with-code-invalid' | 'error-with-code-valid' | 'error-with-errno-invalid' | 'error-with-errno-valid' | 'error-with-hostname-invalid' | 'error-with-hostname-valid' | 'error-with-port-invalid' | 'error-with-port-valid' | 'error-with-retry-after-invalid' | 'error-with-retry-after-valid' | 'error-with-status-invalid' | 'error-with-status-valid' | 'error-with-status-code-invalid' | 'error-with-status-code-valid' | 'error-with-syscall-invalid' | 'error-with-syscall-valid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-diagnostic-valid' | 'error-diagnostic-valid-no-stack' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-diagnostic-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'error-classification-valid' | 'error-classification-invalid' | 'error-code-descriptor-valid' | 'error-code-descriptor-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'violation-detail-valid' | 'violation-detail-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'aggregate-view-valid' | 'aggregate-view-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'report-options-valid' | 'report-options-invalid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'problem-details-valid' | 'problem-details-valid-empty-errors' | 'problem-details-invalid' | 'problem-details-invalid-item' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-valid' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-invalid-top-level' }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'validation-arguments-invalid-violation' };
+class EntityContractsRunners {
+  static 'aggregate-view-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'aggregate-view-invalid'>): void {
+    assert.strictEqual(ValidationAggregateViewEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
 
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
+  static 'aggregate-view-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'aggregate-view-valid'>): void {
+    assert.strictEqual(ValidationAggregateViewEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
 
-function validateValue(validator: (value: unknown) => boolean): ScenarioRunner {
-  return (scenarioCase) => {
-    assert.strictEqual(validator(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
-  };
-}
+  static 'error-classification-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-classification-invalid'>): void {
+    assert.strictEqual(ErrorClassificationEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
 
-const runErrorWithAddress = validateValue((value) => ErrorWithAddressEntity.validate(value));
-const runErrorWithCode = validateValue((value) => ErrorWithCodeEntity.validate(value));
-const runErrorWithErrno = validateValue((value) => ErrorWithErrnoEntity.validate(value));
-const runErrorWithHostname = validateValue((value) => ErrorWithHostnameEntity.validate(value));
-const runErrorWithPort = validateValue((value) => ErrorWithPortEntity.validate(value));
-const runErrorWithRetryAfter = validateValue((value) => ErrorWithRetryAfterEntity.validate(value));
-const runErrorWithStatus = validateValue((value) => ErrorWithStatusEntity.validate(value));
-const runErrorWithStatusCode = validateValue((value) => ErrorWithStatusCodeEntity.validate(value));
-const runErrorWithSyscall = validateValue((value) => ErrorWithSyscallEntity.validate(value));
+  static 'error-classification-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-classification-valid'>): void {
+    assert.strictEqual(ErrorClassificationEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
 
-const runnerMap: Record<ScenarioCase['shape'], ScenarioRunner> = {
-  'aggregate-view-invalid': validateValue((value) => ValidationAggregateViewEntity.validate(value)),
-  'aggregate-view-valid': validateValue((value) => ValidationAggregateViewEntity.validate(value)),
-  'error-classification-invalid': validateValue((value) => ErrorClassificationEntity.validate(value)),
-  'error-classification-valid': validateValue((value) => ErrorClassificationEntity.validate(value)),
-  'error-code-descriptor-invalid': validateValue((value) => ErrorCodeDescriptorEntity.validate(value)),
-  'error-code-descriptor-valid': validateValue((value) => ErrorCodeDescriptorEntity.validate(value)),
-  'error-diagnostic-invalid': (scenarioCase) => {
+  static 'error-code-descriptor-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-code-descriptor-invalid'>): void {
+    assert.strictEqual(ErrorCodeDescriptorEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-code-descriptor-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-code-descriptor-valid'>): void {
+    assert.strictEqual(ErrorCodeDescriptorEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-diagnostic-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-diagnostic-invalid'>): void {
     assert.strictEqual(ErrorDiagnosticEntity.validate(scenarioCase.input.missingName), Boolean(scenarioCase.expected.missingName));
     assert.strictEqual(ErrorDiagnosticEntity.validate(scenarioCase.input.missingMessage), Boolean(scenarioCase.expected.missingMessage));
     assert.strictEqual(ErrorDiagnosticEntity.validate(scenarioCase.input.badStack), Boolean(scenarioCase.expected.badStack));
-  },
-  'error-diagnostic-valid': validateValue((value) => ErrorDiagnosticEntity.validate(value)),
-  'error-diagnostic-valid-no-stack': validateValue((value) => ErrorDiagnosticEntity.validate(value)),
-  'error-with-address-invalid': runErrorWithAddress,
-  'error-with-address-valid': runErrorWithAddress,
-  'error-with-code-invalid': runErrorWithCode,
-  'error-with-code-valid': runErrorWithCode,
-  'error-with-errno-invalid': runErrorWithErrno,
-  'error-with-errno-valid': runErrorWithErrno,
-  'error-with-hostname-invalid': runErrorWithHostname,
-  'error-with-hostname-valid': runErrorWithHostname,
-  'error-with-port-invalid': runErrorWithPort,
-  'error-with-port-valid': runErrorWithPort,
-  'error-with-retry-after-invalid': runErrorWithRetryAfter,
-  'error-with-retry-after-valid': runErrorWithRetryAfter,
-  'error-with-status-code-invalid': runErrorWithStatusCode,
-  'error-with-status-code-valid': runErrorWithStatusCode,
-  'error-with-status-invalid': runErrorWithStatus,
-  'error-with-status-valid': runErrorWithStatus,
-  'error-with-syscall-invalid': runErrorWithSyscall,
-  'error-with-syscall-valid': runErrorWithSyscall,
-  'problem-details-invalid': validateValue((value) => ProblemDetailsEntity.validate(value)),
-  'problem-details-invalid-item': validateValue((value) => ProblemDetailsEntity.validate(value)),
-  'problem-details-valid': validateValue((value) => ProblemDetailsEntity.validate(value)),
-  'problem-details-valid-empty-errors': validateValue((value) => ProblemDetailsEntity.validate(value)),
-  'report-options-invalid': validateValue((value) => ValidationReportOptionsEntity.validate(value)),
-  'report-options-valid': validateValue((value) => ValidationReportOptionsEntity.validate(value)),
-  'validation-arguments-invalid-top-level': validateValue((value) => ValidationErrorArgumentsEntity.validate(value)),
-  'validation-arguments-invalid-violation': validateValue((value) => ValidationErrorArgumentsEntity.validate(value)),
-  'validation-arguments-valid': validateValue((value) => ValidationErrorArgumentsEntity.validate(value)),
-  'violation-detail-invalid': validateValue((value) => ValidationViolationDetailEntity.validate(value)),
-  'violation-detail-valid': validateValue((value) => ValidationViolationDetailEntity.validate(value))
-};
+  }
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'error-diagnostic-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-diagnostic-valid'>): void {
+    assert.strictEqual(ErrorDiagnosticEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-diagnostic-valid-no-stack'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-diagnostic-valid-no-stack'>): void {
+    assert.strictEqual(ErrorDiagnosticEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-address-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-address-invalid'>): void {
+    assert.strictEqual(ErrorWithAddressEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-address-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-address-valid'>): void {
+    assert.strictEqual(ErrorWithAddressEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-code-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-code-invalid'>): void {
+    assert.strictEqual(ErrorWithCodeEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-code-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-code-valid'>): void {
+    assert.strictEqual(ErrorWithCodeEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-errno-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-errno-invalid'>): void {
+    assert.strictEqual(ErrorWithErrnoEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-errno-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-errno-valid'>): void {
+    assert.strictEqual(ErrorWithErrnoEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-hostname-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-hostname-invalid'>): void {
+    assert.strictEqual(ErrorWithHostnameEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-hostname-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-hostname-valid'>): void {
+    assert.strictEqual(ErrorWithHostnameEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-port-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-port-invalid'>): void {
+    assert.strictEqual(ErrorWithPortEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-port-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-port-valid'>): void {
+    assert.strictEqual(ErrorWithPortEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-retry-after-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-retry-after-invalid'>): void {
+    assert.strictEqual(ErrorWithRetryAfterEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-retry-after-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-retry-after-valid'>): void {
+    assert.strictEqual(ErrorWithRetryAfterEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-status-code-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-status-code-invalid'>): void {
+    assert.strictEqual(ErrorWithStatusCodeEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-status-code-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-status-code-valid'>): void {
+    assert.strictEqual(ErrorWithStatusCodeEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-status-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-status-invalid'>): void {
+    assert.strictEqual(ErrorWithStatusEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-status-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-status-valid'>): void {
+    assert.strictEqual(ErrorWithStatusEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-syscall-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-syscall-invalid'>): void {
+    assert.strictEqual(ErrorWithSyscallEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'error-with-syscall-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'error-with-syscall-valid'>): void {
+    assert.strictEqual(ErrorWithSyscallEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'problem-details-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'problem-details-invalid'>): void {
+    assert.strictEqual(ProblemDetailsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'problem-details-invalid-item'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'problem-details-invalid-item'>): void {
+    assert.strictEqual(ProblemDetailsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'problem-details-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'problem-details-valid'>): void {
+    assert.strictEqual(ProblemDetailsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'problem-details-valid-empty-errors'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'problem-details-valid-empty-errors'>): void {
+    assert.strictEqual(ProblemDetailsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'report-options-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'report-options-invalid'>): void {
+    assert.strictEqual(ValidationReportOptionsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'report-options-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'report-options-valid'>): void {
+    assert.strictEqual(ValidationReportOptionsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'validation-arguments-invalid-top-level'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'validation-arguments-invalid-top-level'>): void {
+    assert.strictEqual(ValidationErrorArgumentsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'validation-arguments-invalid-violation'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'validation-arguments-invalid-violation'>): void {
+    assert.strictEqual(ValidationErrorArgumentsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'validation-arguments-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'validation-arguments-valid'>): void {
+    assert.strictEqual(ValidationErrorArgumentsEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'violation-detail-invalid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'violation-detail-invalid'>): void {
+    assert.strictEqual(ValidationViolationDetailEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
+
+  static 'violation-detail-valid'(scenarioCase: ScenarioCaseOfType<EntityContractsScenarioCaseEntity.Type, 'violation-detail-valid'>): void {
+    assert.strictEqual(ValidationViolationDetailEntity.validate(scenarioCase.input.value), Boolean(scenarioCase.expected.valid));
+  }
 }
 
-void describe('errors entity contracts', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, () => {
-      runCase(scenario as ScenarioCase);
-    });
-  }
+ScenarioSuite.register({
+  'entity': EntityContractsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'errors entity contracts',
+  'runners': EntityContractsRunners
+});
+
+void describe('ProblemDetailsEntity.create', () => {
+  void it('accepts a plain unbranded literal for the minimum/maximum-constrained status property and validates', () => {
+    const result = ProblemDetailsEntity.create({ 'status': 404, 'title': 'Not Found' });
+    assert.equal(result.status, 404);
+    assert.equal(ProblemDetailsEntity.validate(result), true);
+  });
+});
+
+void describe('ValidationReportOptionsEntity.create', () => {
+  void it('accepts a plain unbranded literal for the minimum/maximum-constrained status property and validates', () => {
+    const result = ValidationReportOptionsEntity.create({ 'status': 422 });
+    assert.equal(result.status, 422);
+    assert.equal(ValidationReportOptionsEntity.validate(result), true);
+  });
 });

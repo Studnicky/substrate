@@ -3,7 +3,7 @@
  * @description Error thrown when filter configuration is invalid
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { ErrorCodes } from '../enums/ErrorCodes.js';
 import { FilterError } from './FilterError.js';
@@ -31,6 +31,7 @@ export interface FilterConfigurationErrorDetailsInterface {
  * Used for structural validation errors in filter definitions
  */
 export class FilterConfigurationError extends FilterError {
+  public override readonly name: string = 'FilterConfigurationError';
   public readonly details: FilterConfigurationErrorDetailsInterface;
   public readonly index: number | null;
   public readonly property: string | null;
@@ -46,9 +47,6 @@ export class FilterConfigurationError extends FilterError {
     const cause = Predicates.isError(details.cause) ? details.cause : undefined;
 
     super(message, { 'cause': cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterConfigurationError';
 
     // Initialize all properties in consistent order for V8 hidden class optimization
     // Always create the same shape regardless of input

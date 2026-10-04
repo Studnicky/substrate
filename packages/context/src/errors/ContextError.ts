@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /**
  * Error thrown when context operations fail.
@@ -7,7 +7,9 @@ import { BaseError } from '@studnicky/errors/browser';
  * accessing destroyed contexts or exceeding scope limits.
  */
 export class ContextError extends BaseError {
-  constructor(message: string, cause?: Error) {
+  public override readonly name: string = 'ContextError';
+
+  constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'context.error', 'message': message, 'retryable': false });
   }
 }
@@ -19,7 +21,9 @@ export class ContextError extends BaseError {
  * does not satisfy required constraints.
  */
 export class ContextConfigError extends BaseError {
-  constructor(message: string, cause?: Error) {
+  public override readonly name: string = 'ContextConfigError';
+
+  constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'context.invalidConfig', 'message': message, 'retryable': false });
   }
 }

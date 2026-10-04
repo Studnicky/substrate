@@ -1,16 +1,18 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Runtime data-type classification for a discovered property's values. */
 export namespace JsonPropertyTypeEntity {
   export const Schema = {
     'enum': ['array', 'boolean', 'date', 'null', 'number', 'object', 'string'],
     'type': 'string'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineEnum({}, ['array', 'boolean', 'date', 'null', 'number', 'object', 'string'] as const);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

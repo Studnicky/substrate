@@ -78,7 +78,7 @@
         "config": { "timeoutMs": 10 },
         "rules": { "timeoutMs": { "minimum": 100, "maximum": 5000, "reason": "timeout too low" } }
       },
-      "expected": { "input": { "timeoutMs": 10 }, "result": { "timeoutMs": 100 }, "sameRef": false }
+      "expected": { "input": { "timeoutMs": 10 }, "result": { "timeoutMs": 100 }, "sameReference": false }
     },
     {
       "name": "on-clamp-fires",

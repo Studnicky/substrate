@@ -4,42 +4,28 @@ import {
   createSourceFile,
   getCombinedModifierFlags,
   type InterfaceDeclaration,
-  isArrayTypeNode,
   isExportDeclaration,
-  isIdentifier,
   isInterfaceDeclaration,
-  isLiteralTypeNode,
-  isMethodSignature,
   isNamedExports,
-  isNumericLiteral,
-  isParenthesizedTypeNode,
-  isPropertySignature,
   isStringLiteral,
   isTypeAliasDeclaration,
-  isTypeLiteralNode,
-  isUnionTypeNode,
   ModifierFlags,
   type NamedExports,
   type Node,
-  type Program,
   ScriptTarget,
   type SourceFile,
-  type Symbol,
-  SymbolFlags,
-  SyntaxKind,
-  type Type,
-  type TypeAliasDeclaration,
-  type TypeChecker,
-  TypeFlags,
-  type TypeNode
+  type TypeAliasDeclaration
 } from 'typescript';
 
 import type { ProjectHostInterface } from '../interfaces/ProjectHostInterface.js';
+import type { ResolvedDependencyInterface } from './shared/ResolvedDependencyInterface.js';
 
 import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { DependencyExportResolver } from './shared/DependencyExportResolver.js';
 import { PackageBoundary } from './shared/PackageBoundary.js';
-import { TypeContractClassification } from './shared/TypeContractClassification.js';
+import { SemanticTypeCatalog } from './shared/SemanticTypeCatalog.js';
+import { TypeDeclarationShape } from './shared/TypeDeclarationShape.js';
 
 
 interface ExternalTypeCandidateInterface {
@@ -49,308 +35,17 @@ interface ExternalTypeCandidateInterface {
   readonly 'shape': string;
 }
 
-interface ResolvedDependencyInterface {
-  readonly 'dependencyName': string;
-  readonly 'filename': string;
-  readonly 'packageRoot': string;
-}
-
 interface TypeCatalogInterface {
   readonly 'candidates': readonly ExternalTypeCandidateInterface[];
 }
 
-class DependencyExportResolver {
-  public static resolve(
-    filename: string,
-    host: ProjectHostInterface
-  ): readonly ResolvedDependencyInterface[] {
-    const dependencyNames = PackageBoundary.directDependencyNamesForFilename(filename, host);
-    const dependencies: ResolvedDependencyInterface[] = [];
-    const resolvedFilenames = new Set<string>();
-    const dependencyCount = dependencyNames.length;
-
-    for (let index = 0; index < dependencyCount; index += 1) {
-      const dependencyName = dependencyNames[index]!;
-      const moduleSpecifiers = DependencyExportResolver.publicModuleSpecifiers(
-        dependencyName,
-        filename,
-        host
-      );
-      const specifierCount = moduleSpecifiers.length;
-
-      for (let specifierIndex = 0; specifierIndex < specifierCount; specifierIndex += 1) {
-        const resolution = host.resolveModule(moduleSpecifiers[specifierIndex]!, filename);
-
-        if (resolution === undefined || !DependencyExportResolver.isTypeBearing(resolution)) {
-          continue;
-        }
-        const packageRoot = PackageBoundary.rootForFilename(resolution, host);
-
-        if (packageRoot === undefined || resolvedFilenames.has(resolution)) {
-          continue;
-        }
-
-        resolvedFilenames.add(resolution);
-        dependencies.push({
-          'dependencyName': dependencyName,
-          'filename': resolution,
-          'packageRoot': packageRoot
-        });
-      }
-    }
-
-    return dependencies;
-  }
-
-  private static publicModuleSpecifiers(
-    dependencyName: string,
-    importerFilename: string,
-    host: ProjectHostInterface
-  ): readonly string[] {
-    const manifestFilename = host.resolvePackageManifest?.(dependencyName, importerFilename);
-
-    if (manifestFilename === undefined) {
-      return [dependencyName];
-    }
-    const manifestText = host.readTextFile(manifestFilename);
-
-    if (manifestText === undefined) {
-      return [];
-    }
-    const exportSubpaths = DependencyExportResolver.exportSubpaths(manifestText);
-    const result = exportSubpaths.map((subpath) => {
-      const moduleSpecifier = subpath === '.' ? dependencyName : `${dependencyName}/${subpath.slice(2)}`;
-
-      return moduleSpecifier;
-    });
-
-    return result;
-  }
-
-  private static exportSubpaths(manifestText: string): readonly string[] {
-    let manifest: unknown;
-    try {
-      manifest = JSON.parse(manifestText);
-    } catch {
-      return [];
-    }
-
-    if (!DependencyExportResolver.isRecord(manifest)) {
-      return [];
-    }
-    const exportsValue: unknown = Reflect.get(manifest, 'exports');
-
-    if (exportsValue === undefined || typeof exportsValue === 'string') {
-      return ['.'];
-    }
-    if (!DependencyExportResolver.isRecord(exportsValue)) {
-      return [];
-    }
-    const keys = Object.keys(exportsValue);
-    const hasSubpathMap = keys.some((key) => {
-      const result = key === '.' || key.startsWith('./');
-
-      return result;
-    });
-
-    if (!hasSubpathMap) {
-      return ['.'];
-    }
-    const result = keys.filter((key) => {
-      const isPublicExactSubpath = (key === '.' || key.startsWith('./')) && !key.includes('*');
-
-      return isPublicExactSubpath;
-    });
-
-    return result;
-  }
-
-  private static isRecord(value: unknown): value is Record<string, unknown> {
-    const result = value !== null && typeof value === 'object' && !Array.isArray(value);
-
-    return result;
-  }
-
-  private static isTypeBearing(filename: string): boolean {
-    const result = filename.endsWith('.d.cts')
-      || filename.endsWith('.d.mts')
-      || filename.endsWith('.d.ts')
-      || filename.endsWith('.cts')
-      || filename.endsWith('.mts')
-      || filename.endsWith('.tsx')
-      || filename.endsWith('.ts');
-
-    return result;
-  }
+interface ModuleResolutionContextInterface {
+  readonly 'activeFilenames': Set<string>;
+  readonly 'dependencyName': string;
+  readonly 'dependencyPackageRoot': string;
+  readonly 'host': ProjectHostInterface;
 }
 
-class TypeDeclarationShape {
-  private static readonly primitiveShapes = new Map<SyntaxKind, string>([
-    [SyntaxKind.BigIntKeyword, 'bigint'],
-    [SyntaxKind.BooleanKeyword, 'boolean'],
-    [SyntaxKind.NeverKeyword, 'never'],
-    [SyntaxKind.NumberKeyword, 'number'],
-    [SyntaxKind.ObjectKeyword, 'object'],
-    [SyntaxKind.StringKeyword, 'string'],
-    [SyntaxKind.SymbolKeyword, 'symbol'],
-    [SyntaxKind.UndefinedKeyword, 'undefined'],
-    [SyntaxKind.UnknownKeyword, 'unknown'],
-    [SyntaxKind.VoidKeyword, 'void']
-  ]);
-
-  public static membersFor(declaration: InterfaceDeclaration | TypeAliasDeclaration): readonly Node[] | undefined {
-    if (isInterfaceDeclaration(declaration)) {
-      const result = declaration.members;
-
-      return result;
-    }
-
-    if (isTypeLiteralNode(declaration.type)) {
-      const result = declaration.type.members;
-
-      return result;
-    }
-
-    return undefined;
-  }
-
-  public static hasRequiredMember(declaration: InterfaceDeclaration | TypeAliasDeclaration): boolean {
-    const members = TypeDeclarationShape.membersFor(declaration);
-
-    if (members === undefined) {
-      return true;
-    }
-
-    const result = members.some((member) => {
-      const isRequired = isPropertySignature(member) && member.questionToken === undefined;
-
-      return isRequired;
-    });
-
-    return result;
-  }
-
-  public static forDeclaration(declaration: InterfaceDeclaration | TypeAliasDeclaration): string | undefined {
-    if (declaration.typeParameters !== undefined && declaration.typeParameters.length > 0) {
-      return undefined;
-    }
-    if (isInterfaceDeclaration(declaration)) {
-      if (declaration.heritageClauses !== undefined && declaration.heritageClauses.length > 0) {
-        return undefined;
-      }
-
-      const result = TypeDeclarationShape.objectMembers(declaration.members);
-
-      return result;
-    }
-
-    const result = TypeDeclarationShape.forType(declaration.type);
-
-    return result;
-  }
-
-  private static forType(type: TypeNode): string | undefined {
-    if (isParenthesizedTypeNode(type)) {
-      const result = TypeDeclarationShape.forType(type.type);
-
-      return result;
-    }
-    if (isTypeLiteralNode(type)) {
-      const result = TypeDeclarationShape.objectMembers(type.members);
-
-      return result;
-    }
-    if (isArrayTypeNode(type)) {
-      const elementShape = TypeDeclarationShape.forType(type.elementType);
-
-      if (elementShape === undefined) {
-        return undefined;
-      }
-
-      return `array:${  elementShape}`;
-    }
-    if (isUnionTypeNode(type)) {
-      const memberShapes = TypeDeclarationShape.typeShapes(type.types);
-
-      if (memberShapes === undefined) {
-        return undefined;
-      }
-
-      return `union:${  memberShapes.toSorted().join('|')}`;
-    }
-    if (isLiteralTypeNode(type)) {
-      const literal = type.literal;
-
-      if (!isStringLiteral(literal) && !isNumericLiteral(literal) && literal.kind !== SyntaxKind.FalseKeyword && literal.kind !== SyntaxKind.TrueKeyword && literal.kind !== SyntaxKind.NullKeyword) {
-        return undefined;
-      }
-
-      return `literal:${  literal.getText()}`;
-    }
-
-    const result = TypeDeclarationShape.primitiveShapes.get(type.kind);
-
-    return result;
-  }
-
-  private static objectMembers(members: readonly Node[]): string | undefined {
-    if (members.length === 0) {
-      return undefined;
-    }
-
-    const memberShapes: string[] = [];
-
-    for (let index = 0; index < members.length; index += 1) {
-      const member = members[index]!;
-
-      if (!isPropertySignature(member) || member.type === undefined) {
-        return undefined;
-      }
-      const name = TypeDeclarationShape.propertyName(member.name);
-      const type = TypeDeclarationShape.forType(member.type);
-
-      if (name === undefined || type === undefined) {
-        return undefined;
-      }
-      const readOnly = (getCombinedModifierFlags(member) & ModifierFlags.Readonly) !== 0 ? 'readonly' : 'mutable';
-      const optional = member.questionToken === undefined ? 'required' : 'optional';
-
-      memberShapes.push(`property:${  readOnly  }:${  optional  }:${  name  }:${  type}`);
-    }
-
-    return `object:${  memberShapes.toSorted().join('|')}`;
-  }
-
-  private static propertyName(name: Node): string | undefined {
-    if (isIdentifier(name)) {
-      return `identifier:${  name.text}`;
-    }
-    if (isStringLiteral(name)) {
-      return `string:${  name.text}`;
-    }
-    if (isNumericLiteral(name)) {
-      return `number:${  name.text}`;
-    }
-
-    return undefined;
-  }
-
-  private static typeShapes(types: readonly TypeNode[]): readonly string[] | undefined {
-    const shapes: string[] = [];
-
-    for (let index = 0; index < types.length; index += 1) {
-      const shape = TypeDeclarationShape.forType(types[index]!);
-
-      if (shape === undefined) {
-        return undefined;
-      }
-
-      shapes.push(shape);
-    }
-
-    return shapes;
-  }
-}
 
 class EstreeTypeDeclarationShape {
   private static readonly primitiveShapes = new Map<string, string>([
@@ -594,37 +289,32 @@ class ExternalTypeCatalog {
     dependency: ResolvedDependencyInterface,
     host: ProjectHostInterface
   ): readonly ExternalTypeCandidateInterface[] {
-    const activeFilenames = new Set<string>();
-    const result = ExternalTypeCatalog.publicTypesFromModule(
-      dependency.filename,
-      dependency.dependencyName,
-      dependency.packageRoot,
-      undefined,
-      activeFilenames,
-      host
-    );
+    const context: ModuleResolutionContextInterface = {
+      'activeFilenames': new Set<string>(),
+      'dependencyName': dependency.dependencyName,
+      'dependencyPackageRoot': dependency.packageRoot,
+      'host': host
+    };
+    const result = ExternalTypeCatalog.publicTypesFromModule(dependency.filename, undefined, context);
 
     return result;
   }
 
   private static publicTypesFromModule(
     filename: string,
-    dependencyName: string,
-    dependencyPackageRoot: string,
     publicNames: ReadonlyMap<string, string> | undefined,
-    activeFilenames: Set<string>,
-    host: ProjectHostInterface
+    context: ModuleResolutionContextInterface
   ): readonly ExternalTypeCandidateInterface[] {
-    if (activeFilenames.has(filename)) {
+    if (context.activeFilenames.has(filename)) {
       return [];
     }
 
-    activeFilenames.add(filename);
+    context.activeFilenames.add(filename);
 
-    const sourceText = host.readTextFile(filename);
+    const sourceText = context.host.readTextFile(filename);
 
     if (sourceText === undefined) {
-      activeFilenames.delete(filename);
+      context.activeFilenames.delete(filename);
       return [];
     }
 
@@ -637,56 +327,54 @@ class ExternalTypeCatalog {
       const statement = source.statements[index]!;
 
       if (isInterfaceDeclaration(statement) || isTypeAliasDeclaration(statement)) {
-        ExternalTypeCatalog.addDeclarationCandidate(statement, dependencyName, declarationPublicNames, candidates);
-        continue;
-      }
-      if (!isExportDeclaration(statement) || statement.moduleSpecifier === undefined || !isStringLiteral(statement.moduleSpecifier)) {
+        ExternalTypeCatalog.addDeclarationCandidate(statement, context.dependencyName, declarationPublicNames, candidates);
         continue;
       }
 
-      const reexportFilename = ExternalTypeCatalog.resolveRelativeExport(
-        statement.moduleSpecifier.text,
-        filename,
-        dependencyPackageRoot,
-        host
-      );
-
-      if (reexportFilename === undefined) {
-        continue;
-      }
-      if (statement.exportClause === undefined) {
-        if (publicNames === undefined) {
-          candidates.push(...ExternalTypeCatalog.publicTypesFromModule(
-            reexportFilename,
-            dependencyName,
-            dependencyPackageRoot,
-            undefined,
-            activeFilenames,
-            host
-          ));
-        }
-        continue;
-      }
-      if (!isNamedExports(statement.exportClause)) {
-        continue;
-      }
-
-      const reexportedNames = ExternalTypeCatalog.reexportedNames(statement.exportClause, statement.isTypeOnly, publicNames);
-
-      if (reexportedNames.size > 0) {
-        candidates.push(...ExternalTypeCatalog.publicTypesFromModule(
-          reexportFilename,
-          dependencyName,
-          dependencyPackageRoot,
-          reexportedNames,
-          activeFilenames,
-          host
-        ));
-      }
+      ExternalTypeCatalog.collectReexportCandidates(statement, filename, publicNames, candidates, context);
     }
 
-    activeFilenames.delete(filename);
+    context.activeFilenames.delete(filename);
     return candidates;
+  }
+
+  private static collectReexportCandidates(
+    statement: Node,
+    filename: string,
+    publicNames: ReadonlyMap<string, string> | undefined,
+    candidates: ExternalTypeCandidateInterface[],
+    context: ModuleResolutionContextInterface
+  ): void {
+    if (!isExportDeclaration(statement) || statement.moduleSpecifier === undefined || !isStringLiteral(statement.moduleSpecifier)) {
+      return;
+    }
+
+    const reexportFilename = ExternalTypeCatalog.resolveRelativeExport(
+      statement.moduleSpecifier.text,
+      filename,
+      context.dependencyPackageRoot,
+      context.host
+    );
+
+    if (reexportFilename === undefined) {
+      return;
+    }
+    if (statement.exportClause === undefined) {
+      if (publicNames === undefined) {
+        candidates.push(...ExternalTypeCatalog.publicTypesFromModule(reexportFilename, undefined, context));
+      }
+
+      return;
+    }
+    if (!isNamedExports(statement.exportClause)) {
+      return;
+    }
+
+    const reexportedNames = ExternalTypeCatalog.reexportedNames(statement.exportClause, statement.isTypeOnly, publicNames);
+
+    if (reexportedNames.size > 0) {
+      candidates.push(...ExternalTypeCatalog.publicTypesFromModule(reexportFilename, reexportedNames, context));
+    }
   }
 
   private static publicNamesForDeclarations(
@@ -699,40 +387,57 @@ class ExternalTypeCatalog {
     for (let index = 0; index < statementCount; index += 1) {
       const statement = source.statements[index]!;
 
-      if (isInterfaceDeclaration(statement) || isTypeAliasDeclaration(statement)) {
-        if ((getCombinedModifierFlags(statement) & ModifierFlags.Export) === 0) {
-          continue;
-        }
-
-        const declarationName = statement.name.text;
-
-        if (publicNames !== undefined && !publicNames.has(declarationName)) {
-          continue;
-        }
-
-        result.set(declarationName, publicNames?.get(declarationName) ?? declarationName);
-        continue;
-      }
-      if (!isExportDeclaration(statement) || statement.moduleSpecifier !== undefined) {
-        continue;
-      }
-
-      const exportClause = statement.exportClause;
-
-      if (exportClause === undefined || !isNamedExports(exportClause)) {
-        continue;
-      }
-
-      const localExportNames = ExternalTypeCatalog.reexportedNames(exportClause, statement.isTypeOnly, publicNames);
-
-      for (const [declarationName, publicExportName] of localExportNames) {
-        if (!result.has(declarationName)) {
-          result.set(declarationName, publicExportName);
-        }
-      }
+      ExternalTypeCatalog.collectPublicNamesFromStatement(statement, publicNames, result);
     }
 
     return result;
+  }
+
+  private static collectPublicNamesFromStatement(
+    statement: Node,
+    publicNames: ReadonlyMap<string, string> | undefined,
+    result: Map<string, string>
+  ): void {
+    if (isInterfaceDeclaration(statement) || isTypeAliasDeclaration(statement)) {
+      ExternalTypeCatalog.collectDeclarationPublicName(statement, publicNames, result);
+
+      return;
+    }
+    if (!isExportDeclaration(statement) || statement.moduleSpecifier !== undefined) {
+      return;
+    }
+
+    const exportClause = statement.exportClause;
+
+    if (exportClause === undefined || !isNamedExports(exportClause)) {
+      return;
+    }
+
+    const localExportNames = ExternalTypeCatalog.reexportedNames(exportClause, statement.isTypeOnly, publicNames);
+
+    for (const [declarationName, publicExportName] of localExportNames) {
+      if (!result.has(declarationName)) {
+        result.set(declarationName, publicExportName);
+      }
+    }
+  }
+
+  private static collectDeclarationPublicName(
+    statement: InterfaceDeclaration | TypeAliasDeclaration,
+    publicNames: ReadonlyMap<string, string> | undefined,
+    result: Map<string, string>
+  ): void {
+    if ((getCombinedModifierFlags(statement) & ModifierFlags.Export) === 0) {
+      return;
+    }
+
+    const declarationName = statement.name.text;
+
+    if (publicNames !== undefined && !publicNames.has(declarationName)) {
+      return;
+    }
+
+    result.set(declarationName, publicNames?.get(declarationName) ?? declarationName);
   }
 
   private static addDeclarationCandidate(
@@ -824,650 +529,6 @@ class ExternalTypeCatalog {
 }
 
 
-interface SemanticTypeCandidateInterface {
-  readonly 'composesAllowed': boolean;
-  readonly 'dependencyName': string;
-  readonly 'exportName': string;
-  readonly 'isPlatform': boolean;
-  readonly 'symbol': Symbol;
-  readonly 'type': Type;
-}
-
-class SemanticTypeCatalog {
-  public static create(
-    context: Rule.RuleContext,
-    host: ProjectHostInterface | undefined
-  ): SemanticTypeCatalog | undefined {
-    const servicesUnknown: unknown = context.sourceCode.parserServices;
-
-    if (!AstHelpers.hasTypeServices(servicesUnknown)) {
-      return undefined;
-    }
-
-    const sourceFile = SemanticTypeCatalog.sourceFileForContext(context, servicesUnknown.program);
-
-    if (sourceFile === undefined) {
-      return undefined;
-    }
-
-    const candidates = SemanticTypeCatalog.collectCandidates(sourceFile, servicesUnknown.program, host);
-
-    return new SemanticTypeCatalog(servicesUnknown.esTreeNodeToTSNodeMap, servicesUnknown.program, candidates);
-  }
-
-  public isCanonicalEntityType(node: Rule.Node): boolean {
-    const declaration = this.esTreeNodeToTSNodeMap.get(node);
-
-    if (declaration === undefined) {
-      return false;
-    }
-
-    const classification = TypeContractClassification.forProgram(this.program);
-
-    if (isTypeAliasDeclaration(declaration)) {
-      const result = classification.isCanonicalEntityTypeAlias(declaration);
-
-      return result;
-    }
-
-    const result = isInterfaceDeclaration(declaration)
-      && classification.isCanonicalEntityInterface(declaration);
-
-    return result;
-  }
-
-  public findExactMatch(node: Rule.Node): SemanticTypeCandidateInterface | undefined {
-    const declaration = this.esTreeNodeToTSNodeMap.get(node);
-
-    if (declaration === undefined || (!isInterfaceDeclaration(declaration) && !isTypeAliasDeclaration(declaration))) {
-      return undefined;
-    }
-
-    const symbol = this.checker.getSymbolAtLocation(declaration.name);
-
-    if (symbol === undefined) {
-      return undefined;
-    }
-
-    const type = this.checker.getTypeAtLocation(declaration.name);
-
-    if (!SemanticTypeCatalog.isComparable(type)) {
-      return undefined;
-    }
-
-    const candidateCount = this.candidates.length;
-    let exactMatch: SemanticTypeCandidateInterface | undefined;
-    let highestSpecificity = -1;
-
-    for (let index = 0; index < candidateCount; index += 1) {
-      const candidate = this.candidates[index]!;
-
-      if (candidate.symbol === symbol || (candidate.composesAllowed && SemanticTypeCatalog.composesCandidate(declaration, candidate.symbol, this.checker))) {
-        continue;
-      }
-
-      if (!SemanticTypeCatalog.hasConstrainedShape(candidate.type) || !SemanticTypeCatalog.hasRequiredMember(candidate.type) || !SemanticTypeCatalog.isComparable(candidate.type)) {
-        continue;
-      }
-
-
-      if (candidate.isPlatform && !SemanticTypeCatalog.isPlatformMatch(type, candidate, declaration, this.checker)) {
-        continue;
-      }
-
-      const localAssignableToCandidate = this.checker.isTypeAssignableTo(type, candidate.type);
-      const candidateAssignableToLocal = this.checker.isTypeAssignableTo(candidate.type, type);
-
-      if (!localAssignableToCandidate || !candidateAssignableToLocal) {
-        continue;
-      }
-
-      const specificity = SemanticTypeCatalog.specificityOf(candidate.type);
-
-      if (specificity > highestSpecificity) {
-        exactMatch = candidate;
-        highestSpecificity = specificity;
-      }
-    }
-
-    return exactMatch;
-  }
-
-  private readonly checker;
-
-  private readonly program: Program;
-
-  private constructor(
-    private readonly esTreeNodeToTSNodeMap: {
-      readonly 'get': (node: unknown) => Node | undefined;
-    },
-    program: Program,
-    private readonly candidates: readonly SemanticTypeCandidateInterface[]
-  ) {
-    this.program = program;
-    this.checker = program.getTypeChecker();
-  }
-
-  private static sourceFileForContext(context: Rule.RuleContext, program: Program): SourceFile | undefined {
-    const normalizedFilename = context.filename.replaceAll('\\', '/');
-    const sourceFiles = program.getSourceFiles();
-    const sourceFileCount = sourceFiles.length;
-
-    for (let index = 0; index < sourceFileCount; index += 1) {
-      const sourceFile = sourceFiles[index]!;
-
-      if (sourceFile.fileName.replaceAll('\\', '/') === normalizedFilename) {
-        return sourceFile;
-      }
-    }
-
-    return undefined;
-  }
-
-  private static collectCandidates(
-    sourceFile: SourceFile,
-    program: Program,
-    host: ProjectHostInterface | undefined
-  ): readonly SemanticTypeCandidateInterface[] {
-    const checker = program.getTypeChecker();
-    const candidates: SemanticTypeCandidateInterface[] = [];
-
-    SemanticTypeCatalog.addPlatformCandidates(sourceFile, program, checker, candidates);
-    SemanticTypeCatalog.addDependencyCandidates(sourceFile, program, host, checker, candidates);
-    SemanticTypeCatalog.addEntityCandidates(sourceFile, program, host, checker, candidates);
-
-    return candidates;
-  }
-
-  private static addPlatformCandidates(
-    sourceFile: SourceFile,
-    program: Program,
-    checker: TypeChecker,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const symbols = checker.getSymbolsInScope(sourceFile, SymbolFlags.Type | SymbolFlags.Value);
-    const symbolCount = symbols.length;
-
-    for (let index = 0; index < symbolCount; index += 1) {
-      const symbol = symbols[index]!;
-
-      if (!SemanticTypeCatalog.isPlatformSymbol(symbol, program) || !SemanticTypeCatalog.isPlatformContract(symbol, sourceFile, checker, program)) {
-        continue;
-      }
-
-      SemanticTypeCatalog.addSymbolCandidates(
-        symbol,
-        sourceFile,
-        checker,
-        true,
-        'TypeScript platform library',
-        symbol.name,
-        candidates
-      );
-    }
-  }
-
-  private static addDependencyCandidates(
-    sourceFile: SourceFile,
-    program: Program,
-    host: ProjectHostInterface | undefined,
-    checker: TypeChecker,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const dependencies = host === undefined
-      ? []
-      : DependencyExportResolver.resolve(sourceFile.fileName, host);
-    const dependencyCount = dependencies.length;
-
-    for (let index = 0; index < dependencyCount; index += 1) {
-      const dependency = dependencies[index]!;
-      const dependencySource = program.getSourceFile(dependency.filename);
-
-      if (dependencySource === undefined) {
-        continue;
-      }
-
-      const moduleSymbol = checker.getSymbolAtLocation(dependencySource);
-
-      if (moduleSymbol === undefined) {
-        continue;
-      }
-
-      const exports = checker.getExportsOfModule(moduleSymbol);
-      const exportCount = exports.length;
-
-      for (let exportIndex = 0; exportIndex < exportCount; exportIndex += 1) {
-        const exportedSymbol = exports[exportIndex]!;
-
-        SemanticTypeCatalog.addSymbolCandidates(
-          exportedSymbol,
-          sourceFile,
-          checker,
-          false,
-          dependency.dependencyName,
-          exportedSymbol.name,
-          candidates
-        );
-        SemanticTypeCatalog.addEntityCandidate(exportedSymbol, checker, dependency.dependencyName, candidates);
-      }
-    }
-  }
-
-  private static addEntityCandidates(
-    sourceFile: SourceFile,
-    program: Program,
-    host: ProjectHostInterface | undefined,
-    checker: TypeChecker,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const packageRoot = PackageBoundary.rootFor(sourceFile, program, host);
-
-    if (packageRoot === undefined) {
-      return;
-    }
-
-    const sourceFiles = program.getSourceFiles();
-    const sourceFileCount = sourceFiles.length;
-
-    for (let sourceIndex = 0; sourceIndex < sourceFileCount; sourceIndex += 1) {
-      const candidateSource = sourceFiles[sourceIndex]!;
-      const candidateRoot = PackageBoundary.rootFor(candidateSource, program, host);
-
-      if (candidateRoot !== packageRoot) {
-        continue;
-      }
-
-      const moduleSymbol = checker.getSymbolAtLocation(candidateSource);
-
-      if (moduleSymbol === undefined) {
-        continue;
-      }
-
-      const exports = checker.getExportsOfModule(moduleSymbol);
-      const exportCount = exports.length;
-
-      for (let exportIndex = 0; exportIndex < exportCount; exportIndex += 1) {
-        const exportedSymbol = exports[exportIndex]!;
-
-        SemanticTypeCatalog.addEntityCandidate(exportedSymbol, checker, packageRoot, candidates);
-      }
-    }
-  }
-
-  private static addEntityCandidate(
-    exportedSymbol: Symbol,
-    checker: TypeChecker,
-    dependencyName: string,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const members = checker.getExportsOfModule(exportedSymbol);
-    const typeSymbol = members.find((member) => {
-      const result = member.name === 'Type';
-
-      return result;
-    });
-    const schemaSymbol = members.find((member) => {
-      const result = member.name === 'Schema';
-
-      return result;
-    });
-
-    if (typeSymbol === undefined || schemaSymbol === undefined) {
-      return;
-    }
-
-    SemanticTypeCatalog.addTypeCandidate(
-      typeSymbol,
-      checker.getDeclaredTypeOfSymbol(typeSymbol),
-      true,
-      false,
-      dependencyName,
-      `${exportedSymbol.name}.Type`,
-      candidates
-    );
-  }
-
-  private static addSymbolCandidates(
-    symbol: Symbol,
-    sourceFile: SourceFile,
-    checker: TypeChecker,
-    isPlatform: boolean,
-    dependencyName: string,
-    exportName: string,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const resolvedSymbol = SemanticTypeCatalog.resolvedSymbol(symbol, checker);
-
-    if (resolvedSymbol === undefined) {
-      return;
-    }
-
-    if (
-      (resolvedSymbol.flags & SymbolFlags.Type) !== 0
-      && !SemanticTypeCatalog.hasGenericTypeParameters(resolvedSymbol)
-    ) {
-      const type = checker.getDeclaredTypeOfSymbol(resolvedSymbol);
-
-      if (isPlatform || SemanticTypeCatalog.hasRequiredMember(type)) {
-        SemanticTypeCatalog.addTypeCandidate(
-          resolvedSymbol,
-          type,
-          true,
-          isPlatform,
-          dependencyName,
-          exportName,
-          candidates
-        );
-      }
-    }
-
-    if ((resolvedSymbol.flags & SymbolFlags.Value) !== 0) {
-      const type = checker.getTypeOfSymbolAtLocation(resolvedSymbol, sourceFile);
-
-      if (isPlatform || SemanticTypeCatalog.hasRequiredMember(type)) {
-        SemanticTypeCatalog.addTypeCandidate(
-          resolvedSymbol,
-          type,
-          false,
-          isPlatform,
-          dependencyName,
-          exportName,
-          candidates
-        );
-      }
-    }
-  }
-
-  private static hasGenericTypeParameters(symbol: Symbol): boolean {
-    const declarations = symbol.getDeclarations() ?? [];
-    const result = declarations.some((declaration) => {
-      const typeParameters = (isInterfaceDeclaration(declaration) || isTypeAliasDeclaration(declaration))
-        ? declaration.typeParameters
-        : undefined;
-
-      const hasTypeParameters = typeParameters !== undefined && typeParameters.length > 0;
-
-      return hasTypeParameters;
-    });
-
-    return result;
-  }
-
-  private static addTypeCandidate(
-    symbol: Symbol,
-    type: Type,
-    composesAllowed: boolean,
-    isPlatform: boolean,
-    dependencyName: string,
-    exportName: string,
-    candidates: SemanticTypeCandidateInterface[]
-  ): void {
-    const isDuplicate = candidates.some((candidate) => {
-      const result = candidate.symbol === symbol && candidate.type === type;
-
-      return result;
-    });
-
-    if (isDuplicate) {
-      return;
-    }
-
-    candidates.push({
-      'composesAllowed': composesAllowed,
-      'dependencyName': dependencyName,
-      'exportName': exportName,
-      'isPlatform': isPlatform,
-      'symbol': symbol,
-      'type': type
-    });
-  }
-
-  private static hasConstrainedShape(type: Type): boolean {
-    const result = SemanticTypeCatalog.specificityOf(type) > 0;
-
-    return result;
-  }
-
-  private static hasRequiredMember(type: Type): boolean {
-    if (type.getCallSignatures().length > 0 || type.getConstructSignatures().length > 0) {
-      return true;
-    }
-
-    const result = type.getProperties().some((property) => {
-      const isRequired = (property.flags & SymbolFlags.Optional) === 0;
-
-      return isRequired;
-    });
-
-    return result;
-  }
-
-  private static specificityOf(type: Type): number {
-    const result = type.getProperties().length + type.getCallSignatures().length + type.getConstructSignatures().length;
-
-    return result;
-  }
-
-  private static isPlatformSymbol(symbol: Symbol, program: Program): boolean {
-    const declarations = symbol.getDeclarations();
-
-    if (declarations === undefined) {
-      return false;
-    }
-
-    const result = declarations.some((declaration) => {
-      const isDefaultLibrary = program.isSourceFileDefaultLibrary(declaration.getSourceFile());
-
-      return isDefaultLibrary;
-    });
-
-    return result;
-  }
-
-
-
-  private static isPlatformMatch(
-    localType: Type,
-    candidate: SemanticTypeCandidateInterface,
-    declaration: InterfaceDeclaration | TypeAliasDeclaration,
-    checker: TypeChecker
-  ): boolean {
-    if (candidate.type.getConstructSignatures().length > 0 && localType.getConstructSignatures().length === 0) {
-      return false;
-    }
-
-    const properties = candidate.type.getProperties();
-    const propertyCount = properties.length;
-    let behavioralPropertyCount = 0;
-    let declaredPropertyCount = 0;
-
-    for (let index = 0; index < propertyCount; index += 1) {
-      const property = properties[index]!;
-      const propertyType = checker.getTypeOfSymbolAtLocation(property, declaration);
-      const declaresProperty = SemanticTypeCatalog.declaresMember(declaration, property.name);
-      const isBehavioral = propertyType.getCallSignatures().length > 0 || propertyType.getConstructSignatures().length > 0;
-
-      if (declaresProperty) {
-        declaredPropertyCount += 1;
-      } else if (isBehavioral) {
-        return false;
-      }
-
-      if (isBehavioral) {
-        behavioralPropertyCount += 1;
-      }
-    }
-
-    const result = candidate.type.getConstructSignatures().length > 0 || behavioralPropertyCount > 0 || (propertyCount >= 3 && declaredPropertyCount >= propertyCount - 1);
-
-    return result;
-  }
-
-  private static declaresMember(
-    declaration: InterfaceDeclaration | TypeAliasDeclaration,
-    name: string
-  ): boolean {
-    const members = TypeDeclarationShape.membersFor(declaration) ?? [];
-    const result = members.some((member) => {
-      if ((!isPropertySignature(member) && !isMethodSignature(member)) || member.name === undefined) {
-        return false;
-      }
-
-      if (!isIdentifier(member.name) && !isStringLiteral(member.name) && !isNumericLiteral(member.name)) {
-        return false;
-      }
-
-      const matches = member.name.text === name;
-
-      return matches;
-    });
-
-    return result;
-  }
-
-  private static isPlatformContract(
-    symbol: Symbol,
-    sourceFile: SourceFile,
-    checker: TypeChecker,
-    program: Program
-  ): boolean {
-    const types: Type[] = [];
-
-    if ((symbol.flags & SymbolFlags.Type) !== 0) {
-      types.push(checker.getDeclaredTypeOfSymbol(symbol));
-    }
-
-    if ((symbol.flags & SymbolFlags.Value) !== 0) {
-      types.push(checker.getTypeOfSymbolAtLocation(symbol, sourceFile));
-    }
-
-    const typeCount = types.length;
-
-    for (let index = 0; index < typeCount; index += 1) {
-      if (SemanticTypeCatalog.hasPlatformContractMember(types[index]!, sourceFile, checker, program)) {
-        return true;
-      }
-    }
-
-    const declarations = symbol.getDeclarations() ?? [];
-
-    for (let index = 0; index < declarations.length; index += 1) {
-      if (SemanticTypeCatalog.referencesPlatformType(declarations[index]!, symbol, checker, program)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static referencesPlatformType(
-    declaration: Node,
-    candidateSymbol: Symbol,
-    checker: TypeChecker,
-    program: Program
-  ): boolean {
-    let result = false;
-
-    const visit = (node: Node): void => {
-      if (result) {
-        return;
-      }
-
-      if (isIdentifier(node)) {
-        const symbol = SemanticTypeCatalog.resolvedSymbol(checker.getSymbolAtLocation(node), checker);
-
-        if (symbol !== undefined && symbol !== candidateSymbol && SemanticTypeCatalog.isPlatformSymbol(symbol, program)) {
-          result = true;
-          return;
-        }
-      }
-
-      node.forEachChild(visit);
-    };
-
-    declaration.forEachChild(visit);
-
-    return result;
-  }
-
-  private static hasPlatformContractMember(
-    type: Type,
-    sourceFile: SourceFile,
-    checker: TypeChecker,
-    program: Program
-  ): boolean {
-    if (type.getCallSignatures().length > 0 || type.getConstructSignatures().length > 0) {
-      return true;
-    }
-
-    const properties = type.getProperties();
-    const propertyCount = properties.length;
-
-    for (let index = 0; index < propertyCount; index += 1) {
-      const property = properties[index]!;
-      const propertyType = checker.getTypeOfSymbolAtLocation(property, sourceFile);
-
-      if (propertyType.getCallSignatures().length > 0 || propertyType.getConstructSignatures().length > 0) {
-        return true;
-      }
-
-      const referencedSymbol = propertyType.aliasSymbol ?? propertyType.getSymbol();
-
-      if (referencedSymbol !== undefined && SemanticTypeCatalog.isPlatformSymbol(referencedSymbol, program)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static composesCandidate(
-    declaration: InterfaceDeclaration | TypeAliasDeclaration,
-    candidateSymbol: Symbol,
-    checker: TypeChecker
-  ): boolean {
-    let composesCandidate = false;
-
-    const visit = (node: Node): void => {
-      if (composesCandidate) {
-        return;
-      }
-
-      if (isIdentifier(node)) {
-        const symbol = checker.getSymbolAtLocation(node);
-
-        if (SemanticTypeCatalog.resolvedSymbol(symbol, checker) === candidateSymbol) {
-          composesCandidate = true;
-          return;
-        }
-      }
-
-      node.forEachChild(visit);
-    };
-
-    declaration.forEachChild(visit);
-    return composesCandidate;
-  }
-
-  private static resolvedSymbol(
-    symbol: Symbol | undefined,
-    checker: TypeChecker
-  ): Symbol | undefined {
-    if (symbol === undefined || (symbol.flags & SymbolFlags.Alias) === 0) {
-      return symbol;
-    }
-
-    const result = checker.getAliasedSymbol(symbol);
-
-    return result;
-  }
-
-  private static isComparable(type: Type): boolean {
-    const result = (type.flags & (TypeFlags.Any | TypeFlags.Unknown)) === 0;
-
-    return result;
-  }
-}
 
 class ExternalTypeRedefinition {
   public static create(context: Rule.RuleContext): Rule.RuleListener {

@@ -1,0 +1,96 @@
+{
+  "cases": [
+    {
+      "name": "resilience-dlqretry-invalid-interval",
+      "description": "DeadLetterQueueRetryGenerator rejects invalid intervals",
+      "shape": "dlqr-invalid-interval",
+      "input": {
+        "resilience": {
+          "intervalMs": [
+            -1,
+            0.5
+          ],
+          "queueEmpty": true
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-dlqretry-missing-dlq",
+      "description": "DeadLetterQueueRetryGenerator rejects missing DLQ",
+      "shape": "dlqr-missing-dlq",
+      "input": {
+        "resilience": {
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "throws": "ResilienceConfigError"
+      }
+    },
+    {
+      "name": "resilience-dlqretry-lifecycle",
+      "description": "DeadLetterQueueRetryGenerator lifecycle hooks surround yielded entries",
+      "shape": "dlqr-lifecycle",
+      "input": {
+        "resilience": {
+          "items": [
+            "first"
+          ],
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first"
+        ],
+        "events": [
+          "yield",
+          "wait:0",
+          "done"
+        ]
+      }
+    },
+    {
+      "name": "resilience-dlqretry-hook-swallows",
+      "description": "DeadLetterQueueRetryGenerator throwing hooks do not replace generation",
+      "shape": "dlqr-hook-swallows",
+      "input": {
+        "resilience": {
+          "items": [
+            "first"
+          ],
+          "intervalMs": 0
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first"
+        ],
+        "waitYieldDone": true
+      }
+    },
+    {
+      "name": "resilience-dlqretry-async-hook-isolation",
+      "description": "DeadLetterQueueRetryGenerator async hook failures stay isolated",
+      "shape": "dlqr-async-hook-isolation",
+      "input": {
+        "resilience": {
+          "intervalMs": 0,
+          "first": "first async onYield boom",
+          "second": "second async onYield boom"
+        }
+      },
+      "expected": {
+        "yielded": [
+          "first",
+          "second"
+        ],
+        "rejectionEvents": 0,
+        "hookName": "onYield"
+      }
+    }
+  ]
+}

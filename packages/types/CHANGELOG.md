@@ -1,5 +1,29 @@
 # Changelog
 
+## 15.0.1
+
+### Patch Changes
+
+- 3965298: Publish the integrated primitive release and complete package reference.
+
+## 15.0.0
+
+### Major Changes
+
+- cf88dc6: `BaseError` lives in `@studnicky/types`, the dependency-free root package, so `@studnicky/entity` and `@studnicky/types` can throw `BaseError` subclasses. Import it from `@studnicky/types/node` or `@studnicky/types/browser`, alongside `BaseErrorArgumentsInterface`, `ProblemDetailsInterface`, `CauseNodeInterface`, `ThrownValueInterface`, `ThrownValueProjection`, and the `CAUSE_*` and `PROBLEM_TYPE_*`/`PROBLEM_TITLE_*` constants. `@studnicky/errors` builds `ModuleError`, `RuntimeError`, `ValidationError`, and the rest of its hierarchy on `BaseError` and does not export it. `BaseError.toJSON()` output is unchanged.
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- 543de66: `@studnicky/types` exports `Empty`, `Hash`, `JsonObject`, `JsonValue`, `Predicate`, `Predicates`, `RuntimeValue` and `StructuralHash`; `PickDefined` is not part of the package. Callers assemble optional fields with conditional spreads, which the compiler checks under `exactOptionalPropertyTypes`. `DomainErrorArgumentList.build` assembles its optional `cause`, `correlationId`, `metadata` and `retryable` fields that way.
+
+### Minor Changes
+
+- `Hash` and `StructuralHash` move from `@studnicky/json` to `@studnicky/types`. `StructuralHash` strips `$id`, `description`, and `title` before hashing a JSON schema document, which is schema-cache behaviour that belongs beside the other object utilities in `@studnicky/types` — `@studnicky/json` depends on `@studnicky/entity`, so the schema engine could never import the utility from there. Import both from `@studnicky/types` going forward.
+- 3da660e: `JsonObject` gains two sanctioned runtime-keyed writes: `fromEntries(entries)` builds a plain object from a `Map`/pair-iterable once every key is known, and `write(target, key, value)` performs a single guarded `[[Set]]` onto an existing target, rejecting `__proto__`. The `dynamic-property-access` lint rule now also covers `Reflect.set` (previously unchecked) and exempts calls resolved to these two `JsonObject` members by declaration identity — class, member, and declaring source file — so a same-named class elsewhere still reports. Every call site across the workspace that mutated a fresh or existing object with a variable key now goes through one of these two primitives instead of raw `Reflect.set`.
+
+### Patch Changes
+
+- ebd9f1c: Removes the circular imports in `RuntimeValueArrayInterface`/`RuntimeValueMapInterface`/`RuntimeValueRecordInterface`/`RuntimeValueSetInterface` (now declared together in `RuntimeValueContainerInterfaces.ts`, since they are mutually recursive by definition) and in `ThrownValueEntity`/`thrownValueProjection` (the projection logic now lives inside `ThrownValueEntity.ts`, since `intake` wires directly to it and typing the projection's return value needs the entity's own `Type`). Public export names and subpaths are unchanged.
+- bb7bb62: Removes every non-`as const` type assertion from `errors`/`types` source. `BaseError.toJSON()` types its assembled Problem Details object directly instead of asserting the shape at the end. `TypeGuardPredicates.isEmptyTypedArray` reads `byteLength` (present on every `ArrayBufferView`, including `DataView`) instead of casting to `Uint8Array` to read `.length`, which also fixes it reporting an empty `DataView` as non-empty. `TypeGuardPredicates.isPromise` reads the `then` member via `Reflect.get` instead of casting to `Record<string, unknown>`. `RuntimeValuePredicates.areReferenceEqual` was a hand-rolled reimplementation of `Object.is`, reachable only through a cast; `Predicates.areReferenceEqual` now binds directly to `Object.is`.
+
 ## 14.0.0
 
 ### Patch Changes
@@ -37,13 +61,13 @@
   object with `caseSensitive` (for its string branch) and `boundary: 'closed' | 'half-open'`
   (for its numeric/date branches) — both default to the prior behavior, so every existing
   call site is unaffected.
-  
+
   Extracted while auditing `@studnicky/drilldown`'s matcher vocabulary against the filters
   module's operator vocabulary for shared concepts: CIDR/IP matching and semver range
   satisfaction existed nowhere in `@studnicky/types` or filters before this; alphabetic
   range matching and half-open numeric/date ranges were near-duplicates of existing
   `performRangeComparison` behavior, now unified.
-  
+
   An adversarial review of this same unreleased branch caught and fixed several edge cases
   before anything shipped: `^0.0.x` now locks the patch version (not just minor), a bare
   `~1` range now matches any `1.x.x` (not just `1.0.x`), build metadata (`+build.1`) no
@@ -68,7 +92,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,

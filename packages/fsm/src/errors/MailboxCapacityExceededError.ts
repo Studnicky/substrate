@@ -5,6 +5,8 @@ import { FsmError } from './FsmError.js';
  * the event is evicted to make room for a newer one.
  */
 export class MailboxCapacityExceededError extends FsmError {
+  public override readonly name: string = 'MailboxCapacityExceededError';
+
   constructor(message: string) {
     super({ 'code': 'fsm.mailboxCapacityExceeded', 'message': message, 'retryable': false });
   }

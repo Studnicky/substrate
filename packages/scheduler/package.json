@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/scheduler",
-  "version": "14.0.0",
+  "version": "15.0.1",
   "description": "Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations",
+  "keywords": [
+    "deterministic",
+    "scheduler",
+    "testing",
+    "timer",
+    "virtual-time"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/scheduler",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/scheduler"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,44 +46,16 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
-  },
-  "keywords": [
-    "scheduler",
-    "virtual-time",
-    "timer",
-    "deterministic",
-    "testing"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/scheduler"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/scheduler",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
     "@studnicky/clock": "workspace:*",
@@ -67,10 +63,13 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
     "@studnicky/signal": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

@@ -66,6 +66,19 @@ repo=$(make_repo)
   git add -A
   git commit -q -m "chore: base release state"
   git update-ref refs/remotes/origin/main HEAD
+  mkdir -p .github/workflows .githooks docs
+  printf 'name: Publish Packages\n' > .github/workflows/publish.yml
+  printf '#!/usr/bin/env bash\n' > .githooks/pre-commit
+  printf '# Release guide\n' > docs/release.md
+  printf 'Release v1.0.0\n' > release_notes.md
+  printf '# Package a\n' > packages/a/README.md
+  git add .github/workflows/publish.yml .githooks/pre-commit docs/release.md release_notes.md packages/a/README.md
+  git commit -q -m "ci: configure package publication"
+  assert_changeset_required origin/main
+
+  printf '{"name":"a","version":"1.0.1"}\n' > packages/a/package.json
+  git add packages/a/package.json
+  git commit -q -m "fix: update package a"
   if assert_pending_changesets_are_valid origin/main >missing-head-argument.out 2>&1; then
     fail "release gates" "expected omitted changeset validation head ref to fail"
   fi
@@ -144,7 +157,7 @@ repo=$(make_repo)
 
   git switch -q develop
   base_commit=$(git rev-parse origin/develop)
-  node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$valid_ref"
+  node "$REPO_ROOT/scripts/validate-changeset-ref.ts" "$base_commit" "$valid_ref"
   [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
 
   git switch -q -c feature/invalid-changeset
@@ -155,7 +168,7 @@ repo=$(make_repo)
   invalid_ref=$(git rev-parse HEAD)
 
   git switch -q develop
-  if node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$invalid_ref" >changeset-validation.out 2>&1; then
+  if node "$REPO_ROOT/scripts/validate-changeset-ref.ts" "$base_commit" "$invalid_ref" >changeset-validation.out 2>&1; then
     fail "release gates validate supplied ref" "expected semantic validation of the non-checked-out ref to fail"
   fi
 

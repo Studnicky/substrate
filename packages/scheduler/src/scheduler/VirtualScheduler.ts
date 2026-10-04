@@ -1,7 +1,8 @@
-import type { VirtualTimeCounter } from '@studnicky/clock/node';
-import type { HookInvoker } from '@studnicky/errors/node';
+import type { VirtualTimeCounter } from '@studnicky/clock/browser';
+import type { HookInvoker } from '@studnicky/errors/browser';
 
-import { RuntimeError } from '@studnicky/errors/node';
+import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
+import { RuntimeError } from '@studnicky/errors/browser';
 /**
  * Deterministic `SchedulerProvider` backed by a minimum-heap of pending tasks.
  * Pairs with `VirtualClockProvider` — both share a `VirtualTimeCounter`.
@@ -13,7 +14,7 @@ import { RuntimeError } from '@studnicky/errors/node';
  *
  * @module
  */
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { PendingTaskInterface } from '../interfaces/PendingTaskInterface.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
@@ -24,9 +25,6 @@ import { CancellableTask } from './CancellableTask.js';
 import { MinimumHeap } from './MinimumHeap.js';
 import { SchedulerHookInvoker } from './SchedulerHookInvoker.js';
 
-interface VirtualSchedulerSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Deterministic `SchedulerProvider` for testing.
@@ -55,31 +53,19 @@ export class VirtualScheduler implements SchedulerProviderInterface {
    *                  `VirtualClockProvider` so `Clock.now()` and task fires stay in sync.
    */
   protected constructor(counter: Readonly<VirtualTimeCounter>) {
-    if (!VirtualScheduler.isValidCounter(counter)) {
+    if (!VirtualTimeCounterEntity.validate({ 'advance': counter.advance, 'nowMs': counter.nowMs })) {
       throw new SchedulerError('VirtualScheduler requires a valid VirtualTimeCounter instance with nowMs() and advance() methods');
     }
-    this.#cancelledIds = new Set();
     this.#counter = counter;
+    this.#cancelledIds = new Set();
     this.#idCounter = 0;
     this.#heap = this.createHeap();
     this.#tasks = new Map();
   }
 
-  private static isValidCounter(counter: Readonly<VirtualTimeCounter>): boolean {
-    const result = typeof counter.nowMs === 'function' && typeof counter.advance === 'function';
-    return result;
-  }
-
   /** Creates a new `VirtualScheduler` with the given options. */
-  static create<TInstance extends VirtualScheduler = VirtualScheduler>(
-    this: VirtualSchedulerSubclassInterface<TInstance>,
-    options: { readonly 'counter': Readonly<VirtualTimeCounter> }
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options.counter]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('VirtualScheduler.create() did not construct the requested subclass.');
-    }
-    return result;
+  static create(options: { readonly 'counter': Readonly<VirtualTimeCounter> }): VirtualScheduler {
+    return new VirtualScheduler(options.counter);
   }
 
   /** Returns a unique task ID. Override to customise the ID format. */
@@ -325,38 +311,50 @@ export class VirtualScheduler implements SchedulerProviderInterface {
         continue;
       }
 
-      if (this.#cancelledIds.has(task.id)) {
-        this.#cancelledIds.delete(task.id);
-        continue;
-      }
-
-      if (task.variant === 'timeout') {
-        this.#tasks.get(task.id)?.complete();
-        this.#tasks.delete(task.id);
-      }
-
-      this.#invokeOnFire(task.id);
-      const succeeded = this.#invokeTask(task);
-
-      if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
-        const nextAtMs = task.atMs + task.intervalMs;
-        const rescheduled: PendingTaskInterface = {
-          'atMs': nextAtMs,
-          'fire': task.fire,
-          'id': task.id,
-          'intervalMs': task.intervalMs,
-          'variant': 'interval'
-        };
-
-        this.#heap.insert(rescheduled);
-        this.#invokeOnReschedule(task.id, nextAtMs);
-      } else if (task.variant === 'interval') {
-        this.#cancelledIds.delete(task.id);
-        this.#tasks.get(task.id)?.complete();
-        this.#tasks.delete(task.id);
-      }
+      this.#fireDueTask(task);
     }
 
+    this.#notifyIdleIfEmpty();
+  }
+
+  #fireDueTask(task: PendingTaskInterface): void {
+    if (this.#cancelledIds.has(task.id)) {
+      this.#cancelledIds.delete(task.id);
+      return;
+    }
+
+    if (task.variant === 'timeout') {
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
+    }
+
+    this.#invokeOnFire(task.id);
+    const succeeded = this.#invokeTask(task);
+
+    if (succeeded && task.variant === 'interval' && !this.#cancelledIds.has(task.id)) {
+      this.#rescheduleInterval(task);
+    } else if (task.variant === 'interval') {
+      this.#cancelledIds.delete(task.id);
+      this.#tasks.get(task.id)?.complete();
+      this.#tasks.delete(task.id);
+    }
+  }
+
+  #rescheduleInterval(task: PendingTaskInterface): void {
+    const nextAtMs = task.atMs + task.intervalMs;
+    const rescheduled: PendingTaskInterface = {
+      'atMs': nextAtMs,
+      'fire': task.fire,
+      'id': task.id,
+      'intervalMs': task.intervalMs,
+      'variant': 'interval'
+    };
+
+    this.#heap.insert(rescheduled);
+    this.#invokeOnReschedule(task.id, nextAtMs);
+  }
+
+  #notifyIdleIfEmpty(): void {
     if (this.#heap.peekAtMs() === undefined) {
       this.hooks.invoke('onIdle', () => {
         const result = this.onIdle();

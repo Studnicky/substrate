@@ -8,11 +8,11 @@
       "expected": { "aborted": false }
     },
     {
-      "name": "same cached instance",
-      "description": "same cached instance",
-      "shape": "never-same-instance",
-      "input": { "sameInstance": true },
-      "expected": { "sameInstance": true }
+      "name": "distinct instances per call",
+      "description": "distinct instances per call",
+      "shape": "never-distinct-instances",
+      "input": {},
+      "expected": { "distinctInstances": true, "firstAborted": false, "secondAborted": false }
     },
     {
       "name": "compose with empty options",
@@ -39,14 +39,14 @@
       "name": "compose returns a signal that fires after deadlineMs",
       "description": "compose returns a signal that fires after deadlineMs",
       "shape": "compose-deadline-fires",
-      "input": { "composeOptions": { "deadlineMs": 50 }, "waitMs": 80 },
+      "input": { "composeOptions": { "deadlineMs": 50 }, "waitMs": 50 },
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
       "name": "compose accepts a whole-millisecond deadline",
       "description": "compose accepts a whole-millisecond deadline",
       "shape": "compose-deadline-fires",
-      "input": { "composeOptions": { "deadlineMs": 1 }, "waitMs": 20 },
+      "input": { "composeOptions": { "deadlineMs": 1 }, "waitMs": 1 },
       "expected": { "initialAborted": false, "abortedAfterWait": true }
     },
     {
@@ -60,8 +60,8 @@
       "name": "instance compose with empty options",
       "description": "instance compose with empty options",
       "shape": "instance-empty-options",
-      "input": { "sameAsNever": true, "composeOptions": {} },
-      "expected": { "sameAsNever": true }
+      "input": { "composeOptions": {} },
+      "expected": { "aborted": false }
     },
     {
       "name": "instance compose with provided signal",
@@ -125,6 +125,13 @@
       "shape": "race-timeout-removes-listener",
       "input": { "waitMs": 20 },
       "expected": { "abortListenerCountBefore": 1, "abortListenerCountAfter": 0, "outcome": "timeout" }
+    },
+    {
+      "name": "raceTimeout resolves aborted when the signal wins and removes its abort listener",
+      "description": "raceTimeout resolves aborted when the signal wins and removes its abort listener",
+      "shape": "race-timeout-removes-listener-on-abort",
+      "input": { "waitMs": 200 },
+      "expected": { "abortListenerCountBefore": 1, "abortListenerCountAfter": 0, "outcome": "aborted" }
     },
     {
       "name": "raceTimeout returns aborted for an already-aborted signal",

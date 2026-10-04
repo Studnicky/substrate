@@ -33,30 +33,60 @@ export class OpfsFileSystem implements AsyncFileSystemInterface {
   }
 
   public async mkdir(path: string): Promise<void> {
-    const segments = OpfsFileSystem.#segments(path);
-    let directory = await this.#storage.getDirectory();
-    const segmentsLength = segments.length;
-
-    for (let index = 0; index < segmentsLength; index += 1) {
-      const segment = segments[index];
-
-      if (segment === undefined) {
-        continue;
-      }
-      directory = await directory.getDirectoryHandle(segment, { 'create': true });
-    }
+    await this.#mkdir(path);
   }
 
   public async readdir(path: string): Promise<string[]> {
+    const result = await this.#readdir(path);
+    return result;
+  }
+
+  public async readFile(path: string): Promise<string> {
+    const result = await this.#readFile(path);
+    return result;
+  }
+
+  public async remove(path: string): Promise<void> {
+    await this.#remove(path);
+  }
+
+  public async writeFile(path: string, data: string): Promise<void> {
+    await this.#writeFile(path, data);
+  }
+
+  async #mkdir(path: string): Promise<void> {
+    const segments = OpfsFileSystem.#segments(path);
+    try {
+      let directory = await this.#storage.getDirectory();
+      const segmentsLength = segments.length;
+
+      for (let index = 0; index < segmentsLength; index += 1) {
+        const segment = segments[index];
+
+        if (segment === undefined) {
+          continue;
+        }
+        directory = await directory.getDirectoryHandle(segment, { 'create': true });
+      }
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
+  }
+
+  async #readdir(path: string): Promise<string[]> {
     const directory = await this.#directory(path);
     const result: string[] = [];
 
-    const entries = directory.values();
-    let nextEntry = await entries.next();
+    try {
+      const entries = directory.values();
+      let nextEntry = await entries.next();
 
-    while (nextEntry.done !== true) {
-      result.push(nextEntry.value.name);
-      nextEntry = await entries.next();
+      while (nextEntry.done !== true) {
+        result.push(nextEntry.value.name);
+        nextEntry = await entries.next();
+      }
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
     }
 
     const sortedResult = result.toSorted();
@@ -64,30 +94,42 @@ export class OpfsFileSystem implements AsyncFileSystemInterface {
     return sortedResult;
   }
 
-  public async readFile(path: string): Promise<string> {
+  async #readFile(path: string): Promise<string> {
     const { name, parent } = await this.#parent(path);
-    const handle = await parent.getFileHandle(name);
-    const file = await handle.getFile();
-
-    const result = await file.text();
-
-    return result;
-  }
-
-  public async remove(path: string): Promise<void> {
-    const { name, parent } = await this.#parent(path);
-    await parent.removeEntry(name, { 'recursive': true });
-  }
-
-  public async writeFile(path: string, data: string): Promise<void> {
-    const { name, parent } = await this.#parent(path);
-    const handle = await parent.getFileHandle(name, { 'create': true });
-    const writable = await handle.createWritable();
-
     try {
-      await writable.write(data);
-    } finally {
-      await writable.close();
+      const handle = await parent.getFileHandle(name);
+      const file = await handle.getFile();
+
+      const result = await file.text();
+
+      return result;
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
+  }
+
+  async #remove(path: string): Promise<void> {
+    const { name, parent } = await this.#parent(path);
+    try {
+      await parent.removeEntry(name, { 'recursive': true });
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
+    }
+  }
+
+  async #writeFile(path: string, data: string): Promise<void> {
+    const { name, parent } = await this.#parent(path);
+    try {
+      const handle = await parent.getFileHandle(name, { 'create': true });
+      const writable = await handle.createWritable();
+
+      try {
+        await writable.write(data);
+      } finally {
+        await writable.close();
+      }
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
     }
   }
 
@@ -122,21 +164,25 @@ export class OpfsFileSystem implements AsyncFileSystemInterface {
 
   async #directory(path: string): Promise<Awaited<ReturnType<OpfsStorageInterface['getDirectory']>>> {
     const segments = OpfsFileSystem.#segments(path);
-    let directory = await this.#storage.getDirectory();
-    const segmentsLength = segments.length;
+    try {
+      let directory = await this.#storage.getDirectory();
+      const segmentsLength = segments.length;
 
-    for (let index = 0; index < segmentsLength; index += 1) {
-      const segment = segments[index];
+      for (let index = 0; index < segmentsLength; index += 1) {
+        const segment = segments[index];
 
-      if (segment === undefined) {
-        continue;
+        if (segment === undefined) {
+          continue;
+        }
+        directory = await directory.getDirectoryHandle(segment);
       }
-      directory = await directory.getDirectoryHandle(segment);
+
+      const result = directory;
+
+      return result;
+    } catch (cause) {
+      throw VirtualFileSystemError.from(cause);
     }
-
-    const result = directory;
-
-    return result;
   }
 
   async #parent(path: string): Promise<{ readonly 'name': string; readonly 'parent': Awaited<ReturnType<OpfsStorageInterface['getDirectory']>> }> {

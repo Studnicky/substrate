@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Configuration options for the automatic grouping algorithm. */
 export namespace GroupingOptionsEntity {
@@ -16,9 +17,10 @@ export namespace GroupingOptionsEntity {
       'propertyPriority': { 'items': { 'type': 'string' }, 'type': 'array' }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'excludeProperties': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined), 'groupCount': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'hideSingleValueGroups': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'maximumDepth': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'minimumGroupSize': SchemaNode.defineNumber({ 'type': 'integer' } as const), 'propertyPriority': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

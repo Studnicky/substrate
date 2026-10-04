@@ -1,0 +1,98 @@
+{
+  "valid": [
+    {
+      "code": "function widen(value: string): string | number; function widen(value: string): string { return value; }",
+      "name": "an implementation returning a narrower type than the overload's declared union is valid"
+    },
+    {
+      "code": "function wrapValue<T>(value: T): { readonly value: T }; function wrapValue<T>(value: T): { readonly value: T } { return { value }; }",
+      "name": "an implementation that genuinely proves a generic overload by deriving its own return from its own type parameter is valid"
+    },
+    {
+      "code": "function first<T>(items: readonly T[]): T | undefined; function first<T>(items: readonly T[]): T | undefined { return items[0]; }",
+      "name": "an implementation whose parameter and return both genuinely derive from its own type parameter is valid"
+    },
+    {
+      "code": "function narrow<T extends string>(value: T): void; function narrow(value: string): void {}",
+      "name": "an implementation parameter widened to a generic overload parameter's constraint is valid"
+    },
+    {
+      "code": "class Widget { public static build<TSchema extends Record<string, unknown>>(schema: TSchema): { readonly schema: TSchema }; public static build<TSchema extends Record<string, unknown>>(schema: TSchema): { readonly schema: TSchema } { return { schema }; } }",
+      "name": "a method overload whose implementation genuinely proves the generic overload is valid"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "class Compose { private static keepProperties<TProps extends Record<string, unknown>, TKeys extends keyof TProps & string>(source: TProps, keySet: ReadonlySet<TKeys>): Pick<TProps, TKeys>; private static keepProperties(source: Record<string, unknown>, keySet: ReadonlySet<string>): Record<string, unknown> { return {}; } }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "an implementation erasing a Pick<TProps, TKeys> overload return to Record<string, unknown> is invalid"
+    },
+    {
+      "code": "interface SchemaNodeInterface<S, T> { schema: S; } class SchemaNode { public static defineArray<TSchema extends Record<string, unknown>, TItem>(schema: TSchema, item: TItem): SchemaNodeInterface<TSchema & { items: TItem }, unknown>; public static defineArray(schema: Record<string, unknown>, item: unknown): SchemaNodeInterface<unknown, unknown> { return { schema }; } }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "a method implementation erasing a generic interface return to its widest instantiation is invalid"
+    },
+    {
+      "code": "function useValue(value: string): void; function useValue(value: number): void {}",
+      "errors": [
+        {
+          "messageId": "unprovenParameters"
+        }
+      ],
+      "name": "an implementation whose parameter type the overload's declared parameter type cannot reach is invalid"
+    },
+    {
+      "code": "class Registry { public static register(key: string): void; public static register(key: number): void {} }",
+      "errors": [
+        {
+          "messageId": "unprovenParameters"
+        }
+      ],
+      "name": "a method implementation whose parameter type the overload's declared parameter type cannot reach is invalid"
+    },
+    {
+      "code": "function label(value: string): string; function label(value: string): number { return value.length; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "a non-generic implementation returning a type unrelated to the overload's declared return is invalid"
+    },
+    {
+      "code": "interface Box<T> { value: T; } interface Other<T> { other: T; } function makeBox<T>(v: T): Box<T>; function makeBox<T>(v: T): Box<T> | Other<T> { return { value: v }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "an implementation returning a union across arity-dispatched overloads is invalid for the single-type overload it does not prove"
+    },
+    {
+      "code": "interface A<T> { a: T; } interface B<S, T> { s: S; t: T; } function build<T>(v: T): A<T>; function build<S, T>(s: S, v: T): B<S, T>; function build<S, T>(s: S, v?: T): A<T> | B<S, T> { if (v === undefined) { throw new Error('unreachable'); } return { 's': s, 't': v }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "an implementation returning a union of two overloads' distinct result shapes is invalid for the overload it does not prove"
+    },
+    {
+      "code": "interface SchemaNodeInterface<S, T> { schema: S; } function defineArray<TSchema extends Record<string, unknown>, TItem>(schema: TSchema, item: TItem): SchemaNodeInterface<TSchema & { items: TItem }, unknown>; function defineArray(schema: Record<string, unknown>, item: unknown): SchemaNodeInterface<unknown, unknown> { return { schema }; }",
+      "errors": [
+        {
+          "messageId": "unprovenReturn"
+        }
+      ],
+      "name": "a free function implementation erasing a generic interface return to its widest instantiation is invalid"
+    }
+  ]
+}

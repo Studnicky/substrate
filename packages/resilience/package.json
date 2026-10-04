@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/resilience",
-  "version": "14.0.0",
-  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, SlidingWindowLimiter, DeadLetterQueue",
+  "version": "15.0.1",
+  "description": "Async resilience primitives: CircuitBreaker, TokenBucket, KeyedRateLimiter, SlidingWindowLimiter, DeadLetterQueue",
+  "keywords": [
+    "circuit-breaker",
+    "dead-letter-queue",
+    "rate-limiter",
+    "resilience",
+    "sliding-window",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/resilience"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -20,52 +44,60 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./keyed": {
+      "types": "./dist/keyed/index.d.ts",
+      "import": "./dist/keyed/index.js"
+    },
+    "./keyed/entities": {
+      "types": "./dist/keyed/entities/index.d.ts",
+      "import": "./dist/keyed/entities/index.js"
+    },
+    "./keyed/interfaces": {
+      "types": "./dist/keyed/interfaces/index.d.ts",
+      "import": "./dist/keyed/interfaces/index.js"
+    },
+    "./retry/node": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
+    },
+    "./retry/browser": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
+    },
+    "./retry/entities": {
+      "types": "./dist/retry/entities/index.d.ts",
+      "import": "./dist/retry/entities/index.js"
+    },
+    "./retry/interfaces": {
+      "types": "./dist/retry/interfaces/index.d.ts",
+      "import": "./dist/retry/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/resilience"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "circuit-breaker",
-    "rate-limiter",
-    "sliding-window",
-    "dead-letter-queue",
-    "resilience",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0"
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
+    "@studnicky/cache": "workspace:*",
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/event-bus": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

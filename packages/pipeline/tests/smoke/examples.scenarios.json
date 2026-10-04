@@ -1,14 +1,15 @@
 {
   "cases": [
     {
-      "description": "Runs the basic pipeline example",
+      "description": "Runs the Northstar Books order pipeline example",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
         "entrypoint": "../../examples/basic-pipeline.ts"
       },
-      "name": "basic-pipeline"
+      "name": "basic-pipeline",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the observed pipeline example",
@@ -18,7 +19,8 @@
       "input": {
         "entrypoint": "../../examples/observedPipeline.ts"
       },
-      "name": "observed-pipeline"
+      "name": "observed-pipeline",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the operation pipeline example",
@@ -28,7 +30,8 @@
       "input": {
         "entrypoint": "../../examples/operation-pipeline.ts"
       },
-      "name": "operation-pipeline"
+      "name": "operation-pipeline",
+      "shape": "imports-example"
     },
     {
       "description": "Runs the subclass hooks example",
@@ -38,7 +41,19 @@
       "input": {
         "entrypoint": "../../examples/subclass-hooks.ts"
       },
-      "name": "subclass-hooks"
+      "name": "subclass-hooks",
+      "shape": "imports-example"
+    },
+    {
+      "description": "Runs the traffic-light Pipeline FSM example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/traffic-light.ts"
+      },
+      "name": "traffic-light",
+      "shape": "imports-example"
     }
   ]
 }

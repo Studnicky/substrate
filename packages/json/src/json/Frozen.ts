@@ -1,7 +1,8 @@
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';
+import { SameKind } from './SameKind.js';
 
 /**
  * Frozen — cycle-safe recursive deep freeze.
@@ -68,26 +69,9 @@ export class Frozen {
 
     frozenValues.set(value, value);
     if (Array.isArray(value)) {
-      for (let index = 0; index < value.length; index += 1) {
-        const item: unknown = value[index];
-        const frozenItem = this.freezeValue(item, frozenValues);
-        if (!Object.is(item, frozenItem)) {
-          Reflect.set(value, index, frozenItem);
-        }
-      }
+      this.freezeArrayItems(value, frozenValues);
     } else {
-      const keys = Object.keys(value);
-      for (let index = 0; index < keys.length; index += 1) {
-        const key = keys[index];
-        if (key === undefined) {
-          continue;
-        }
-        const child: unknown = Reflect.get(value, key);
-        const frozenChild = this.freezeValue(child, frozenValues);
-        if (!Object.is(child, frozenChild)) {
-          Reflect.set(value, key, frozenChild);
-        }
-      }
+      this.freezeObjectFields(value, frozenValues);
     }
 
     if (this.shouldFreeze(value)) {
@@ -95,6 +79,33 @@ export class Frozen {
     }
 
     return value;
+  }
+
+  /** Recurses through the same `freezeValue` entry point so cycle tracking and freeze rules stay uniform. */
+  protected static freezeArrayItems(value: unknown[], frozenValues: WeakMap<object, object>): void {
+    for (let index = 0; index < value.length; index += 1) {
+      const item: unknown = value[index];
+      const frozenItem = this.freezeValue(item, frozenValues);
+      if (!Object.is(item, frozenItem)) {
+        Reflect.set(value, index, frozenItem);
+      }
+    }
+  }
+
+  /** Recurses through the same `freezeValue` entry point so cycle tracking and freeze rules stay uniform. */
+  protected static freezeObjectFields(value: object, frozenValues: WeakMap<object, object>): void {
+    const keys = Object.keys(value);
+    for (let index = 0; index < keys.length; index += 1) {
+      const key = keys[index];
+      if (key === undefined) {
+        continue;
+      }
+      const child: unknown = Reflect.get(value, key);
+      const frozenChild = this.freezeValue(child, frozenValues);
+      if (!Object.is(child, frozenChild)) {
+        JsonObject.write(value, key, frozenChild);
+      }
+    }
   }
 
   protected static freezeMap(value: Map<unknown, unknown>, frozenValues: WeakMap<object, object>): Map<unknown, unknown> {
@@ -152,15 +163,17 @@ export class Frozen {
    * Safe against circular references via WeakMap tracking. Objects and arrays retain
    * their identity; Map and Set references are detached, mutation-guarded proxies.
    */
-  public static deepFreeze<T>(value: T): T;
-  public static deepFreeze(value: unknown): unknown {
+  public static deepFreeze<T>(value: T): T {
     const frozenValues = new WeakMap<object, object>();
+    const source: T = value;
     if (value instanceof Map) {
-      const result = this.freezeMap(value, frozenValues);
+      const frozenMap: unknown = this.freezeMap(value, frozenValues);
+      const result = SameKind.assert(frozenMap, source);
       return result;
     }
     if (value instanceof Set) {
-      const result = this.freezeSet(value, frozenValues);
+      const frozenSet: unknown = this.freezeSet(value, frozenValues);
+      const result = SameKind.assert(frozenSet, source);
       return result;
     }
 

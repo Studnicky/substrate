@@ -1,7 +1,7 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { CircularBuffer } from '@studnicky/circular-buffer/browser';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
@@ -35,11 +35,16 @@ export class DeadLetterQueue<T> {
   #closed = false;
   #aborted = false;
   #notifyDrain: (() => void) | null = null;
-  #pendingDequeueItem: T | undefined;
+  /** Boxed so a legitimately-`undefined` `T` value is distinguishable from "no pending item". */
+  #pendingDequeueItem: { readonly 'item': T } | undefined;
 
   /** Built once and reused across `drain()` iterations to avoid rebuilding a closure on every loop pass. */
   readonly #onDequeueHook = (): void => {
-    this.onDequeue(this.#pendingDequeueItem as T);
+    if (this.#pendingDequeueItem !== undefined) {
+      this.onDequeue(this.#pendingDequeueItem.item);
+      return;
+    }
+    throw RuntimeError.create('DeadLetterQueue: dequeue hook fired without a pending item');
   };
 
   /** Built once and reused across `drain()` iterations; threads `resolve` through to `registerDrainWaiter`. */
@@ -68,19 +73,24 @@ export class DeadLetterQueue<T> {
   protected constructor(options?: DeadLetterQueueOptionsInterface) {
     this.hooks = new DeadLetterQueue.#OwnedHookInvoker();
     this.#entries = CircularBuffer.create<DeadLetterQueueEntryInterface<T>>({ 'overflow': 'grow' });
-    const capacity = options?.capacity ?? Infinity;
+    this.#capacity = DeadLetterQueue.#resolveCapacity(options?.capacity);
+    this.#clock = options?.clock ?? Date.now;
+    this.#aborted = this.#wireAbortSignal(options?.signal);
+  }
+
+  static #resolveCapacity(rawCapacity: number | undefined): number {
+    const capacity = rawCapacity ?? Infinity;
     if (capacity !== undefined && (capacity <= 0 || Number.isNaN(capacity))) {
       throw new ResilienceConfigError('capacity must be > 0');
     }
-    this.#capacity = capacity;
-    this.#clock = options?.clock ?? Date.now;
-    const signal = options?.signal;
-    let aborted = false;
-    if (signal !== undefined) {
-      if (signal.aborted) { aborted = true; }
-      else { signal.addEventListener('abort', () => { this.#abort(); }, { 'once': true }); }
-    }
-    this.#aborted = aborted;
+    return capacity;
+  }
+
+  #wireAbortSignal(signal: AbortSignal | undefined): boolean {
+    if (signal === undefined) { return false; }
+    if (signal.aborted) { return true; }
+    signal.addEventListener('abort', () => { this.#abort(); }, { 'once': true });
+    return false;
   }
 
   get size(): number { const result = this.#entries.length;
@@ -112,7 +122,7 @@ export class DeadLetterQueue<T> {
     while (true) {
       const entry = this.#entries.shift();
       if (entry !== undefined) {
-        this.#pendingDequeueItem = entry.item;
+        this.#pendingDequeueItem = { 'item': entry.item };
         this.hooks.invoke('onDequeue', this.#onDequeueHook);
         yield entry;
         continue;

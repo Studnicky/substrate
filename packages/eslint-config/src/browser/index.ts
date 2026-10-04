@@ -1,1 +1,1 @@
-export * from '../index.js';
+export { PlatformCallDefaults } from '../rules/shared/PlatformCallDefaults.js';

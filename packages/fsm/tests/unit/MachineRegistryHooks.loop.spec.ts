@@ -1,168 +1,39 @@
 import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
+import type { MachineIdleStateEntity } from './entities/MachineIdleStateEntity.js';
+import type { MachineNoopEventEntity } from './entities/MachineNoopEventEntity.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
-import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
-import scenarioGroups from './MachineRegistryHooks.scenarios.json' with { type: 'json' };
+import { MachineRegistryHooksScenarioCaseEntity } from './entities/MachineRegistryHooksScenarioCaseEntity.js';
+import scenarioGroups from './MachineRegistryHooks.scenarios.json' with { 'type': 'json' };
 
-type SimpleState = { readonly variant: 'idle' };
-type SimpleEvent = { readonly type: 'noop' };
-
-type ScenarioCase =
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        registerCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-register';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        registerCalls: string[];
-      };
-      input: {
-        duplicateId: string;
-        id: string;
-      };
-      shape: 'duplicate-no-register-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        unregisterCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-unregister';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        unregisterCalls: string[];
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'on-unregister-missing';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        missCalls: string[];
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'on-resolve-miss';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        missCalls: string[];
-      };
-      input: {
-        id: string;
-      };
-      shape: 'on-resolve-hit-no-hook';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 0;
-        order: string[];
-      };
-      input: {
-        id: string;
-        missingId: string;
-      };
-      shape: 'hook-order';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        valuePreserved: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'throwing-on-register';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        valueUndefined: true;
-      };
-      input: {
-        missingId: string;
-      };
-      shape: 'throwing-on-resolve-miss';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        removed: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'throwing-on-unregister';
-      name: string;
-    }
-  | {
-      description: string;
-      expected: {
-        hookErrorCount: 1;
-        rejectionEvents: 0;
-        valuePreserved: true;
-      };
-      input: {
-        id: string;
-      };
-      shape: 'async-rejecting-register';
-      name: string;
-    };
-
-class SimpleMachine extends StateMachine<SimpleState, SimpleEvent> {
+class SimpleMachine extends StateMachine<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
   static create(): SimpleMachine {
     return new SimpleMachine();
   }
 
-  override getInitialState(): SimpleState { return { variant: 'idle' }; }
+  override getInitialState(): MachineIdleStateEntity.Type {
+    return { 'variant': 'idle' };
+  }
 
-  override reduce(state: SimpleState, _event: SimpleEvent): FsmStepInterface<SimpleState> {
-    return { effects: [], state };
+  override reduce(
+    state: MachineIdleStateEntity.Type,
+    _event: MachineNoopEventEntity.Type
+  ): FsmStepInterface<MachineIdleStateEntity.Type> {
+    return { 'effects': [], 'state': state };
   }
 }
 
-class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
+class ObservedRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): ObservedRegistry {
     return new ObservedRegistry();
   }
@@ -184,162 +55,243 @@ class ObservedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
   }
 }
 
-function makeInterpreter(): EffectInterpreter<SimpleState, SimpleEvent> {
-  return EffectInterpreter.create({ machine: SimpleMachine.create() });
+class AsyncRejectingRegisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
+  static make(): AsyncRejectingRegisterRegistry {
+    const registry = new AsyncRejectingRegisterRegistry();
+    Object.defineProperty(registry, 'onRegister', {
+      'value': AsyncRejectingRegisterRegistry.rejectAfterTick
+    });
+    return registry;
+  }
+
+  private static async rejectAfterTick(): Promise<void> {
+    await Promise.resolve();
+    throw RuntimeError.create('async onRegister boom');
+  }
 }
 
-type ScenarioShape = ScenarioCase['shape'];
+class OrderedRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
+  static make(): OrderedRegistry {
+    return new OrderedRegistry();
+  }
 
-type ScenarioRunner<K extends ScenarioShape> = (scenarioCase: Extract<ScenarioCase, { shape: K }>) => Promise<void> | void;
+  readonly order: string[] = [];
 
-type RunnerMap = { [K in ScenarioShape]: ScenarioRunner<K> };
+  protected override onRegister(_id: string): void {
+    this.order.push('register');
+  }
+  protected override onUnregister(_id: string): void {
+    this.order.push('unregister');
+  }
+  protected override onResolveMiss(_id: string): void {
+    this.order.push('miss');
+  }
+}
 
-const runnerMap: RunnerMap = {
-  'async-rejecting-register': async (scenarioCase) => {
-    class AsyncRejectingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
-      static make(): AsyncRejectingRegisterRegistry {
-        return new AsyncRejectingRegisterRegistry();
-      }
+class ThrowingRegisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
+  static make(): ThrowingRegisterRegistry {
+    return new ThrowingRegisterRegistry();
+  }
 
-      protected override async onRegister(_id: string): Promise<void> {
-        await Promise.resolve();
-        throw RuntimeError.create('async onRegister boom');
-      }
-    }
+  protected override onRegister(): void {
+    throw RuntimeError.create('register hook boom');
+  }
+}
 
+class ThrowingMissRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
+  static make(): ThrowingMissRegistry {
+    return new ThrowingMissRegistry();
+  }
+
+  protected override onResolveMiss(): void {
+    throw RuntimeError.create('miss hook boom');
+  }
+}
+
+class ThrowingUnregisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
+  static make(): ThrowingUnregisterRegistry {
+    return new ThrowingUnregisterRegistry();
+  }
+
+  protected override onUnregister(): void {
+    throw RuntimeError.create('unregister hook boom');
+  }
+}
+
+class MachineRegistryHooksRunners {
+  static async 'async-rejecting-register'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'async-rejecting-register'
+    >
+  ): Promise<void> {
     let rejectionEventCount = 0;
-    const onUnhandledRejection = (): void => { rejectionEventCount += 1; };
+    const onUnhandledRejection = (): void => {
+      rejectionEventCount += 1;
+    };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
       const registry = AsyncRejectingRegisterRegistry.make();
-      const interpreter = makeInterpreter();
+      const interpreter = MachineRegistryHooksRunners.interpreter();
       registry.register(scenarioCase.input.id, interpreter);
-      assert.equal(registry.get(scenarioCase.input.id), interpreter);
-      await new Promise((resolve) => { setImmediate(resolve); });
-      await new Promise((resolve) => { setImmediate(resolve); });
+      const registered: unknown = interpreter;
+      assert.equal(registry.get(scenarioCase.input.id), registered);
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       assert.equal(rejectionEventCount, scenarioCase.expected.rejectionEvents);
       assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
       assert.equal(scenarioCase.expected.valuePreserved, true);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
-  },
-  'duplicate-no-register-hook': (scenarioCase) => {
+  }
+
+  static 'duplicate-no-register-hook'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'duplicate-no-register-hook'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.registerCalls.length = 0;
-    assert.throws(() => registry.register(scenarioCase.input.duplicateId, makeInterpreter()));
+    assert.throws(() => {
+      registry.register(scenarioCase.input.duplicateId, MachineRegistryHooksRunners.interpreter());
+    });
     assert.deepEqual(registry.registerCalls, scenarioCase.expected.registerCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'hook-order': (scenarioCase) => {
-    const order: string[] = [];
+  }
 
-    class OrderedRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
-      static make(): OrderedRegistry {
-        return new OrderedRegistry();
-      }
-
-      protected override onRegister(_id: string): void { order.push('register'); }
-      protected override onUnregister(_id: string): void { order.push('unregister'); }
-      protected override onResolveMiss(_id: string): void { order.push('miss'); }
-    }
-
+  static 'hook-order'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'hook-order'>
+  ): void {
     const registry = OrderedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.get(scenarioCase.input.missingId);
     registry.unregister(scenarioCase.input.id);
-    assert.deepEqual(order, scenarioCase.expected.order);
+    assert.deepEqual(registry.order, scenarioCase.expected.order);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'on-register': (scenarioCase) => {
+  }
+
+  static 'on-register'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-register'>
+  ): void {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     assert.deepEqual(registry.registerCalls, scenarioCase.expected.registerCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'on-resolve-hit-no-hook': (scenarioCase) => {
+  }
+
+  static 'on-resolve-hit-no-hook'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-resolve-hit-no-hook'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.missCalls.length = 0;
     const result = registry.get(scenarioCase.input.id);
     assert.ok(result !== undefined);
     assert.deepEqual(registry.missCalls, scenarioCase.expected.missCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'on-resolve-miss': (scenarioCase) => {
+  }
+
+  static 'on-resolve-miss'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-resolve-miss'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     const result = registry.get(scenarioCase.input.missingId);
     assert.equal(result, undefined);
     assert.deepEqual(registry.missCalls, scenarioCase.expected.missCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'on-unregister': (scenarioCase) => {
+  }
+
+  static 'on-unregister'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-unregister'>
+  ): void {
     const registry = ObservedRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.registerCalls.length = 0;
     registry.unregister(scenarioCase.input.id);
     assert.deepEqual(registry.unregisterCalls, scenarioCase.expected.unregisterCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'on-unregister-missing': (scenarioCase) => {
+  }
+
+  static 'on-unregister-missing'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-unregister-missing'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     registry.unregister(scenarioCase.input.missingId);
     assert.deepEqual(registry.unregisterCalls, scenarioCase.expected.unregisterCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
-  },
-  'throwing-on-register': (scenarioCase) => {
-    class ThrowingRegisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
-      static make(): ThrowingRegisterRegistry {
-        return new ThrowingRegisterRegistry();
-      }
+  }
 
-      protected override onRegister(): void {
-        throw RuntimeError.create('register hook boom');
-      }
-    }
-
+  static 'throwing-on-register'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-register'
+    >
+  ): void {
     const registry = ThrowingRegisterRegistry.make();
-    const interpreter = makeInterpreter();
+    const interpreter = MachineRegistryHooksRunners.interpreter();
     assert.doesNotThrow(() => {
       registry.register(scenarioCase.input.id, interpreter);
     });
-    assert.equal(registry.get(scenarioCase.input.id), interpreter);
+    const registered: unknown = interpreter;
+    assert.equal(registry.get(scenarioCase.input.id), registered);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.valuePreserved, true);
-  },
-  'throwing-on-resolve-miss': (scenarioCase) => {
-    class ThrowingMissRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
-      static make(): ThrowingMissRegistry {
-        return new ThrowingMissRegistry();
-      }
+  }
 
-      protected override onResolveMiss(): void {
-        throw RuntimeError.create('miss hook boom');
-      }
-    }
-
+  static 'throwing-on-resolve-miss'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-resolve-miss'
+    >
+  ): void {
     const registry = ThrowingMissRegistry.make();
     assert.doesNotThrow(() => {
       assert.equal(registry.get(scenarioCase.input.missingId), undefined);
     });
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.valueUndefined, true);
-  },
-  'throwing-on-unregister': (scenarioCase) => {
-    class ThrowingUnregisterRegistry extends MachineRegistry<SimpleState, SimpleEvent> {
-      static make(): ThrowingUnregisterRegistry {
-        return new ThrowingUnregisterRegistry();
-      }
+  }
 
-      protected override onUnregister(): void {
-        throw RuntimeError.create('unregister hook boom');
-      }
-    }
-
+  static 'throwing-on-unregister'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-unregister'
+    >
+  ): void {
     const registry = ThrowingUnregisterRegistry.make();
-    registry.register(scenarioCase.input.id, makeInterpreter());
+    registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     assert.doesNotThrow(() => {
       registry.unregister(scenarioCase.input.id);
     });
@@ -347,16 +299,19 @@ const runnerMap: RunnerMap = {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
     assert.equal(scenarioCase.expected.removed, true);
   }
-};
 
-async function runCase<K extends ScenarioShape>(scenarioCase: Extract<ScenarioCase, { shape: K }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
+  private static interpreter(): EffectInterpreter<
+    MachineIdleStateEntity.Type,
+    MachineNoopEventEntity.Type
+  > {
+    const interpreter = EffectInterpreter.create(SimpleMachine.create());
+    return interpreter;
+  }
 }
 
-void describe('MachineRegistry lifecycle hooks', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': MachineRegistryHooksScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'MachineRegistry lifecycle hooks',
+  'runners': MachineRegistryHooksRunners
 });

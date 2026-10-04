@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { LogBodyDataEntity } from './LogBodyDataEntity.js';
 import { LogFaultDataEntity } from './LogFaultDataEntity.js';
@@ -10,9 +11,10 @@ import { LogFaultDataEntity } from './LogFaultDataEntity.js';
 export namespace LogDataEntity {
   export const Schema = {
     'oneOf': [LogBodyDataEntity.Schema, LogFaultDataEntity.Schema]
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineOneOf({}, [LogBodyDataEntity.Node, LogFaultDataEntity.Node]);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

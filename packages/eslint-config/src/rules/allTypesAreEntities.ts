@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 import {
   getCombinedModifierFlags,
   isIdentifier,
@@ -14,10 +14,15 @@ import {
   ModifierFlags,
   type Node,
   type Program,
+  type Statement,
   SyntaxKind,
-  type TypeAliasDeclaration
+  type TypeAliasDeclaration,
+  type TypeNode,
+  type VariableStatement
 } from 'typescript';
 
+import { ACCEPTED_SCHEMA_VALUE_NAMES, CANONICAL_ENTITY_MEMBER_NAMES } from './shared/constants/SchemaDerivationConstants.js';
+import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
 interface NodeMapInterface {
@@ -50,7 +55,7 @@ class ParserServices {
 
 class EntityTypeDeclaration {
   static isCanonical(declaration: TypeAliasDeclaration): boolean {
-    if (declaration.name.text !== 'Type') {
+    if (!CANONICAL_ENTITY_MEMBER_NAMES.has(declaration.name.text)) {
       return false;
     }
     if ((getCombinedModifierFlags(declaration) & ModifierFlags.Export) === 0) {
@@ -63,52 +68,16 @@ class EntityTypeDeclaration {
       return false;
     }
 
-    if (!isTypeReferenceNode(declaration.type)) {
-      return false;
-    }
-    const [schemaArgument] = declaration.type.typeArguments ?? [];
+    const schemaValueName = EntityTypeDeclaration.schemaValueReferenceName(declaration.type);
 
-    if (
-      schemaArgument === undefined
-      || !isTypeQueryNode(schemaArgument)
-      || !isIdentifier(schemaArgument.exprName)
-      || schemaArgument.exprName.text !== 'Schema'
-    ) {
+    if (schemaValueName === undefined) {
       return false;
     }
 
     const ownsExportedSchema = namespaceBlock.statements.some((statement) => {
-      if (!isVariableStatement(statement)) {
-        return false;
-      }
+      const result = EntityTypeDeclaration.statementOwnsExportedName(statement, schemaValueName);
 
-      let exported = false;
-      const modifiers = statement.modifiers;
-
-      for (let modifierIndex = 0; modifierIndex < (modifiers?.length ?? 0); modifierIndex += 1) {
-        if (modifiers?.at(modifierIndex)?.kind === SyntaxKind.ExportKeyword) {
-          exported = true;
-          break;
-        }
-      }
-
-      if (!exported) {
-        return false;
-      }
-
-      const declarations = statement.declarationList.declarations;
-      let ownsSchema = false;
-
-      for (let declarationIndex = 0; declarationIndex < declarations.length; declarationIndex += 1) {
-        const schemaDeclaration = declarations.at(declarationIndex);
-
-        if (schemaDeclaration !== undefined && isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === 'Schema') {
-          ownsSchema = true;
-          break;
-        }
-      }
-
-      return ownsSchema;
+      return result;
     });
 
     if (!ownsExportedSchema) {
@@ -120,6 +89,57 @@ class EntityTypeDeclaration {
     const result = isModuleDeclaration(namespaceDeclaration)
       && isIdentifier(namespaceDeclaration.name)
       && namespaceDeclaration.name.text.endsWith('Entity');
+
+    return result;
+  }
+
+  // The deriving type's identity carries no weight — only the `typeof <schemaValueName>`
+  // argument matters, and that name must be one this codebase's schema-derivation engines
+  // use for their own schema-owning value (`Schema` for json-schema-to-ts, `Node` for
+  // `packages/entity/src/types/`). See SchemaDerivationConstants.ts for the tightening edit.
+  private static schemaValueReferenceName(typeNode: TypeNode): string | undefined {
+    if (!isTypeReferenceNode(typeNode)) {
+      return undefined;
+    }
+    const [schemaArgument] = typeNode.typeArguments ?? [];
+
+    if (schemaArgument === undefined || !isTypeQueryNode(schemaArgument) || !isIdentifier(schemaArgument.exprName)) {
+      return undefined;
+    }
+    if (!ACCEPTED_SCHEMA_VALUE_NAMES.has(schemaArgument.exprName.text)) {
+      return undefined;
+    }
+
+    return schemaArgument.exprName.text;
+  }
+
+  private static statementOwnsExportedName(statement: Statement, name: string): boolean {
+    if (!isVariableStatement(statement)) {
+      return false;
+    }
+
+    if (!EntityTypeDeclaration.statementIsExported(statement)) {
+      return false;
+    }
+
+    const declarations = statement.declarationList.declarations;
+    const result = declarations.some((schemaDeclaration) => {
+      const matches = isIdentifier(schemaDeclaration.name) && schemaDeclaration.name.text === name;
+
+      return matches;
+    });
+
+    return result;
+  }
+
+  private static statementIsExported(statement: VariableStatement): boolean {
+    const modifiers = statement.modifiers;
+    const isExported = modifiers?.some((modifier) => {
+      const isExportKeyword = modifier.kind === SyntaxKind.ExportKeyword;
+
+      return isExportKeyword;
+    });
+    const result = isExported ?? false;
 
     return result;
   }
@@ -146,7 +166,10 @@ export const allTypesAreEntities: Rule.RuleModule = {
       if (analysis.classification !== 'pureDataCanonical') {
         return;
       }
-      if (analysis.reason === 'fromSchema' && EntityTypeDeclaration.isCanonical(declaration)) {
+      if (
+        analysis.reason === 'fromSchema'
+        && (EntityTypeDeclaration.isCanonical(declaration) || SchemaMemberGuards.isJustifiedHandWrittenEntityType(node))
+      ) {
         return;
       }
 

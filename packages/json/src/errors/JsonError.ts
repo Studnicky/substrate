@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /** Abstract base for all JSON package errors. */
 export abstract class JsonError extends BaseError {

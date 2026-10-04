@@ -4,13 +4,9 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/event-bus)
 
-`EventBus` provides a typed pub/sub channel where each subscriber gets its own `BusQueue`. Slow subscribers cannot block fast ones — backpressure is isolated per queue. Subscribers opt into lifecycle management via `AbortSignal`, or can be removed by calling the unsubscribe function returned from `subscribe`.
+`EventBus` provides typed pub/sub with one independently backpressured subscriber queue per subscription. Slow subscribers cannot block fast ones. Subscribers opt into lifecycle management via `AbortSignal`, or can be removed by calling the returned unsubscribe function.
 
-`BusQueue` is also available standalone for any use case that needs an async, backpressure-aware single-consumer queue.
-
-Observer failures are isolated from queue work. Synchronous throws and asynchronous rejections from `EventBus` lifecycle hooks or a standalone `BusQueue` `onError` callback do not replace the originating operation or stop later items from being processed.
-
-A standalone `BusQueue` treats `onEnqueue` and applicable `onOverflow` hooks as admission gates. The handler receives an item only after both gates complete. A rejected admission hook cancels only that item, while later enqueues continue in FIFO order.
+`EventBus` delegates FIFO admission to `BusQueue` from `@studnicky/concurrency/queue/node`. Observer failures are isolated from pub/sub delivery and do not replace the originating operation or stop later messages.
 
 ## Install
 
@@ -26,7 +22,7 @@ pnpm add @studnicky/event-bus
 
 ## Runtime imports
 
-Import `EventBus` and `BusQueue` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import `EventSinkInterface` and the other contracts from `@studnicky/event-bus/interfaces`; import schema declarations from `@studnicky/event-bus/entities`.
+Import `EventBus` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import contracts from `@studnicky/event-bus/interfaces`. Queue configuration comes from `@studnicky/concurrency/queue/entities`.
 
 ## Usage
 
@@ -47,7 +43,7 @@ interface AppEventsInterface {
 
 const bus = EventBus.create<AppEventsInterface>();
 
-// Optionally forward a bus-wide highWaterMark to every subscriber's BusQueue:
+// Optionally forward a bus-wide highWaterMark to every subscriber queue:
 // const bus = EventBus.create<AppEventsInterface>({ highWaterMark: 500 });
 
 bus.subscribe('user:created', async (payload, signal) => {
@@ -112,24 +108,7 @@ async function recordFailure(
 }
 ```
 
-### `BusQueue` standalone usage
-
-```typescript
-import { BusQueue } from '@studnicky/event-bus/node';
-
-const queue = BusQueue.create<string>({
-  handler: async (item) => {
-    console.log('Processing:', item);
-  },
-  highWaterMark: 10
-});
-
-await queue.enqueue('task-1');
-await queue.enqueue('task-2');
-await queue.drain();
-
-console.log('Queue depth:', queue.size);
-```
+Standalone FIFO admission uses `BusQueue` from `@studnicky/concurrency/queue/node`.
 
 ## License
 

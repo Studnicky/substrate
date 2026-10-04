@@ -11,6 +11,10 @@ Use a counted index loop for array traversal. At 5,000,000 elements, an index lo
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
+## Why iterator-method calls are resolved by type, not name
+
+A direct array-ness check on the `for...of`'s iterated expression inspects only its static type, and `a.entries()` has type `ArrayIterator<[number, T]>`, not `T[]` — the slowest form measured fully escaped detection under a type-only check. The rule instead resolves `.entries()`/`.values()`/`.keys()` calls through `CallIdentity` against the resolved call signature, matched against `Array`/`ReadonlyArray` declared in the standard library, the same approach `arrayConcatOutsideLoops` uses to resolve `concat`. Resolving by signature rather than callee name means a computed `a['entries']()` spelling or a same-named user method cannot defeat the check the way a name comparison could. This extension requires type services and goes silent without them, the same posture the rest of the rule already has.
+
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->

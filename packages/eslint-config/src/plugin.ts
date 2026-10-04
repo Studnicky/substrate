@@ -7,59 +7,65 @@ import { intakeParseOnly } from './rules/arch/intakeParseOnly.js';
 import { knownTypesOutsideAdapters } from './rules/arch/knownTypesOutsideAdapters.js';
 import { layerImportBoundary } from './rules/arch/layerImportBoundary.js';
 import { lexicalThisOnly } from './rules/arch/lexicalThisOnly.js';
+import { noCallerChosenGuardType } from './rules/arch/noCallerChosenGuardType.js';
+import { noCircularImports } from './rules/arch/noCircularImports.js';
+import { noDoubleAssertion } from './rules/arch/noDoubleAssertion.js';
+import { noReflectArgumentLaundering } from './rules/arch/noReflectArgumentLaundering.js';
 import { noThreadedVocabulary } from './rules/arch/noThreadedVocabulary.js';
+import { noUncheckedOverloadImplementation } from './rules/arch/noUncheckedOverloadImplementation.js';
 import { noUnparsedAssertion } from './rules/arch/noUnparsedAssertion.js';
-import { canonicalExportNames } from './rules/canonicalExportNames.js';
 import { cleanDiagnostics } from './rules/cleanDiagnostics.js';
 import { descriptiveIdentifiers } from './rules/descriptiveIdentifiers.js';
 import { directInvocationOnly } from './rules/directInvocationOnly.js';
+import { entityFileShape } from './rules/entityFileShape.js';
 import { explicitReturnBinding } from './rules/explicitReturnBinding.js';
-import { folderContentShape } from './rules/folderContentShape.js';
+import { exportShape } from './rules/exportShape.js';
 import { hashPrivateFields } from './rules/hashPrivateFields.js';
 import { inlineTrivialLogic } from './rules/inlineTrivialLogic.js';
 import { interfaceMustBeContract } from './rules/interfaceMustBeContract.js';
 import { interfacesComposeNamedTypes } from './rules/interfacesComposeNamedTypes.js';
-import { interfaceSuffix } from './rules/interfaceSuffix.js';
 import { noFunctionRegistries } from './rules/noFunctionRegistries.js';
 import { noMixedCallableShapes } from './rules/noMixedCallableShapes.js';
+import { noNativeError } from './rules/noNativeError.js';
 import { noRedefinedExternalTypes } from './rules/noRedefinedExternalTypes.js';
 import { preferCollectionTypes } from './rules/preferCollectionTypes.js';
 import { requireOptionsObject } from './rules/requireOptionsObject.js';
-import { singleExport } from './rules/singleExport.js';
 import { staticMethodVerbs } from './rules/staticMethodVerbs.js';
 import { typeAliasInvariants } from './rules/typeAliasInvariants.js';
-import { wholeCanonicalTypes } from './rules/wholeCanonicalTypes.js';
 
 export const plugin: { readonly 'rules': Record<string, Rule.RuleModule> } = {
   'rules': {
     'adapter-only-import': adapterOnlyImport,
     'all-types-are-entities': allTypesAreEntities,
-    'canonical-export-names': canonicalExportNames,
     'clean-diagnostics': cleanDiagnostics,
     'descriptive-identifiers': descriptiveIdentifiers,
     'direct-invocation-only': directInvocationOnly,
     'domain-purity': domainPurity,
+    'entity-file-shape': entityFileShape,
     'explicit-return-binding': explicitReturnBinding,
-    'folder-content-shape': folderContentShape,
+    'export-shape': exportShape,
     'hash-private-fields': hashPrivateFields,
     'inline-trivial-logic': inlineTrivialLogic,
     'intake-parse-only': intakeParseOnly,
     'interface-must-be-contract': interfaceMustBeContract,
-    'interface-suffix': interfaceSuffix,
     'interfaces-compose-named-types': interfacesComposeNamedTypes,
     'known-types-outside-adapters': knownTypesOutsideAdapters,
     'layer-import-boundary': layerImportBoundary,
     'lexical-this-only': lexicalThisOnly,
+    'no-caller-chosen-guard-type': noCallerChosenGuardType,
+    'no-circular-imports': noCircularImports,
+    'no-double-assertion': noDoubleAssertion,
     'no-function-registries': noFunctionRegistries,
     'no-mixed-callable-shapes': noMixedCallableShapes,
+    'no-native-error': noNativeError,
     'no-redefined-external-types': noRedefinedExternalTypes,
+    'no-reflect-argument-laundering': noReflectArgumentLaundering,
     'no-threaded-vocabulary': noThreadedVocabulary,
+    'no-unchecked-overload-implementation': noUncheckedOverloadImplementation,
     'no-unparsed-assertion': noUnparsedAssertion,
     'prefer-collection-types': preferCollectionTypes,
     'require-options-object': requireOptionsObject,
-    'single-export': singleExport,
     'static-method-verbs': staticMethodVerbs,
-    'type-alias-invariants': typeAliasInvariants,
-    'whole-canonical-types': wholeCanonicalTypes
+    'type-alias-invariants': typeAliasInvariants
   }
 };

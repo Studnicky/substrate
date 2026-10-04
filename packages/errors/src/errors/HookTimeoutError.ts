@@ -1,4 +1,5 @@
-import { BaseError } from './BaseError.js';
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Error thrown when a lifecycle hook does not settle within a configured timeout.
  *
@@ -20,6 +21,8 @@ ErrorCodeRegistry.register({
  * all, so there is no underlying cause to carry.
  */
 export class HookTimeoutError extends BaseError {
+  public override readonly name: string = 'HookTimeoutError';
+
   /** Name of the lifecycle hook that failed to settle in time. */
   public readonly hookName: string;
 

@@ -9,25 +9,34 @@ export class SegmentTree {
       if (segment === undefined) {
         continue;
       }
-      const next = new Set<SegmentTreeNode>();
-      for (const node of current) {
-        const literal = node.literals.get(segment);
-        if (literal !== undefined) {
-          next.add(literal);
-        }
-        if (node.wildcard !== undefined) {
-          next.add(node.wildcard);
-        }
-        if (node.isDeepWildcard) {
-          next.add(node);
-        }
-      }
-      current = this.expandDeepWildcards(next);
+      current = this.advance(current, segment);
       if (current.size === 0) {
         return [];
       }
     }
+    const ids = this.collectIds(current);
+    return ids;
+  }
 
+  private advance(current: ReadonlySet<SegmentTreeNode>, segment: string): Set<SegmentTreeNode> {
+    const next = new Set<SegmentTreeNode>();
+    for (const node of current) {
+      const literal = node.literals.get(segment);
+      if (literal !== undefined) {
+        next.add(literal);
+      }
+      if (node.wildcard !== undefined) {
+        next.add(node.wildcard);
+      }
+      if (node.isDeepWildcard) {
+        next.add(node);
+      }
+    }
+    const expanded = this.expandDeepWildcards(next);
+    return expanded;
+  }
+
+  private collectIds(current: ReadonlySet<SegmentTreeNode>): readonly string[] {
     const ids = new Set<string>();
     const terminalNodes = this.expandDeepWildcards(current);
     for (const node of terminalNodes) {
@@ -35,8 +44,7 @@ export class SegmentTree {
         ids.add(id);
       }
     }
-    const result = [...ids];
-    return result;
+    return [...ids];
   }
 
   public register(id: string, segments: readonly string[]): void {

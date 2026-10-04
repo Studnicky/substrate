@@ -3,11 +3,13 @@
  *
  * @module
  */
-import { TransitionRejectedError } from '@studnicky/fsm/node';
+import { TransitionRejectedError } from '@studnicky/fsm/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
 
+import { SchedulerError } from '../errors/SchedulerError.js';
 import { CancellableTaskMachine } from './CancellableTaskMachine.js';
 
 /**
@@ -81,7 +83,10 @@ export class CancellableTask implements ScheduledTaskInterface {
       if (error instanceof TransitionRejectedError) {
         return false;
       }
-      throw error;
+      if (error instanceof BaseError) {
+        throw error;
+      }
+      throw new SchedulerError('CancellableTaskMachine failed with a non-BaseError value', error);
     }
   }
 }

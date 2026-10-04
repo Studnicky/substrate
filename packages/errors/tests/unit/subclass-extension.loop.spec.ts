@@ -1,38 +1,37 @@
-import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ErrorDefaults } from '../../src/constants/index.js';
-import { BaseError } from '../../src/errors/BaseError.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
-import scenarioGroups from './subclass-extension.scenarios.json' with { type: 'json' };
-
-interface AuditErrorArgumentsInterface {
-  auditId: string;
-  message: string;
-  policy: string;
-}
+import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { AuditErrorArgumentsEntity } from './entities/AuditErrorArgumentsEntity.js';
+import { SubclassExtensionScenarioCaseEntity } from './entities/SubclassExtensionScenarioCaseEntity.js';
+import scenarioGroups from './subclass-extension.scenarios.json' with { 'type': 'json' };
 
 class AuditError extends BaseError {
+  public override readonly name: string = 'AuditError';
+
   public readonly auditId: string;
   public readonly policy: string;
 
-  public static of(args: AuditErrorArgumentsInterface): AuditError {
-    return new AuditError(args);
+  public static of(argumentList: AuditErrorArgumentsEntity.Type): AuditError {
+    return new AuditError(argumentList);
   }
 
-  protected constructor(args: AuditErrorArgumentsInterface) {
-    super({ code: 'audit.failed', message: args.message, retryable: false });
-    this.auditId = args.auditId;
-    this.policy = args.policy;
+  protected constructor(argumentList: AuditErrorArgumentsEntity.Type) {
+    super({ 'code': 'audit.failed', 'message': argumentList.message, 'retryable': false });
+    this.auditId = argumentList.auditId;
+    this.policy = argumentList.policy;
   }
 
   protected override serializeExtra(): Record<string, unknown> {
     return {
-      auditId: this.auditId,
-      policy: this.policy
+      'auditId': this.auditId,
+      'policy': this.policy
     };
   }
 
@@ -42,17 +41,19 @@ class AuditError extends BaseError {
 }
 
 class NetworkModuleError extends ModuleError {
+  public override readonly name: string = 'NetworkModuleError';
+
   public static override create(
     message: string,
     options?: Omit<Parameters<typeof ModuleError.create>[1], 'scenario'>
   ): NetworkModuleError {
     const defaults = ErrorDefaults.CONNECTION;
     const mergedOptions: ModuleErrorOptionsInterface = {
-      cause: options?.cause,
-      code: defaults.code,
-      context: options?.context,
-      retryable: options?.retryable ?? defaults.retryable,
-      status: options?.status ?? defaults.status
+      'cause': options?.cause,
+      'code': defaults.code,
+      'context': options?.context,
+      'retryable': options?.retryable ?? defaults.retryable,
+      'status': options?.status ?? defaults.status
     };
     return new NetworkModuleError(message, mergedOptions);
   }
@@ -62,140 +63,128 @@ class NetworkModuleError extends ModuleError {
   }
 }
 
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'audit-instanceof' | 'audit-json-base' | 'audit-json-extra' | 'audit-json-independent' | 'audit-name' | 'audit-user-message' | 'network-cause-chain' | 'network-find-cause' | 'network-has-cause' | 'network-instanceof' | 'network-json-context' | 'network-json-name' | 'network-json-status-code' | 'network-name'; name: string };
+class SubclassExtensionRunners {
+  static 'audit-instanceof'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-instanceof'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
+    const error = AuditError.of(input);
+    assert.strictEqual(error instanceof Error, expected.error);
+    assert.strictEqual(error instanceof BaseError, expected.baseError);
+    assert.strictEqual(error instanceof AuditError, expected.instanceOf);
+  }
 
-type ScenarioRunner = (scenarioCase: ScenarioCase) => void;
-
-type RunnerMap = Record<ScenarioCase['shape'], ScenarioRunner>;
-
-const runnerMap: RunnerMap = {
-  'audit-instanceof': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { baseError: boolean; error: boolean; instanceOf: boolean };
-    const err = AuditError.of(input);
-    assert.strictEqual(err instanceof Error, expected.error);
-    assert.strictEqual(err instanceof BaseError, expected.baseError);
-    assert.strictEqual(err instanceof AuditError, expected.instanceOf);
-  },
-
-  'audit-json-base': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { code: string };
-    const json = AuditError.of(input).toJSON() as Record<string, unknown>;
+  static 'audit-json-base'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-json-base'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
+    const json = AuditError.of(input).toJSON();
     assert.strictEqual(json.code, expected.code);
     assert.ok(typeof json.detail === 'string');
     assert.ok(typeof json.timestamp === 'number');
-  },
+  }
 
-  'audit-json-extra': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { auditId: string; policy: string };
-    const json = AuditError.of(input).toJSON() as Record<string, unknown>;
+  static 'audit-json-extra'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-json-extra'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
+    const json = AuditError.of(input).toJSON();
     assert.strictEqual(json.auditId, expected.auditId);
     assert.strictEqual(json.policy, expected.policy);
-  },
+  }
 
-  'audit-json-independent': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { jsonHasAuditId: boolean; messagePrefix: string };
-    const err = AuditError.of(input);
-    const json = err.toJSON() as Record<string, unknown>;
-    const msg = err.toUserMessage();
+  static 'audit-json-independent'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-json-independent'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
+    const error = AuditError.of(input);
+    const json = error.toJSON();
+    const message = error.toUserMessage();
     assert.strictEqual('auditId' in json, expected.jsonHasAuditId);
-    assert.ok(msg.startsWith(expected.messagePrefix));
-  },
+    assert.ok(message.startsWith(String(expected.messagePrefix)));
+  }
 
-  'audit-name': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { name: string };
+  static 'audit-name'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-name'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
     assert.strictEqual(AuditError.of(input).name, expected.name);
-  },
+  }
 
-  'audit-user-message': (scenarioCase) => {
-    const input = scenarioCase.input as unknown as AuditErrorArgumentsInterface;
-    const expected = scenarioCase.expected as { message: string };
-    const msg = AuditError.of(input).toUserMessage();
-    assert.strictEqual(msg, expected.message);
-  },
+  static 'audit-user-message'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'audit-user-message'>): void {
+    const input = AuditErrorArgumentsEntity.intake(scenarioCase.input);
+    const expected = scenarioCase.expected;
+    const message = AuditError.of(input).toUserMessage();
+    assert.strictEqual(message, expected.message);
+  }
 
-  'network-cause-chain': (scenarioCase) => {
-    const input = scenarioCase.input as { causeMessage: string; message: string };
-    const expected = scenarioCase.expected as { chainLength: number };
-    const root = RuntimeError.create(input.causeMessage);
-    const err = NetworkModuleError.create(input.message, { cause: root });
-    const chain = BaseError.getCauseChain(err);
+  static 'network-cause-chain'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-cause-chain'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const root = RuntimeError.create(String(input.causeMessage));
+    const error = NetworkModuleError.create(String(input.message), { 'cause': root });
+    const chain = BaseError.getCauseChain(error);
     assert.strictEqual(chain.length, expected.chainLength);
-    assert.strictEqual(chain[0], err);
+    assert.strictEqual(chain[0], error);
     assert.strictEqual(chain[1], root);
-  },
+  }
 
-  'network-find-cause': (scenarioCase) => {
-    const input = scenarioCase.input as { causeMessage: string; message: string };
-    const expected = scenarioCase.expected as { found: boolean; name: string };
-    const root = RuntimeError.create(input.causeMessage);
-    const err = NetworkModuleError.create(input.message, { cause: root });
-    const found = BaseError.findCauseOfType(err, RuntimeError);
+  static 'network-find-cause'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-find-cause'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const root = RuntimeError.create(String(input.causeMessage));
+    const error = NetworkModuleError.create(String(input.message), { 'cause': root });
+    const found = BaseError.findCauseOfType(error, RuntimeError);
     assert.strictEqual(found instanceof RuntimeError, expected.found);
     assert.strictEqual(found?.name, expected.name);
     assert.strictEqual(found, root);
-  },
+  }
 
-  'network-has-cause': (scenarioCase) => {
-    const input = scenarioCase.input as { causeMessage: string; message: string };
-    const expected = scenarioCase.expected as { runtimeError: boolean };
-    const root = RuntimeError.create(input.causeMessage);
-    const err = NetworkModuleError.create(input.message, { cause: root });
-    assert.strictEqual(BaseError.hasCauseOfType(err, RuntimeError), expected.runtimeError);
-  },
+  static 'network-has-cause'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-has-cause'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const root = RuntimeError.create(String(input.causeMessage));
+    const error = NetworkModuleError.create(String(input.message), { 'cause': root });
+    assert.strictEqual(BaseError.hasCauseOfType(error, RuntimeError), expected.runtimeError);
+  }
 
-  'network-instanceof': (scenarioCase) => {
-    const input = scenarioCase.input as { message: string };
-    const expected = scenarioCase.expected as { baseError: boolean; error: boolean; moduleError: boolean; networkModuleError: boolean };
-    const err = NetworkModuleError.create(input.message);
-    assert.strictEqual(err instanceof Error, expected.error);
-    assert.strictEqual(err instanceof BaseError, expected.baseError);
-    assert.strictEqual(err instanceof ModuleError, expected.moduleError);
-    assert.strictEqual(err instanceof NetworkModuleError, expected.networkModuleError);
-  },
+  static 'network-instanceof'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-instanceof'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const error = NetworkModuleError.create(String(input.message));
+    assert.strictEqual(error instanceof Error, expected.error);
+    assert.strictEqual(error instanceof BaseError, expected.baseError);
+    assert.strictEqual(error instanceof ModuleError, expected.moduleError);
+    assert.strictEqual(error instanceof NetworkModuleError, expected.networkModuleError);
+  }
 
-  'network-json-context': (scenarioCase) => {
-    const input = scenarioCase.input as { context: Record<string, unknown>; message: string };
-    const expected = scenarioCase.expected as { context: Record<string, unknown> };
-    const json = NetworkModuleError.create(input.message, { context: input.context }).toJSON() as Record<string, unknown>;
+  static 'network-json-context'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-json-context'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const json = NetworkModuleError.create(String(input.message), input.context === undefined ? {} : { 'context': input.context }).toJSON();
     assert.deepStrictEqual(json.context, expected.context);
-  },
+  }
 
-  'network-json-name': (scenarioCase) => {
-    const input = scenarioCase.input as { message: string };
-    const expected = scenarioCase.expected as { name: string };
-    const json = NetworkModuleError.create(input.message).toJSON() as Record<string, unknown>;
+  static 'network-json-name'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-json-name'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const json = NetworkModuleError.create(String(input.message)).toJSON();
     // RFC 9457 3.1.2: the class name is the problem type's title.
     assert.strictEqual(json.title, expected.name);
-  },
-
-  'network-json-status-code': (scenarioCase) => {
-    const input = scenarioCase.input as { message: string };
-    const expected = scenarioCase.expected as { status: number };
-    const json = NetworkModuleError.create(input.message).toJSON() as Record<string, unknown>;
-    assert.strictEqual(json.status, expected.status);
-  },
-
-  'network-name': (scenarioCase) => {
-    const input = scenarioCase.input as { message: string };
-    const expected = scenarioCase.expected as { name: string };
-    assert.strictEqual(NetworkModuleError.create(input.message).name, expected.name);
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
+  static 'network-json-status-code'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-json-status-code'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    const json = NetworkModuleError.create(String(input.message)).toJSON();
+    assert.strictEqual(json.status, expected.status);
+  }
+
+  static 'network-name'(scenarioCase: ScenarioCaseOfType<SubclassExtensionScenarioCaseEntity.Type, 'network-name'>): void {
+    const input = scenarioCase.input;
+    const expected = scenarioCase.expected;
+    assert.strictEqual(NetworkModuleError.create(String(input.message)).name, expected.name);
+  }
 }
 
-void describe('Subclass extension', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': SubclassExtensionScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Subclass extension',
+  'runners': SubclassExtensionRunners
 });

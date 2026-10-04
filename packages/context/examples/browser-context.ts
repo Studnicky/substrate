@@ -16,14 +16,14 @@ class BrowserContextDemo {
 
   static async run(): Promise<void> {
     const context = Context.create({ 'name': 'request' });
-    const automatic = await context.run({ 'requestId': 'automatic' }, async (scope) => {
+    const automatic = await context.runAsync({ 'requestId': 'automatic' }, async (scope) => {
       await scope.await(BrowserContextDemo.delay(1));
       const result = context.get('requestId');
       return result;
     });
 
-    if (automatic.value !== 'automatic' || automatic.snapshot.requestId !== 'automatic') {
-      throw new Error('Context.run did not return the operation value and final snapshot.');
+    if (automatic.value !== 'automatic' || automatic.snapshot.get('requestId') !== 'automatic') {
+      throw new Error('Context.runAsync did not return the operation value and final snapshot.');
     }
 
     const firstScope = context.initialize({ 'requestId': 'first' });

@@ -1,5 +1,45 @@
 # Changelog
 
+## 15.0.1
+
+### Patch Changes
+
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/errors@15.0.1
+
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- c50bd4e: `Signal.compose()` returns a disposable composed-signal handle with a `signal` property. The handle cancels pending deadline timers, removes listeners, and disposes automatically when its signal aborts; callers dispose it with explicit resource management or `dispose()` when the operation ends.`
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- 245e85a: `Signal.never()` returns a fresh, independently inert `AbortSignal` on every call, so callers never share abort-listener state through one process-global signal object. `RaceTimeout.wait()` removes its abort listener on both outcomes.
+
+### Minor Changes
+
+- a43f308: `RaceTimeout.wait()` and `Signal.compose()`'s deadline timeout now accept optional `clock` and `scheduler` options (`ClockProviderInterface` / `SchedulerProviderInterface` from `@studnicky/clock` and `@studnicky/scheduler`), defaulting to `RealTimeClockProvider` and `RealTimeScheduler` so no existing caller changes. `RaceTimeout.wait()` delegates to `@studnicky/scheduler`'s `Delay.sleep()` instead of a hand-rolled `setTimeout`/`clearTimeout` pair. Tests can now pass a `VirtualClockProvider` + `VirtualScheduler` pair sharing one `VirtualTimeCounter` to drive both deterministically instead of racing real timers.
+
+### Patch Changes
+
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -86,7 +126,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -154,7 +194,6 @@
   - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
 
   ### Left as-is (verified, not a defect)
-
   - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
 
 - 789da06: ### Fixed

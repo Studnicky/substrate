@@ -155,6 +155,33 @@
       }
     },
     {
+      "name": "json-draft-array-delete",
+      "description": "Draft.produce deleting an array index leaves a hole, not a key holding undefined",
+      "shape": "draft-array-delete",
+      "input": {
+        "json": {
+          "base": {
+            "items": [
+              1,
+              2,
+              3
+            ]
+          },
+          "deleteIndex": 1
+        }
+      },
+      "expected": {
+        "next": {
+          "items": [
+            1,
+            null,
+            3
+          ]
+        },
+        "length": 3
+      }
+    },
+    {
       "name": "json-draft-array-index",
       "description": "Draft.produce supports array index assignment",
       "shape": "draft-array-index",
@@ -382,8 +409,9 @@
           "base": {
             "a": 1
           },
-          "addKey": "b",
-          "addValue": 2
+          "additions": {
+            "b": 2
+          }
         }
       },
       "expected": {

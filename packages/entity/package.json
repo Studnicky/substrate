@@ -1,43 +1,18 @@
 {
   "name": "@studnicky/entity",
-  "version": "14.0.0",
+  "version": "15.0.1",
   "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
-  "type": "module",
-  "sideEffects": false,
-  "exports": {
-    "./node": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./browser": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./interfaces": {
-      "types": "./dist/interfaces/index.d.ts",
-      "import": "./dist/interfaces/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
-    "dev": "tsc --watch",
-    "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
-  },
   "keywords": [
-    "intake",
     "boundary",
-    "schema",
     "entity",
+    "intake",
+    "schema",
     "validation"
   ],
+  "homepage": "https://studnicky.github.io/substrate/packages/entity",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
   "license": "MIT",
   "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
   "repository": {
@@ -45,22 +20,53 @@
     "url": "git+https://github.com/Studnicky/substrate.git",
     "directory": "packages/entity"
   },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
+      "import": "./dist/interfaces/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    }
   },
-  "homepage": "https://studnicky.github.io/substrate/packages/entity",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "tsc",
+    "benchmark": "pnpm run build && tsc --project benchmarks/tsconfig.json && tsx benchmarks/entityCompiler.ts",
+    "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
+  },
+  "dependencies": {
+    "@studnicky/types": "workspace:*",
+    "@types/json-schema": "^7.0.15"
+  },
+  "devDependencies": {
+    "json-schema-to-ts": "^3.1.1"
   },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
-  },
-  "dependencies": {
-    "@studnicky/types": "workspace:*",
-    "@types/json-schema": "^7.0.15",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1"
   }
 }

@@ -82,7 +82,7 @@ declare namespace RecordEntity {
 
 ## Rationale
 
-Three rules establish the entity boundary from different directions: [`all-types-are-entities`](./all-types-are-entities.md) requires each canonical data shape to be an entity, [`whole-canonical-types`](./whole-canonical-types.md) requires consumers to use that entity whole, and [`folder-content-shape`](./folder-content-shape.md) fixes the members an entity namespace can expose. None constrains the direction in.
+Three rules establish the entity boundary from different directions: [`all-types-are-entities`](./all-types-are-entities.md) requires each canonical data shape to be an entity, [`type-alias-invariants`](./type-alias-invariants.md) requires consumers to use that entity whole, and [`entity-file-shape`](./entity-file-shape.md) fixes the members an entity namespace can expose. None constrains the direction in.
 
 This rule makes unparsed input enter through exactly one boundary, `SomeEntity.intake(input)`. Its return `SomeEntity.Type` is proof that the value crossed the parsing boundary, so downstream code accepts an entity rather than repeatedly narrowing an unparsed value. The default `exemptPackages` keep shared narrowing primitives (`Guard.isObject`), coercion/matching machinery, and the compile engine `intake` itself is built from outside the entity model — each would have to depend on the very boundary it implements.
 

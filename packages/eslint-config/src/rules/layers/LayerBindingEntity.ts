@@ -1,9 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 // ONE RULE, FIVE UNITS, ONE ORDERED LIST.
 //
@@ -20,7 +19,7 @@ import { EntityCompiler } from '@studnicky/entity/node';
 // values, even though today's matcher treats them identically, because they answer different
 // questions for a config author: 'folder' says "this directory under `sourceRoot` IS the
 // layer" (`src/domain/` -> `domain`), 'package' says "this workspace package's directory IS
-// the layer" (`packages/retry/` -> `coordinator`, `packages/errors/` -> `foundation`) — a flat
+// the layer" (`packages/resilience/` -> `coordinator`, `packages/errors/` -> `foundation`) — a flat
 // monorepo where the package IS the architectural unit, not a directory inside it. Substrate
 // is the latter: no directory inside any one package is named after a band, so 'folder'
 // bindings can never match there.
@@ -32,8 +31,8 @@ import { EntityCompiler } from '@studnicky/entity/node';
 // operation with no filesystem access, callable identically from a real lint run or a unit
 // test with a fabricated path, and adding disk I/O to a function invoked per file/per import
 // in every lint run trades that for a cost with no offsetting need here — the directory name
-// substrate actually uses (`packages/retry`) already matches its package name's own unscoped
-// suffix (`@studnicky/retry`). If a project needs package.json-name resolution because its
+// substrate actually uses (`packages/resilience`) already matches its package name's own unscoped
+// suffix (`@studnicky/resilience`). If a project needs package.json-name resolution because its
 // directory names diverge from its package names, that is a real, separate capability to add
 // to 'package' matching later, not a reason to blend disk I/O into this pass now.
 //
@@ -85,9 +84,25 @@ export namespace LayerBindingEntity {
       'layer'
     ],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'layer': SchemaNode.defineString({
+    'description': 'The layer name this binding resolves a match to. Must be one of the configured `layers` — a binding naming an unconfigured layer never matches, the same as a typo.',
+    'type': 'string'
+  } as const), 'pattern': SchemaNode.defineString({
+    'description': "The path segment (folder/package) or specifier prefix (module/dependency) to match. Unused, and omissible, for unit 'builtin'.",
+    'type': 'string'
+  } as const), 'unit': SchemaNode.defineEnum({}, [
+    'folder',
+    'package',
+    'module',
+    'dependency',
+    'builtin'
+  ] as const) }, [
+    'unit',
+    'layer'
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   // A binding entry is a closed shape — nothing extends it the way the four `arch/*` rules
   // extend `LayerOptionsEntity.Schema` with their own additional properties, so `validate`

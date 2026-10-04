@@ -16,6 +16,7 @@
 
 import { Predicates } from '@studnicky/types/node';
 
+import { RegexError } from '../../errors/RegexError.js';
 import { ESCAPE_REGEX_CHARACTERS_PATTERN } from './constants/EscapeRegexCharactersPattern.js';
 
 export class ContainsWord {
@@ -27,10 +28,19 @@ export class ContainsWord {
     // Escape special regex characters in the word
     const escapedWord = word.replace(ESCAPE_REGEX_CHARACTERS_PATTERN, '\\$&');
     // Create regex with word boundaries
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- escapedWord has every regex metacharacter escaped above, so no quantifier can reach the pattern
-    const wordBoundaryPattern = new RegExp(`\\b${escapedWord}\\b`, 'i');
+    const wordBoundaryPattern = ContainsWord.compileWordPattern(escapedWord, word);
 
     const result = wordBoundaryPattern.test(value);
     return result;
+  }
+
+  private static compileWordPattern(escapedWord: string, word: string): RegExp {
+    try {
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- escapedWord has every regex metacharacter escaped by the caller, so no quantifier can reach the pattern
+      const result = new RegExp(`\\b${escapedWord}\\b`, 'i');
+      return result;
+    } catch (error) {
+      throw new RegexError(`Invalid word pattern: ${word}`, { 'cause': error, 'pattern': word });
+    }
   }
 }

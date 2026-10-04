@@ -11,6 +11,10 @@
         {
           "code": "const data = { left: 1, right: 2 };",
           "name": "data object"
+        },
+        {
+          "code": "const point = { get x(): number { return 1; }, get y(): number { return 2; } };",
+          "name": "multiple getters are not a function registry"
         }
       ],
       "invalid": [
@@ -31,6 +35,15 @@
             }
           ],
           "name": "multiple method shorthands"
+        },
+        {
+          "code": "const mixed = { get id(): number { return 1; }, run: (): void => {}, execute: (): void => {} };",
+          "errors": [
+            {
+              "messageId": "functionRegistry"
+            }
+          ],
+          "name": "a getter alongside two real function properties is still a registry"
         }
       ]
     }

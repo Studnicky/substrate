@@ -1,6 +1,7 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';
+import type { GroupRuleEntity } from '../../entities/GroupRuleEntity.js';
 import type { DrilldownRulesEntity } from '../../schema/DrilldownRulesEntity.js';
 
 import { MatcherHandlerLookup } from '../matchers/index.js';
@@ -25,60 +26,83 @@ class GroupNodeValidator {
   static validate(node: DrilldownRulesEntity.Type, path: string[], errors: string[]): void {
     const pathString = path.join('.');
 
-    if (node.filter !== undefined) {
-      for (let index = 0; index < node.filter.length; index++) {
-        const filterItem = node.filter[index];
+    GroupNodeValidator.validateFilters(node, pathString, errors);
+    GroupNodeValidator.validateGroupRules(node, path, pathString, errors);
+  }
 
-        if (filterItem !== undefined) {
-          const filterErrors = Filter.validate(filterItem, `${pathString}.filter[${index}]`);
-
-          errors.push(...filterErrors);
-        }
-      }
+  private static validateFilters(node: DrilldownRulesEntity.Type, pathString: string, errors: string[]): void {
+    if (node.filter === undefined) {
+      return;
     }
 
-    if (node.group !== undefined) {
-      for (let index = 0; index < node.group.length; index++) {
-        const groupRule = node.group[index];
+    for (let index = 0; index < node.filter.length; index++) {
+      const filterItem = node.filter[index];
 
-        if (groupRule === undefined) {
-          continue;
-        }
+      if (filterItem !== undefined) {
+        const filterErrors = Filter.validate(filterItem, `${pathString}.filter[${index}]`);
 
-        const groupPath = `${pathString}.group[${index}]`;
+        errors.push(...filterErrors);
+      }
+    }
+  }
 
-        if (groupRule.property === '') {
-          errors.push(`${groupPath}: missing 'property' field`);
-        }
+  private static validateGroupRules(node: DrilldownRulesEntity.Type, path: string[], pathString: string, errors: string[]): void {
+    if (node.group === undefined) {
+      return;
+    }
 
-        if (groupRule.values !== undefined) {
-          for (let valueIndex = 0; valueIndex < groupRule.values.length; valueIndex++) {
-            const valueDef = groupRule.values[valueIndex];
+    for (let index = 0; index < node.group.length; index++) {
+      const groupRule = node.group[index];
 
-            if (valueDef === undefined) {
-              continue;
-            }
+      if (groupRule === undefined) {
+        continue;
+      }
 
-            const valuePath = `${groupPath}.values[${valueIndex}]`;
-            const handler = MatcherHandlerLookup.findMatcherHandler(valueDef);
+      GroupNodeValidator.validateGroupRule(groupRule, index, path, pathString, errors);
+    }
+  }
 
-            if (handler !== null) {
-              const validationErrors = handler.validate(valueDef, valuePath);
+  private static validateGroupRule(
+    groupRule: GroupRuleEntity.Type,
+    index: number,
+    path: string[],
+    pathString: string,
+    errors: string[]
+  ): void {
+    const groupPath = `${pathString}.group[${index}]`;
 
-              errors.push(...validationErrors);
-            }
-            else {
-              errors.push(`${valuePath}: must have 'match', 'minimum'/'maximum', 'cidr', 'semver', 'after'/'before', 'sequential', or 'start'/'end' field`);
-            }
+    if (groupRule.property === '') {
+      errors.push(`${groupPath}: missing 'property' field`);
+    }
 
-            if (valueDef.rules !== undefined) {
-              const nestedPath = path.slice();
+    if (groupRule.values === undefined) {
+      return;
+    }
 
-              nestedPath.push(`group[${index}].values[${valueIndex}].rules`);
-              GroupNodeValidator.validate(valueDef.rules, nestedPath, errors);
-            }
-          }
-        }
+    for (let valueIndex = 0; valueIndex < groupRule.values.length; valueIndex++) {
+      const valueDef = groupRule.values[valueIndex];
+
+      if (valueDef === undefined) {
+        continue;
+      }
+
+      const valuePath = `${groupPath}.values[${valueIndex}]`;
+      const handler = MatcherHandlerLookup.findMatcherHandler(valueDef);
+
+      if (handler !== null) {
+        const validationErrors = handler.validate(valueDef, valuePath);
+
+        errors.push(...validationErrors);
+      }
+      else {
+        errors.push(`${valuePath}: must have 'match', 'minimum'/'maximum', 'cidr', 'semver', 'after'/'before', 'sequential', or 'start'/'end' field`);
+      }
+
+      if (valueDef.rules !== undefined) {
+        const nestedPath = path.slice();
+
+        nestedPath.push(`group[${index}].values[${valueIndex}].rules`);
+        GroupNodeValidator.validate(valueDef.rules, nestedPath, errors);
       }
     }
   }

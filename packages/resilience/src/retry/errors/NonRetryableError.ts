@@ -1,0 +1,38 @@
+import { RuntimeError } from '@studnicky/errors/browser';
+
+import { RetryError } from './RetryError.js';
+
+/**
+ * Error thrown when operation fails with a non-retryable error
+ *
+ * Thrown by Retry when the error classifier determines that an error
+ * should not be retried (e.g., 4xx HTTP errors, validation failures).
+ * Contains the original error and classification reason.
+ */
+export class NonRetryableError extends RetryError {
+  public override readonly name: string = 'NonRetryableError';
+
+  /** Returns a detached snapshot of the error rejected by classification. */
+  public get originalError(): Error {
+    const [originalError] = this.errors;
+    const result = originalError ?? RuntimeError.create('Unknown non-retryable error');
+    return result;
+  }
+
+  /**
+   * Create a NonRetryableError
+   *
+   * @param message - Error description
+   * @param originalError - The error classified as non-retryable
+   * @param reason - Reason for non-retryability
+   * @param attempts - Number of attempts made before classification
+   */
+  constructor(
+    message: string,
+    originalError: Error,
+    public readonly reason: string,
+    attempts: number
+  ) {
+    super(message, attempts, { 'cause': originalError, 'code': 'retry.nonRetryable', 'errors': [originalError] });
+  }
+}

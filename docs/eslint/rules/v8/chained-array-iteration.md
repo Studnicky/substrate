@@ -7,7 +7,7 @@ description: 'Disallows multiple resolved array iteration passes in one chain or
 
 Disallows two or more built-in `every`, `filter`, `find`, `flatMap`, `forEach`, `map`, `reduce`, or `some` passes along one `Array` or `ReadonlyArray` call chain, including when non-iterating calls appear between them. It also detects an adjacent `const` temporary that holds one such call and has exactly one use as the receiver of the next. The rule resolves signatures, so same-named methods on unrelated fluent APIs are not reported.
 
-For a 5,000,000-element array in Node v24, `map(...).filter(...)` takes 54.09 ms while a single `reduce` takes 26.76 ms: 2.02× slower, or 102% more time. Combine transformation and selection into one pass where the chain represents repeated traversal.
+For a 5,000,000-element array in Node v24, `map(...).filter(...)` takes 54.09 ms while a single `reduce` takes 26.76 ms: 2.02× slower, or 102% more time. Combine transformation and selection into one pass where the chain represents repeated traversal. An interposed call that meaningfully shrinks the receiver, such as `.filter(...).slice(0, 10).map(...)`, is still reported even though the cost argument is weaker there; the `reduce()` remedy still applies.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 

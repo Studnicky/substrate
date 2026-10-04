@@ -1,11 +1,32 @@
 ---
-title: '@studnicky/json'
-description: JSON and object utilities for deep merge, clone, freeze, patch, hash, path access, and sort.
+title: "@studnicky/json"
+description: JSON and object utilities for deep merge, clone, freeze, patch, path access, and sort.
 ---
 
 # @studnicky/json
 
-> JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch, hash.
+> JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch.
+
+## What it is
+
+A composable JSON and object-value primitive for copying, merging, freezing, patching, accessing, and sorting caller-owned data. It supplies value mechanics and validation contracts without defining a stored document or application model.
+
+## What it is for
+
+Northstar Books uses it to safely compose catalogue configuration, keep immutable inventory snapshots, and represent a change as a portable JSON Patch. Consumers retain ownership of data shapes, persistence, and the policies that authorize a change.
+
+## Northstar Books examples
+
+The runnable merge-and-clone example combines base catalogue settings with a storefront overlay and proves that nested values are detached and arrays follow the selected merge rule. The runnable immutable-snapshot example freezes a stock view, proving that a pricing or availability calculation can retain a stable input while other code continues updating its source record.
+
+## Public entrypoints
+
+| Import path                  | Use it when                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
+| `@studnicky/json/node`       | A Northstar Books server manipulates JSON or object values for catalogue and inventory work. |
+| `@studnicky/json/browser`    | A storefront browser needs the same portable value operations.                               |
+| `@studnicky/json/entities`   | An adapter validates schema-expressible patch and path data contracts.                       |
+| `@studnicky/json/interfaces` | TypeScript code shares patch, path, configuration, and state contracts.                      |
 
 ## Install
 
@@ -57,18 +78,18 @@ Apply RFC-6902 JSON Patch operations by passing one operation or an operation ar
 
 The remaining public interfaces describe operation results and path wildcards:
 
-| Interface | Contract |
-|-----------|----------|
-| `PatchApplyResultInterface` | A `success: boolean`, returned `value: unknown`, and optional `error: string`. |
+| Interface                     | Contract                                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `PatchApplyResultInterface`   | A `success: boolean`, returned `value: unknown`, and optional `error: string`.                               |
 | `PathWildcardResultInterface` | The `Path.get` wildcard sentinel with `array: unknown[]`, `isWildcard: true`, and `remainingPath: string[]`. |
 
 `DraftNodeStateEntity`, `PatchApplyResultStatusEntity`, and `PathWildcardResultEntity` own the schema-expressible fields composed by these runtime interfaces. Object graphs, maps, and `unknown` values remain interface members because they are not pure-data schema contracts.
 
-## Path, Sort, Hash, and StructuralHash
+## Path and Sort
 
-Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, sort arrays naturally, and produce deterministic FNV-1a hashes for arbitrary in-memory values. `Hash` encodes `Date`, `Map`, and `Set` values deterministically; `StructuralHash` strips annotation-only keys (`$id`, `title`, `description`) before hashing:
+Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, and sort arrays naturally. `Hash` and `StructuralHash` publish from [`@studnicky/types`](./types.md).
 
-<<< ../../packages/json/examples/path-sort-hash.ts#usage
+<<< ../../packages/json/examples/path-sort.ts#usage
 
 ## Schema validation
 
@@ -85,8 +106,9 @@ Most utilities are pure-static; `Patch` is instance-based. Compose the static ut
 `@studnicky/json/entities` exports every schema namespace in `src/entities`.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import { PatchOperationCoreEntity } from '@studnicky/json/entities';
+import { PatchOperationCoreEntity } from "@studnicky/json/entities";
 ```
 
 ## Interfaces
@@ -94,25 +116,26 @@ import { PatchOperationCoreEntity } from '@studnicky/json/entities';
 `@studnicky/json/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import type { PatchOperationInterface } from '@studnicky/json/interfaces';
+import type { PatchOperationInterface } from "@studnicky/json/interfaces";
 ```
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `Clone` | Provides clone functionality. | `@studnicky/json/node` |
-| `Draft` | Provides immutable drafting and direct RFC-6902 comparison. | `@studnicky/json/node` |
-| `Frozen` | Provides frozen functionality. | `@studnicky/json/node` |
-| `Hash` | Provides hash functionality. | `@studnicky/json/node` |
-| `ImmutableSnapshot` | Creates detached deeply frozen snapshots. | `@studnicky/json/node` |
-| `Merge` | Provides merge functionality. | `@studnicky/json/node` |
-| `Patch` | Provides patch functionality. | `@studnicky/json/node` |
-| `Path` | Provides path functionality. | `@studnicky/json/node` |
-| `Sort` | Provides sort functionality. | `@studnicky/json/node` |
-| `StructuralHash` | Provides structural hash functionality. | `@studnicky/json/node` |
-| `FrozenMutationError` | Represents frozen mutation failures. | `@studnicky/json/node` |
-| `ImmutableSnapshotError` | Represents snapshot isolation failures. | `@studnicky/json/node` |
-| `JsonError` | Represents json failures. | `@studnicky/json/node` |
-| `PatchError` | Represents patch failures. | `@studnicky/json/node` |
+| Symbol                   | Purpose                                                                   | Import path            |
+| ------------------------ | ------------------------------------------------------------------------- | ---------------------- |
+| `Clone`                  | Provides clone functionality.                                             | `@studnicky/json/node` |
+| `Draft`                  | Provides immutable drafting and direct RFC-6902 comparison.               | `@studnicky/json/node` |
+| `Frozen`                 | Provides frozen functionality.                                            | `@studnicky/json/node` |
+| `ImmutableSnapshot`      | Creates detached deeply frozen snapshots.                                 | `@studnicky/json/node` |
+| `Merge`                  | Provides merge functionality.                                             | `@studnicky/json/node` |
+| `Patch`                  | Provides patch functionality.                                             | `@studnicky/json/node` |
+| `Path`                   | Provides path functionality.                                              | `@studnicky/json/node` |
+| `Sort`                   | Provides sort functionality.                                              | `@studnicky/json/node` |
+| `CloneError`             | Represents a value that cannot be deep-cloned.                            | `@studnicky/json/node` |
+| `FrozenMutationError`    | Represents frozen mutation failures.                                      | `@studnicky/json/node` |
+| `ImmutableSnapshotError` | Represents snapshot isolation failures.                                   | `@studnicky/json/node` |
+| `JsonError`              | Represents json failures.                                                 | `@studnicky/json/node` |
+| `PatchError`             | Represents patch failures.                                                | `@studnicky/json/node` |
+| `SameKindError`          | Represents a derived value whose structural kind differs from its source. | `@studnicky/json/node` |

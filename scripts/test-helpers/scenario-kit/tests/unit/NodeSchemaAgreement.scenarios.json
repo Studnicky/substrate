@@ -1,0 +1,134 @@
+{
+  "cases": [
+    {
+      "name": "sum-entity-matches",
+      "description": "a flat entity whose Schema and Node were authored in lockstep matches",
+      "shape": "matches",
+      "input": {
+        "pair": "sum-entity"
+      }
+    },
+    {
+      "name": "arithmetic-entity-matches",
+      "description": "a oneOf entity whose Schema and Node were authored in lockstep matches",
+      "shape": "matches",
+      "input": {
+        "pair": "arithmetic-entity"
+      }
+    },
+    {
+      "name": "missing-property-rejects",
+      "description": "a Schema missing a property Node declares rejects, naming both sides",
+      "shape": "rejects",
+      "input": {
+        "pair": "schema-missing-property"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    },
+    {
+      "name": "shorter-required-list-rejects",
+      "description": "a Schema whose required list omits an entry Node requires rejects",
+      "shape": "rejects",
+      "input": {
+        "pair": "schema-shorter-required-list"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    },
+    {
+      "name": "out-of-scope-keyword-rejects",
+      "description": "a correctly-authored pattern-properties pair rejects, since patternProperties is outside this check's scope",
+      "shape": "rejects",
+      "input": {
+        "pair": "pattern-properties"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    },
+    {
+      "name": "redundant-type-with-enum-matches",
+      "description": "a `type` sibling fully implied by every `enum` member's JSON type matches",
+      "shape": "matches",
+      "input": {
+        "pair": "redundant-type-with-enum"
+      }
+    },
+    {
+      "name": "redundant-type-with-const-matches",
+      "description": "a `type` sibling fully implied by `const`'s JSON type matches",
+      "shape": "matches",
+      "input": {
+        "pair": "redundant-type-with-const"
+      }
+    },
+    {
+      "name": "nullable-type-array-matches",
+      "description": "a nullable `type: [T, 'null']` schema matches its equivalent `anyOf` Node",
+      "shape": "matches",
+      "input": {
+        "pair": "nullable-type-array"
+      }
+    },
+    {
+      "name": "empty-properties-matches",
+      "description": "an empty `properties: {}` and an absent `properties` key match",
+      "shape": "matches",
+      "input": {
+        "pair": "empty-properties"
+      }
+    },
+    {
+      "name": "open-additional-properties-matches",
+      "description": "an explicit `additionalProperties: true`/`{}` and an absent `additionalProperties` key match",
+      "shape": "matches",
+      "input": {
+        "pair": "open-additional-properties"
+      }
+    },
+    {
+      "name": "annotation-drift-matches",
+      "description": "differing annotation-only keywords (`description`, `title`) never block a match",
+      "shape": "matches",
+      "input": {
+        "pair": "annotation-drift"
+      }
+    },
+    {
+      "name": "mixed-type-enum-rejects",
+      "description": "a mixed-type `enum` keeps its `type` sibling — dropping it would accept an instance the enum itself already narrows",
+      "shape": "rejects",
+      "input": {
+        "pair": "mixed-type-enum"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    },
+    {
+      "name": "genuine-type-mismatch-rejects",
+      "description": "a `type` genuinely inconsistent with its `enum` members still rejects",
+      "shape": "rejects",
+      "input": {
+        "pair": "genuine-type-mismatch"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    },
+    {
+      "name": "genuine-additional-properties-mismatch-rejects",
+      "description": "a Node that forbids additional properties against a Schema that allows them still rejects",
+      "shape": "rejects",
+      "input": {
+        "pair": "genuine-closed-object"
+      },
+      "expected": {
+        "messageIncludes": "Schema and Node disagree"
+      }
+    }
+  ]
+}

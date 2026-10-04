@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "description": "the basic-usage example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/basic-usage.ts"
+      },
+      "name": "basic-usage",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the schema-node-drift example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/schema-node-drift.ts"
+      },
+      "name": "schema-node-drift",
+      "shape": "imports-example"
+    }
+  ]
+}

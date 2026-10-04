@@ -2,7 +2,7 @@
  * Compares two strings with optional case sensitivity
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface
@@ -14,7 +14,7 @@ export class AreStringsEqualCaseAware {
   static areStringsEqualCaseAware(
     value: unknown,
     filterValue: unknown,
-    condition: FilterConditionInterface
+    condition: FilterConditionInterface = {}
   ): boolean {
     if (!Predicates.isString(value) || !Predicates.isString(filterValue)) {
       return false;

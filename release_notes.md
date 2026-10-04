@@ -1,465 +1,264 @@
-### @studnicky/batch
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/boundary-kit
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/throttle@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/bounded-dispatcher
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/event-bus@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/types@12.2.1
-
 ### @studnicky/cache
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/concurrency@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/circular-buffer
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
 
 ### @studnicky/clock
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/config@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/concurrency
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/circular-buffer@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/config@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/signal@15.0.1
+  - @studnicky/virtual-fs@15.0.1
 
 ### @studnicky/config
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/context
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/json@15.0.1
+  - @studnicky/store@15.0.1
 
 ### @studnicky/drilldown
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/cache@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/filters@15.0.1
 
-### @studnicky/entity-store
+### @studnicky/entity
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
 
 ### @studnicky/errors
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
 
 ### @studnicky/eslint-config
 
 ### Patch Changes
 
-- a0c5bf8: Ensures consumer lint configuration updates publish through a verified release lifecycle.
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
 
 ### @studnicky/event-bus
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/concurrency@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/fetch
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/file-lock
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/virtual-fs@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
+  - @studnicky/signal@15.0.1
 
 ### @studnicky/filters
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/flag-evaluator
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
+  - @studnicky/matching@15.0.1
 
 ### @studnicky/fsm
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/health-registry
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/idempotency-guard
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/intake-kit
-
-### Patch Changes
-
-- 9b93e0f: Clarifies consumer documentation for parser-backed entity intake APIs.
-- @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/circular-buffer@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/json
 
 ### Patch Changes
 
-- Updated dependencies [9b93e0f]
-  - @studnicky/intake-kit@12.2.1
-  - @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/keyed-rate-limiter
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/resilience@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/keyed-work-gate
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/mutex@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
 
 ### @studnicky/logger
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/matching
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/matching-filters
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/filters@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/memoize
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/cache@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/mutex
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/paginator
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/cache@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
 
 ### @studnicky/pipeline
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/process-kit
-
-### Patch Changes
-
-- @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-
-### @studnicky/request-executor
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fetch@12.2.1
-  - @studnicky/retry@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/resilience
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/scheduler@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/retry
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/sample-buffer
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/cache@15.0.1
+  - @studnicky/circular-buffer@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/concurrency@15.0.1
+  - @studnicky/config@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/event-bus@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/scheduler@15.0.1
+  - @studnicky/signal@15.0.1
 
 ### @studnicky/scheduler
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/semantic-matching
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/signal
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/sliding-window-limiter
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/errors@15.0.1
 
 ### @studnicky/store
 
 ### Patch Changes
 
-- @studnicky/json@12.2.1
-  - @studnicky/mutex@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/concurrency@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/json@15.0.1
 
-### @studnicky/strata-store-kit
-
-### Patch Changes
-
-- @studnicky/mutex@12.2.1
-  - @studnicky/store@12.2.1
-
-### @studnicky/system
+### @studnicky/types
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/throttle
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/circular-buffer@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/sample-buffer@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/timing
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/config@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/topic-router
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/topic-router-models
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/matching@12.2.1
-  - @studnicky/topic-router@12.2.1
-  - @studnicky/types@12.2.1
+- 3965298: Publish the integrated primitive release and complete package reference.
 
 ### @studnicky/virtual-fs
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/clock@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
 
 ### @studnicky/visible-range
 
 ### Patch Changes
 
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/types@12.2.1
-
-### @studnicky/worker-pool
-
-### Patch Changes
-
-- @studnicky/errors@12.2.1
-  - @studnicky/json@12.2.1
-  - @studnicky/batch@12.2.1
-  - @studnicky/concurrency@12.2.1
-  - @studnicky/fsm@12.2.1
-  - @studnicky/signal@12.2.1
-  - @studnicky/system@12.2.1
-  - @studnicky/types@12.2.1
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1

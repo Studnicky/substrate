@@ -1,0 +1,70 @@
+{
+  "cases": [
+    {
+      "description": "the basicCache example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/basicCache.ts"
+      },
+      "name": "basicCache",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the lruEviction example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/lruEviction.ts"
+      },
+      "name": "lruEviction",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedCache example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedCache.ts"
+      },
+      "name": "observedCache",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedMemoize example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedMemoize.ts"
+      },
+      "name": "observedMemoize",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the ttlExpiry example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/ttlExpiry.ts"
+      },
+      "name": "ttlExpiry",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the idempotencyReplayComposition node-only example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/idempotencyReplayComposition.ts"
+      },
+      "name": "idempotencyReplayComposition",
+      "shape": "imports-example"
+    }
+  ]
+}

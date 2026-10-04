@@ -1,9 +1,46 @@
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { EntityCompiler } from '../../../src/EntityCompiler.js';
+import { EntityCompiler } from '../../../src/node/index.js';
 import { SchemaIntakeError } from '../../../src/SchemaIntakeError.js';
 
+class CompilerProbe {
+  /** Asserts `run` throws a BaseError whose message contains `fragment`. */
+  public static rejectsWith(run: () => void, fragment: string): void {
+    assert.throws(run, (error: unknown) => {
+      assert.ok(error instanceof BaseError);
+      assert.ok(error.message.includes(fragment));
+      return true;
+    });
+  }
+}
+
+class UnknownEnumerablePropertyHandler implements ProxyHandler<Record<PropertyKey, unknown>> {
+  public reads = 0;
+
+  public get(target: Record<PropertyKey, unknown>, property: string | symbol, _receiver: object): unknown {
+    if (property === 'unknown') {
+      this.reads += 1;
+      return 'ignored';
+    }
+    const value = target[property];
+    return value;
+  }
+
+  public getOwnPropertyDescriptor(target: Record<PropertyKey, unknown>, property: string | symbol): PropertyDescriptor | undefined {
+    if (property === 'unknown') {
+      return { 'configurable': true, 'enumerable': true, 'value': 'ignored', 'writable': true };
+    }
+    const descriptor = Reflect.getOwnPropertyDescriptor(target, property);
+    return descriptor;
+  }
+
+  public ownKeys(target: Record<PropertyKey, unknown>): ArrayLike<string | symbol> {
+    const keys = [...Reflect.ownKeys(target), 'unknown'];
+    return keys;
+  }
+}
 void describe('EntityCompiler schema boundaries', () => {
   void it('compiles idempotent pure assertion validators', () => {
     const schema = {
@@ -20,19 +57,34 @@ void describe('EntityCompiler schema boundaries', () => {
     const input = { 'port': 8080 };
 
     assert.equal(first, second);
+    const initialErrors = first.errors;
+    assert.equal(initialErrors, undefined);
     assert.equal(first(input), true);
+    const successfulErrors = first.errors;
+    assert.equal(successfulErrors, null);
     assert.deepEqual(input, { 'port': 8080 });
     assert.equal(first({ 'port': '8080' }), false);
     const errors = first.errors;
     assert.ok(errors !== null && errors !== undefined);
     assert.ok(errors.length > 0);
     assert.equal(errors[0]?.keyword, 'type');
-    assert.equal(errors[0]?.params.missingProperty, undefined);
+    assert.equal(errors[0]?.parameters.missingProperty, undefined);
     assert.equal(EntityCompiler.formatErrors(null), 'invalid payload');
   });
 
+  void it('defers schema compilation until factory use', () => {
+    const schema = { 'patternProperties': { '[': {} }, 'type': 'object' };
+    const validate = EntityCompiler.compile(schema);
+    const intake = EntityCompiler.compileIntake(schema);
+    const create = EntityCompiler.compileCreate<Record<string, unknown>>(schema);
+
+    assert.throws(() => { validate({}); });
+    assert.throws(() => { intake(1); });
+    assert.throws(() => { create(); });
+  });
+
   void it('exposes normalized diagnostic parameters', () => {
-    const validate = EntityCompiler.compile<{ port: number }>({
+    const validate = EntityCompiler.compile<{ 'port': number }>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-diagnostic-parameters',
       'properties': { 'port': { 'type': 'integer' } },
       'required': ['port'],
@@ -43,11 +95,11 @@ void describe('EntityCompiler schema boundaries', () => {
     const errors = validate.errors;
     assert.ok(errors !== null && errors !== undefined);
     assert.equal(errors[0]?.keyword, 'required');
-    assert.equal(errors[0]?.params.missingProperty, 'port');
+    assert.equal(errors[0]?.parameters.missingProperty, 'port');
   });
 
   void it('fills defaults on an intake clone without coercing values', () => {
-    const intake = EntityCompiler.compileIntake<{ host: string; port: number }>({
+    const intake = EntityCompiler.compileIntake<{ 'host': string; 'port': number }>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-intake',
       'additionalProperties': false,
       'properties': {
@@ -61,7 +113,7 @@ void describe('EntityCompiler schema boundaries', () => {
 
     assert.deepEqual(intake(input), { 'host': 'localhost', 'port': 8080 });
     assert.deepEqual(input, { 'port': 8080 });
-    assert.throws(() => intake({ 'port': '8080' }), SchemaIntakeError);
+    assert.throws(() => { intake({ 'port': '8080' }); }, SchemaIntakeError);
   });
 
   void it('fills defaults during object creation', () => {
@@ -76,7 +128,7 @@ void describe('EntityCompiler schema boundaries', () => {
     });
 
     assert.deepEqual(create(), { 'host': 'localhost', 'port': 3000 });
-    assert.throws(() => create({ 'port': '3000' }), SchemaIntakeError);
+    assert.throws(() => { create({ 'port': '3000' }); }, SchemaIntakeError);
   });
 
   void it('keeps assertion, intake, and creation registries isolated', () => {
@@ -96,7 +148,7 @@ void describe('EntityCompiler schema boundaries', () => {
   });
 
   void it('uses schemas to enforce additional properties without mutating inputs', () => {
-    const strictIntake = EntityCompiler.compileIntake<{ port: number }>({
+    const strictIntake = EntityCompiler.compileIntake<{ 'port': number }>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-additional-properties',
       'additionalProperties': false,
       'properties': { 'port': { 'type': 'integer' } },
@@ -105,7 +157,7 @@ void describe('EntityCompiler schema boundaries', () => {
     });
     const input = { 'port': 8080, 'unexpected': 'preserved' };
 
-    assert.throws(() => strictIntake(input), SchemaIntakeError);
+    assert.throws(() => { strictIntake(input); }, SchemaIntakeError);
     assert.deepEqual(input, { 'port': 8080, 'unexpected': 'preserved' });
   });
 
@@ -121,11 +173,13 @@ void describe('EntityCompiler schema boundaries', () => {
 
     assert.deepEqual(intake(accepted), accepted);
     assert.deepEqual(accepted, { 'port': 8080, 'region': 'us-east-1' });
-    assert.throws(() => intake({ 'port': 8080, 'region': false }), SchemaIntakeError);
+    assert.throws(() => { intake({ 'port': 8080, 'region': false }); }, SchemaIntakeError);
   });
+});
 
+void describe('EntityCompiler schema boundaries: anyOf and composed schemas', () => {
   void it('does not let a failing anyOf branch mutate a succeeding branch candidate', () => {
-    const intake = EntityCompiler.compileIntake<{ ok: true; result: { id: string } }>({
+    const intake = EntityCompiler.compileIntake<{ 'ok': true; 'result': { 'id': string } }>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-any-of',
       'anyOf': [
         {
@@ -181,7 +235,7 @@ void describe('EntityCompiler schema boundaries', () => {
     });
 
     assert.deepEqual(intake({ 'options': { 'method': undefined } }), { 'options': {} });
-    assert.throws(() => intake({ 'options': { 'method': undefined, 'retries': 'many' } }), /\/options\/retries: must be integer/u);
+    CompilerProbe.rejectsWith(() => { intake({ 'options': { 'method': undefined, 'retries': 'many' } }); }, '/options/retries: must be integer');
   });
 
   void it('omits undefined properties only when every conditional branch declares them optional', () => {
@@ -203,12 +257,11 @@ void describe('EntityCompiler schema boundaries', () => {
     });
 
     assert.deepEqual(safeIntake({ 'option': undefined }), {});
-    assert.throws(() => unsafeIntake({ 'option': undefined }), /\/option: undefined is not valid JSON data/u);
+    CompilerProbe.rejectsWith(() => { unsafeIntake({ 'option': undefined }); }, '/option: undefined is not valid JSON data');
   });
 
-
   void it('omits declared undefined properties while rejecting undeclared properties and undefined array values', () => {
-    const objectIntake = EntityCompiler.compileIntake<{ optional?: string }>({
+    const objectIntake = EntityCompiler.compileIntake<{ 'optional'?: string }>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-undefined-object',
       'additionalProperties': false,
       'properties': { 'optional': { 'type': 'string' } },
@@ -220,8 +273,8 @@ void describe('EntityCompiler schema boundaries', () => {
     });
 
     assert.deepEqual(objectIntake({ 'optional': undefined }), {});
-    assert.throws(() => objectIntake({ 'undeclared': undefined }), /\/undeclared: undefined is not valid JSON data/u);
-    assert.throws(() => arrayIntake([undefined]), /\/0: undefined is not valid JSON data/u);
+    CompilerProbe.rejectsWith(() => { objectIntake({ 'undeclared': undefined }); }, '/undeclared: undefined is not valid JSON data');
+    CompilerProbe.rejectsWith(() => { arrayIntake([undefined]); }, '/0: undefined is not valid JSON data');
   });
 
   void it('omits undefined values declared by pattern properties while retaining undeclared keys', () => {
@@ -233,9 +286,11 @@ void describe('EntityCompiler schema boundaries', () => {
     });
 
     assert.deepEqual(intake({ 'setting_optional': undefined }), {});
-    assert.throws(() => intake({ 'undeclared': undefined }), /\/undeclared: undefined is not valid JSON data/u);
+    CompilerProbe.rejectsWith(() => { intake({ 'undeclared': undefined }); }, '/undeclared: undefined is not valid JSON data');
   });
+});
 
+void describe('EntityCompiler schema boundaries: non-JSON intake', () => {
   void it('rejects cyclic and non-JSON intake with stable entity errors', () => {
     const intake = EntityCompiler.compileIntake<Record<string, never>>({
       '$id': 'https://studnicky.dev/schemas/entity-compiler-errors',
@@ -244,26 +299,178 @@ void describe('EntityCompiler schema boundaries', () => {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
 
-    try {
+    assert.throws(() => {
       intake(cyclic);
-      assert.fail('Expected cyclic intake to fail');
-    } catch (error) {
-      if (!(error instanceof SchemaIntakeError)) {
-        throw error;
-      }
+    }, (error: unknown) => {
+      assert.ok(error instanceof SchemaIntakeError);
       assert.equal(error.code, 'entity.schemaIntakeFailed');
       assert.equal(error.retryable, false);
       assert.equal(error.schemaIdentifier, 'https://studnicky.dev/schemas/entity-compiler-errors');
-      assert.match(error.message, /cyclic input is not supported/u);
-    }
-    assert.throws(() => intake({ 'nested': { 'value': Number.NaN } }), /\/nested\/value: NaN is not valid JSON data/u);
+      assert.ok(error.message.includes('cyclic input is not supported'));
+      return true;
+    });
+    CompilerProbe.rejectsWith(() => { intake({ 'nested': { 'value': Number.NaN } }); }, '/nested/value: NaN is not valid JSON data');
   });
 
   void it('rejects Date, Map, and Set values at JSON-only intake boundaries', () => {
     const intake = EntityCompiler.compileIntake<unknown>({});
 
-    assert.throws(() => intake(new Date(0)), SchemaIntakeError);
-    assert.throws(() => intake(new Map()), SchemaIntakeError);
-    assert.throws(() => intake(new Set()), SchemaIntakeError);
+    assert.throws(() => { intake(new Date(0)); }, SchemaIntakeError);
+    assert.throws(() => { intake(new Map()); }, SchemaIntakeError);
+    assert.throws(() => { intake(new Set()); }, SchemaIntakeError);
+  });
+});
+
+void describe('EntityCompiler schema boundaries: remote schemas', () => {
+  void it('resolves a cross-document $ref through compileIntake when remoteSchemas is supplied', () => {
+    const remote = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-rules',
+      'properties': { 'weight': { 'type': 'integer' } },
+      'required': ['weight'],
+      'type': 'object'
+    };
+    const schema = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-intake',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules' } },
+      'required': ['rules'],
+      'type': 'object'
+    };
+    const remoteSchemas = new Map<string, object | boolean>([[remote.$id, remote]]);
+
+    const intake = EntityCompiler.compileIntake<{ 'rules': { 'weight': number } }>(schema, remoteSchemas);
+    assert.deepEqual(intake({ 'rules': { 'weight': 1 } }), { 'rules': { 'weight': 1 } });
+    assert.throws(() => { intake({ 'rules': { 'weight': 'heavy' } }); }, SchemaIntakeError);
+
+    const unresolved = EntityCompiler.compileIntake<{ 'rules': { 'weight': number } }>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-intake-unresolved',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules' } },
+      'required': ['rules'],
+      'type': 'object'
+    });
+    CompilerProbe.rejectsWith(() => { unresolved({ 'rules': { 'weight': 1 } }); }, 'Unresolvable reference');
+  });
+
+  void it('resolves a cross-document $ref through compileCreate when remoteSchemas is supplied', () => {
+    const remote = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create',
+      'properties': { 'weight': { 'default': 1, 'type': 'integer' } },
+      'type': 'object'
+    };
+    const schema = {
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-create',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create' } },
+      'type': 'object'
+    };
+    const remoteSchemas = new Map<string, object | boolean>([[remote.$id, remote]]);
+
+    const create = EntityCompiler.compileCreate<{ 'rules': { 'weight'?: number } }>(schema, remoteSchemas);
+    assert.deepEqual(create({ 'rules': {} }), { 'rules': { 'weight': 1 } });
+
+    const unresolved = EntityCompiler.compileCreate<{ 'rules': { 'weight'?: number } }>({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-remote-create-unresolved',
+      'properties': { 'rules': { '$ref': 'https://studnicky.dev/schemas/entity-compiler-remote-rules-create' } },
+      'type': 'object'
+    });
+    CompilerProbe.rejectsWith(() => { unresolved({ 'rules': {} }); }, 'Unresolvable reference');
+  });
+});
+
+void describe('EntityCompiler schema boundaries: direct property collector parity', () => {
+  void it('collects declared-property errors in runtime input insertion order', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-order',
+      'properties': {
+        'first': { 'type': 'string' },
+        'second': { 'type': 'integer' }
+      },
+      'type': 'object'
+    });
+
+    const input: Record<string, unknown> = {};
+    input.second = 'invalid';
+    input.first = 0;
+
+    assert.equal(validate(input), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const instancePaths = errors.map((error) => {
+      const instancePath = error.instancePath;
+      return instancePath;
+    });
+    assert.deepEqual(instancePaths, ['/second', '/first']);
+  });
+
+  void it('retains escaped property pointer spelling for slash and tilde names', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-escaping',
+      'properties': { 'a/b~c': { 'type': 'integer' } },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'a/b~c': 'invalid' }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/a~1b~0c');
+    assert.equal(error.schemaPath, '/properties~1a~1b~0c/type');
+  });
+
+  void it('concatenates nested direct-property instance and schema paths', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-nesting',
+      'properties': {
+        'outer': {
+          'properties': { 'inner': { 'type': 'integer' } },
+          'type': 'object'
+        }
+      },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'outer': { 'inner': 'invalid' } }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/outer/inner');
+    assert.equal(error.schemaPath, '/properties~1outer/properties~1inner/type');
+  });
+
+  void it('retains the caller-site schema path through allOf and local references', () => {
+    const validate = EntityCompiler.compile({
+      '$defs': {
+        'base': {
+          'properties': { 'count': { 'type': 'integer' } },
+          'type': 'object'
+        }
+      },
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-reference',
+      'properties': {
+        'config': { 'allOf': [{ '$ref': '#/$defs/base' }] }
+      },
+      'type': 'object'
+    });
+
+    assert.equal(validate({ 'config': { 'count': 'invalid' } }), false);
+    const errors = validate.errors;
+    assert.ok(errors !== null && errors !== undefined);
+    const error = errors[0];
+    assert.ok(error !== undefined);
+    assert.equal(error.instancePath, '/config/count');
+    assert.equal(error.schemaPath, '/properties~1config/allOf~10/properties~1count/type');
+  });
+
+  void it('reads unknown enumerable getters once before skipping them', () => {
+    const validate = EntityCompiler.compile({
+      '$id': 'https://studnicky.dev/schemas/entity-compiler-direct-property-unknown-getter',
+      'properties': { 'known': { 'type': 'string' } },
+      'type': 'object'
+    });
+    const handler = new UnknownEnumerablePropertyHandler();
+    const input = new Proxy<Record<PropertyKey, unknown>>({ 'known': 'valid' }, handler);
+
+    assert.equal(validate(input), true);
+    assert.equal(handler.reads, 1);
   });
 });

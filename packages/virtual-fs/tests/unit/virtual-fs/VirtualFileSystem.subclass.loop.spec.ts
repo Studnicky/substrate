@@ -1,145 +1,32 @@
-import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/types/node';
+import assert from 'node:assert/strict';
+import timersPromises from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { VirtualFileSystem } from '../../../src/virtual-fs/VirtualFileSystem.js';
+import { VirtualFileSystemSubclassScenarioCaseEntity } from './entities/VirtualFileSystemSubclassScenarioCaseEntity.js';
+import scenarioGroups from './VirtualFileSystem.subclass.scenarios.json' with { 'type': 'json' };
 
-import { VirtualFileSystem } from "../../../src/virtual-fs/VirtualFileSystem.js";
-import scenarioGroups from "./VirtualFileSystem.subclass.scenarios.json" with { type: "json" };
+/** Raised when a scenario list is missing an item the scenario needs. */
+class VirtualFileSystemScenarioError extends BaseError {
+  public override readonly name: string = 'VirtualFileSystemScenarioError';
 
-type ScenarioCase = {
-  [Shape in ScenarioShape]: ScenarioMetadata<Shape> &
-    ScenarioCaseByShape[Shape];
-}[ScenarioShape];
-
-type ScenarioCaseOf<Shape extends ScenarioShape> = Extract<
-  ScenarioCase,
-  { shape: Shape }
->;
-
-type ScenarioHandler<Shape extends ScenarioShape> = (
-  scenarioCase: ScenarioCaseOf<Shape>,
-) => Promise<void> | void;
-
-type ScenarioHandlers = {
-  [Shape in ScenarioShape]: ScenarioHandler<Shape>;
-};
-
-type ScenarioShape = keyof ScenarioCaseByShape;
-
-type ScenarioMetadata<Shape extends string> = {
-  description: string;
-  shape: Shape;
-  name: string;
-};
-
-interface ScenarioCaseByShape {
-  "async-create-hook": {
-    expected: { content: string; rejections: unknown[] };
-    input: { content: string; path: string };
-  };
-  "full-trace": {
-    expected: {
-      createLog: string[];
-      deleteLog: string[];
-      readLog: string[];
-      renameCount: number;
-      writeLog: string[];
-    };
-    input: {
-      contentA: string;
-      contentB: string;
-      path: string;
-      renamed: string;
-    };
-  };
-  "hook-cause-chains": {
-    expected: { causeMatches: boolean };
-    input: { content: string; path: string };
-  };
-  "onCreate-new-files": {
-    expected: { createLog: string[] };
-    input: { files: Array<{ content: string; path: string }> };
-  };
-  "onCreate-no-overwrite": {
-    expected: { createCount: number };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
-  "onCreate-recursive-mkdir": {
-    expected: { createLogIncludes: string[] };
-    input: { path: string };
-  };
-  "onDelete-not-before-unlink": {
-    expected: { deleteCount: number };
-    input: { content: string; path: string };
-  };
-  "onDelete-unlinkSync": {
-    expected: { deleteLog: string[] };
-    input: { content: string; path: string };
-  };
-  "onRead-readFileSync": {
-    expected: { readLog: string[] };
-    input: { content: string; path: string };
-  };
-  "onRead-readdirSync": {
-    expected: { readLogIncludes: string[] };
-    input: { path: string };
-  };
-  "onRename-paths": {
-    expected: { renameLog: Array<{ from: string; to: string }> };
-    input: {
-      content: string;
-      from: string;
-      to: string;
-    };
-  };
-  "onWrite-update-only": {
-    expected: { writeLog: string[] };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
-  "subclass-create-instance": {
-    expected: { instanceofBase: boolean; instanceofSubclass: boolean };
-    input: { factory: string };
-  };
-  "throwing-create-hook": {
-    expected: { hookName: string; written: boolean };
-    input: { content: string; path: string };
-  };
-  "throwing-delete-hook": {
-    expected: { exists: boolean; hookName: string };
-    input: { content: string; path: string };
-  };
-  "throwing-read-hook": {
-    expected: { hookName: string };
-    input: { content: string; path: string };
-  };
-  "throwing-rename-hook": {
-    expected: { hookName: string; newContent: string; oldExists: boolean };
-    input: {
-      content: string;
-      from: string;
-      to: string;
-    };
-  };
-  "throwing-write-hook": {
-    expected: { hookName: string; written: boolean };
-    input: {
-      first: string;
-      path: string;
-      second: string;
-    };
-  };
+  public constructor(message: string) {
+    super({
+      'code': 'virtualFs.scenarioItemMissing',
+      'message': message,
+      'retryable': false
+    });
+  }
 }
 
 class CreateLogFs extends VirtualFileSystem {
+  static override create(): CreateLogFs {
+    return new CreateLogFs({});
+  }
   readonly createLog: string[] = [];
   override onCreate(path: string): void {
     this.createLog.push(path);
@@ -147,6 +34,9 @@ class CreateLogFs extends VirtualFileSystem {
 }
 
 class WriteLogFs extends VirtualFileSystem {
+  static override create(): WriteLogFs {
+    return new WriteLogFs({});
+  }
   readonly writeLog: string[] = [];
   override onWrite(path: string): void {
     this.writeLog.push(path);
@@ -154,6 +44,9 @@ class WriteLogFs extends VirtualFileSystem {
 }
 
 class ReadLogFs extends VirtualFileSystem {
+  static override create(): ReadLogFs {
+    return new ReadLogFs({});
+  }
   readonly readLog: string[] = [];
   override onRead(path: string): void {
     this.readLog.push(path);
@@ -161,6 +54,9 @@ class ReadLogFs extends VirtualFileSystem {
 }
 
 class DeleteLogFs extends VirtualFileSystem {
+  static override create(): DeleteLogFs {
+    return new DeleteLogFs({});
+  }
   readonly deleteLog: string[] = [];
   override onDelete(path: string): void {
     this.deleteLog.push(path);
@@ -168,17 +64,23 @@ class DeleteLogFs extends VirtualFileSystem {
 }
 
 class RenameLogFs extends VirtualFileSystem {
-  readonly renameLog: Array<{ from: string; to: string }> = [];
+  static override create(): RenameLogFs {
+    return new RenameLogFs({});
+  }
+  readonly renameLog: { 'from': string; 'to': string }[] = [];
   override onRename(oldPath: string, newPath: string): void {
-    this.renameLog.push({ from: oldPath, to: newPath });
+    this.renameLog.push({ 'from': oldPath, 'to': newPath });
   }
 }
 
 class FullTraceFs extends VirtualFileSystem {
+  static override create(): FullTraceFs {
+    return new FullTraceFs({});
+  }
   readonly createLog: string[] = [];
   readonly deleteLog: string[] = [];
   readonly readLog: string[] = [];
-  readonly renameLog: Array<{ from: string; to: string }> = [];
+  readonly renameLog: { 'from': string; 'to': string }[] = [];
   readonly writeLog: string[] = [];
 
   override onCreate(path: string): void {
@@ -191,86 +93,48 @@ class FullTraceFs extends VirtualFileSystem {
     this.readLog.push(path);
   }
   override onRename(oldPath: string, newPath: string): void {
-    this.renameLog.push({ from: oldPath, to: newPath });
+    this.renameLog.push({ 'from': oldPath, 'to': newPath });
   }
   override onWrite(path: string): void {
     this.writeLog.push(path);
   }
 }
 
-function createCreateLogFs(): CreateLogFs {
-  const fs = CreateLogFs.create();
-  assert.ok(fs instanceof CreateLogFs);
-  return fs;
-}
-
-function createDeleteLogFs(): DeleteLogFs {
-  const fs = DeleteLogFs.create();
-  assert.ok(fs instanceof DeleteLogFs);
-  return fs;
-}
-
-function createFullTraceFs(): FullTraceFs {
-  const fs = FullTraceFs.create();
-  assert.ok(fs instanceof FullTraceFs);
-  return fs;
-}
-
-function createReadLogFs(): ReadLogFs {
-  const fs = ReadLogFs.create();
-  assert.ok(fs instanceof ReadLogFs);
-  return fs;
-}
-
-function createRenameLogFs(): RenameLogFs {
-  const fs = RenameLogFs.create();
-  assert.ok(fs instanceof RenameLogFs);
-  return fs;
-}
-
-function createWriteLogFs(): WriteLogFs {
-  const fs = WriteLogFs.create();
-  assert.ok(fs instanceof WriteLogFs);
-  return fs;
-}
-
-const scenarioHandlers: ScenarioHandlers = {
-  "async-create-hook": async (scenarioCase) => {
+class VirtualFileSystemSubclassRunners {
+  static async 'async-create-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'async-create-hook'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    class AsyncRejectingCreateFs extends VirtualFileSystem {
-      override onCreate(_path: string): Promise<void> {
-        return Promise.reject(RuntimeError.create("async onCreate boom"));
+    const fs = VirtualFileSystem.create();
+    // The base `onCreate` hook is typed `void`, so the asynchronous override is installed on the instance.
+    Object.defineProperty(fs, 'onCreate', {
+      'value': (): Promise<void> => {
+        const rejection = Promise.reject(RuntimeError.create('async onCreate boom'));
+        return rejection;
       }
-    }
-
-    const fs = AsyncRejectingCreateFs.create();
+    });
     let unhandledRejectionCount = 0;
     const onUnhandledRejection = (): void => {
       unhandledRejectionCount += 1;
     };
-    process.on("unhandledRejection", onUnhandledRejection);
+    process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      fs.writeFileSync(input.path, input.content, "utf8");
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
-      await new Promise((resolve) => {
-        setImmediate(resolve);
-      });
+      fs.writeFileSync(input.path, input.content, 'utf8');
+      await timersPromises.setImmediate();
+      await timersPromises.setImmediate();
       assert.equal(unhandledRejectionCount, expected.rejections.length);
     } finally {
-      process.off("unhandledRejection", onUnhandledRejection);
+      process.off('unhandledRejection', onUnhandledRejection);
     }
 
-    assert.equal(fs.readFileSync(input.path, "utf8"), expected.content);
-  },
-  "full-trace": (scenarioCase) => {
+    assert.equal(fs.readFileSync(input.path, 'utf8'), expected.content);
+  }
+
+  static 'full-trace'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'full-trace'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createFullTraceFs();
-    fs.writeFileSync(input.path, input.contentA, "utf8");
-    fs.writeFileSync(input.path, input.contentB, "utf8");
-    fs.readFileSync(input.path, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createFullTraceFs();
+    fs.writeFileSync(input.path, input.contentA, 'utf8');
+    fs.writeFileSync(input.path, input.contentB, 'utf8');
+    fs.readFileSync(input.path, 'utf8');
     fs.renameSync(input.path, input.renamed);
     fs.unlinkSync(input.renamed);
 
@@ -279,11 +143,15 @@ const scenarioHandlers: ScenarioHandlers = {
     assert.deepStrictEqual(fs.readLog, expected.readLog);
     assert.strictEqual(fs.renameLog.length, expected.renameCount);
     assert.deepStrictEqual(fs.deleteLog, expected.deleteLog);
-  },
-  "hook-cause-chains": (scenarioCase) => {
+  }
+
+  static 'hook-cause-chains'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'hook-cause-chains'>): void {
     const { expected, input } = scenarioCase;
-    const original = RuntimeError.create("original boom");
+    const original = RuntimeError.create('original boom');
     class ThrowingCreateFs extends VirtualFileSystem {
+      static override create(): ThrowingCreateFs {
+        return new ThrowingCreateFs({});
+      }
       override onCreate(): void {
         throw original;
       }
@@ -292,221 +160,295 @@ const scenarioHandlers: ScenarioHandlers = {
     const fs = ThrowingCreateFs.create();
     assert.throws(
       () => {
-        fs.writeFileSync(input.path, input.content, "utf8");
+        fs.writeFileSync(input.path, input.content, 'utf8');
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.cause === original, expected.causeMatches);
         return true;
-      },
+      }
     );
-  },
-  "onCreate-new-files": (scenarioCase) => {
+  }
+
+  static 'onCreate-new-files'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onCreate-new-files'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createCreateLogFs();
-    for (const file of input.files) {
-      fs.writeFileSync(file.path, file.content, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createCreateLogFs();
+    for (let index = 0; index < input.files.length; index += 1) {
+      const file = VirtualFileSystemSubclassRunners.itemAt(input.files, index);
+      fs.writeFileSync(file.path, file.content, 'utf8');
     }
     assert.deepStrictEqual(fs.createLog, expected.createLog);
-  },
-  "onCreate-no-overwrite": (scenarioCase) => {
+  }
+
+  static 'onCreate-no-overwrite'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onCreate-no-overwrite'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createCreateLogFs();
-    fs.writeFileSync(input.path, input.first, "utf8");
-    fs.writeFileSync(input.path, input.second, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createCreateLogFs();
+    fs.writeFileSync(input.path, input.first, 'utf8');
+    fs.writeFileSync(input.path, input.second, 'utf8');
     assert.strictEqual(fs.createLog.length, expected.createCount);
-  },
-  "onCreate-recursive-mkdir": (scenarioCase) => {
+  }
+
+  static 'onCreate-recursive-mkdir'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onCreate-recursive-mkdir'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createCreateLogFs();
-    fs.mkdirSync(input.path, { recursive: true });
-    for (const path of expected.createLogIncludes) {
-      assert.ok(fs.createLog.includes(path));
+    const fs = VirtualFileSystemSubclassRunners.createCreateLogFs();
+    fs.mkdirSync(input.path, { 'recursive': true });
+    const createdPaths = new Set(fs.createLog);
+    for (let index = 0; index < expected.createLogIncludes.length; index += 1) {
+      assert.ok(createdPaths.has(VirtualFileSystemSubclassRunners.itemAt(expected.createLogIncludes, index)));
     }
-  },
-  "onDelete-not-before-unlink": (scenarioCase) => {
+  }
+
+  static 'onDelete-not-before-unlink'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onDelete-not-before-unlink'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createDeleteLogFs();
-    fs.writeFileSync(input.path, input.content, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createDeleteLogFs();
+    fs.writeFileSync(input.path, input.content, 'utf8');
     assert.strictEqual(fs.deleteLog.length, expected.deleteCount);
-  },
-  "onDelete-unlinkSync": (scenarioCase) => {
+  }
+
+  static 'onDelete-unlinkSync'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onDelete-unlinkSync'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createDeleteLogFs();
-    fs.writeFileSync(input.path, input.content, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createDeleteLogFs();
+    fs.writeFileSync(input.path, input.content, 'utf8');
     fs.unlinkSync(input.path);
     assert.deepStrictEqual(fs.deleteLog, expected.deleteLog);
-  },
-  "onRead-readFileSync": (scenarioCase) => {
+  }
+
+  static 'onRead-readdirSync'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onRead-readdirSync'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createReadLogFs();
-    fs.writeFileSync(input.path, input.content, "utf8");
-    fs.readFileSync(input.path, "utf8");
-    assert.deepStrictEqual(fs.readLog, expected.readLog);
-  },
-  "onRead-readdirSync": (scenarioCase) => {
-    const { expected, input } = scenarioCase;
-    const fs = createReadLogFs();
+    const fs = VirtualFileSystemSubclassRunners.createReadLogFs();
     fs.readdirSync(input.path);
-    for (const path of expected.readLogIncludes) {
-      assert.ok(fs.readLog.includes(path));
+    const readPaths = new Set(fs.readLog);
+    for (let index = 0; index < expected.readLogIncludes.length; index += 1) {
+      assert.ok(readPaths.has(VirtualFileSystemSubclassRunners.itemAt(expected.readLogIncludes, index)));
     }
-  },
-  "onRename-paths": (scenarioCase) => {
+  }
+
+  static 'onRead-readFileSync'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onRead-readFileSync'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createRenameLogFs();
-    fs.writeFileSync(input.from, input.content, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createReadLogFs();
+    fs.writeFileSync(input.path, input.content, 'utf8');
+    fs.readFileSync(input.path, 'utf8');
+    assert.deepStrictEqual(fs.readLog, expected.readLog);
+  }
+
+  static 'onRename-paths'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onRename-paths'>): void {
+    const { expected, input } = scenarioCase;
+    const fs = VirtualFileSystemSubclassRunners.createRenameLogFs();
+    fs.writeFileSync(input.from, input.content, 'utf8');
     fs.renameSync(input.from, input.to);
     assert.deepStrictEqual(fs.renameLog, expected.renameLog);
-  },
-  "onWrite-update-only": (scenarioCase) => {
+  }
+
+  static 'onWrite-update-only'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'onWrite-update-only'>): void {
     const { expected, input } = scenarioCase;
-    const fs = createWriteLogFs();
-    fs.writeFileSync(input.path, input.first, "utf8");
+    const fs = VirtualFileSystemSubclassRunners.createWriteLogFs();
+    fs.writeFileSync(input.path, input.first, 'utf8');
     assert.strictEqual(fs.writeLog.length, 0);
-    fs.writeFileSync(input.path, input.second, "utf8");
+    fs.writeFileSync(input.path, input.second, 'utf8');
     assert.deepStrictEqual(fs.writeLog, expected.writeLog);
-  },
-  "subclass-create-instance": (scenarioCase) => {
+  }
+
+  static 'subclass-create-instance'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'subclass-create-instance'>): void {
     const { expected } = scenarioCase;
-    const fs = createFullTraceFs();
+    const fs = VirtualFileSystemSubclassRunners.createFullTraceFs();
     assert.equal(fs instanceof FullTraceFs, expected.instanceofSubclass);
     assert.equal(fs instanceof VirtualFileSystem, expected.instanceofBase);
-  },
-  "throwing-create-hook": (scenarioCase) => {
+  }
+
+  static 'throwing-create-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'throwing-create-hook'>): void {
     const { expected, input } = scenarioCase;
     class ThrowingCreateFs extends VirtualFileSystem {
+      static override create(): ThrowingCreateFs {
+        return new ThrowingCreateFs({});
+      }
       override onCreate(): void {
-        throw RuntimeError.create("onCreate boom");
+        throw RuntimeError.create('onCreate boom');
       }
     }
 
     const fs = ThrowingCreateFs.create();
     assert.throws(
       () => {
-        fs.writeFileSync(input.path, input.content, "utf8");
+        fs.writeFileSync(input.path, input.content, 'utf8');
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.hookName, expected.hookName);
         return true;
-      },
+      }
     );
 
     assert.equal(
-      fs.readFileSync(input.path, "utf8") === input.content,
-      expected.written,
+      fs.readFileSync(input.path, 'utf8') === input.content,
+      expected.written
     );
-  },
-  "throwing-delete-hook": (scenarioCase) => {
+  }
+
+  static 'throwing-delete-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'throwing-delete-hook'>): void {
     const { expected, input } = scenarioCase;
     class ThrowingDeleteFs extends VirtualFileSystem {
+      static override create(): ThrowingDeleteFs {
+        return new ThrowingDeleteFs({});
+      }
       override onDelete(): void {
-        throw RuntimeError.create("onDelete boom");
+        throw RuntimeError.create('onDelete boom');
       }
     }
 
     const fs = ThrowingDeleteFs.create();
-    fs.writeFileSync(input.path, input.content, "utf8");
+    fs.writeFileSync(input.path, input.content, 'utf8');
     assert.throws(
       () => {
         fs.unlinkSync(input.path);
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.hookName, expected.hookName);
         return true;
-      },
+      }
     );
 
     assert.equal(fs.existsSync(input.path), expected.exists);
-  },
-  "throwing-read-hook": (scenarioCase) => {
+  }
+
+  static 'throwing-read-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'throwing-read-hook'>): void {
     const { expected, input } = scenarioCase;
     class ThrowingReadFs extends VirtualFileSystem {
+      static override create(): ThrowingReadFs {
+        return new ThrowingReadFs({});
+      }
       override onRead(): void {
-        throw RuntimeError.create("onRead boom");
+        throw RuntimeError.create('onRead boom');
       }
     }
 
     const fs = ThrowingReadFs.create();
-    fs.writeFileSync(input.path, input.content, "utf8");
+    fs.writeFileSync(input.path, input.content, 'utf8');
 
     assert.throws(
       () => {
-        fs.readFileSync(input.path, "utf8");
+        fs.readFileSync(input.path, 'utf8');
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.hookName, expected.hookName);
         return true;
-      },
+      }
     );
-  },
-  "throwing-rename-hook": (scenarioCase) => {
+  }
+
+  static 'throwing-rename-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'throwing-rename-hook'>): void {
     const { expected, input } = scenarioCase;
     class ThrowingRenameFs extends VirtualFileSystem {
+      static override create(): ThrowingRenameFs {
+        return new ThrowingRenameFs({});
+      }
       override onRename(): void {
-        throw RuntimeError.create("onRename boom");
+        throw RuntimeError.create('onRename boom');
       }
     }
 
     const fs = ThrowingRenameFs.create();
-    fs.writeFileSync(input.from, input.content, "utf8");
+    fs.writeFileSync(input.from, input.content, 'utf8');
     assert.throws(
       () => {
         fs.renameSync(input.from, input.to);
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.hookName, expected.hookName);
         return true;
-      },
+      }
     );
 
     assert.equal(fs.existsSync(input.from), expected.oldExists);
-    assert.equal(fs.readFileSync(input.to, "utf8"), expected.newContent);
-  },
-  "throwing-write-hook": (scenarioCase) => {
+    assert.equal(fs.readFileSync(input.to, 'utf8'), expected.newContent);
+  }
+
+  static 'throwing-write-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'throwing-write-hook'>): void {
     const { expected, input } = scenarioCase;
     class ThrowingWriteFs extends VirtualFileSystem {
+      static override create(): ThrowingWriteFs {
+        return new ThrowingWriteFs({});
+      }
       override onWrite(): void {
-        throw RuntimeError.create("onWrite boom");
+        throw RuntimeError.create('onWrite boom');
       }
     }
 
     const fs = ThrowingWriteFs.create();
-    fs.writeFileSync(input.path, input.first, "utf8");
+    fs.writeFileSync(input.path, input.first, 'utf8');
     assert.throws(
       () => {
-        fs.writeFileSync(input.path, input.second, "utf8");
+        fs.writeFileSync(input.path, input.second, 'utf8');
       },
-      (error) => {
+      (caught) => {
+        const error: unknown = caught;
         assert.ok(error instanceof HookInvocationError);
         assert.equal(error.hookName, expected.hookName);
         return true;
-      },
+      }
     );
 
     assert.equal(
-      fs.readFileSync(input.path, "utf8") === input.second,
-      expected.written,
+      fs.readFileSync(input.path, 'utf8') === input.second,
+      expected.written
     );
-  },
-};
+  }
 
-function runCase<Shape extends ScenarioShape>(
-  scenarioCase: ScenarioCaseOf<Shape>,
-): Promise<void> | void {
-  return scenarioHandlers[scenarioCase.shape](scenarioCase);
+  private static createCreateLogFs(): CreateLogFs {
+    const fs = CreateLogFs.create();
+    assert.ok(fs instanceof CreateLogFs);
+    return fs;
+  }
+
+  private static createDeleteLogFs(): DeleteLogFs {
+    const fs = DeleteLogFs.create();
+    assert.ok(fs instanceof DeleteLogFs);
+    return fs;
+  }
+
+  private static createFullTraceFs(): FullTraceFs {
+    const fs = FullTraceFs.create();
+    assert.ok(fs instanceof FullTraceFs);
+    return fs;
+  }
+
+  private static createReadLogFs(): ReadLogFs {
+    const fs = ReadLogFs.create();
+    assert.ok(fs instanceof ReadLogFs);
+    return fs;
+  }
+
+  private static createRenameLogFs(): RenameLogFs {
+    const fs = RenameLogFs.create();
+    assert.ok(fs instanceof RenameLogFs);
+    return fs;
+  }
+
+  private static createWriteLogFs(): WriteLogFs {
+    const fs = WriteLogFs.create();
+    assert.ok(fs instanceof WriteLogFs);
+    return fs;
+  }
+
+  private static itemAt<T>(values: readonly T[], index: number): T {
+    const value = values[index];
+    if (value === undefined) {
+      throw new VirtualFileSystemScenarioError(`Expected item at index ${String(index)}`);
+    }
+    return value;
+  }
 }
 
-const scenarios = scenarioGroups.cases as ScenarioCase[];
-
-void describe("VirtualFileSystem subclasses", () => {
-  for (const scenario of scenarios) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': VirtualFileSystemSubclassScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'VirtualFileSystem subclasses',
+  'runners': VirtualFileSystemSubclassRunners
 });

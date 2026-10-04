@@ -39,9 +39,9 @@ pnpm add @studnicky/retry
 Runtime APIs use an explicit platform entry point. Import executable code from `/node` in Node.js applications or `/browser` in browser applications. Every package publishes both runtime entrypoints; the public contract remains isomorphic when behavior is shared. Import shared contracts from their neutral feature path; those declarations are identical across runtimes.
 
 ```typescript
-import { Store } from '@studnicky/store/node';
-import { BrowserPersistence } from '@studnicky/store/browser';
-import type { StoreInterface } from '@studnicky/store/interfaces';
+import { Store } from "@studnicky/store/node";
+import { BrowserPersistence } from "@studnicky/store/browser";
+import type { StoreInterface } from "@studnicky/store/interfaces";
 ```
 
 `/interfaces`, `/entities`, and `/types` are portable contract paths; do not put them under `/node` or `/browser`.
@@ -69,38 +69,11 @@ Use it to limit active operations and protect a constrained service or resource.
 </details>
 
 <details>
-<summary><strong>@studnicky/mutex</strong> — serialize work by key</summary>
-
-Use it to prevent conflicting async operations for the same resource.
-
-[Read the mutex guide →](https://studnicky.github.io/substrate/packages/mutex)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/batch</strong> — process items in controlled parallel groups</summary>
-
-Use it to process a collection with a bounded amount of parallel work.
-
-[Read the batch guide →](https://studnicky.github.io/substrate/packages/batch)
-
-</details>
-
-<details>
 <summary><strong>@studnicky/concurrency</strong> — coordinate asynchronous work</summary>
 
 Use it for keyed channels, semaphores, and coalescing when you need lower-level concurrency primitives.
 
 [Read the concurrency guide →](https://studnicky.github.io/substrate/packages/concurrency)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/file-lock</strong> — coordinate access with a file lock</summary>
-
-Use it when separate processes need advisory access to the same filesystem resource.
-
-[Read the file-lock guide →](https://studnicky.github.io/substrate/packages/file-lock)
 
 </details>
 
@@ -119,51 +92,6 @@ Use it when application code needs a synchronous filesystem abstraction that als
 Use it to combine AbortSignals and place time limits around asynchronous operations.
 
 [Read the signal guide →](https://studnicky.github.io/substrate/packages/signal)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/idempotency-guard</strong> — deduplicate idempotent requests</summary>
-
-Use it to coalesce in-flight work, replay recent results, and reject conflicting reuse of an idempotency key.
-
-[Read the idempotency-guard guide →](https://studnicky.github.io/substrate/packages/idempotency-guard)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/memoize</strong> — cache pure function results</summary>
-
-Use it to cache results by a caller-defined key while sharing concurrent evaluations.
-
-[Read the memoize guide →](https://studnicky.github.io/substrate/packages/memoize)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/bounded-dispatcher</strong> — dispatch work within a fixed bound</summary>
-
-Use it to send work through a bounded execution path with scheduling and event delivery.
-
-[Read the bounded-dispatcher guide →](https://studnicky.github.io/substrate/packages/bounded-dispatcher)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/keyed-work-gate</strong> — run one operation per key</summary>
-
-Use it to serialize or single-flight work independently for each key.
-
-[Read the keyed-work-gate guide →](https://studnicky.github.io/substrate/packages/keyed-work-gate)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/keyed-rate-limiter</strong> — apply rate limits per key</summary>
-
-Use it when each customer, route, or other key needs its own rate-limiting strategy.
-
-[Read the keyed-rate-limiter guide →](https://studnicky.github.io/substrate/packages/keyed-rate-limiter)
 
 </details>
 
@@ -187,14 +115,6 @@ Use it for timers in production and deterministic time control in tests.
 
 </details>
 
-<details>
-<summary><strong>@studnicky/timing</strong> — measure operation duration</summary>
-
-Use it to collect high-resolution timings for an operation.
-
-[Read the timing guide →](https://studnicky.github.io/substrate/packages/timing)
-
-</details>
 
 ### State & Flow
 
@@ -226,38 +146,11 @@ Use it to transform a value through ordered asynchronous stages.
 </details>
 
 <details>
-<summary><strong>@studnicky/paginator</strong> — track paginated data</summary>
-
-Use it to manage cursor or page-list state from a paginated data source.
-
-[Read the paginator guide →](https://studnicky.github.io/substrate/packages/paginator)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/process-kit</strong> — build reducer-and-effects processes</summary>
-
-Use it when a stateful process needs explicit state updates and scheduled effects.
-
-[Read the process-kit guide →](https://studnicky.github.io/substrate/packages/process-kit)
-
-</details>
-
-<details>
 <summary><strong>@studnicky/store</strong> — keep observable application state</summary>
 
-Use it for observable state with in-memory or browser-native persistence.
+Use it for observable state with in-memory or browser-native persistence, ordered cache, durable browser-state synchronization, and normalized entity collections through `@studnicky/store/entity`.
 
 [Read the store guide →](https://studnicky.github.io/substrate/packages/store)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/strata-store-kit</strong> — synchronize cache and browser state</summary>
-
-Use it to keep ordered cache and durable browser state aligned.
-
-[Read the strata-store-kit guide →](https://studnicky.github.io/substrate/packages/strata-store-kit)
 
 </details>
 
@@ -270,15 +163,6 @@ Use it to determine which item indexes are visible for a scroll offset and viewp
 
 </details>
 
-<details>
-<summary><strong>@studnicky/flag-evaluator</strong> — evaluate local feature flags</summary>
-
-Use it for deterministic flag decisions, including percentage rollouts.
-
-[Read the flag-evaluator guide →](https://studnicky.github.io/substrate/packages/flag-evaluator)
-
-</details>
-
 ### Data
 
 <details>
@@ -287,15 +171,6 @@ Use it for deterministic flag decisions, including percentage rollouts.
 Use it for an LRU cache with optional expiry and capacity limits.
 
 [Read the cache guide →](https://studnicky.github.io/substrate/packages/cache)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/entity-store</strong> — manage normalized entities</summary>
-
-Use it to keep ID-indexed records with fast lookup and CRUD operations.
-
-[Read the entity-store guide →](https://studnicky.github.io/substrate/packages/entity-store)
 
 </details>
 
@@ -327,9 +202,9 @@ Use it to explore arbitrary record data through deterministic multi-level drilld
 </details>
 
 <details>
-<summary><strong>@studnicky/filters</strong> — compose declarative filters</summary>
+<summary><strong>@studnicky/filters</strong> — compose declarative filters and deterministic matching-score thresholds</summary>
 
-Use it to express reusable filtering rules over application data.
+Use it to express reusable filtering rules over application data and apply focused matching-score thresholds through its matching entrypoint.
 
 [Read the filters guide →](https://studnicky.github.io/substrate/packages/filters)
 
@@ -352,42 +227,6 @@ Use it to turn configuration input into values that satisfy your application lim
 Use it to build deterministic matching and ranking flows over application data.
 
 [Read the matching guide →](https://studnicky.github.io/substrate/packages/matching)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/matching-filters</strong> — filter matching scores</summary>
-
-Use it to add focused filters to a deterministic matching result.
-
-[Read the matching-filters guide →](https://studnicky.github.io/substrate/packages/matching-filters)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/semantic-matching</strong> — define semantic matching integrations</summary>
-
-Use it when your application supplies vectorization, search, reranking, or classification providers.
-
-[Read the semantic-matching guide →](https://studnicky.github.io/substrate/packages/semantic-matching)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/topic-router</strong> — fan out events by topic pattern</summary>
-
-Use it to deliver one published topic to every matching subscriber.
-
-[Read the topic-router guide →](https://studnicky.github.io/substrate/packages/topic-router)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/topic-router-models</strong> — describe model-backed topic delivery</summary>
-
-Use it to map model evidence into a topic-delivery flow.
-
-[Read the topic-router-models guide →](https://studnicky.github.io/substrate/packages/topic-router-models)
 
 </details>
 
@@ -430,38 +269,11 @@ Use it to create a consistent error hierarchy that serializes to Problem Details
 </details>
 
 <details>
-<summary><strong>@studnicky/request-executor</strong> — run one resilient HTTP request</summary>
-
-Use it to combine a request, retry policy, cancellation, timing, and request context.
-
-[Read the request-executor guide →](https://studnicky.github.io/substrate/packages/request-executor)
-
-</details>
-
-<details>
 <summary><strong>@studnicky/resilience</strong> — protect unreliable dependencies</summary>
 
-Use it for circuit breaking, token buckets, sliding-window limits, and dead-letter queues.
+Use it for circuit breaking, token buckets, keyed and sliding-window limits, and dead-letter queues.
 
 [Read the resilience guide →](https://studnicky.github.io/substrate/packages/resilience)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/boundary-kit</strong> — apply a fixed dependency-call boundary</summary>
-
-Use it to combine throttling, circuit breaking, and retry around an external call.
-
-[Read the boundary-kit guide →](https://studnicky.github.io/substrate/packages/boundary-kit)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/health-registry</strong> — aggregate named health checks</summary>
-
-Use it to register asynchronous checks and report their combined status.
-
-[Read the health-registry guide →](https://studnicky.github.io/substrate/packages/health-registry)
 
 </details>
 
@@ -491,15 +303,6 @@ Use it to fan typed work items across a limited pool of Node.js workers.
 Use it for constant-time insertion and removal from a bounded circular buffer.
 
 [Read the circular-buffer guide →](https://studnicky.github.io/substrate/packages/circular-buffer)
-
-</details>
-
-<details>
-<summary><strong>@studnicky/sample-buffer</strong> — retain numeric samples</summary>
-
-Use it to keep a fixed-size sample set and calculate percentiles.
-
-[Read the sample-buffer guide →](https://studnicky.github.io/substrate/packages/sample-buffer)
 
 </details>
 

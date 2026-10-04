@@ -1,21 +1,12 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import { AstHelpers } from './astHelpers.js';
 
-/**
- * Extracts the set of names a function-like node's own parameter list binds directly. Consumed
- * by `TrivialExpression`'s `CallArgumentForwarding` (see that module's comment) to decide
- * whether a call's arguments are a genuine 1:1 relay of the enclosing function's own inputs,
- * rather than a closed-over outer binding or the result of further computation.
- */
+// Names a function's own directly-bound parameters; feeds TrivialExpression's
+// argument-forwarding check — see inline-trivial-logic.md.
 export class ParameterNames {
-  /**
-   * A plain `Identifier` parameter, or the `Identifier` left-hand side of a default-valued one
-   * (`x = 1`), contributes its name. A destructured (`{ a }`, `[a]`) or rest (`...rest`)
-   * parameter contributes none: an argument built from one of those bindings is never a bare
-   * `Identifier` reference to the parameter itself anyway, so it would not match as a
-   * forwarded argument regardless of whether its name were tracked here.
-   */
+  // Only a plain Identifier, or the Identifier LHS of a default-valued one, contributes
+  // a name — a destructured/rest parameter never matches as a forwarded argument anyway.
   public static of(node: unknown): ReadonlySet<string> {
     const result = new Set<string>();
     const parameterNodes: unknown = Predicates.isRecord(node) ? node.params : undefined;

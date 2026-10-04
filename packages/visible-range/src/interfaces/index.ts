@@ -1,1 +1,1 @@
-export type { VisibleRangeConfigInterface } from './VisibleRangeConfigInterface.js';
+export type { VisibleRangeCollaboratorsInterface } from './VisibleRangeCollaboratorsInterface.js';

@@ -14,7 +14,7 @@
   ],
   "references": [
     {
-      "path": "../circular-buffer"
+      "path": "../concurrency"
     },
     {
       "path": "../entity"

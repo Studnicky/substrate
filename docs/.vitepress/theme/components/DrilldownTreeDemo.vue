@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { faker } from '@faker-js/faker';
 import { DrillDown } from '@studnicky/drilldown/browser';
 import type { GroupNodeInterface } from '@studnicky/drilldown/interfaces';
 import DrilldownTreeNode from './DrilldownTreeNode.vue';
 
 const RECORD_COUNT = 320;
+const BRANDS = ['Acme Outfitters', 'Apex Electronics', 'Beacon Home', 'Cedar & Co.', 'Harbor Supply', 'Juniper Apparel', 'Northstar Goods', 'Summit Outdoor'];
 const REGIONS = ['North America', 'Europe', 'Asia Pacific', 'Latin America'];
 const CATEGORIES = ['Electronics', 'Home Goods', 'Apparel', 'Outdoors'];
 const STATUSES = ['fulfilled', 'processing', 'returned', 'cancelled'];
@@ -20,16 +20,14 @@ interface OrderRecord {
 }
 
 function generateOrders(count: number): OrderRecord[] {
-  return Array.from({ 'length': count }, (): OrderRecord => {
-    return {
-      'brand': faker.company.name(),
-      'category': faker.helpers.arrayElement(CATEGORIES),
-      'orderId': faker.string.uuid(),
-      'region': faker.helpers.arrayElement(REGIONS),
-      'status': faker.helpers.arrayElement(STATUSES),
-      'total': faker.number.float({ 'fractionDigits': 2, 'max': 850, 'min': 12 })
-    };
-  });
+  return Array.from({ length: count }, (_, index): OrderRecord => ({
+    brand: BRANDS[index % BRANDS.length],
+    category: CATEGORIES[Math.floor(index / REGIONS.length) % CATEGORIES.length],
+    orderId: `ORD-${String(index + 1).padStart(4, '0')}`,
+    region: REGIONS[index % REGIONS.length],
+    status: STATUSES[Math.floor(index / (REGIONS.length * CATEGORIES.length)) % STATUSES.length],
+    total: Number((12 + ((index * 37) % 839) + ((index * 13) % 100) / 100).toFixed(2))
+  }));
 }
 
 const orders = ref<OrderRecord[]>([]);

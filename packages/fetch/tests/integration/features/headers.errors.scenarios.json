@@ -11,11 +11,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "header-value-boolean",
@@ -28,11 +28,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "header-value-null",
@@ -45,11 +45,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "header-value-undefined",
@@ -68,9 +68,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "header-value-object",
@@ -83,11 +83,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "header-value-array",
@@ -100,11 +100,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "header"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "headers-array",
@@ -115,11 +115,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "headers-string",
@@ -130,11 +130,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "headers-number",
@@ -145,11 +145,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "headers-null",
@@ -160,11 +160,11 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "messageIncludes": [
           "headers"
         ]
-      }
+      },
+      "shape": "rejects-construction"
     },
     {
       "name": "header-case-sensitivity",
@@ -182,9 +182,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "header-case-merge",
@@ -203,9 +203,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "empty-header-value",
@@ -222,9 +222,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "spaced-header-value",
@@ -241,9 +241,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "special-header-value",
@@ -260,9 +260,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "unicode-header-value",
@@ -279,9 +279,9 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "errorType": "TypeError"
-      }
+      },
+      "shape": "rejects-request"
     },
     {
       "name": "long-header-value-1kb",
@@ -298,9 +298,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "long-header-value-8kb",
@@ -317,9 +317,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "many-headers-50",
@@ -385,9 +385,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "many-headers-100",
@@ -503,9 +503,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "request-overrides-client",
@@ -525,9 +525,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "request-merges-client",
@@ -547,9 +547,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "content-type-json",
@@ -567,9 +567,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 201
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "content-type-mismatch",
@@ -585,9 +585,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 201
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "content-type-multiple",
@@ -608,9 +608,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 201
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "authorization-empty",
@@ -627,9 +627,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "authorization-malformed",
@@ -646,9 +646,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "authorization-long",
@@ -665,9 +665,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "user-agent-header",
@@ -684,9 +684,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     },
     {
       "name": "accept-variations",
@@ -704,9 +704,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "shape": "ok"
     }
   ]
 }

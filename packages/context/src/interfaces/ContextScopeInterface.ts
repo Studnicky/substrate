@@ -22,5 +22,5 @@ export interface ContextScopeInterface {
   /**
    * Terminate the scope, extracting final state and preventing further execution.
    */
-  terminate(): Record<string, unknown>;
+  terminate(): ReadonlyMap<string, unknown>;
 }

@@ -1,3 +1,4 @@
+import { CallerFault } from '@studnicky/types/browser';
 import { AsyncLocalStorage } from 'node:async_hooks';
 
 import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
@@ -29,7 +30,7 @@ export class NodeContextStorage implements ContextStorageInterface {
         return restoredResult;
       },
       (error: unknown) => {
-        const rejectedResult = runInScope(() => { throw error; });
+        const rejectedResult = runInScope(() => { CallerFault.propagate(error); });
         return rejectedResult;
       }
     );

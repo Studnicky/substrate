@@ -1,0 +1,123 @@
+{
+  "cases": [
+    {
+      "name": "write-then-read",
+      "description": "write stores content that read returns",
+      "shape": "write-then-read",
+      "input": {
+        "path": "note.txt",
+        "content": "hello"
+      },
+      "expected": {
+        "detail": "hello"
+      }
+    },
+    {
+      "name": "mkdir-then-list",
+      "description": "mkdir creates missing parents and list names the entries inside",
+      "shape": "mkdir-then-list",
+      "input": {
+        "path": "a/b/c",
+        "content": "x"
+      },
+      "expected": {
+        "detail": [
+          "f.txt"
+        ]
+      }
+    },
+    {
+      "name": "rename-moves-file",
+      "description": "rename moves a file to its new name",
+      "shape": "rename-moves-file",
+      "input": {
+        "path": "old.txt",
+        "content": "v",
+        "to": "new.txt"
+      },
+      "expected": {
+        "detail": "v"
+      }
+    },
+    {
+      "name": "remove-deletes-tree",
+      "description": "remove deletes a directory tree and its contents",
+      "shape": "remove-deletes-tree",
+      "input": {
+        "path": "tree/inner",
+        "content": "v"
+      },
+      "expected": {
+        "detail": false
+      }
+    },
+    {
+      "name": "create-rejects",
+      "description": "create wraps a platform failure in a TestWorkspaceError",
+      "shape": "create-rejects",
+      "input": {
+        "path": "missing-parent/prefix-"
+      },
+      "expected": {
+        "detail": "create"
+      }
+    },
+    {
+      "name": "read-rejects",
+      "description": "read wraps a missing-file failure",
+      "shape": "read-rejects",
+      "input": {
+        "path": "missing.txt"
+      },
+      "expected": {
+        "detail": "read"
+      }
+    },
+    {
+      "name": "write-rejects",
+      "description": "write wraps a missing-parent-directory failure",
+      "shape": "write-rejects",
+      "input": {
+        "path": "no-dir/file.txt",
+        "content": "x"
+      },
+      "expected": {
+        "detail": "write"
+      }
+    },
+    {
+      "name": "list-rejects",
+      "description": "list wraps a missing-directory failure",
+      "shape": "list-rejects",
+      "input": {
+        "path": "missing-dir"
+      },
+      "expected": {
+        "detail": "list"
+      }
+    },
+    {
+      "name": "rename-rejects",
+      "description": "rename wraps a missing-source failure",
+      "shape": "rename-rejects",
+      "input": {
+        "path": "missing.txt",
+        "to": "elsewhere.txt"
+      },
+      "expected": {
+        "detail": "rename"
+      }
+    },
+    {
+      "name": "realpath-rejects",
+      "description": "realpath wraps a missing-path failure",
+      "shape": "realpath-rejects",
+      "input": {
+        "path": "missing.txt"
+      },
+      "expected": {
+        "detail": "realpath"
+      }
+    }
+  ]
+}

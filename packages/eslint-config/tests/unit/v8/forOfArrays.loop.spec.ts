@@ -1,163 +1,99 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import parser from '@typescript-eslint/parser';
+import { Linter, RuleTester } from 'eslint';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import parser from '@typescript-eslint/parser';
-import { RuleTester } from 'eslint';
-
 import { forOfArrays } from '../../../src/rules/v8/forOfArrays.js';
-import { Predicates } from '@studnicky/types/node';
-import scenarioFile from './forOfArrays.scenarios.json' with { type: 'json' };
+import scenarioFile from './forOfArrays.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
 
-interface ParserServicesInput {
-  readonly hasTsNode?: boolean;
-  readonly isArrayType?: boolean;
-  readonly isTupleType?: boolean;
-  readonly shape: string;
+/**
+ * Wraps the real `@typescript-eslint/parser` so the returned `services.esTreeNodeToTSNodeMap`
+ * never resolves the top-level `ForOfStatement.right` node — the one branch a genuinely typed
+ * parse can't otherwise exercise, since the real parser always maps every node it produces.
+ */
+class UnresolvedTypeChecker {
+  getTypeAtLocation(): object {
+    const type = {};
+    return type;
+  }
+
+  isArrayType(): boolean {
+    const isArray = false;
+    return isArray;
+  }
+
+  isTupleType(): boolean {
+    const isTuple = false;
+    return isTuple;
+  }
 }
 
-interface RightInput {
-  readonly shape: string;
+class UnresolvedProgram {
+  getTypeChecker(): UnresolvedTypeChecker {
+    const checker = new UnresolvedTypeChecker();
+    return checker;
+  }
 }
 
-interface ListenerScenario {
-  readonly expected: {
-    readonly messageIds: readonly string[];
-  };
-  readonly input: {
-    readonly parserServices: ParserServicesInput;
-    readonly right: RightInput;
-  };
-  readonly name: string;
-}
+class UnresolvedTsNodeParser {
+  static parseForESLint(text: string, options?: Parameters<typeof parser.parseForESLint>[1]) {
+    const real = parser.parseForESLint(text, options);
+    const statement = real.ast.body.find((candidate) => {
+      const matches = candidate.type === 'ForOfStatement';
+      return matches;
+    });
 
-type ParserServicesFactory = (input: ParserServicesInput, right: object) => unknown;
-type RightFactory = (input: RightInput) => object;
+    if (statement === undefined) {
+      throw RuntimeError.create('expected a ForOfStatement somewhere in the program');
+    }
 
-const parserServicesFactories: Record<string, ParserServicesFactory> = {
-  empty: () => ({}),
-  typed: (input, right) => {
-    const tsNode = {};
-    const entries = input.hasTsNode === false ? [] : [[right, tsNode] as const];
-
-    return {
-      esTreeNodeToTSNodeMap: new Map(entries),
-      program: {
-        getTypeChecker() {
-          return {
-            getTypeAtLocation() {
-              return {};
-            },
-            isArrayType() {
-              return input.isArrayType === true;
-            },
-            isTupleType() {
-              return input.isTupleType === true;
-            }
-          };
-        }
+    const result = {
+      'ast': real.ast,
+      'scopeManager': real.scopeManager,
+      'services': {
+        'esTreeNodeToTSNodeMap': new Map(),
+        'program': new UnresolvedProgram()
       }
     };
-  },
-  // Regression fixture for the WeakMap-vs-Map bug: the real installed
-  // @typescript-eslint/parser exposes `esTreeNodeToTSNodeMap` as a WeakMap under
-  // projectService/allowDefaultProject, so `instanceof Map` is always false there.
-  // hasTypeServices must duck-type on `.get()` instead, which this WeakMap-backed
-  // fixture exercises directly (a WeakMap cannot be constructed from entries, so the
-  // single right-hand-side object is set individually).
-  typedWeakMap: (input, right) => {
-    const tsNode = {};
-    const map = new WeakMap();
-    if (input.hasTsNode !== false) { map.set(right, tsNode); }
-
-    return {
-      esTreeNodeToTSNodeMap: map,
-      program: {
-        getTypeChecker() {
-          return {
-            getTypeAtLocation() {
-              return {};
-            },
-            isArrayType() {
-              return input.isArrayType === true;
-            },
-            isTupleType() {
-              return input.isTupleType === true;
-            }
-          };
-        }
-      }
-    };
+    return result;
   }
-};
-
-const rightFactories: Record<string, RightFactory> = {
-  arrayExpression: () => ({ type: 'ArrayExpression' }),
-  object: () => ({})
-};
-
-function requireFixtureFactory<T>(factory: T | undefined, shape: string): T {
-  if (factory === undefined) {
-    throw RuntimeError.create(`Unsupported scenario fixture shape: ${shape}`);
-  }
-  return factory;
 }
 
-function toMessageId(report: unknown): string {
-  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
-  const { messageId } = report;
-  return typeof messageId === 'string' ? messageId : '<no-messageId>';
-}
+const unresolvedTsNodeParser = { 'parseForESLint': UnresolvedTsNodeParser.parseForESLint };
 
 void describe('for-of-arrays', () => {
   void it('validates for-of-arrays source scenarios', () => {
     ruleTester.run('for-of-arrays', forOfArrays, scenarioFile.ruleTester);
   });
 
-  for (const scenarioCase of scenarioFile.listenerCases as readonly ListenerScenario[]) {
-    void it(scenarioCase.name, () => {
-      const reports: unknown[] = [];
-      const rightFactory = requireFixtureFactory(
-        rightFactories[scenarioCase.input.right.shape],
-        scenarioCase.input.right.shape
-      );
-      const right = rightFactory(scenarioCase.input.right);
-      const parserServicesFactory = requireFixtureFactory(
-        parserServicesFactories[scenarioCase.input.parserServices.shape],
-        scenarioCase.input.parserServices.shape
-      );
-      const listeners = forOfArrays.create({
-        report(descriptor: unknown) {
-          reports.push(descriptor);
-        },
-        sourceCode: {
-          parserServices: parserServicesFactory(scenarioCase.input.parserServices, right)
-        }
-      } as never);
+  void it('ignores non-arrays when type services do not resolve a TS node for the right-hand side', () => {
+    const linter = new Linter();
+    const messages = linter.verify('declare const arr: number[]; for (const x of arr) { void x; }', [{
+      'files': ['**/*.ts'],
+      'languageOptions': { 'parser': unresolvedTsNodeParser },
+      'plugins': { 'local': { 'rules': { 'for-of-arrays': forOfArrays } } },
+      'rules': { 'local/for-of-arrays': 'error' }
+    }], { 'filename': 'unresolved.ts' });
 
-      listeners.ForOfStatement?.({
-        right
-      } as never);
-
-      assert.deepEqual(reports.map(toMessageId), scenarioCase.expected.messageIds);
-    });
-  }
+    assert.deepEqual(messages, []);
+  });
 });

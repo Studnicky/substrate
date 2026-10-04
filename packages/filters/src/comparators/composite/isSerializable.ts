@@ -46,28 +46,10 @@ export class IsSerializable {
     }
     visited.add(value);
 
-    // Arrays
-    if (Predicates.isArray(value)) {
-      const result = value.every((item) => {
-        if (!JsonValue.is(item) && !Predicates.isObjectLike(item)) {
-          return false;
-        }
-        const itemResult = IsSerializable.isSerializableRecursive(item, visited);
-        return itemResult;
-      });
+    const containerResult = IsSerializable.dispatchContainer(value, visited);
 
-      return result;
-    }
-
-    // Dates are serializable
-    if (Predicates.isDate(value)) {
-      const result = !isNaN(value.getTime());
-      return result;
-    }
-
-    // RegExp, Map, Set, and other objects are not directly JSON serializable
-    if (Predicates.isRegExp(value) || Predicates.isMap(value) || Predicates.isSet(value)) {
-      return false;
+    if (containerResult !== null) {
+      return containerResult;
     }
 
     if (!Predicates.isRecord(value)) {
@@ -76,45 +58,92 @@ export class IsSerializable {
 
     // Plain objects
     if (value.constructor === Object || value.constructor === undefined) {
-      const propertyKeys = Object.keys(value);
-      const propertyKeysLength = propertyKeys.length;
+      const result = IsSerializable.isPlainObjectSerializable(value, visited);
 
-      for (let index = 0; index < propertyKeysLength; index++) {
-        const key = propertyKeys[index];
-
-        if (key === undefined) {
-          continue;
-        }
-        const propertyValue = value[key];
-
-        if ((!JsonValue.is(propertyValue) && !Predicates.isObjectLike(propertyValue))
-            || !IsSerializable.isSerializableRecursive(propertyValue, visited)) {
-          return false;
-        }
-      }
-
-      return true;
+      return result;
     }
 
     // Objects with toJSON method are potentially serializable
-    const toJSON = value.toJSON;
+    const result = IsSerializable.isToJsonSerializable(value, visited);
 
-    if (Predicates.isFunction(toJSON)) {
-      try {
-        const jsonValue = Reflect.apply(toJSON, value, []);
+    return result;
+  }
 
-        if (!JsonValue.is(jsonValue) && !Predicates.isObjectLike(jsonValue)) {
-          return false;
-        }
-        const result = IsSerializable.isSerializableRecursive(jsonValue, visited);
+  /** Arrays, Dates, and unsupported containers; `null` means `value` is a record still needing plain-object/toJSON handling. */
+  private static dispatchContainer(value: object, visited: WeakSet<object>): boolean | null {
+    if (Predicates.isArray(value)) {
+      const result = value.every((item) => { const itemResult = IsSerializable.isSerializableItem(item, visited);
+        return itemResult; });
 
-        return result;
-      } catch {
+      return result;
+    }
+
+    // Dates are serializable
+    if (Predicates.isDate(value)) {
+      const result = !isNaN(value.getTime());
+
+      return result;
+    }
+
+    // RegExp, Map, Set are not directly JSON serializable
+    if (IsSerializable.isUnsupportedContainer(value)) {
+      return false;
+    }
+
+    return null;
+  }
+
+  /** Item is serializable when it's a JSON-shaped primitive/object-like value that passes recursive checking. */
+  private static isSerializableItem(item: unknown, visited: WeakSet<object>): boolean {
+    if (!JsonValue.is(item) && !Predicates.isObjectLike(item)) {
+      return false;
+    }
+
+    const result = IsSerializable.isSerializableRecursive(item, visited);
+
+    return result;
+  }
+
+  private static isUnsupportedContainer(value: unknown): boolean {
+    const result = Predicates.isRegExp(value) || Predicates.isMap(value) || Predicates.isSet(value);
+
+    return result;
+  }
+
+  private static isPlainObjectSerializable(value: Record<string, unknown>, visited: WeakSet<object>): boolean {
+    const propertyKeys = Object.keys(value);
+    const propertyKeysLength = propertyKeys.length;
+
+    for (let index = 0; index < propertyKeysLength; index++) {
+      const key = propertyKeys[index];
+
+      if (key === undefined) {
+        continue;
+      }
+
+      if (!IsSerializable.isSerializableItem(value[key], visited)) {
         return false;
       }
     }
 
-    // Other object types are generally not serializable
-    return false;
+    return true;
+  }
+
+  private static isToJsonSerializable(value: Record<string, unknown>, visited: WeakSet<object>): boolean {
+    const toJSON = value.toJSON;
+
+    if (!Predicates.isFunction(toJSON)) {
+      // Other object types are generally not serializable
+      return false;
+    }
+
+    try {
+      const jsonValue: unknown = Reflect.apply(toJSON, value, []);
+      const result = IsSerializable.isSerializableItem(jsonValue, visited);
+
+      return result;
+    } catch {
+      return false;
+    }
   }
 }

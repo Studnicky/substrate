@@ -322,7 +322,7 @@
           "chainStageCount": 3
         },
         "scheduler": {
-          "maxDelayMs": 10
+          "maximumDelayMs": 10
         }
       },
       "expected": {
@@ -338,7 +338,7 @@
           "chainStageCount": 3
         },
         "scheduler": {
-          "maxDelayMs": 10
+          "maximumDelayMs": 10
         }
       },
       "expected": {

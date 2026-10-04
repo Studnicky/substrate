@@ -6,16 +6,16 @@
       "input": {
         "request": {
           "invoke": "apply-get",
-          "args": [
+          "argumentList": [
             ""
           ]
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "url must be a non-empty string"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "url-validation-non-string",
@@ -23,16 +23,16 @@
       "input": {
         "request": {
           "invoke": "apply-get",
-          "args": [
+          "argumentList": [
             123
           ]
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "url must be a non-empty string"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "url-validation-null",
@@ -40,16 +40,16 @@
       "input": {
         "request": {
           "invoke": "apply-get",
-          "args": [
+          "argumentList": [
             null
           ]
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "url must be a non-empty string"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "url-validation-undefined",
@@ -57,7 +57,7 @@
       "input": {
         "request": {
           "invoke": "apply-get",
-          "args": [
+          "argumentList": [
             {
               "shape": "undefined"
             }
@@ -65,10 +65,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "url must be a non-empty string"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "url-validation-valid",
@@ -79,10 +79,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "instant response"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "timeout-validation-zero",
@@ -94,10 +94,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-negative",
@@ -109,10 +109,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-nan",
@@ -126,10 +126,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-infinity",
@@ -143,10 +143,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-negative-infinity",
@@ -160,10 +160,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-non-number",
@@ -177,10 +177,10 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "Error",
         "messagePattern": "timeout must be a positive number"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-validation-valid",
@@ -192,9 +192,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "timeout-functionality-expires",
@@ -207,13 +207,13 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "reject",
         "messageIncludes": [
           "timed out",
           "50ms"
         ],
         "timeoutMs": 50
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-functionality-completes",
@@ -225,10 +225,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "delayed 50ms"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "timeout-functionality-short",
@@ -241,9 +241,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "reject",
         "timeoutMs": 1
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-functionality-long",
@@ -255,9 +255,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "signal-handling-external-abort",
@@ -273,11 +273,11 @@
       },
       "expected": {
         "error": "AbortError",
-        "shape": "reject",
         "messageIncludes": [
           "aborted"
         ]
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "signal-handling-already-aborted",
@@ -292,11 +292,11 @@
       },
       "expected": {
         "error": "AbortError",
-        "shape": "reject",
         "messageIncludes": [
           "aborted"
         ]
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "signal-handling-combined",
@@ -311,9 +311,9 @@
         }
       },
       "expected": {
-        "shape": "reject",
         "error": "AbortError"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "signal-handling-timeout-wins",
@@ -330,9 +330,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "reject",
         "timeoutMs": 20
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "request-without-timeout-success",
@@ -343,10 +343,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "instant response"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "request-without-timeout-baseurl-parameters",
@@ -364,11 +364,11 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "instant response",
         "url": "https://example.test/instant?page=1&tag=alpha"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "request-without-timeout-explicit-request-id",
@@ -383,10 +383,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "instant response"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "request-without-timeout-absolute-url",
@@ -400,11 +400,11 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "instant response",
         "url": "https://other.example.test/instant"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "request-without-timeout-signal",
@@ -418,9 +418,9 @@
         }
       },
       "expected": {
-        "error": "AbortError",
-        "shape": "reject"
-      }
+        "error": "AbortError"
+      },
+      "outcome": "reject"
     },
     {
       "name": "request-without-timeout-error",
@@ -431,10 +431,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 500,
         "text": "server error"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "error-handling-network",
@@ -446,9 +446,9 @@
       },
       "expected": {
         "error": "Error",
-        "shape": "reject",
         "messagePattern": "ECONNREFUSED|fetch failed"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "error-handling-dns",
@@ -460,9 +460,9 @@
       },
       "expected": {
         "error": "Error",
-        "shape": "reject",
         "messagePattern": "EAI_AGAIN|ENOTFOUND|fetch failed"
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "error-handling-invalid-url",
@@ -473,9 +473,9 @@
         }
       },
       "expected": {
-        "error": "Error",
-        "shape": "reject"
-      }
+        "error": "Error"
+      },
+      "outcome": "reject"
     },
     {
       "name": "error-handling-connect-timeout",
@@ -493,9 +493,9 @@
         }
       },
       "expected": {
-        "error": "ConnectTimeoutError",
-        "shape": "reject"
-      }
+        "error": "ConnectTimeoutError"
+      },
+      "outcome": "reject"
     },
     {
       "name": "edge-case-multiple-timeouts",
@@ -506,9 +506,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "edge-case-just-before-timeout",
@@ -520,10 +520,10 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200,
         "text": "delayed 40ms"
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "edge-case-empty-options",
@@ -535,9 +535,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "edge-case-additional-fetch-options",
@@ -555,9 +555,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "edge-case-pass-through-options",
@@ -574,9 +574,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "signal-cleanup-success",
@@ -588,9 +588,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "signal-cleanup-failed",
@@ -605,9 +605,9 @@
         }
       },
       "expected": {
-        "error": "AbortError",
-        "shape": "reject"
-      }
+        "error": "AbortError"
+      },
+      "outcome": "reject"
     },
     {
       "name": "fetch-without-timeout-direct-fetch",
@@ -618,9 +618,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "fetch-without-timeout-signal",
@@ -635,9 +635,9 @@
         }
       },
       "expected": {
-        "error": "AbortError",
-        "shape": "reject"
-      }
+        "error": "AbortError"
+      },
+      "outcome": "reject"
     },
     {
       "name": "fetch-without-timeout-convert-abort",
@@ -652,11 +652,11 @@
       },
       "expected": {
         "error": "AbortError",
-        "shape": "reject",
         "messageIncludes": [
           "aborted"
         ]
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-path-apply-timeout",
@@ -668,9 +668,9 @@
         }
       },
       "expected": {
-        "shape": "ok",
         "status": 200
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "timeout-path-timeout-expired",
@@ -683,9 +683,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "reject",
         "timeoutMs": 50
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-path-external-signal",
@@ -702,11 +702,11 @@
       },
       "expected": {
         "error": "AbortError",
-        "shape": "reject",
         "messageIncludes": [
           "aborted"
         ]
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "timeout-path-timeout-before-abort",
@@ -723,9 +723,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "reject",
         "timeoutMs": 20
-      }
+      },
+      "outcome": "reject"
     },
     {
       "name": "error-handling-unknown-code",
@@ -744,11 +744,11 @@
       },
       "expected": {
         "error": "Error",
-        "shape": "reject",
         "messageIncludes": [
           "unknown error"
         ]
-      }
+      },
+      "outcome": "reject"
     }
   ]
 }

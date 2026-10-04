@@ -6,3 +6,4 @@
 
 export { Context } from './context/Context.js';
 export { ContextConfigError, ContextError } from './errors/ContextError.js';
+export { UnsupportedSourceExtensionError } from './errors/UnsupportedSourceExtensionError.js';

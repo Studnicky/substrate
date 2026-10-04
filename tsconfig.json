@@ -4,16 +4,19 @@
   },
   "references": [
     {
+      "path": "scripts"
+    },
+    {
+      "path": ".github/scripts"
+    },
+    {
+      "path": "scripts/test-helpers/scenario-kit"
+    },
+    {
       "path": "packages/cache"
     },
     {
       "path": "packages/cache/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/entity-store"
-    },
-    {
-      "path": "packages/entity-store/tsconfig.tests.json"
     },
     {
       "path": "packages/eslint-config"
@@ -28,40 +31,16 @@
       "path": "packages/event-bus/tsconfig.tests.json"
     },
     {
-      "path": "packages/file-lock"
-    },
-    {
-      "path": "packages/file-lock/tsconfig.tests.json"
-    },
-    {
       "path": "packages/fsm"
     },
     {
       "path": "packages/fsm/tsconfig.tests.json"
     },
     {
-      "path": "packages/health-registry"
-    },
-    {
-      "path": "packages/health-registry/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/idempotency-guard"
-    },
-    {
-      "path": "packages/idempotency-guard/tsconfig.tests.json"
-    },
-    {
       "path": "packages/entity"
     },
     {
       "path": "packages/entity/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/request-executor"
-    },
-    {
-      "path": "packages/request-executor/tsconfig.tests.json"
     },
     {
       "path": "packages/resilience"
@@ -80,30 +59,6 @@
     },
     {
       "path": "packages/store/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/strata-store-kit"
-    },
-    {
-      "path": "packages/strata-store-kit/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/batch"
-    },
-    {
-      "path": "packages/batch/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/boundary-kit"
-    },
-    {
-      "path": "packages/boundary-kit/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/bounded-dispatcher"
-    },
-    {
-      "path": "packages/bounded-dispatcher/tsconfig.tests.json"
     },
     {
       "path": "packages/circular-buffer"
@@ -154,40 +109,10 @@
       "path": "packages/json/tsconfig.tests.json"
     },
     {
-      "path": "packages/keyed-rate-limiter"
-    },
-    {
-      "path": "packages/keyed-rate-limiter/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/keyed-work-gate"
-    },
-    {
-      "path": "packages/keyed-work-gate/tsconfig.tests.json"
-    },
-    {
       "path": "packages/logger"
     },
     {
       "path": "packages/logger/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/memoize"
-    },
-    {
-      "path": "packages/memoize/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/mutex"
-    },
-    {
-      "path": "packages/mutex/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/paginator"
-    },
-    {
-      "path": "packages/paginator/tsconfig.tests.json"
     },
     {
       "path": "packages/pipeline"
@@ -196,40 +121,10 @@
       "path": "packages/pipeline/tsconfig.tests.json"
     },
     {
-      "path": "packages/process-kit"
-    },
-    {
-      "path": "packages/process-kit/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/retry"
-    },
-    {
-      "path": "packages/retry/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/sample-buffer"
-    },
-    {
-      "path": "packages/sample-buffer/tsconfig.tests.json"
-    },
-    {
       "path": "packages/scheduler"
     },
     {
       "path": "packages/scheduler/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/throttle"
-    },
-    {
-      "path": "packages/throttle/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/timing"
-    },
-    {
-      "path": "packages/timing/tsconfig.tests.json"
     },
     {
       "path": "packages/types"
@@ -250,36 +145,6 @@
       "path": "packages/matching/tsconfig.tests.json"
     },
     {
-      "path": "packages/matching-filters"
-    },
-    {
-      "path": "packages/matching-filters/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/topic-router"
-    },
-    {
-      "path": "packages/topic-router/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/semantic-matching"
-    },
-    {
-      "path": "packages/semantic-matching/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/topic-router-models"
-    },
-    {
-      "path": "packages/topic-router-models/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/system"
-    },
-    {
-      "path": "packages/system/tsconfig.tests.json"
-    },
-    {
       "path": "packages/virtual-fs"
     },
     {
@@ -290,18 +155,6 @@
     },
     {
       "path": "packages/visible-range/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/flag-evaluator"
-    },
-    {
-      "path": "packages/flag-evaluator/tsconfig.tests.json"
-    },
-    {
-      "path": "packages/worker-pool"
-    },
-    {
-      "path": "packages/worker-pool/tsconfig.tests.json"
     },
     {
       "path": "packages/drilldown"

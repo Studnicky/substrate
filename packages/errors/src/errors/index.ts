@@ -4,7 +4,6 @@
  * @packageDocumentation
  */
 
-export { BaseError } from './BaseError.js';
 export { CliExitError } from './CliExitError.js';
 export { DomainErrorArgumentList } from './DomainErrorArgumentList.js';
 export { HookInvocationError } from './HookInvocationError.js';

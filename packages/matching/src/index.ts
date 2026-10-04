@@ -1,5 +1,6 @@
 export * from './candidate-sources/index.js';
 export * from './encoders/index.js';
+export * from './errors/index.js';
 export * from './extractors/index.js';
 export type * from './interfaces/index.js';
 export * from './matchers/index.js';

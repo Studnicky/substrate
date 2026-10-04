@@ -1,136 +1,20 @@
-import { RuntimeError, HookInvocationError, ReentrantHookInvocationError } from '@studnicky/errors/node';
-import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { HookInvocationError, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/node';
+import assert from 'node:assert/strict';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
+import { CircularBufferSubclassScenarioCaseEntity } from '../entities/CircularBufferSubclassScenarioCaseEntity.js';
+import { GrowLogBuffer } from '../helpers/GrowLogBuffer.js';
+import { PushCountBuffer } from '../helpers/PushCountBuffer.js';
+import scenarioGroups from './CircularBuffer.subclass.scenarios.json' with { 'type': 'json' };
 
 
-
-import { CircularBuffer } from "../../../src/circular-buffer/CircularBuffer.js";
-import type { CircularBufferOptionsEntity } from "../../../src/entities/CircularBufferOptionsEntity.js";
-import scenarioGroups from "./CircularBuffer.subclass.scenarios.json" with { type: "json" };
-
-type ScenarioShape =
-  | "async-rejecting-onPush-guarded"
-  | "base-class-operates-correctly-after-grow"
-  | "create-returns-subclass"
-  | "full-trace-grow"
-  | "full-trace-overwrite"
-  | "grow-mode-all-hooks-active"
-  | "onEvict-called-with-evicted-item"
-  | "onEvict-not-called-below-capacity"
-  | "onEvict-receives-items-FIFO"
-  | "onEvict-receives-oldest-item"
-  | "onGrow-called-once-per-grow-event"
-  | "onGrow-called-when-capacity-exceeded"
-  | "onGrow-not-called-in-overwrite-mode"
-  | "onGrow-receives-correct-old-new-capacity"
-  | "onPush-called-on-each-overwrite-push"
-  | "onPush-called-on-each-push"
-  | "onPush-called-on-grow-trigger"
-  | "onPush-length-already-incremented"
-  | "onShift-called-with-items-before-returned"
-  | "onShift-not-called-when-empty"
-  | "onShift-receives-correct-item"
-  | "onShift-return-value-matches-log"
-  | "reentrant-grow-throws-and-does-not-double-resize"
-  | "reentrant-shift-throws"
-  | "subclass-can-read-protected-state"
-  | "throwing-onEvict"
-  | "throwing-onGrow"
-  | "throwing-onOverflow"
-  | "throwing-onPush"
-  | "throwing-onShift";
-
-type BufferItem = number | string;
-
-type AsyncOperation = {
-  method: "push" | "unshift";
-  value: number;
-};
-
-type GrowLogEntry = {
-  newCapacity: number;
-  oldCapacity: number;
-};
-
-type InspectState = {
-  capacity: number;
-  head: number;
-  length: number;
-  tail: number;
-};
-
-type ScenarioBatch = {
-  pushStageCounts?: number[];
-  shiftCount?: number;
-};
-
-type ScenarioInput = {
-  asyncOperations?: AsyncOperation[];
-  batch?: ScenarioBatch;
-  flushTurns?: number;
-  options: CircularBufferOptionsEntity.Type;
-  pushItems?: BufferItem[];
-  pushValue?: number;
-};
-
-type ScenarioExpected = {
-  evictItems?: number[];
-  evictItemsLength?: number;
-  evictLog?: BufferItem[];
-  firstShift?: number;
-  firstShiftValues?: number[];
-  growEventsLength?: number;
-  growLog?: GrowLogEntry[];
-  growOldCapacitiesFirst?: number[];
-  growOldCapacitiesSecond?: number[];
-  length?: number;
-  lengthAtHook?: number;
-  minHookErrors?: number;
-  pushCount?: number;
-  pushItemsLength?: number;
-  rejectionCount?: number;
-  result?: number[];
-  returned?: string;
-  secondShift?: number;
-  shiftCount?: number;
-  shiftItemsLength?: number;
-  shiftLog?: BufferItem[];
-  shiftValue?: number;
-  shiftValues?: number[];
-  state?: InspectState;
-};
-
-type ScenarioCase = {
-  description: string;
-  expected: ScenarioExpected;
-  input: ScenarioInput;
-  shape: ScenarioShape;
-  name: string;
-};
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-
-class GrowLogBuffer<T> extends CircularBuffer<T> {
-  readonly growLog: Array<{ oldCapacity: number; newCapacity: number }> = [];
-
-  override onGrow(oldCapacity: number, newCapacity: number): void {
-    this.growLog.push({ oldCapacity, newCapacity });
-  }
-}
 
 class EvictLogBuffer<T> extends CircularBuffer<T> {
   readonly evictLog: T[] = [];
 
   override onEvict(item: T): void {
     this.evictLog.push(item);
-  }
-}
-
-class PushCountBuffer<T> extends CircularBuffer<T> {
-  pushCount = 0;
-
-  override onPush(_item: T): void {
-    this.pushCount += 1;
   }
 }
 
@@ -167,44 +51,45 @@ class FullTraceBuffer<T> extends CircularBuffer<T> {
 
 class ThrowingPushBuffer<T> extends CircularBuffer<T> {
   override onPush(): void {
-    throw RuntimeError.create("onPush boom");
+    throw RuntimeError.create('onPush boom');
   }
 }
 
 class ThrowingOverflowBuffer<T> extends CircularBuffer<T> {
   override onOverflow(): void {
-    throw RuntimeError.create("onOverflow boom");
+    throw RuntimeError.create('onOverflow boom');
   }
 }
 
 class ThrowingEvictBuffer<T> extends CircularBuffer<T> {
   override onEvict(): void {
-    throw RuntimeError.create("onEvict boom");
+    throw RuntimeError.create('onEvict boom');
   }
 }
 
 class ThrowingGrowBuffer<T> extends CircularBuffer<T> {
   override onGrow(): void {
-    throw RuntimeError.create("onGrow boom");
+    throw RuntimeError.create('onGrow boom');
   }
 }
 
 class ThrowingShiftBuffer<T> extends CircularBuffer<T> {
   override onShift(): void {
-    throw RuntimeError.create("onShift boom");
+    throw RuntimeError.create('onShift boom');
   }
 }
 
 class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
-  readonly #cause: Error;
+  readonly #cause: RuntimeError;
 
-  constructor(options: CircularBufferOptionsEntity.Type, cause: Error) {
+  constructor(options: unknown, cause: RuntimeError) {
     super(options);
     this.#cause = cause;
   }
 
   get recordedHookErrors(): readonly HookInvocationError[] {
-    return this.hooks.getHookErrors();
+    const result = this.hooks.getHookErrors();
+    return result;
   }
 
   override async onPush(_item: T): Promise<void> {
@@ -214,13 +99,14 @@ class AsyncRejectingPushBuffer<T> extends CircularBuffer<T> {
 }
 
 class InspectBuffer<T> extends CircularBuffer<T> {
-  inspect(): { capacity: number; head: number; length: number; tail: number } {
-    return {
-      capacity: this.capacity,
-      head: this.head,
-      length: this.count,
-      tail: this.tail,
+  inspect(): { 'capacity': number; 'head': number; 'length': number; 'tail': number } {
+    const result = {
+      'capacity': this.capacity,
+      'head': this.head,
+      'length': this.count,
+      'tail': this.tail
     };
+    return result;
   }
 }
 
@@ -231,7 +117,7 @@ class ReentrantShiftBuffer<T> extends CircularBuffer<T> {
 
   override onShift(item: T): void {
     this.shiftLog.push(item);
-    if (this.#reentering) return;
+    if (this.#reentering) {return;}
     this.#reentering = true;
     try {
       this.shift();
@@ -245,12 +131,12 @@ class ReentrantShiftBuffer<T> extends CircularBuffer<T> {
 
 class ReentrantGrowBuffer<T> extends CircularBuffer<T> {
   reentrantError: unknown;
-  readonly growLog: Array<{ oldCapacity: number; newCapacity: number }> = [];
+  readonly growLog: { 'newCapacity': number; 'oldCapacity': number; }[] = [];
   #reentering = false;
 
   override onGrow(oldCapacity: number, newCapacity: number): void {
-    this.growLog.push({ oldCapacity, newCapacity });
-    if (this.#reentering) return;
+    this.growLog.push({ 'newCapacity': newCapacity, 'oldCapacity': oldCapacity });
+    if (this.#reentering) {return;}
     this.#reentering = true;
     try {
       this.growPublicly();
@@ -266,617 +152,357 @@ class ReentrantGrowBuffer<T> extends CircularBuffer<T> {
   }
 }
 
-function pushAll<T>(
-  buffer: { push(value: T): void },
-  values: readonly T[],
-): void {
-  for (const value of values) {
-    buffer.push(value);
-  }
-}
-
-function shiftMany<T>(buffer: { shift(): T | undefined }, count: number): T[] {
-  const values: T[] = [];
-  for (let index = 0; index < count; index += 1) {
-    const value = buffer.shift();
-    if (value !== undefined) {
-      values.push(value);
-    }
-  }
-  return values;
-}
-
-function requireDefined<T>(value: T | undefined, fieldPath: string): T {
-  if (value === undefined) {
-    throw RuntimeError.create(
-      `Missing circular-buffer subclass scenario field: ${fieldPath}`,
-    );
-  }
-
-  return value;
-}
-
-function requireItems(scenarioCase: ScenarioCase): BufferItem[] {
-  return requireDefined(scenarioCase.input.pushItems, "input.pushItems");
-}
-
-function requireNumberItems(scenarioCase: ScenarioCase): number[] {
-  const items = requireItems(scenarioCase);
-  const numbers: number[] = [];
-  for (const item of items) {
-    if (typeof item !== "number") {
-      throw RuntimeError.create(
-        `Expected numeric push item in scenario: ${scenarioCase.name}`,
-      );
-    }
-    numbers.push(item);
-  }
-
-  return numbers;
-}
-
-function requireStringItems(scenarioCase: ScenarioCase): string[] {
-  const items = requireItems(scenarioCase);
-  const strings: string[] = [];
-  for (const item of items) {
-    if (typeof item !== "string") {
-      throw RuntimeError.create(
-        `Expected string push item in scenario: ${scenarioCase.name}`,
-      );
-    }
-    strings.push(item);
-  }
-
-  return strings;
-}
-
-function shiftAll<T>(buffer: {
-  readonly length: number;
-  shift(): T | undefined;
-}): T[] {
-  const values: T[] = [];
-  while (buffer.length > 0) {
-    const value = buffer.shift();
-    if (value !== undefined) {
-      values.push(value);
+class CircularBufferSubclassRunners {
+  static pushAll<T>(buffer: { push(value: T): void }, values: readonly T[]): void {
+    for (let index = 0; index < values.length; index += 1) {
+      const value = values[index];
+      if (value !== undefined) {
+        buffer.push(value);
+      }
     }
   }
 
-  return values;
-}
-
-function assertLastPushThrows<T>(
-  buffer: { push(value: T): void },
-  values: readonly T[],
-): void {
-  if (values.length === 0) {
-    throw RuntimeError.create(
-      "Missing circular-buffer subclass scenario field: input.pushItems",
-    );
-  }
-
-  const failingIndex = values.length - 1;
-  const failingValue = requireDefined(
-    values[failingIndex],
-    "input.pushItems[last]",
-  );
-  pushAll(buffer, values.slice(0, failingIndex));
-  assert.throws(() => {
-    buffer.push(failingValue);
-  }, HookInvocationError);
-}
-
-function pushStage<T>(
-  buffer: { push(value: T): void },
-  values: readonly T[],
-  startIndex: number,
-  count: number,
-): number {
-  const endIndex = startIndex + count;
-  const stageItems = values.slice(startIndex, endIndex);
-  if (stageItems.length !== count) {
-    throw RuntimeError.create(
-      "Circular-buffer subclass push stage exceeds input.pushItems",
-    );
-  }
-  pushAll(buffer, stageItems);
-
-  return endIndex;
-}
-
-function waitImmediate(): Promise<void> {
-  return new Promise((resolve) => {
-    setImmediate(resolve);
-  });
-}
-
-const asyncOperationMap = {
-  push: (buffer: AsyncRejectingPushBuffer<number>, value: number): void => {
-    buffer.push(value);
-  },
-  unshift: (buffer: AsyncRejectingPushBuffer<number>, value: number): void => {
-    buffer.unshift(value);
-  },
-} satisfies Record<
-  AsyncOperation["method"],
-  (buffer: AsyncRejectingPushBuffer<number>, value: number) => void
->;
-
-function applyAsyncOperations(
-  buffer: AsyncRejectingPushBuffer<number>,
-  operations: readonly AsyncOperation[],
-): void {
-  for (const operation of operations) {
-    asyncOperationMap[operation.method](buffer, operation.value);
-  }
-}
-
-function runCreateReturnsSubclass(scenarioCase: ScenarioCase): void {
-  const buf: EvictLogBuffer<number> = EvictLogBuffer.create<
-    number,
-    EvictLogBuffer<number>
-  >(scenarioCase.input.options);
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.ok(buf instanceof EvictLogBuffer);
-  assert.deepStrictEqual(
-    buf.evictLog,
-    requireDefined(scenarioCase.expected.evictLog, "expected.evictLog"),
-  );
-}
-
-function runEvictLog(scenarioCase: ScenarioCase): void {
-  const buf = EvictLogBuffer.create<BufferItem, EvictLogBuffer<BufferItem>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireItems(scenarioCase));
-  assert.deepStrictEqual(
-    buf.evictLog,
-    requireDefined(scenarioCase.expected.evictLog, "expected.evictLog"),
-  );
-}
-
-function runGrowLog(scenarioCase: ScenarioCase): void {
-  const buf = GrowLogBuffer.create<number, GrowLogBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.deepStrictEqual(
-    buf.growLog,
-    requireDefined(scenarioCase.expected.growLog, "expected.growLog"),
-  );
-}
-
-function runPushCount(scenarioCase: ScenarioCase): void {
-  const buf = PushCountBuffer.create<number, PushCountBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.strictEqual(
-    buf.pushCount,
-    requireDefined(scenarioCase.expected.pushCount, "expected.pushCount"),
-  );
-}
-
-function runShiftAllLog(scenarioCase: ScenarioCase): void {
-  const pushItems = requireNumberItems(scenarioCase);
-  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, pushItems);
-  shiftMany(buf, pushItems.length);
-  assert.deepStrictEqual(
-    buf.shiftLog,
-    requireDefined(scenarioCase.expected.shiftLog, "expected.shiftLog"),
-  );
-}
-
-function runShiftEmpty(scenarioCase: ScenarioCase): void {
-  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  shiftMany(
-    buf,
-    requireDefined(
-      scenarioCase.input.batch?.shiftCount,
-      "input.batch.shiftCount",
-    ),
-  );
-  assert.deepStrictEqual(
-    buf.shiftLog,
-    requireDefined(scenarioCase.expected.shiftLog, "expected.shiftLog"),
-  );
-}
-
-function runShiftExpectedLogCount(scenarioCase: ScenarioCase): void {
-  const expectedShiftLog = requireDefined(
-    scenarioCase.expected.shiftLog,
-    "expected.shiftLog",
-  );
-  const buf = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  shiftMany(buf, expectedShiftLog.length);
-  assert.deepStrictEqual(buf.shiftLog, expectedShiftLog);
-}
-
-function runPushLengthAlreadyIncremented(scenarioCase: ScenarioCase): void {
-  let lengthAtHook: number | undefined;
-  class LengthCheckBuffer extends CircularBuffer<number> {
-    override onPush(_item: number): void {
-      lengthAtHook = this.count;
+  static shiftMany<T>(buffer: { shift(): T | undefined }, count: number): T[] {
+    const values: T[] = [];
+    for (let index = 0; index < count; index += 1) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        values.push(value);
+      }
     }
+    return values;
   }
-  const buf = LengthCheckBuffer.create<number>(scenarioCase.input.options);
-  buf.push(requireDefined(scenarioCase.input.pushValue, "input.pushValue"));
-  assert.strictEqual(
-    lengthAtHook,
-    requireDefined(scenarioCase.expected.lengthAtHook, "expected.lengthAtHook"),
-  );
-}
 
-function runBaseClassAfterGrow(scenarioCase: ScenarioCase): void {
-  const buf = GrowLogBuffer.create<number>(scenarioCase.input.options);
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.deepStrictEqual(
-    shiftMany(
-      buf,
-      requireDefined(scenarioCase.expected.shiftCount, "expected.shiftCount"),
-    ),
-    requireDefined(scenarioCase.expected.shiftValues, "expected.shiftValues"),
-  );
-}
-
-function runShiftReturnMatchesLog(scenarioCase: ScenarioCase): void {
-  const buf = ShiftLogBuffer.create<string, ShiftLogBuffer<string>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireStringItems(scenarioCase));
-  assert.strictEqual(
-    buf.shift(),
-    requireDefined(scenarioCase.expected.returned, "expected.returned"),
-  );
-  assert.deepStrictEqual(
-    buf.shiftLog,
-    requireDefined(scenarioCase.expected.shiftLog, "expected.shiftLog"),
-  );
-}
-
-function runFullTraceGrow(scenarioCase: ScenarioCase): void {
-  const buf = FullTraceBuffer.create<number, FullTraceBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  shiftMany(
-    buf,
-    requireDefined(
-      scenarioCase.input.batch?.shiftCount,
-      "input.batch.shiftCount",
-    ),
-  );
-  assert.strictEqual(
-    buf.growEvents.length,
-    requireDefined(
-      scenarioCase.expected.growEventsLength,
-      "expected.growEventsLength",
-    ),
-  );
-  assert.strictEqual(
-    buf.pushItems.length,
-    requireDefined(
-      scenarioCase.expected.pushItemsLength,
-      "expected.pushItemsLength",
-    ),
-  );
-  assert.strictEqual(
-    buf.shiftItems.length,
-    requireDefined(
-      scenarioCase.expected.shiftItemsLength,
-      "expected.shiftItemsLength",
-    ),
-  );
-  assert.strictEqual(
-    buf.evictItems.length,
-    requireDefined(
-      scenarioCase.expected.evictItemsLength,
-      "expected.evictItemsLength",
-    ),
-  );
-}
-
-function runFullTraceOverwrite(scenarioCase: ScenarioCase): void {
-  const buf = FullTraceBuffer.create<number, FullTraceBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.deepStrictEqual(
-    buf.evictItems,
-    requireDefined(scenarioCase.expected.evictItems, "expected.evictItems"),
-  );
-  assert.strictEqual(
-    buf.growEvents.length,
-    requireDefined(
-      scenarioCase.expected.growEventsLength,
-      "expected.growEventsLength",
-    ),
-  );
-  assert.strictEqual(
-    buf.pushItems.length,
-    requireDefined(
-      scenarioCase.expected.pushItemsLength,
-      "expected.pushItemsLength",
-    ),
-  );
-}
-
-function runGrowModeAllHooksActive(scenarioCase: ScenarioCase): void {
-  const buf = FullTraceBuffer.create<number>(scenarioCase.input.options);
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.deepStrictEqual(
-    shiftAll(buf),
-    requireDefined(scenarioCase.expected.result, "expected.result"),
-  );
-}
-
-function runThrowingOnPush(scenarioCase: ScenarioCase): void {
-  const buf = ThrowingPushBuffer.create<number>(scenarioCase.input.options);
-  assert.throws(() => {
-    buf.push(requireDefined(scenarioCase.input.pushValue, "input.pushValue"));
-  }, HookInvocationError);
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-  assert.strictEqual(
-    buf.shift(),
-    requireDefined(scenarioCase.expected.shiftValue, "expected.shiftValue"),
-  );
-}
-
-function runThrowingOnOverflow(scenarioCase: ScenarioCase): void {
-  const buf = ThrowingOverflowBuffer.create<number>(scenarioCase.input.options);
-  assertLastPushThrows(buf, requireNumberItems(scenarioCase));
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-  assert.deepStrictEqual(
-    shiftMany(
-      buf,
-      requireDefined(scenarioCase.expected.shiftValues, "expected.shiftValues")
-        .length,
-    ),
-    scenarioCase.expected.shiftValues,
-  );
-}
-
-function runThrowingOnEvict(scenarioCase: ScenarioCase): void {
-  const buf = ThrowingEvictBuffer.create<number>(scenarioCase.input.options);
-  assertLastPushThrows(buf, requireNumberItems(scenarioCase));
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-  assert.deepStrictEqual(
-    shiftMany(
-      buf,
-      requireDefined(scenarioCase.expected.shiftValues, "expected.shiftValues")
-        .length,
-    ),
-    scenarioCase.expected.shiftValues,
-  );
-}
-
-function runThrowingOnGrow(scenarioCase: ScenarioCase): void {
-  const buf = ThrowingGrowBuffer.create<number>(scenarioCase.input.options);
-  assertLastPushThrows(buf, requireNumberItems(scenarioCase));
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-  assert.deepStrictEqual(
-    shiftMany(
-      buf,
-      requireDefined(scenarioCase.expected.shiftValues, "expected.shiftValues")
-        .length,
-    ),
-    scenarioCase.expected.shiftValues,
-  );
-}
-
-function runThrowingOnShift(scenarioCase: ScenarioCase): void {
-  const buf = ThrowingShiftBuffer.create<number>(scenarioCase.input.options);
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.throws(() => {
-    buf.shift();
-  }, HookInvocationError);
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-}
-
-async function runAsyncRejectingOnPushGuarded(
-  scenarioCase: ScenarioCase,
-): Promise<void> {
-  const buf = new AsyncRejectingPushBuffer<number>(
-    scenarioCase.input.options,
-    RuntimeError.create("async onPush boom"),
-  );
-  let unhandledRejectionCount = 0;
-  const onUnhandledRejection = (): void => {
-    unhandledRejectionCount += 1;
-  };
-  process.on("unhandledRejection", onUnhandledRejection);
-
-  try {
-    applyAsyncOperations(
-      buf,
-      requireDefined(
-        scenarioCase.input.asyncOperations,
-        "input.asyncOperations",
-      ),
-    );
-    assert.strictEqual(
-      buf.length,
-      requireDefined(scenarioCase.expected.length, "expected.length"),
-    );
-    for (
-      let index = 0;
-      index < requireDefined(scenarioCase.input.flushTurns, "input.flushTurns");
-      index += 1
-    ) {
-      await waitImmediate();
+  static requireDefined<T>(value: T | undefined, fieldPath: string): T {
+    if (value === undefined) {
+      throw RuntimeError.create(`Missing circular-buffer subclass scenario field: ${fieldPath}`);
     }
-    assert.strictEqual(
-      unhandledRejectionCount,
-      requireDefined(
-        scenarioCase.expected.rejectionCount,
-        "expected.rejectionCount",
-      ),
-    );
-    assert.deepStrictEqual(
-      shiftMany(
-        buf,
-        requireDefined(
-          scenarioCase.expected.shiftValues,
-          "expected.shiftValues",
-        ).length,
-      ),
-      scenarioCase.expected.shiftValues,
-    );
-    assert.strictEqual(
-      buf.recordedHookErrors.length >=
-        requireDefined(
-          scenarioCase.expected.minHookErrors,
-          "expected.minHookErrors",
-        ),
-      true,
-    );
-  } finally {
-    process.off("unhandledRejection", onUnhandledRejection);
+
+    return value;
   }
-}
 
-function runSubclassProtectedState(scenarioCase: ScenarioCase): void {
-  const buf = InspectBuffer.create<number, InspectBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  buf.shift();
-  assert.deepStrictEqual(
-    buf.inspect(),
-    requireDefined(scenarioCase.expected.state, "expected.state"),
-  );
-}
+  static requireItems(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): (number | string)[] {
+    const result = CircularBufferSubclassRunners.requireDefined(scenarioCase.input.pushItems, 'input.pushItems');
+    return result;
+  }
 
-function runReentrantShift(scenarioCase: ScenarioCase): void {
-  const buf = ReentrantShiftBuffer.create<number, ReentrantShiftBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  pushAll(buf, requireNumberItems(scenarioCase));
-  assert.strictEqual(
-    buf.shift(),
-    requireDefined(scenarioCase.expected.firstShift, "expected.firstShift"),
-  );
-  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
-  assert.strictEqual(
-    buf.length,
-    requireDefined(scenarioCase.expected.length, "expected.length"),
-  );
-  assert.strictEqual(
-    buf.shift(),
-    requireDefined(scenarioCase.expected.secondShift, "expected.secondShift"),
-  );
-}
+  static requireNumberItems(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): number[] {
+    const items = CircularBufferSubclassRunners.requireItems(scenarioCase);
+    const numbers: number[] = [];
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (typeof item !== 'number') {
+        throw RuntimeError.create(`Expected numeric push item in scenario: ${scenarioCase.name}`);
+      }
+      numbers.push(item);
+    }
 
-function runReentrantGrow(scenarioCase: ScenarioCase): void {
-  const buf = ReentrantGrowBuffer.create<number, ReentrantGrowBuffer<number>>(
-    scenarioCase.input.options,
-  );
-  const pushItems = requireNumberItems(scenarioCase);
-  const pushStageCounts = requireDefined(
-    scenarioCase.input.batch?.pushStageCounts,
-    "input.batch.pushStageCounts",
-  );
-  const firstStageCount = requireDefined(
-    pushStageCounts[0],
-    "input.batch.pushStageCounts[0]",
-  );
-  const secondStageCount = requireDefined(
-    pushStageCounts[1],
-    "input.batch.pushStageCounts[1]",
-  );
-  const thirdStageCount = requireDefined(
-    pushStageCounts[2],
-    "input.batch.pushStageCounts[2]",
-  );
+    return numbers;
+  }
 
-  let nextIndex = pushStage(buf, pushItems, 0, firstStageCount);
-  assert.ok(buf.reentrantError instanceof ReentrantHookInvocationError);
-  assert.deepStrictEqual(
-    shiftMany(
-      buf,
-      requireDefined(
-        scenarioCase.expected.firstShiftValues,
-        "expected.firstShiftValues",
-      ).length,
-    ),
-    scenarioCase.expected.firstShiftValues,
-  );
-  nextIndex = pushStage(buf, pushItems, nextIndex, secondStageCount);
-  assert.deepStrictEqual(
-    buf.growLog.map((entry) => entry.oldCapacity),
-    scenarioCase.expected.growOldCapacitiesFirst,
-  );
-  pushStage(buf, pushItems, nextIndex, thirdStageCount);
-  assert.deepStrictEqual(
-    buf.growLog.map((entry) => entry.oldCapacity),
-    scenarioCase.expected.growOldCapacitiesSecond,
-  );
-}
+  static requireStringItems(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): string[] {
+    const items = CircularBufferSubclassRunners.requireItems(scenarioCase);
+    const strings: string[] = [];
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
+      if (typeof item !== 'string') {
+        throw RuntimeError.create(`Expected string push item in scenario: ${scenarioCase.name}`);
+      }
+      strings.push(item);
+    }
 
-const runnerMap = {
-  "async-rejecting-onPush-guarded": runAsyncRejectingOnPushGuarded,
-  "base-class-operates-correctly-after-grow": runBaseClassAfterGrow,
-  "create-returns-subclass": runCreateReturnsSubclass,
-  "full-trace-grow": runFullTraceGrow,
-  "full-trace-overwrite": runFullTraceOverwrite,
-  "grow-mode-all-hooks-active": runGrowModeAllHooksActive,
-  "onEvict-called-with-evicted-item": runEvictLog,
-  "onEvict-not-called-below-capacity": runEvictLog,
-  "onEvict-receives-items-FIFO": runEvictLog,
-  "onEvict-receives-oldest-item": runEvictLog,
-  "onGrow-called-once-per-grow-event": runGrowLog,
-  "onGrow-called-when-capacity-exceeded": runGrowLog,
-  "onGrow-not-called-in-overwrite-mode": runGrowLog,
-  "onGrow-receives-correct-old-new-capacity": runGrowLog,
-  "onPush-called-on-each-overwrite-push": runPushCount,
-  "onPush-called-on-each-push": runPushCount,
-  "onPush-called-on-grow-trigger": runPushCount,
-  "onPush-length-already-incremented": runPushLengthAlreadyIncremented,
-  "onShift-called-with-items-before-returned": runShiftAllLog,
-  "onShift-not-called-when-empty": runShiftEmpty,
-  "onShift-receives-correct-item": runShiftExpectedLogCount,
-  "onShift-return-value-matches-log": runShiftReturnMatchesLog,
-  "reentrant-grow-throws-and-does-not-double-resize": runReentrantGrow,
-  "reentrant-shift-throws": runReentrantShift,
-  "subclass-can-read-protected-state": runSubclassProtectedState,
-  "throwing-onEvict": runThrowingOnEvict,
-  "throwing-onGrow": runThrowingOnGrow,
-  "throwing-onOverflow": runThrowingOnOverflow,
-  "throwing-onPush": runThrowingOnPush,
-  "throwing-onShift": runThrowingOnShift,
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+    return strings;
+  }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
-}
+  static shiftAll<T>(buffer: { readonly 'length': number; shift(): T | undefined }): T[] {
+    const values: T[] = [];
+    while (buffer.length > 0) {
+      const value = buffer.shift();
+      if (value !== undefined) {
+        values.push(value);
+      }
+    }
 
-void describe("CircularBuffer subclass", () => {
-  for (const scenarioCase of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
+    return values;
+  }
+
+  static assertLastPushThrows<T>(buffer: { push(value: T): void }, values: readonly T[]): void {
+    if (values.length === 0) {
+      throw RuntimeError.create('Missing circular-buffer subclass scenario field: input.pushItems');
+    }
+
+    const failingIndex = values.length - 1;
+    const failingValue = CircularBufferSubclassRunners.requireDefined(values[failingIndex], 'input.pushItems[last]');
+    CircularBufferSubclassRunners.pushAll(buffer, values.slice(0, failingIndex));
+    assert.throws(() => {
+      buffer.push(failingValue);
+    }, HookInvocationError);
+  }
+
+  static pushStage<T>(buffer: { push(value: T): void }, values: readonly T[], startIndex: number, count: number): number {
+    const endIndex = startIndex + count;
+    const stageItems = values.slice(startIndex, endIndex);
+    if (stageItems.length !== count) {
+      throw RuntimeError.create('Circular-buffer subclass push stage exceeds input.pushItems');
+    }
+    CircularBufferSubclassRunners.pushAll(buffer, stageItems);
+
+    return endIndex;
+  }
+
+  static waitImmediate(): Promise<void> {
+    const result = new Promise<void>((resolve) => {
+      setImmediate(resolve);
     });
+    return result;
   }
+
+  static applyAsyncOperations(buffer: AsyncRejectingPushBuffer<number>, operations: readonly { 'method': 'push' | 'unshift'; 'value': number }[]): void {
+    for (let index = 0; index < operations.length; index += 1) {
+      const operation = operations[index];
+      if (operation !== undefined) {
+        if (operation.method === 'push') {
+          buffer.push(operation.value);
+        } else {
+          buffer.unshift(operation.value);
+        }
+      }
+    }
+  }
+
+  static runCreateReturnsSubclass(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer: EvictLogBuffer<number> = EvictLogBuffer.create<number, EvictLogBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.ok(buffer instanceof EvictLogBuffer);
+    assert.deepStrictEqual(buffer.evictLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.evictLog, 'expected.evictLog'));
+  }
+
+  static runEvictLog(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = EvictLogBuffer.create<number | string, EvictLogBuffer<number | string>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireItems(scenarioCase));
+    assert.deepStrictEqual(buffer.evictLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.evictLog, 'expected.evictLog'));
+  }
+
+  static runGrowLog(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = GrowLogBuffer.create<number, GrowLogBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.deepStrictEqual(buffer.growLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.growLog, 'expected.growLog'));
+  }
+
+  static runPushCount(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = PushCountBuffer.create<number, PushCountBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.strictEqual(buffer.pushCount, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.pushCount, 'expected.pushCount'));
+  }
+
+  static runShiftAllLog(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const pushItems = CircularBufferSubclassRunners.requireNumberItems(scenarioCase);
+    const buffer = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, pushItems);
+    CircularBufferSubclassRunners.shiftMany(buffer, pushItems.length);
+    assert.deepStrictEqual(buffer.shiftLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
+  }
+
+  static runShiftEmpty(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.shiftMany(buffer, CircularBufferSubclassRunners.requireDefined(scenarioCase.input.batch?.shiftCount, 'input.batch.shiftCount'));
+    assert.deepStrictEqual(buffer.shiftLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
+  }
+
+  static runShiftExpectedLogCount(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const expectedShiftLog = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog');
+    const buffer = ShiftLogBuffer.create<number, ShiftLogBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    CircularBufferSubclassRunners.shiftMany(buffer, expectedShiftLog.length);
+    assert.deepStrictEqual(buffer.shiftLog, expectedShiftLog);
+  }
+
+  static runPushLengthAlreadyIncremented(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    let lengthAtHook: number | undefined;
+    class LengthCheckBuffer extends CircularBuffer<number> {
+      override onPush(_item: number): void {
+        lengthAtHook = this.count;
+      }
+    }
+    const buffer = LengthCheckBuffer.create<number>(scenarioCase.input.options);
+    buffer.push(CircularBufferSubclassRunners.requireDefined(scenarioCase.input.pushValue, 'input.pushValue'));
+    assert.strictEqual(lengthAtHook, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.lengthAtHook, 'expected.lengthAtHook'));
+  }
+
+  static runBaseClassAfterGrow(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = GrowLogBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.deepStrictEqual(
+      CircularBufferSubclassRunners.shiftMany(buffer, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftCount, 'expected.shiftCount')),
+      CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValues, 'expected.shiftValues')
+    );
+  }
+
+  static runShiftReturnMatchesLog(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ShiftLogBuffer.create<string, ShiftLogBuffer<string>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireStringItems(scenarioCase));
+    assert.strictEqual(buffer.shift(), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.returned, 'expected.returned'));
+    assert.deepStrictEqual(buffer.shiftLog, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftLog, 'expected.shiftLog'));
+  }
+
+  static runFullTraceGrow(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = FullTraceBuffer.create<number, FullTraceBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    CircularBufferSubclassRunners.shiftMany(buffer, CircularBufferSubclassRunners.requireDefined(scenarioCase.input.batch?.shiftCount, 'input.batch.shiftCount'));
+    assert.strictEqual(buffer.growEvents.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.growEventsLength, 'expected.growEventsLength'));
+    assert.strictEqual(buffer.pushItems.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.pushItemsLength, 'expected.pushItemsLength'));
+    assert.strictEqual(buffer.shiftItems.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftItemsLength, 'expected.shiftItemsLength'));
+    assert.strictEqual(buffer.evictItems.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.evictItemsLength, 'expected.evictItemsLength'));
+  }
+
+  static runFullTraceOverwrite(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = FullTraceBuffer.create<number, FullTraceBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.deepStrictEqual(buffer.evictItems, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.evictItems, 'expected.evictItems'));
+    assert.strictEqual(buffer.growEvents.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.growEventsLength, 'expected.growEventsLength'));
+    assert.strictEqual(buffer.pushItems.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.pushItemsLength, 'expected.pushItemsLength'));
+  }
+
+  static runGrowModeAllHooksActive(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = FullTraceBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.deepStrictEqual(CircularBufferSubclassRunners.shiftAll(buffer), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.result, 'expected.result'));
+  }
+
+  static runThrowingOnPush(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ThrowingPushBuffer.create<number>(scenarioCase.input.options);
+    assert.throws(() => {
+      buffer.push(CircularBufferSubclassRunners.requireDefined(scenarioCase.input.pushValue, 'input.pushValue'));
+    }, HookInvocationError);
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+    assert.strictEqual(buffer.shift(), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValue, 'expected.shiftValue'));
+  }
+
+  static runThrowingOnOverflow(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ThrowingOverflowBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.assertLastPushThrows(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+    const expectedShiftValues = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValues, 'expected.shiftValues');
+    assert.deepStrictEqual(CircularBufferSubclassRunners.shiftMany(buffer, expectedShiftValues.length), expectedShiftValues);
+  }
+
+  static runThrowingOnEvict(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ThrowingEvictBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.assertLastPushThrows(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+    const expectedShiftValues = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValues, 'expected.shiftValues');
+    assert.deepStrictEqual(CircularBufferSubclassRunners.shiftMany(buffer, expectedShiftValues.length), expectedShiftValues);
+  }
+
+  static runThrowingOnGrow(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ThrowingGrowBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.assertLastPushThrows(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+    const expectedShiftValues = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValues, 'expected.shiftValues');
+    assert.deepStrictEqual(CircularBufferSubclassRunners.shiftMany(buffer, expectedShiftValues.length), expectedShiftValues);
+  }
+
+  static runThrowingOnShift(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ThrowingShiftBuffer.create<number>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.throws(() => {
+      buffer.shift();
+    }, HookInvocationError);
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+  }
+
+  static async 'async-rejecting-onPush-guarded'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): Promise<void> {
+    const buffer = new AsyncRejectingPushBuffer<number>(scenarioCase.input.options, RuntimeError.create('async onPush boom'));
+    let unhandledRejectionCount = 0;
+    const onUnhandledRejection = (): void => {
+      unhandledRejectionCount += 1;
+    };
+    process.on('unhandledRejection', onUnhandledRejection);
+
+    try {
+      CircularBufferSubclassRunners.applyAsyncOperations(buffer, CircularBufferSubclassRunners.requireDefined(scenarioCase.input.asyncOperations, 'input.asyncOperations'));
+      assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+      for (let index = 0; index < CircularBufferSubclassRunners.requireDefined(scenarioCase.input.flushTurns, 'input.flushTurns'); index += 1) {
+        await CircularBufferSubclassRunners.waitImmediate();
+      }
+      assert.strictEqual(unhandledRejectionCount, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.rejectionCount, 'expected.rejectionCount'));
+      const expectedShiftValues = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.shiftValues, 'expected.shiftValues');
+      assert.deepStrictEqual(CircularBufferSubclassRunners.shiftMany(buffer, expectedShiftValues.length), expectedShiftValues);
+      assert.strictEqual(buffer.recordedHookErrors.length >= CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.minHookErrors, 'expected.minHookErrors'), true);
+    } finally {
+      process.off('unhandledRejection', onUnhandledRejection);
+    }
+  }
+
+  static runSubclassProtectedState(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = InspectBuffer.create<number, InspectBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    buffer.shift();
+    assert.deepStrictEqual(buffer.inspect(), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.state, 'expected.state'));
+  }
+
+  static runReentrantShift(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ReentrantShiftBuffer.create<number, ReentrantShiftBuffer<number>>(scenarioCase.input.options);
+    CircularBufferSubclassRunners.pushAll(buffer, CircularBufferSubclassRunners.requireNumberItems(scenarioCase));
+    assert.strictEqual(buffer.shift(), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.firstShift, 'expected.firstShift'));
+    assert.ok(buffer.reentrantError instanceof ReentrantHookInvocationError);
+    assert.strictEqual(buffer.length, CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.length, 'expected.length'));
+    assert.strictEqual(buffer.shift(), CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.secondShift, 'expected.secondShift'));
+  }
+
+  static runReentrantGrow(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void {
+    const buffer = ReentrantGrowBuffer.create<number, ReentrantGrowBuffer<number>>(scenarioCase.input.options);
+    const pushItems = CircularBufferSubclassRunners.requireNumberItems(scenarioCase);
+    const pushStageCounts = CircularBufferSubclassRunners.requireDefined(scenarioCase.input.batch?.pushStageCounts, 'input.batch.pushStageCounts');
+    const firstStageCount = CircularBufferSubclassRunners.requireDefined(pushStageCounts[0], 'input.batch.pushStageCounts[0]');
+    const secondStageCount = CircularBufferSubclassRunners.requireDefined(pushStageCounts[1], 'input.batch.pushStageCounts[1]');
+    const thirdStageCount = CircularBufferSubclassRunners.requireDefined(pushStageCounts[2], 'input.batch.pushStageCounts[2]');
+
+    let nextIndex = CircularBufferSubclassRunners.pushStage(buffer, pushItems, 0, firstStageCount);
+    assert.ok(buffer.reentrantError instanceof ReentrantHookInvocationError);
+    const firstShiftValues = CircularBufferSubclassRunners.requireDefined(scenarioCase.expected.firstShiftValues, 'expected.firstShiftValues');
+    assert.deepStrictEqual(CircularBufferSubclassRunners.shiftMany(buffer, firstShiftValues.length), firstShiftValues);
+    nextIndex = CircularBufferSubclassRunners.pushStage(buffer, pushItems, nextIndex, secondStageCount);
+    assert.deepStrictEqual(buffer.growLog.map((entry) => {return entry.oldCapacity;}), scenarioCase.expected.growOldCapacitiesFirst);
+    CircularBufferSubclassRunners.pushStage(buffer, pushItems, nextIndex, thirdStageCount);
+    assert.deepStrictEqual(buffer.growLog.map((entry) => {return entry.oldCapacity;}), scenarioCase.expected.growOldCapacitiesSecond);
+  }
+
+  static 'base-class-operates-correctly-after-grow'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runBaseClassAfterGrow(scenarioCase); }
+  static 'create-returns-subclass'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runCreateReturnsSubclass(scenarioCase); }
+  static 'full-trace-grow'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runFullTraceGrow(scenarioCase); }
+  static 'full-trace-overwrite'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runFullTraceOverwrite(scenarioCase); }
+  static 'grow-mode-all-hooks-active'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runGrowModeAllHooksActive(scenarioCase); }
+  static 'onEvict-called-with-evicted-item'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runEvictLog(scenarioCase); }
+  static 'onEvict-not-called-below-capacity'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runEvictLog(scenarioCase); }
+  static 'onEvict-receives-items-FIFO'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runEvictLog(scenarioCase); }
+  static 'onEvict-receives-oldest-item'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runEvictLog(scenarioCase); }
+  static 'onGrow-called-once-per-grow-event'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runGrowLog(scenarioCase); }
+  static 'onGrow-called-when-capacity-exceeded'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runGrowLog(scenarioCase); }
+  static 'onGrow-not-called-in-overwrite-mode'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runGrowLog(scenarioCase); }
+  static 'onGrow-receives-correct-old-new-capacity'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runGrowLog(scenarioCase); }
+  static 'onPush-called-on-each-overwrite-push'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runPushCount(scenarioCase); }
+  static 'onPush-called-on-each-push'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runPushCount(scenarioCase); }
+  static 'onPush-called-on-grow-trigger'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runPushCount(scenarioCase); }
+  static 'onPush-length-already-incremented'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runPushLengthAlreadyIncremented(scenarioCase); }
+  static 'onShift-called-with-items-before-returned'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runShiftAllLog(scenarioCase); }
+  static 'onShift-not-called-when-empty'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runShiftEmpty(scenarioCase); }
+  static 'onShift-receives-correct-item'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runShiftExpectedLogCount(scenarioCase); }
+  static 'onShift-return-value-matches-log'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runShiftReturnMatchesLog(scenarioCase); }
+  static 'reentrant-grow-throws-and-does-not-double-resize'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runReentrantGrow(scenarioCase); }
+  static 'reentrant-shift-throws'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runReentrantShift(scenarioCase); }
+  static 'subclass-can-read-protected-state'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runSubclassProtectedState(scenarioCase); }
+  static 'throwing-onEvict'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runThrowingOnEvict(scenarioCase); }
+  static 'throwing-onGrow'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runThrowingOnGrow(scenarioCase); }
+  static 'throwing-onOverflow'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runThrowingOnOverflow(scenarioCase); }
+  static 'throwing-onPush'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runThrowingOnPush(scenarioCase); }
+  static 'throwing-onShift'(scenarioCase: CircularBufferSubclassScenarioCaseEntity.Type): void { CircularBufferSubclassRunners.runThrowingOnShift(scenarioCase); }
+}
+
+
+ScenarioSuite.register({
+  'entity': CircularBufferSubclassScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'CircularBuffer subclass',
+  'runners': CircularBufferSubclassRunners
 });

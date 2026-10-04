@@ -1,4 +1,4 @@
-export const MultiSubscriberFixture = Object.freeze({
-  'receivedA': [] as string[],
-  'receivedB': [] as string[]
+export const MultiSubscriberFixture: { readonly 'receivedA': string[]; readonly 'receivedB': string[] } = Object.freeze({
+  'receivedA': [],
+  'receivedB': []
 });

@@ -1,93 +1,42 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { FetchClient } from '../../../src/node/index.js';
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
-type RuntimeTag =
-  | { shape: 'abort-signal' }
-  | { shape: 'undefined' };
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { OptionsScenarioCaseEntity } from './entities/OptionsScenarioCaseEntity.js';
+import scenarioGroups from './options.scenarios.json' with { 'type': 'json' };
 
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
-
-type ScenarioCase = {
-  description: string;
-  expected: { shape: 'ok'; messageIncludes?: readonly string[] } | { shape: 'throws'; messageIncludes: readonly string[] };
-  input: {
-    options: RuntimeValue;
-  };
-  name: string;
-};
-
-import scenarioGroups from './options.scenarios.json' with { type: 'json' };
-
-type ExpectedOutcomeRunner = (config: unknown, expected: ScenarioCase['expected']) => void;
-type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
-
-const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
-  'abort-signal': () => new AbortController().signal,
-  undefined: () => undefined
-};
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
-  }
-
-  if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.shape](value);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    const materialized: Record<string, unknown> = {};
-
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry);
-    }
-
-    return materialized;
-  }
-
-  return value;
-}
-
-const expectedOutcomeMap: Record<ScenarioCase['expected']['shape'], ExpectedOutcomeRunner> = {
-  ok: (config) => {
+class OptionsRunners {
+  static 'ok'(scenarioCase: ScenarioCaseOfType<OptionsScenarioCaseEntity.Type, 'ok', 'outcome'>): void {
+    const config = OptionsRunners.buildConfig(scenarioCase.input.options);
     assert.doesNotThrow(() => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'options': config }]);
-    });
-  },
-  throws: (config, expected) => {
-    const { messageIncludes } = expected;
-    assert.ok(messageIncludes !== undefined);
-    assert.throws(() => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'options': config }]);
-    }, (error: Error) => {
-      assert.ok(error.message.length > 0);
-      return true;
+      InvalidClientFactory.create(config);
     });
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): void {
-  const config = materializeRuntimeValue(scenarioCase.input.options);
-  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
+  static 'throws'(scenarioCase: ScenarioCaseOfType<OptionsScenarioCaseEntity.Type, 'throws', 'outcome'>): void {
+    assert.ok(scenarioCase.expected.messageIncludes !== undefined);
+    const config = OptionsRunners.buildConfig(scenarioCase.input.options);
+    const caught = RejectionProbe.captureSync(() => {
+      const created = InvalidClientFactory.create(config);
+      return created;
+    });
+    assert.ok(caught instanceof Error);
+    assert.ok(caught.message.length > 0);
+  }
+
+  private static buildConfig(value: ScenarioCaseOfType<OptionsScenarioCaseEntity.Type, 'ok', 'outcome'>['input']['options']): object {
+    const config = { 'options': RuntimeValueMaterializer.materialize(value) };
+    return config;
+  }
 }
 
-void describe('fetch options validation', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.registerBy('outcome', {
+  'entity': OptionsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'fetch options validation',
+  'runners': OptionsRunners
 });

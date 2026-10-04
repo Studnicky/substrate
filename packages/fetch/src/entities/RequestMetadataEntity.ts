@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Request metadata that flows through the request/response lifecycle
@@ -16,6 +17,7 @@ export namespace RequestMetadataEntity {
     'description': 'Request metadata that flows through the request/response lifecycle',
     'properties': {
       'metadata': {
+        'additionalProperties': {},
         'description': 'User-provided metadata for logging and tracking. Key-value pairs that flow through lifecycle hooks.',
         'type': 'object'
       },
@@ -35,9 +37,19 @@ export namespace RequestMetadataEntity {
     'required': ['metadata', 'method', 'path', 'requestId'],
     'title': 'RequestMetadata',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/RequestMetadata', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Request metadata that flows through the request/response lifecycle', 'title': 'RequestMetadata', 'type': 'object' } as const, { 'metadata': SchemaNode.defineObject({ 'description': 'User-provided metadata for logging and tracking. Key-value pairs that flow through lifecycle hooks.', 'type': 'object' } as const, {  }, [] as const, { 'additionalProperties': SchemaNode.defineUnknown({} as const), 'patternProperties': {} }), 'method': SchemaNode.defineString({
+    'description': 'HTTP method (GET, POST, etc.)',
+    'type': 'string'
+  } as const), 'path': SchemaNode.defineString({
+    'description': 'Original path before URL building',
+    'type': 'string'
+  } as const), 'requestId': SchemaNode.defineString({
+    'description': 'Unique identifier for this request. Auto-generated or provided by user.',
+    'type': 'string'
+  } as const) }, ['metadata', 'method', 'path', 'requestId'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

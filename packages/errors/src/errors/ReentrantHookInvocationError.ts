@@ -1,4 +1,5 @@
-import { BaseError } from './BaseError.js';
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Error thrown when a lifecycle hook is invoked reentrantly from within its own call stack.
  *
@@ -24,6 +25,8 @@ ErrorCodeRegistry.register({
  * reentry — never deferred or silently swallowed.
  */
 export class ReentrantHookInvocationError extends BaseError {
+  public override readonly name: string = 'ReentrantHookInvocationError';
+
   /** Name of the lifecycle hook that was invoked reentrantly. */
   public readonly hookName: string;
 

@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { SortRuleEntity } from '../../entities/SortRuleEntity.js';
 import type { GroupNodeInterface } from '../../interfaces/index.js';
@@ -8,6 +8,20 @@ import { MatcherHandlerLookup } from '../matchers/index.js';
 
 class ValueComparer {
   static compare(firstValue: unknown, secondValue: unknown, direction: SortRuleEntity.Type['direction']): number {
+    const nullOrdering = ValueComparer.compareNullish(firstValue, secondValue);
+
+    if (nullOrdering !== null) {
+      return nullOrdering;
+    }
+
+    const result = ValueComparer.compareDefined(firstValue, secondValue);
+    const computedResult = direction === 'asc' ? result : -result;
+
+    return computedResult;
+  }
+
+  /** Orders nullish operands; `null` when neither is nullish so the caller falls through to value comparison. */
+  private static compareNullish(firstValue: unknown, secondValue: unknown): number | null {
     if (firstValue === null && secondValue === null) {
       return 0;
     }
@@ -19,34 +33,38 @@ class ValueComparer {
     }
     if (Predicates.isNullish(secondValue)) {
       const computedResult = -1;
+
       return computedResult;
     }
 
-    let result: number;
+    return null;
+  }
 
+  private static compareDefined(firstValue: unknown, secondValue: unknown): number {
     if (Predicates.isNumberType(firstValue) && Predicates.isNumberType(secondValue)) {
-      result = firstValue - secondValue;
-    }
-    else {
-      const handler = MatcherHandlerLookup.findNodeValueHandler(firstValue);
+      const result = firstValue - secondValue;
 
-      if (handler !== null && handler.isNodeValue(firstValue) && handler.isNodeValue(secondValue)) {
-        result = handler.compare(firstValue, secondValue);
-      }
-      else {
-        result = String(firstValue).localeCompare(String(secondValue));
-      }
+      return result;
     }
 
-    const computedResult = direction === 'asc' ? result : -result;
-    return computedResult;
+    const handler = MatcherHandlerLookup.findNodeValueHandler(firstValue);
+
+    if (handler !== null && handler.isNodeValue(firstValue) && handler.isNodeValue(secondValue)) {
+      const result = handler.compare(firstValue, secondValue);
+
+      return result;
+    }
+
+    const result = String(firstValue).localeCompare(String(secondValue));
+
+    return result;
   }
 }
 
 /**
  * Provides sorting operations for data records and group nodes.
  */
-export const sortEngine = {
+export class sortEngine {
   /**
    * Compares two group nodes based on sort rules.
    * @param first - First group node
@@ -55,7 +73,7 @@ export const sortEngine = {
    * @param getGroupCount - Function to get count of items in a node
    * @returns Comparison result
    */
-  'compareGroupNodes': function (
+  public static compareGroupNodes(
     first: GroupNodeInterface,
     second: GroupNodeInterface,
     sort: SortRuleEntity.Type,
@@ -76,7 +94,7 @@ export const sortEngine = {
     }
 
     return 0;
-  },
+  }
 
   /**
    * Compares two values with directional support.
@@ -85,7 +103,7 @@ export const sortEngine = {
    * @param direction - Sort direction (asc or desc)
    * @returns Comparison result (-1, 0, or 1)
    */
-  'compareValues': ValueComparer.compare,
+  public static compareValues: (firstValue: unknown, secondValue: unknown, direction: SortRuleEntity.Type['direction']) => number = ValueComparer.compare;
 
   /**
    * Sorts child group nodes based on sort rules.
@@ -93,7 +111,7 @@ export const sortEngine = {
    * @param sorts - Sort rules to apply
    * @param getGroupCount - Function to get count of items in a node
    */
-  'sortChildren': function (
+  public static sortChildren(
     children: GroupNodeInterface[],
     sorts: SortRuleEntity.Type[] | undefined,
     getGroupCount: (node: GroupNodeInterface) => number
@@ -116,14 +134,14 @@ export const sortEngine = {
       return 0;
     });
     children.splice(0, children.length, ...sorted);
-  },
+  }
 
   /**
    * Sorts data records based on sort rules.
    * @param nodes - Array of data records to sort
    * @param sorts - Sort rules to apply
    */
-  'sortNodes': function (nodes: Record<string, unknown>[], sorts: SortRuleEntity.Type[] | undefined): void {
+  public static sortNodes(nodes: Record<string, unknown>[], sorts: SortRuleEntity.Type[] | undefined): void {
     const nodeSorts = sorts?.filter((sortRule) => { const result = !sortRule.property.startsWith('$');
       return result; }) ?? [];
 
@@ -147,4 +165,4 @@ export const sortEngine = {
     });
     nodes.splice(0, nodes.length, ...sorted);
   }
-};
+}

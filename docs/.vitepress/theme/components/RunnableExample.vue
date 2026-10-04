@@ -2,7 +2,6 @@
 import type { EditorView } from '@codemirror/view';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { ExampleSources } from '../utils/ExampleSources';
 
 // A runnable code example. The CodeMirror editor is prefilled with the
 // verbatim source of a real .ts example (resolved from its repo path). Pressing
@@ -139,7 +138,8 @@ function reportEditorError(caught: unknown): void {
 }
 
 async function loadSource(): Promise<void> {
-  const source = await ExampleSources.get(props.src) ?? '';
+  const { getExampleSource } = await import('../utils/playgroundRuntime');
+  const source = await getExampleSource(props.src);
 
   original.value = source;
   code.value = source;
@@ -207,8 +207,11 @@ function reset(): void {
 </script>
 
 <template>
-  <div v-if="!sourceLoaded" class="runnable">
+  <div v-if="!sourceLoaded && !errorText" class="runnable">
     <span class="runnable__placeholder">Loading example…</span>
+  </div>
+  <div v-else-if="!sourceLoaded" class="runnable runnable--error">
+    <strong>Unable to load example:</strong> {{ errorText }}
   </div>
   <div v-else-if="!original" class="runnable runnable--error">
     <strong>Unknown example:</strong> {{ src }}

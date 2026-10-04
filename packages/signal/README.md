@@ -8,7 +8,7 @@
 
 `Signal` is an instantiable primitive — `Signal.create()` returns an explicitly owned instance with the canonical `compose(options)` method and a protected hook that a subclass can override to observe composition.
 
-The library also exposes `Signal.never()`, a singleton sentinel that never aborts, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
+The library also exposes `Signal.never()`, which returns a fresh never-aborting `AbortSignal` on every call, useful as a default when downstream APIs require an `AbortSignal` argument but the caller has no cancellation intent.
 
 ## Install
 
@@ -31,19 +31,19 @@ const signals = Signal.create();
 
 // Combine a caller signal with a 5-second deadline — whichever fires first wins
 async function fetchWithDeadline(callerSignal: AbortSignal): Promise<Response> {
-  const signal = await signals.compose({ signal: callerSignal, deadlineMs: 5000 });
-  return fetch('https://api.example.com/data', { signal });
+  using composed = await signals.compose({ signal: callerSignal, deadlineMs: 5000 });
+  return fetch('https://api.example.com/data', { signal: composed.signal });
 }
 
 // Timeout only — no caller signal available
 async function fetchWithTimeout(): Promise<Response> {
-  const signal = await signals.compose({ deadlineMs: 10_000 });
-  return fetch('https://api.example.com/data', { signal });
+  using composed = await signals.compose({ deadlineMs: 10_000 });
+  return fetch('https://api.example.com/data', { signal: composed.signal });
 }
 
-// Never-aborting sentinel — useful as a safe default
+// Never-aborting signal — useful as a safe default
 function getDefaultSignal(): AbortSignal {
-  return Signal.never(); // same singleton on every call
+  return Signal.never(); // fresh signal on every call
 }
 
 // SignalError rejects deadlineMs outside 0 through 2,147,483,647 whole milliseconds
@@ -73,7 +73,8 @@ class ObservedSignal extends Signal {
 }
 
 const signals = new ObservedSignal();
-await signals.compose({ deadlineMs: 5000 }); // logs the composed signal
+using composed = await signals.compose({ deadlineMs: 5000 }); // logs the composed signal
+composed.dispose();
 ```
 
 ## Documentation

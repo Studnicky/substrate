@@ -2,7 +2,7 @@ name: Publish Packages
 
 on:
   push:
-    tags: [ 'v*' ]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
@@ -77,7 +77,7 @@ jobs:
 
   publish:
     name: Publish to GitHub Packages
-    needs: [ gates, validate ]
+    needs: [gates, validate]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     outputs:
@@ -131,18 +131,24 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.ref }}
-      - uses: ./.github/actions/pnpm-node-setup
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          install: false
+          node-version: "24"
 
       - name: Extract changelog notes
-        run: node scripts/extract-release-notes.mjs > release_notes.md
+        run: node scripts/extract-release-notes.ts > release_notes.md
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --notes-file release_notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --title "$TAG" \
+              --notes-file release_notes.md
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file release_notes.md
+          fi

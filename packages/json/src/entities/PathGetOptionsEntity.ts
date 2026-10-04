@@ -1,7 +1,8 @@
-import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Options for path traversal. */
 export namespace PathGetOptionsEntity {
@@ -12,11 +13,13 @@ export namespace PathGetOptionsEntity {
     },
     'title': 'PathGetOptionsType',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'title': 'PathGetOptionsType', 'type': 'object' } as const, { 'maximumDepth': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
-  export const intake = EntityCompiler.compileIntake<Type>(Schema);
-  export const create = EntityCompiler.compileCreate<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

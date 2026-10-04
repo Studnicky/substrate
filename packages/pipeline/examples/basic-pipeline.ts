@@ -1,55 +1,77 @@
 /**
- * basic-pipeline — construct a Pipeline<T> with a fixed stage array and run
- * a context through all stages. A different stage array constructs a
- * different fixed composition.
+ * basic-pipeline — fulfil a Northstar Books order through fixed validation,
+ * pricing, and warehouse-routing stages.
  *
  * Run: npx tsx packages/pipeline/examples/basic-pipeline.ts
  */
 
+import type { EntityCreateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 import assert from 'node:assert/strict';
 
 import { Pipeline } from '../src/index.js';
-// #region usage
-import { NumberContextTypeEntity } from './entities/NumberContextTypeEntity.js';
 
-class NumberStages {
-  static double(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value * 2 }; }
-  static addTen(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value + 10 }; }
-  static timesThree(context: NumberContextTypeEntity.Type): NumberContextTypeEntity.Type { return { 'value': context.value * 3 }; }
+// #region usage
+namespace NorthstarOrderEntity {
+  const Schema = {
+    'additionalProperties': false,
+    'properties': {
+      'deliveryZone': { 'enum': ['local', 'regional'], 'type': 'string' },
+      'isbn': { 'maxLength': 13, 'minLength': 13, 'type': 'string' },
+      'quantity': { 'minimum': 1, 'type': 'integer' },
+      'route': { 'enum': ['northstar-local', 'northstar-regional'], 'type': 'string' },
+      'totalCents': { 'minimum': 0, 'type': 'integer' }
+    },
+    'required': ['deliveryZone', 'isbn', 'quantity'],
+    'type': 'object'
+  } as const;
+
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, {
+    'deliveryZone': SchemaNode.defineEnum({}, ['local', 'regional'] as const),
+    'isbn': SchemaNode.defineString({ 'maxLength': 13, 'minLength': 13, 'type': 'string' } as const),
+    'quantity': SchemaNode.defineNumber({ 'minimum': 1, 'type': 'integer' } as const),
+    'route': SchemaNode.defineEnum({}, ['northstar-local', 'northstar-regional'] as const),
+    'totalCents': SchemaNode.defineNumber({ 'minimum': 0, 'type': 'integer' } as const)
+  }, ['deliveryZone', 'isbn', 'quantity'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
+
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }
 
-// Three-stage pipeline: double, then add ten, then multiply by three
-const threeStagePipeline = Pipeline.create<NumberContextTypeEntity.Type>([
-  NumberStages.double, NumberStages.addTen, NumberStages.timesThree
-]);
+class NorthstarOrderStages {
+  static price(order: NorthstarOrderEntity.Type): NorthstarOrderEntity.Type {
+    const pricedOrder = NorthstarOrderEntity.create({ ...order, 'totalCents': order.quantity * 2499 });
+    return pricedOrder;
+  }
 
-// Two-stage pipeline: add ten, then multiply by three — a different fixed
-// composition constructed from a different stage array
-const twoStagePipeline = Pipeline.create<NumberContextTypeEntity.Type>([NumberStages.addTen, NumberStages.timesThree]);
-
-console.log(`Three-stage pipeline stages: ${threeStagePipeline.stages.length}`);
-console.log(`Two-stage pipeline stages: ${twoStagePipeline.stages.length}`);
-
-class PipelineRunDemo {
-  // Runs both fixed pipelines against the same input, returning both
-  // results so the caller ends up with a single top-level binding.
-  static async run(): Promise<{ 'withDouble': number; 'withoutDouble': number }> {
-    // (5 * 2 + 10) * 3 = 60
-    const result = await threeStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
-    console.log(`Result with 3 stages: ${result.value}`);
-
-    // (5 + 10) * 3 = 45
-    const resultWithoutDouble = await twoStagePipeline.run(NumberContextTypeEntity.create({ 'value': 5 }));
-    console.log(`Result without double stage: ${resultWithoutDouble.value}`);
-
-    return { 'withDouble': result.value, 'withoutDouble': resultWithoutDouble.value };
+  static route(order: NorthstarOrderEntity.Type): NorthstarOrderEntity.Type {
+    const routedOrder = NorthstarOrderEntity.create({
+      ...order,
+      'route': order.deliveryZone === 'local' ? 'northstar-local' : 'northstar-regional'
+    });
+    return routedOrder;
   }
 }
 
-const results = await PipelineRunDemo.run();
+const fulfilOrder = Pipeline.create<NorthstarOrderEntity.Type>([
+  NorthstarOrderStages.price,
+  NorthstarOrderStages.route
+]);
+
+const order = await fulfilOrder.run(NorthstarOrderEntity.create({
+  'deliveryZone': 'regional',
+  'isbn': '9780132350884',
+  'quantity': 2
+}));
+
+console.log(`Northstar Books order ${order.isbn}: ${order.quantity} copy/copies, $${(order.totalCents ?? 0) / 100}, ${order.route}`);
 // #endregion usage
 
-assert.equal(results.withDouble, 60, `Expected 60, got ${results.withDouble}`);
-assert.equal(results.withoutDouble, 45, `Expected 45, got ${results.withoutDouble}`);
+assert.equal(order.totalCents, 4998);
+assert.equal(order.route, 'northstar-regional');
 
 console.log('basic-pipeline: all assertions passed');

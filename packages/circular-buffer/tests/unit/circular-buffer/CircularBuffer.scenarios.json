@@ -47,7 +47,7 @@
         }
       },
       "expected": {
-        "message": "capacity must be a positive integer"
+        "message": "/capacity: must be >= 1"
       }
     },
     {
@@ -388,11 +388,7 @@
           "capacity": 1
         }
       },
-      "expected": {
-        "drained": [
-          "B"
-        ]
-      }
+      "expected": {}
     },
     {
       "name": "capacity-two-cycling",

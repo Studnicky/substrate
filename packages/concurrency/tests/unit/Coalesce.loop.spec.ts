@@ -1,39 +1,24 @@
-import { RuntimeError, HookInvocationError } from '@studnicky/errors/node';
+import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Coalesce } from '../../src/Coalesce.js';
+import { CoalesceOptionsEntity } from '../../src/entities/CoalesceOptionsEntity.js';
 import { CoalesceTimeoutError } from '../../src/errors/CoalesceTimeoutError.js';
-import scenarioGroups from './Coalesce.scenarios.json' with { type: 'json' };
-
-function delayedStringFactory(): Promise<string> {
-  return new Promise((resolve) => setTimeout(() => resolve('v'), 10));
-}
-
-type ScenarioCase =
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'shared-factory'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'independent-keys'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'inflight-state'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'factory-error-cleanup'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'factory-throw'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'sequential-calls'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'coalesce-start-hooks'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'start-gate'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'settled-success'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'settled-failure'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'join-hook-rejects'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'no-timeout'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; shape: 'timeout-rejects'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string; result: string }; shape: 'timeout-second-caller'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: { coalesce: { timeout: number }; key: string }; shape: 'async-timeout-hook'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'rejecting-start-hook'; name: string }
-  | { description: string; expected: Record<string, unknown>; input: Record<string, unknown>; shape: 'throwing-settled-hook'; name: string };
+import { ErrorCapture } from '../helpers/ErrorCapture.js';
+import scenarioGroups from './Coalesce.scenarios.json' with { 'type': 'json' };
+import { CoalesceScenarioCaseEntity } from './entities/CoalesceScenarioCaseEntity.js';
 
 class ObservedCoalesce<T> extends Coalesce<T> {
   readonly startEvents: string[] = [];
   readonly joinEvents: string[] = [];
   readonly settledEvents: { 'key': string; 'success': boolean }[] = [];
+
+  static override create<T>(options?: CoalesceOptionsEntity.InputType): ObservedCoalesce<T> {
+    return new ObservedCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+  }
   protected override onCoalesceStart(key: string): void { this.startEvents.push(key); }
   protected override onCoalesceJoin(key: string): void { this.joinEvents.push(key); }
   protected override onCoalesceSettled(key: string, success: boolean): void { this.settledEvents.push({ 'key': key, 'success': success }); }
@@ -41,280 +26,307 @@ class ObservedCoalesce<T> extends Coalesce<T> {
 
 class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
   readonly timeoutEvents: { 'key': string; 'timeoutMs': number }[] = [];
+
+  static override create<T>(options?: CoalesceOptionsEntity.InputType): ObservedTimeoutCoalesce<T> {
+    return new ObservedTimeoutCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
+  }
   protected override onTimeout(key: string, timeoutMs: number): void {
     this.timeoutEvents.push({ 'key': key, 'timeoutMs': timeoutMs });
   }
 }
 
-const scenarioRunners: Record<ScenarioCase['shape'], (scenarioCase: ScenarioCase) => Promise<void>> = {
-  'shared-factory': async (scenarioCase) => {
-    const input = scenarioCase.input as { calls: number; delayMs: number; key: string; result: string };
-    const expected = scenarioCase.expected as { result: string; callCount: number };
-    const coalesce = Coalesce.create<string>();
-    let calls = 0;
-    const factory = (): Promise<string> => {
-      calls += 1;
-      return new Promise((resolve) => setTimeout(() => resolve(input.result), input.delayMs));
-    };
-    const [a, b, c] = await Promise.all([coalesce.run(input.key, factory), coalesce.run(input.key, factory), coalesce.run(input.key, factory)]);
-    assert.equal(calls, expected.callCount);
-    assert.equal(a, expected.result);
-    assert.equal(b, expected.result);
-    assert.equal(c, expected.result);
-  },
+class RejectingTimeoutCoalesce<T> extends Coalesce<T> {
+  static make(options: CoalesceOptionsEntity.InputType): RejectingTimeoutCoalesce<string> {
+    const coalesce = RejectingTimeoutCoalesce.create<string>(options);
+    Object.defineProperty(coalesce, 'onTimeout', { 'value': RejectingTimeoutCoalesce.rejectAfterTick });
+    return coalesce;
+  }
 
-  'independent-keys': async (scenarioCase) => {
-    const input = scenarioCase.input as { keyA: string; keyB: string; valueA: number; valueB: number };
-    const expected = scenarioCase.expected as { callCount: number; resultA: number; resultB: number };
-    const coalesce = Coalesce.create<number>();
-    let calls = 0;
-    const factory = (n: number) => (): Promise<number> => {
-      calls += 1;
-      return Promise.resolve(n);
-    };
-    const [a, b] = await Promise.all([coalesce.run(input.keyA, factory(input.valueA)), coalesce.run(input.keyB, factory(input.valueB))]);
-    assert.equal(calls, expected.callCount);
-    assert.equal(a, expected.resultA);
-    assert.equal(b, expected.resultB);
-  },
+  private static async rejectAfterTick(): Promise<void> {
+    await new Promise((resolve) => { setImmediate(resolve); });
+    throw RuntimeError.create('timeout hook boom');
+  }
+}
 
-  'inflight-state': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; result: string };
-    const expected = scenarioCase.expected as { inflightBefore: boolean; inflightAfter: boolean };
-    const coalesce = Coalesce.create<string>();
-    const deferred = Promise.withResolvers<string>();
-    const pending = coalesce.run(input.key, () => deferred.promise);
-    assert.equal(coalesce.isInflight(input.key), expected.inflightBefore);
-    deferred.resolve(input.result);
-    await pending;
-    assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
-  },
+class RejectingJoinCoalesce extends Coalesce<string> {
+  readonly settledEvents: boolean[] = [];
+  readonly #message: string;
 
-  'factory-error-cleanup': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; message: string };
-    const expected = scenarioCase.expected as { inflightAfter: boolean };
-    const coalesce = Coalesce.create<string>();
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => coalesce.run(input.key, () => Promise.reject(RuntimeError.create(input.message))), new RegExp(input.message));
-    assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
-  },
+  constructor(message: string) {
+    super(CoalesceOptionsEntity.intake({}));
+    this.#message = message;
+  }
 
-  'factory-throw': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; message: string };
-    const expected = scenarioCase.expected as { inflightAfter: boolean };
-    const coalesce = Coalesce.create<string>();
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => coalesce.run(input.key, () => { throw RuntimeError.create(input.message); }), new RegExp(input.message));
-    assert.equal(coalesce.isInflight(input.key), expected.inflightAfter);
-  },
+  protected override onCoalesceJoin(): void {
+    throw RuntimeError.create(this.#message);
+  }
+  protected override onCoalesceSettled(_key: string, success: boolean): void {
+    this.settledEvents.push(success);
+  }
+}
 
-  'sequential-calls': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; result1: number; result2: number };
-    const expected = scenarioCase.expected as { callCount: number };
-    const coalesce = Coalesce.create<number>();
-    let calls = 0;
-    const factory = (): Promise<number> => Promise.resolve(++calls);
-    await coalesce.run(input.key, factory);
-    await coalesce.run(input.key, factory);
-    assert.equal(calls, expected.callCount);
-  },
+class GatedStartCoalesce extends Coalesce<string> {
+  readonly settledEvents: boolean[] = [];
 
-  'join-hook-rejects': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; message: string };
-    const expected = scenarioCase.expected as { settledEvents: boolean[] };
-    class RejectingJoinCoalesce<T> extends Coalesce<T> {
-      readonly settledEvents: boolean[] = [];
-      protected override onCoalesceJoin(): void {
-        throw RuntimeError.create(input.message);
-      }
-      protected override onCoalesceSettled(_key: string, success: boolean): void {
-        this.settledEvents.push(success);
-      }
-    }
-    const c = RejectingJoinCoalesce.create();
-    const deferred = Promise.withResolvers<string>();
-    const leader = c.run(input.key, () => deferred.promise);
-    const joiner = c.run(input.key, async () => 'unused');
-    await assert.rejects(joiner, HookInvocationError);
-    deferred.resolve('shared');
-    await leader;
-    assert.deepEqual(c.settledEvents, expected.settledEvents);
-  },
+  private constructor() {
+    super(CoalesceOptionsEntity.intake({}));
+  }
 
-  'coalesce-start-hooks': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string };
-    const expected = scenarioCase.expected as { joinCount: number; startCount: number };
-    const c = ObservedCoalesce.create();
-    await Promise.all([c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory), c.run(input.key, delayedStringFactory)]);
-    assert.equal(c.startEvents.length, expected.startCount);
-    assert.equal(c.joinEvents.length, expected.joinCount);
-    assert.deepEqual(c.startEvents, [input.key]);
-    assert.deepEqual(c.joinEvents, [input.key, input.key]);
-  },
+  static make(gate: Promise<void>): GatedStartCoalesce {
+    const coalesce = new GatedStartCoalesce();
+    Object.defineProperty(coalesce, 'onCoalesceStart', { 'value': () => { return gate; } });
+    return coalesce;
+  }
 
-  'start-gate': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string };
-    const expected = scenarioCase.expected as { factoryCalls: number; inflight: boolean };
-    const startGate = Promise.withResolvers<void>();
-    let factoryCalls = 0;
-    class PendingStartCoalesce<T> extends Coalesce<T> {
-      protected override onCoalesceStart(): Promise<void> {
-        return startGate.promise;
-      }
-    }
-    const c = PendingStartCoalesce.create<string>();
-    const factory = async (): Promise<string> => {
-      factoryCalls += 1;
-      return 'shared';
-    };
-    const leader = c.run(input.key, factory);
-    const joiner = c.run(input.key, factory);
-    assert.equal(c.isInflight(input.key), expected.inflight);
-    assert.equal(factoryCalls, 0);
-    startGate.resolve();
-    assert.deepEqual(await Promise.all([leader, joiner]), ['shared', 'shared']);
-    assert.equal(factoryCalls, expected.factoryCalls);
-    assert.equal(c.isInflight(input.key), false);
-  },
+  protected override onCoalesceSettled(_key: string, success: boolean): void {
+    this.settledEvents.push(success);
+  }
+}
 
-  'settled-success': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; result: number };
-    const expected = scenarioCase.expected as { success: boolean };
-    const c = ObservedCoalesce.create();
-    await c.run(input.key, () => Promise.resolve(input.result));
-    assert.equal(c.settledEvents.length, 1);
-    assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
-  },
+class ThrowingSettledCoalesce extends Coalesce<string> {
+  readonly #message: string;
 
-  'settled-failure': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; message: string };
-    const expected = scenarioCase.expected as { success: boolean };
-    const c = ObservedCoalesce.create();
-    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp -- message is repo-authored fixture data, not attacker input
-    await assert.rejects(() => c.run(input.key, () => Promise.reject(RuntimeError.create(input.message))), new RegExp(input.message));
-    assert.equal(c.settledEvents.length, 1);
-    assert.deepEqual(c.settledEvents[0], { 'key': input.key, 'success': expected.success });
-  },
+  constructor(message: string) {
+    super(CoalesceOptionsEntity.intake({}));
+    this.#message = message;
+  }
 
-  'no-timeout': async (scenarioCase) => {
-    const input = scenarioCase.input as { delayMs: number; key: string; result: string };
-    const expected = scenarioCase.expected as { result: string };
-    const c = Coalesce.create<string>();
-    const factory = (): Promise<string> => new Promise((resolve) => { setTimeout(() => resolve(input.result), input.delayMs); });
-    const result = await c.run(input.key, factory);
-    assert.equal(result, expected.result);
-  },
+  protected override onCoalesceSettled(): void {
+    throw RuntimeError.create(this.#message);
+  }
+}
 
-  'timeout-rejects': async (scenarioCase) => {
-    const input = scenarioCase.input as { coalesce: { timeout: number }; key: string; result: string };
-    const expected = scenarioCase.expected as { inflightAfterTimeout: boolean; timeoutEvents: { key: string; timeoutMs: number }[] };
-    const c = ObservedTimeoutCoalesce.create({ 'timeout': input.coalesce.timeout });
-    const deferred = Promise.withResolvers<string>();
-    const pending = c.run(input.key, () => deferred.promise);
-    await assert.rejects(pending, {
-      'key': input.key,
-      'name': CoalesceTimeoutError.name,
-      'timeoutMs': input.coalesce.timeout
-    });
-    assert.deepEqual(c.timeoutEvents, expected.timeoutEvents);
-    assert.equal(c.isInflight(input.key), expected.inflightAfterTimeout);
-    deferred.resolve(input.result);
-    await new Promise((resolve) => { setTimeout(resolve, 5); });
-    assert.equal(c.isInflight(input.key), false);
-  },
-
-  'timeout-second-caller': async (scenarioCase) => {
-    const input = scenarioCase.input as { coalesce: { timeout: number }; key: string; result: string };
-    const expected = scenarioCase.expected as { timeoutEvents: number };
-    const c = ObservedTimeoutCoalesce.create({ 'timeout': input.coalesce.timeout });
-    const deferred = Promise.withResolvers<string>();
-    const firstCaller = c.run(input.key, () => deferred.promise);
-    await assert.rejects(firstCaller, CoalesceTimeoutError);
-    assert.equal(c.isInflight(input.key), true);
-    const secondCaller = c.run(input.key, () => deferred.promise);
-    deferred.resolve(input.result);
-    const secondResult = await secondCaller;
-    assert.equal(secondResult, input.result);
-    assert.equal(c.timeoutEvents.length, expected.timeoutEvents);
-  },
-
-  'async-timeout-hook': async (scenarioCase) => {
-    const input = scenarioCase.input as { coalesce: { timeout: number }; key: string };
-    const expected = scenarioCase.expected as { hookName: string; unhandledRejections: number };
-    class RejectingTimeoutCoalesce<T> extends Coalesce<T> {
-      protected override async onTimeout(): Promise<void> {
-        await new Promise((resolve) => { setImmediate(resolve); });
-        throw RuntimeError.create('timeout hook boom');
-      }
-    }
+class CoalesceRunners {
+  static async 'async-timeout-hook'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'async-timeout-hook'>): Promise<void> {
     let rejectionCount = 0;
     const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const c = RejectingTimeoutCoalesce.create<string>({ 'timeout': input.coalesce.timeout });
+      const c = RejectingTimeoutCoalesce.make({ 'timeout': scenarioCase.input.coalesce.timeout });
       const deferred = Promise.withResolvers<string>();
-      const pending = c.run(input.key, () => deferred.promise);
-      await assert.rejects(pending, { 'hookName': expected.hookName, 'name': HookInvocationError.name });
-      assert.equal(c.isInflight(input.key), true);
+      const pending = c.run(scenarioCase.input.key, () => {return deferred.promise;});
+      await assert.rejects(pending, { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });
+      assert.equal(c.isInflight(scenarioCase.input.key), true);
       await new Promise((resolve) => { setImmediate(resolve); });
-      assert.equal(rejectionCount, expected.unhandledRejections);
+      assert.equal(rejectionCount, scenarioCase.expected.unhandledRejections);
     } finally {
       process.off('unhandledRejection', onUnhandledRejection);
     }
-  },
+  }
 
-  'rejecting-start-hook': async (scenarioCase) => {
-    const input = scenarioCase.input as { key: string; message: string };
-    const expected = scenarioCase.expected as { settledEvents: boolean[]; inflightAfter: boolean };
-    const startGate = Promise.withResolvers<void>();
-    class RejectingStartCoalesce<T> extends Coalesce<T> {
-      readonly settledEvents: boolean[] = [];
-      protected override onCoalesceStart(): Promise<void> {
-        return startGate.promise;
-      }
-      protected override onCoalesceSettled(_key: string, success: boolean): void {
-        this.settledEvents.push(success);
-      }
-    }
-    const c = RejectingStartCoalesce.create();
+  static async 'coalesce-start-hooks'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'coalesce-start-hooks'>): Promise<void> {
+    const c = ObservedCoalesce.create();
+    await Promise.all([c.run(scenarioCase.input.key, CoalesceRunners.delayedStringFactory), c.run(scenarioCase.input.key, CoalesceRunners.delayedStringFactory), c.run(scenarioCase.input.key, CoalesceRunners.delayedStringFactory)]);
+    assert.equal(c.startEvents.length, scenarioCase.expected.startCount);
+    assert.equal(c.joinEvents.length, scenarioCase.expected.joinCount);
+    assert.deepEqual(c.startEvents, [scenarioCase.input.key]);
+    assert.deepEqual(c.joinEvents, [scenarioCase.input.key, scenarioCase.input.key]);
+  }
+
+  static async 'factory-error-cleanup'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'factory-error-cleanup'>): Promise<void> {
+    const coalesce = Coalesce.create<string>();
+    const error = await ErrorCapture.rejection(coalesce.run(scenarioCase.input.key, async () => {
+      return await Promise.reject(RuntimeError.create(scenarioCase.input.message));
+    }));
+    assert.ok(error.message.includes(scenarioCase.input.message));
+    assert.equal(coalesce.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightAfter);
+  }
+
+  static async 'factory-throw'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'factory-throw'>): Promise<void> {
+    const coalesce = Coalesce.create<string>();
+    const error = await ErrorCapture.rejection(coalesce.run(scenarioCase.input.key, () => { throw RuntimeError.create(scenarioCase.input.message); }));
+    assert.ok(error.message.includes(scenarioCase.input.message));
+    assert.equal(coalesce.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightAfter);
+  }
+
+  static async 'independent-keys'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'independent-keys'>): Promise<void> {
+    const coalesce = Coalesce.create<number>();
     let calls = 0;
-    const factory = async (): Promise<string> => { calls += 1; return 'ok'; };
-    const leader = c.run(input.key, factory);
-    const joiner = c.run(input.key, factory);
-    assert.equal(c.isInflight(input.key), true);
+    const factory = (n: number) => {
+      const produce = (): Promise<number> => {
+        calls += 1;
+        const result = Promise.resolve(n);
+        return result;
+      };
+      return produce;
+    };
+    const [a, b] = await Promise.all([coalesce.run(scenarioCase.input.keyA, factory(scenarioCase.input.valueA)), coalesce.run(scenarioCase.input.keyB, factory(scenarioCase.input.valueB))]);
+    assert.equal(calls, scenarioCase.expected.callCount);
+    assert.equal(a, scenarioCase.expected.resultA);
+    assert.equal(b, scenarioCase.expected.resultB);
+  }
+
+  static async 'inflight-state'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'inflight-state'>): Promise<void> {
+    const coalesce = Coalesce.create<string>();
+    const deferred = Promise.withResolvers<string>();
+    const pending = coalesce.run(scenarioCase.input.key, () => {return deferred.promise;});
+    assert.equal(coalesce.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightBefore);
+    deferred.resolve(scenarioCase.input.result);
+    await pending;
+    assert.equal(coalesce.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightAfter);
+  }
+
+  static async 'join-hook-rejects'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'join-hook-rejects'>): Promise<void> {
+    const c = new RejectingJoinCoalesce(scenarioCase.input.message);
+    const deferred = Promise.withResolvers<string>();
+    const leader = c.run(scenarioCase.input.key, () => {return deferred.promise;});
+    const joiner = c.run(scenarioCase.input.key, async () => { return await Promise.resolve('unused'); });
+    await assert.rejects(joiner, HookInvocationError);
+    deferred.resolve('shared');
+    await leader;
+    assert.deepEqual(c.settledEvents, scenarioCase.expected.settledEvents);
+  }
+
+  static async 'no-timeout'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'no-timeout'>): Promise<void> {
+    const c = Coalesce.create<string>();
+    const factory = (): Promise<string> => {
+      const pending = new Promise<string>((resolve) => {
+        setTimeout(() => { resolve(scenarioCase.input.result); }, scenarioCase.input.delayMs);
+      });
+      return pending;
+    };
+    const result = await c.run(scenarioCase.input.key, factory);
+    assert.equal(result, scenarioCase.expected.result);
+  }
+
+  static async 'rejecting-start-hook'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'rejecting-start-hook'>): Promise<void> {
+    const startGate = Promise.withResolvers<void>();
+    const c = GatedStartCoalesce.make(startGate.promise);
+    let calls = 0;
+    const factory = async (): Promise<string> => { calls += 1; return await Promise.resolve('ok'); };
+    const leader = c.run(scenarioCase.input.key, factory);
+    const joiner = c.run(scenarioCase.input.key, factory);
+    assert.equal(c.isInflight(scenarioCase.input.key), true);
     assert.equal(calls, 0);
-    startGate.reject(RuntimeError.create(input.message));
+    startGate.reject(RuntimeError.create(scenarioCase.input.message));
     await Promise.all([assert.rejects(leader, HookInvocationError), assert.rejects(joiner, HookInvocationError)]);
     assert.equal(calls, 0);
-    assert.equal(c.isInflight(input.key), expected.inflightAfter);
-    assert.deepEqual(c.settledEvents, expected.settledEvents);
-  },
-
-  'throwing-settled-hook': async (scenarioCase) => {
-    const input = scenarioCase.input as { factoryMessage: string; firstKey: string; secondKey: string; settledMessage: string };
-    const expected = scenarioCase.expected as { inflightAfter: boolean };
-    class ThrowingSettledCoalesce<T> extends Coalesce<T> {
-      protected override onCoalesceSettled(): void {
-        throw RuntimeError.create(input.settledMessage);
-      }
-    }
-    const resolved = ThrowingSettledCoalesce.create<string>();
-    await assert.rejects(() => resolved.run(input.firstKey, async () => 'value'), HookInvocationError);
-    assert.equal(resolved.isInflight(input.firstKey), expected.inflightAfter);
-    const rejected = ThrowingSettledCoalesce.create<string>();
-    await assert.rejects(() => rejected.run(input.secondKey, async () => { throw RuntimeError.create(input.factoryMessage); }), HookInvocationError);
-    assert.equal(rejected.isInflight(input.secondKey), expected.inflightAfter);
+    assert.equal(c.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightAfter);
+    assert.deepEqual(c.settledEvents, scenarioCase.expected.settledEvents);
   }
-};
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunners[scenarioCase.shape](scenarioCase);
+  static async 'sequential-calls'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'sequential-calls'>): Promise<void> {
+    const coalesce = Coalesce.create<number>();
+    let calls = 0;
+    const factory = (): Promise<number> => {
+      const result = Promise.resolve(++calls);
+      return result;
+    };
+    await coalesce.run(scenarioCase.input.key, factory);
+    await coalesce.run(scenarioCase.input.key, factory);
+    assert.equal(calls, scenarioCase.expected.callCount);
+  }
+
+  static async 'settled-failure'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'settled-failure'>): Promise<void> {
+    const c = ObservedCoalesce.create();
+    const error = await ErrorCapture.rejection(c.run(scenarioCase.input.key, async () => {
+      return await Promise.reject(RuntimeError.create(scenarioCase.input.message));
+    }));
+    assert.ok(error.message.includes(scenarioCase.input.message));
+    assert.equal(c.settledEvents.length, 1);
+    assert.deepEqual(c.settledEvents[0], { 'key': scenarioCase.input.key, 'success': scenarioCase.expected.success });
+  }
+
+  static async 'settled-success'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'settled-success'>): Promise<void> {
+    const c = ObservedCoalesce.create();
+    await c.run(scenarioCase.input.key, () => {
+      const returned = Promise.resolve(scenarioCase.input.result);
+      return returned;
+    });
+    assert.equal(c.settledEvents.length, 1);
+    assert.deepEqual(c.settledEvents[0], { 'key': scenarioCase.input.key, 'success': scenarioCase.expected.success });
+  }
+
+  static async 'shared-factory'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'shared-factory'>): Promise<void> {
+    const coalesce = Coalesce.create<string>();
+    let calls = 0;
+    const factory = (): Promise<string> => {
+      calls += 1;
+      const pending = new Promise<string>((resolve) => {
+        setTimeout(() => { resolve(scenarioCase.input.result); }, scenarioCase.input.delayMs);
+      });
+      return pending;
+    };
+    const [a, b, c] = await Promise.all([coalesce.run(scenarioCase.input.key, factory), coalesce.run(scenarioCase.input.key, factory), coalesce.run(scenarioCase.input.key, factory)]);
+    assert.equal(calls, scenarioCase.expected.callCount);
+    assert.equal(a, scenarioCase.expected.result);
+    assert.equal(b, scenarioCase.expected.result);
+    assert.equal(c, scenarioCase.expected.result);
+  }
+
+  static async 'start-gate'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'start-gate'>): Promise<void> {
+    const startGate = Promise.withResolvers<void>();
+    let factoryCalls = 0;
+    const c = GatedStartCoalesce.make(startGate.promise);
+    const factory = async (): Promise<string> => {
+      factoryCalls += 1;
+      return await Promise.resolve('shared');
+    };
+    const leader = c.run(scenarioCase.input.key, factory);
+    const joiner = c.run(scenarioCase.input.key, factory);
+    assert.equal(c.isInflight(scenarioCase.input.key), scenarioCase.expected.inflight);
+    assert.equal(factoryCalls, 0);
+    startGate.resolve();
+    assert.deepEqual(await Promise.all([leader, joiner]), ['shared', 'shared']);
+    assert.equal(factoryCalls, scenarioCase.expected.factoryCalls);
+    assert.equal(c.isInflight(scenarioCase.input.key), false);
+  }
+
+  static async 'throwing-settled-hook'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'throwing-settled-hook'>): Promise<void> {
+    const resolved = new ThrowingSettledCoalesce(scenarioCase.input.settledMessage);
+    await assert.rejects(() => {
+      const result = resolved.run(scenarioCase.input.firstKey, async () => { return await Promise.resolve('value'); });
+      return result;
+    }, HookInvocationError);
+    assert.equal(resolved.isInflight(scenarioCase.input.firstKey), scenarioCase.expected.inflightAfter);
+    const rejected = new ThrowingSettledCoalesce(scenarioCase.input.settledMessage);
+    await assert.rejects(() => {
+      const result = rejected.run(scenarioCase.input.secondKey, async () => { return await Promise.reject(RuntimeError.create(scenarioCase.input.factoryMessage)); });
+      return result;
+    }, HookInvocationError);
+    assert.equal(rejected.isInflight(scenarioCase.input.secondKey), scenarioCase.expected.inflightAfter);
+  }
+
+  static async 'timeout-rejects'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'timeout-rejects'>): Promise<void> {
+    const c = ObservedTimeoutCoalesce.create({ 'timeout': scenarioCase.input.coalesce.timeout });
+    const deferred = Promise.withResolvers<string>();
+    const pending = c.run(scenarioCase.input.key, () => {return deferred.promise;});
+    await assert.rejects(pending, {
+      'key': scenarioCase.input.key,
+      'name': CoalesceTimeoutError.name,
+      'timeoutMs': scenarioCase.input.coalesce.timeout
+    });
+    assert.deepEqual(c.timeoutEvents, scenarioCase.expected.timeoutEvents);
+    assert.equal(c.isInflight(scenarioCase.input.key), scenarioCase.expected.inflightAfterTimeout);
+    deferred.resolve(scenarioCase.input.result);
+    await new Promise((resolve) => { setTimeout(resolve, 5); });
+    assert.equal(c.isInflight(scenarioCase.input.key), false);
+  }
+
+  static async 'timeout-second-caller'(scenarioCase: ScenarioCaseOfType<CoalesceScenarioCaseEntity.Type, 'timeout-second-caller'>): Promise<void> {
+    const c = ObservedTimeoutCoalesce.create({ 'timeout': scenarioCase.input.coalesce.timeout });
+    const deferred = Promise.withResolvers<string>();
+    const firstCaller = c.run(scenarioCase.input.key, () => {return deferred.promise;});
+    await assert.rejects(firstCaller, CoalesceTimeoutError);
+    assert.equal(c.isInflight(scenarioCase.input.key), true);
+    const secondCaller = c.run(scenarioCase.input.key, () => {return deferred.promise;});
+    deferred.resolve(scenarioCase.input.result);
+    const secondResult = await secondCaller;
+    assert.equal(secondResult, scenarioCase.input.result);
+    assert.equal(c.timeoutEvents.length, scenarioCase.expected.timeoutEvents);
+  }
+
+  private static delayedStringFactory(): Promise<string> {
+    const pending = new Promise<string>((resolve) => {
+      setTimeout(() => { resolve('v'); }, 10);
+    });
+    return pending;
+  }
 }
 
-void describe('Coalesce', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': CoalesceScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Coalesce',
+  'runners': CoalesceRunners
 });

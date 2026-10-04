@@ -3,7 +3,7 @@
  *
  * @module
  */
-import type { BaseErrorArgumentsInterface } from './BaseErrorArgumentsInterface.js';
+import type { BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /** Optional BaseError construction parameters supplied by a domain-error caller. */
 export interface ErrorConstructorOptionsInterface extends Pick<

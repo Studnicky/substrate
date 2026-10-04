@@ -19,6 +19,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class HeadersTimeoutError extends FetchBaseError {
+  public override readonly name: string = 'HeadersTimeoutError';
+
   /**
    * Undici error code
    */

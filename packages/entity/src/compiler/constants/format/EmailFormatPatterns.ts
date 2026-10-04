@@ -1,0 +1,12 @@
+export const LOCAL_PART_MAXIMUM_OCTETS = 64;
+export const DOMAIN_MAXIMUM_OCTETS = 255;
+export const QUOTE_CHARACTER = '"';
+export const BACKSLASH_CHARACTER = '\\';
+export const ASCII_ATEXT_PATTERN = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+$/u;
+export const UNICODE_ATEXT_PATTERN = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~\u0080-\u{10FFFF}-]+$/u;
+export const ASCII_QTEXT_PATTERN = /^[\x20\x21\x23-\x5B\x5D-\x7E]$/u;
+export const UNICODE_QTEXT_PATTERN = /^[\x20\x21\x23-\x5B\x5D-\x7E\u0080-\u{10FFFF}]$/u;
+export const QUOTED_PAIR_CHAR_PATTERN = /^[\x20-\x7E]$/u;
+export const ASCII_DOMAIN_LABEL_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/u;
+export const UNICODE_DOMAIN_LABEL_PATTERN = /^[A-Za-z0-9\u0080-\u{10FFFF}](?:[A-Za-z0-9\u0080-\u{10FFFF}-]*[A-Za-z0-9\u0080-\u{10FFFF}])?$/u;
+export const IPV6_LITERAL_TAG_PATTERN = /^ipv6:/iu;

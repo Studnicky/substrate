@@ -4,7 +4,7 @@
 
 [![Docs](https://img.shields.io/badge/docs-studnicky.github.io-14b8a6)](https://studnicky.github.io/substrate/packages/matching)
 
-`@studnicky/matching` exposes independently composable, model-free primitives. It does not choose candidates, apply a threshold, or deliver an event: a consumer combines the primitive that fits its own selection policy with `@studnicky/topic-router`, `@studnicky/filters`, or application code.
+`@studnicky/matching` exposes independently composable, model-free primitives. It does not choose candidates, apply a threshold, or deliver an event: a consumer combines the primitive that fits its own selection policy with `@studnicky/event-bus/router`, `@studnicky/filters`, or application code.
 
 ## Install
 
@@ -21,19 +21,21 @@ pnpm add @studnicky/matching
 ## Usage
 
 ```ts
-import { GlobMatcher, JaccardScorer, NgramCandidateIndex, StringNormalizer } from '@studnicky/matching/node';
+import {
+  GlobMatcher,
+  JaccardScorer,
+  NgramCandidateIndex,
+  StringNormalizer,
+} from "@studnicky/matching/node";
 
-const topic = StringNormalizer.normalize(' API.V1.Users ');
-const patternMatches = GlobMatcher.matches('api.**', topic);
+const topic = StringNormalizer.normalize(" API.V1.Users ");
+const patternMatches = GlobMatcher.matches("api.**", topic);
 
 const candidates = new NgramCandidateIndex(3);
-candidates.register('audit', 'api.audit');
+candidates.register("audit", "api.audit");
 const candidateIds = candidates.candidates(topic);
 
-const overlap = JaccardScorer.score(
-  new Set(['api', 'users']),
-  new Set(['api', 'audit'])
-);
+const overlap = JaccardScorer.score(new Set(["api", "users"]), new Set(["api", "audit"]));
 ```
 
 `GlobMatcher` supports `*`, `**`, `?`, character classes, brace alternatives, and the browser-compatible glob implementation. `TrieMatcher` compiles one segment pattern for repeated matching; `TreeMatcher`, `RadixMatcher`, `NgramCandidateIndex`, and `LshCandidateIndex` own mutable registration and candidate materialization. Bloom and Cuckoo filters provide negative prefilter evidence only: a positive result never selects or delivers by itself.

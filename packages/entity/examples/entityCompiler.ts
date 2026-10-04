@@ -3,40 +3,42 @@
 import { EntityCompiler, SchemaIntakeError } from '@studnicky/entity/node';
 import assert from 'node:assert/strict';
 
-interface SubscriberInterface {
-  readonly 'email': string;
-  readonly 'name': string;
+interface BookOrderIntakeInterface {
+  readonly 'isbn': string;
+  readonly 'quantity': number;
+  readonly 'title': string;
 }
 
-const SubscriberSchema = {
-  '$id': 'https://studnicky.dev/examples/subscriber',
+const BookOrderIntakeSchema = {
+  '$id': 'https://northstar-books.test/schemas/book-order-intake',
   'additionalProperties': false,
   'properties': {
-    'email': { 'format': 'email', 'type': 'string' },
-    'name': { 'type': 'string' }
+    'isbn': { 'pattern': '^978-[0-9]{10}', 'type': 'string' },
+    'quantity': { 'minimum': 1, 'type': 'integer' },
+    'title': { 'minLength': 1, 'type': 'string' }
   },
-  'required': ['email', 'name'],
+  'required': ['isbn', 'quantity', 'title'],
   'type': 'object'
 };
 
 // #region usage
-const validate = EntityCompiler.compile<SubscriberInterface>(SubscriberSchema);
-const intake = EntityCompiler.compileIntake<SubscriberInterface>(SubscriberSchema);
-const create = EntityCompiler.compileCreate<SubscriberInterface>(SubscriberSchema);
+const validate = EntityCompiler.compile<BookOrderIntakeInterface>(BookOrderIntakeSchema);
+const intake = EntityCompiler.compileIntake<BookOrderIntakeInterface>(BookOrderIntakeSchema);
+const create = EntityCompiler.compileCreate<BookOrderIntakeInterface>(BookOrderIntakeSchema);
 
-const subscriber = intake({ 'email': 'ada@example.test', 'name': 'Ada' });
-console.log('Boundary input:', subscriber);
-assert.equal(validate(subscriber), true);
-
-assert.throws(() => {
-  intake({ 'email': 'ada@example.test', 'name': 'Ada', 'unexpected': true });
-}, SchemaIntakeError);
-console.log('Boundary input: undeclared fields rejected');
+const order = intake({ 'isbn': '978-0132350884', 'quantity': 2, 'title': 'Clean Code' });
+console.log('Northstar Books checkout intake:', order);
+assert.equal(validate(order), true);
 
 assert.throws(() => {
-  create({ 'email': 'ada@example.test' });
+  intake({ 'isbn': '978-0132350884', 'quantity': 2, 'title': 'Clean Code', 'unexpected': true });
 }, SchemaIntakeError);
-console.log('Owned-object validation: incomplete objects rejected');
+console.log('Checkout intake: undeclared fields rejected');
+
+assert.throws(() => {
+  create({ 'isbn': '978-0132350884', 'title': 'Clean Code' });
+}, SchemaIntakeError);
+console.log('Owned order validation: incomplete objects rejected');
 // #endregion usage
 
 console.log('entityCompiler: all assertions passed');

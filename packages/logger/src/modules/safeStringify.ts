@@ -1,7 +1,9 @@
 /**
  * Safely stringifies an object to JSON, handling circular references
  */
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
+
+import { LogSerializationError } from '../errors/LogSerializationError.js';
 
 export class SafeStringify {
   /**
@@ -11,16 +13,21 @@ export class SafeStringify {
   public static stringify(object: unknown): string {
     const seen = new WeakSet();
 
-    const result = JSON.stringify(object, (_key, value) => {
-      if (Predicates.isObjectLike(value)) {
-        if (seen.has(value)) {
-          return '[Circular]';
+    try {
+      const result = JSON.stringify(object, (_key, replacerValue: unknown) => {
+        const value: unknown = replacerValue;
+        if (Predicates.isObjectLike(value)) {
+          if (seen.has(value)) {
+            return '[Circular]';
+          }
+          seen.add(value);
         }
-        seen.add(value);
-      }
 
-      return value;
-    });
-    return result;
+        return value;
+      });
+      return result;
+    } catch (error) {
+      throw new LogSerializationError('Value is not JSON-serializable', error);
+    }
   }
 }

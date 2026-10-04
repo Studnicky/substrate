@@ -1,8 +1,9 @@
+import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import {
   AsyncIterDoneDiscriminantEntity,
   AsyncIterErrorDiscriminantEntity,
@@ -13,54 +14,58 @@ import {
   DispatchStartedEventEntity,
   SemaphoreWaiterFlagsEntity
 } from '../../src/entities/index.js';
-import scenarioGroups from './entities.scenarios.json' with { type: 'json' };
+import scenarioGroups from './entities.scenarios.json' with { 'type': 'json' };
+import { ConcurrencyEntitiesScenarioCaseEntity } from './entities/ConcurrencyEntitiesScenarioCaseEntity.js';
 
-type ValidationName =
-  | 'AsyncIterDoneDiscriminantEntity'
-  | 'AsyncIterErrorDiscriminantEntity'
-  | 'AsyncIterValueDiscriminantEntity'
-  | 'ChannelEntryStateEntity'
-  | 'ChannelStateEntity'
-  | 'DispatchCompletedEventEntity'
-  | 'DispatchStartedEventEntity'
-  | 'SemaphoreWaiterFlagsEntity';
-
-type ValidationCase = { entity: ValidationName; expected: boolean; value: Record<string, unknown> };
-
-type ScenarioCase = {
-  description: string;
-  expected: { validationResults: boolean[] };
-  input: { validations: ValidationCase[] };
-  shape: 'invalid-contracts' | 'valid-contracts';
-  name: string;
-};
-
-const validatorMap: Record<ValidationName, (value: Record<string, unknown>) => boolean> = {
-  'AsyncIterDoneDiscriminantEntity': (value) => AsyncIterDoneDiscriminantEntity.validate(value),
-  'AsyncIterErrorDiscriminantEntity': (value) => AsyncIterErrorDiscriminantEntity.validate(value),
-  'AsyncIterValueDiscriminantEntity': (value) => AsyncIterValueDiscriminantEntity.validate(value),
-  'ChannelEntryStateEntity': (value) => ChannelEntryStateEntity.validate(value),
-  'ChannelStateEntity': (value) => ChannelStateEntity.validate(value),
-  'DispatchCompletedEventEntity': (value) => DispatchCompletedEventEntity.validate(value),
-  'DispatchStartedEventEntity': (value) => DispatchStartedEventEntity.validate(value),
-  'SemaphoreWaiterFlagsEntity': (value) => SemaphoreWaiterFlagsEntity.validate(value)
-};
-
-function runCase(scenarioCase: ScenarioCase): void {
-  const results = scenarioCase.input.validations.map((validation) => {
-    const validator = validatorMap[validation.entity];
-    const result = validator(validation.value);
-    assert.equal(result, validation.expected);
-    return result;
-  });
-
-  assert.deepStrictEqual(results, scenarioCase.expected.validationResults);
+interface EntityValidatorInterface {
+  validate(value: unknown): boolean;
 }
 
-void describe('concurrency entities', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
+class EntitiesCaseRunner {
+  static readonly validators = new Map<ConcurrencyEntitiesScenarioCaseEntity.Type['input']['validations'][number]['entity'], EntityValidatorInterface>([
+    ['AsyncIterDoneDiscriminantEntity', AsyncIterDoneDiscriminantEntity],
+    ['AsyncIterErrorDiscriminantEntity', AsyncIterErrorDiscriminantEntity],
+    ['AsyncIterValueDiscriminantEntity', AsyncIterValueDiscriminantEntity],
+    ['ChannelEntryStateEntity', ChannelEntryStateEntity],
+    ['ChannelStateEntity', ChannelStateEntity],
+    ['DispatchCompletedEventEntity', DispatchCompletedEventEntity],
+    ['DispatchStartedEventEntity', DispatchStartedEventEntity],
+    ['SemaphoreWaiterFlagsEntity', SemaphoreWaiterFlagsEntity]
+  ]);
+
+  static 'invalid-contracts'(scenarioCase: ScenarioCaseOfType<ConcurrencyEntitiesScenarioCaseEntity.Type, 'invalid-contracts'>): void {
+    EntitiesCaseRunner.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
   }
+
+  static 'valid-contracts'(scenarioCase: ScenarioCaseOfType<ConcurrencyEntitiesScenarioCaseEntity.Type, 'valid-contracts'>): void {
+    EntitiesCaseRunner.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  }
+
+  private static validateAll(
+    validations: ConcurrencyEntitiesScenarioCaseEntity.Type['input']['validations'],
+    expectedResults: readonly boolean[]
+  ): void {
+    const results: boolean[] = [];
+    for (let index = 0; index < validations.length; index += 1) {
+      const validation = validations[index];
+      if (validation === undefined) {
+        throw RuntimeError.create('Validation entry is undefined');
+      }
+      const validator = EntitiesCaseRunner.validators.get(validation.entity);
+      if (validator === undefined) {
+        throw RuntimeError.create(`No validator found for ${validation.entity}`);
+      }
+      const result = validator.validate(validation.value);
+      assert.equal(result, validation.expected);
+      results.push(result);
+    }
+    assert.deepStrictEqual(results, expectedResults);
+  }
+}
+
+ScenarioSuite.register({
+  'entity': ConcurrencyEntitiesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'concurrency entities',
+  'runners': EntitiesCaseRunner
 });

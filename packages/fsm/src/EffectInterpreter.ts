@@ -1,14 +1,14 @@
-import type { CircularBufferOptionsEntity } from '@studnicky/circular-buffer/entities';
 
-import { CircularBuffer } from '@studnicky/circular-buffer/node';
-import { RuntimeError } from '@studnicky/errors/node';
-import { Clone } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
+import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Clone } from '@studnicky/json/browser';
+import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { StateMachine } from './StateMachine.js';
 
+import { RegisteredInterpreterMetricsEntity } from './entities/RegisteredInterpreterMetricsEntity.js';
 import { FsmConfigError } from './errors/FsmConfigError.js';
 import { InterpreterNotRunningError } from './errors/InterpreterNotRunningError.js';
 import { InterpreterNotStartedError } from './errors/InterpreterNotStartedError.js';
@@ -19,12 +19,10 @@ import { FsmHookInvoker } from './FsmHookInvoker.js';
 const DEFAULT_MAILBOX_CAPACITY = 1024;
 
 interface EffectInterpreterCreateOptionsInterface<
-  TState extends { readonly 'variant': string },
   TEvent extends { readonly 'type': string },
   TEffect extends { readonly 'variant': string } = never
 > {
   readonly 'handler'?: EffectHandlerInterface<TEffect, TEvent> | undefined;
-  readonly 'machine': StateMachine<TState, TEvent, TEffect> | undefined;
   readonly 'machineId'?: string | undefined;
   readonly 'mailboxCapacity'?: number | undefined;
 }
@@ -37,8 +35,8 @@ interface EffectInterpreterCreateOptionsInterface<
  */
 interface MailboxEntryInterface<TEvent> {
   readonly 'event': TEvent;
-  readonly 'reject'?: ((error: unknown) => void) | undefined;
-  readonly 'resolve'?: (() => void) | undefined;
+  readonly 'reject'?: ((error: BaseError) => void) | undefined;
+  readonly 'resolve'?: ((outcome?: PromiseLike<void>) => void) | undefined;
 }
 
 /**
@@ -47,8 +45,8 @@ interface MailboxEntryInterface<TEvent> {
  * forever — a dropped mailbox slot must still settle its promise.
  */
 class MailboxBuffer<TEvent> extends CircularBuffer<MailboxEntryInterface<TEvent>> {
-  static createMailbox<TEvent>(options: CircularBufferOptionsEntity.Type = {}): MailboxBuffer<TEvent> {
-    return new MailboxBuffer<TEvent>(options);
+  static createMailbox<TEvent>(config: unknown = {}): MailboxBuffer<TEvent> {
+    return new MailboxBuffer<TEvent>(config);
   }
 
   protected override onEvict(entry: MailboxEntryInterface<TEvent>): void {
@@ -65,19 +63,16 @@ export class EffectInterpreter<
     S extends { readonly 'variant': string },
     E extends { readonly 'type': string },
     Ef extends { readonly 'variant': string } = never
-  >(options: EffectInterpreterCreateOptionsInterface<S, E, Ef>): EffectInterpreter<S, E, Ef> {
-    if (options.machine === undefined) {
-      throw new FsmConfigError('machine is required');
-    }
+  >(
+    machine: StateMachine<S, E, Ef>,
+    options: EffectInterpreterCreateOptionsInterface<E, Ef> = {}
+  ): EffectInterpreter<S, E, Ef> {
     if (options.machineId !== undefined && options.machineId === '') {
       throw new FsmConfigError('machineId must not be empty');
     }
-    if (options.mailboxCapacity !== undefined && (!Number.isInteger(options.mailboxCapacity) || options.mailboxCapacity <= 0)) {
-      throw new FsmConfigError('mailboxCapacity must be a positive integer');
-    }
     const result = new EffectInterpreter<S, E, Ef>({
       'handler': options.handler,
-      'machine': options.machine,
+      'machine': machine,
       'machineId': options.machineId,
       'mailboxCapacity': options.mailboxCapacity
     });
@@ -105,15 +100,22 @@ export class EffectInterpreter<
     this.#machine = options.machine;
     this.#handler = options.handler;
     this.#machineId = options.machineId ?? crypto.randomUUID();
-    this.#mailbox = MailboxBuffer.createMailbox<TEvent>({
-      'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
-    });
+    try {
+      this.#mailbox = MailboxBuffer.createMailbox<TEvent>({
+        'capacity': options.mailboxCapacity ?? DEFAULT_MAILBOX_CAPACITY
+      });
+    } catch (error) {
+      throw new FsmConfigError(error instanceof CircularBufferError ? 'mailboxCapacity must be a positive integer' : 'mailbox creation failed', error);
+    }
   }
 
   /** Count of lifecycle hook failures captured since construction. */
-  get hookErrorCount(): number {
-    const result = this.hooks.hookErrorCount;
-    return result;
+  get hookErrorCount(): RegisteredInterpreterMetricsEntity.Type['hookErrorCount'] {
+    const candidate = { 'hookErrorCount': this.hooks.hookErrorCount };
+    if (!RegisteredInterpreterMetricsEntity.validate(candidate)) {
+      throw RuntimeError.create('internal error: hookErrorCount left its schema-defined bounds');
+    }
+    return candidate.hookErrorCount;
   }
 
   start(): void {
@@ -196,7 +198,11 @@ export class EffectInterpreter<
       await this.#processEntry(entry.event);
       entry.resolve?.();
     } catch (error: unknown) {
-      entry.reject?.(error);
+      if (error instanceof BaseError) {
+        entry.reject?.(error);
+      } else {
+        entry.resolve?.(CallerFault.rejection(error));
+      }
     }
   }
 
@@ -266,7 +272,7 @@ export class EffectInterpreter<
       const error = Predicates.isError(errorValue) ? errorValue : RuntimeError.create(String(errorValue));
       this.hooks.invoke('onEffectError', () => { const result = this.onEffectError(effect, error);
         return result; });
-      throw error;
+      CallerFault.propagate(error);
     }
   }
 

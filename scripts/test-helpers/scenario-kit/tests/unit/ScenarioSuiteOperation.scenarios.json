@@ -1,0 +1,6 @@
+{
+  "cases": [
+    { "name": "double-four", "description": "the operation field selects the runner", "operation": "double", "input": { "operand": 4 }, "expected": { "result": 8 } },
+    { "name": "negate-four", "description": "a second operation value selects a different runner", "operation": "negate", "input": { "operand": 4 }, "expected": { "result": -4 } }
+  ]
+}

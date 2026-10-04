@@ -19,6 +19,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class SocketError extends FetchBaseError {
+  public override readonly name: string = 'SocketError';
+
   /**
    * Undici error code
    */

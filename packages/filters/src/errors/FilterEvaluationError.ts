@@ -3,7 +3,6 @@
  * @description Error thrown when filter evaluation fails
  */
 
-
 import { ErrorCodes } from '../enums/ErrorCodes.js';
 import { FilterError } from './FilterError.js';
 
@@ -22,6 +21,7 @@ export interface FilterEvaluationErrorDetailsInterface {
  * Used for runtime errors during filter evaluation
  */
 export class FilterEvaluationError extends FilterError {
+  public override readonly name: string = 'FilterEvaluationError';
   public readonly details: FilterEvaluationErrorDetailsInterface;
   public readonly operator: string | null;
   public readonly path: string | null;
@@ -36,9 +36,6 @@ export class FilterEvaluationError extends FilterError {
     const code = ErrorCodes.CORE.FILTER_EVALUATION_ERROR;
 
     super(message, { 'cause': details.cause, 'code': code });
-
-    // Set the name to the constructor name for proper inheritance
-    this.name = this.constructor.name !== '' ? this.constructor.name : 'FilterEvaluationError';
 
     // Initialize all properties in consistent order for V8 hidden class optimization
     // Always create the same shape regardless of input

@@ -1,7 +1,8 @@
-import { RuntimeError } from '@studnicky/errors/node';
 /**
  * Node HTTP transport selection.
  */
+
+import { ConfigurationError, RequestFailedError } from '../errors/index.js';
 
 const TEST_TRANSPORT_MARKER = '__substrateFetchTransport';
 
@@ -25,15 +26,21 @@ export class FetchTransport {
       if (response instanceof Response) {
         return response;
       }
-      throw RuntimeError.create('fetch test dispatcher must return a Response');
+      throw new ConfigurationError('fetch test dispatcher must return a Response');
     }
 
-    if (init.dispatcher === undefined) {
-      return await globalThis.fetch(url, init);
+    try {
+      if (init.dispatcher === undefined) {
+        const response = await globalThis.fetch(url, init);
+        return response;
+      }
+
+      const { fetch } = await import('undici');
+      const undiciInit = dispatcher === null ? { ...init, 'dispatcher': undefined } : init;
+      const response = await fetch(url, undiciInit);
+      return response;
+    } catch (cause) {
+      throw new RequestFailedError(url, cause);
     }
-
-    const { fetch } = await import('undici');
-
-    return await fetch(url, init);
   }
 }

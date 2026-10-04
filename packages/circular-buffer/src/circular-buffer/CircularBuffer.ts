@@ -35,10 +35,9 @@
  * can never produce an unhandled promise rejection or crash the process.
  */
 
-import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
-import type { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import type { CircularBufferInterface } from '../interfaces/CircularBufferInterface.js';
 
 import {
@@ -51,9 +50,10 @@ import {
   INITIAL_BUFFER_HEAD,
   INITIAL_BUFFER_TAIL
 } from '../constants/index.js';
+import { CircularBufferOptionsEntity } from '../entities/CircularBufferOptionsEntity.js';
 import { CircularBufferError } from '../errors/index.js';
 
-interface CircularBufferSubclassInterface<TInstance> extends Function {
+interface CircularBufferSubclassInterface<T, TInstance extends CircularBuffer<T>> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -61,7 +61,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Create a new CircularBuffer instance.
    *
-   * @param options - Construction options
+   * @param config - Construction options, schema-validated via `CircularBufferOptionsEntity`
    * @returns New CircularBuffer instance
    *
    * @example
@@ -70,17 +70,17 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * ```
    */
   static create<T, TInstance extends CircularBuffer<T> = CircularBuffer<T>>(
-    this: CircularBufferSubclassInterface<TInstance>,
-    options: CircularBufferOptionsEntity.Type = {}
+    this: CircularBufferSubclassInterface<T, TInstance>,
+    config: unknown = {}
   ): TInstance {
     const resolveSubclassConstructor =
-      (): CircularBufferSubclassInterface<TInstance> => {
+      (): CircularBufferSubclassInterface<T, TInstance> => {
         return this;
       };
 
     const constructed: unknown = Reflect.construct(
       resolveSubclassConstructor(),
-      [options]
+      [config]
     );
     if (!Predicates.isObjectLike(constructed)) {
       throw RuntimeError.create(
@@ -88,7 +88,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
       );
     }
     if (
-      !Predicates.isInstanceOf<TInstance>(constructed, resolveSubclassConstructor())
+      !Predicates.isInstanceOf(constructed, resolveSubclassConstructor())
     ) {
       throw RuntimeError.create(
         'CircularBuffer.create() did not construct the requested subclass.'
@@ -109,7 +109,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   readonly #overflow: 'grow' | 'overwrite';
 
   // Deliberately NOT formalized onto `@studnicky/fsm`'s `StateMachine`, unlike
-  // Throttle/Mutex/BusQueue/CircuitBreaker/CancellableTask/etc. this session.
+  // Mutex/BusQueue/CircuitBreaker/CancellableTask/etc. this session.
   // Two structural reasons: (1) `@studnicky/fsm`'s `EffectInterpreter`/
   // `InterpreterHistory` already `extends CircularBuffer` at module top level;
   // making this package depend on `@studnicky/fsm` in turn creates a real
@@ -142,20 +142,32 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   /**
    * Create a new circular buffer.
    *
-   * @param options - Construction options
-   * @param options.capacity - Initial capacity (default: 128)
-   * @param options.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
+   * @param config - Construction options
+   * @param config.capacity - Initial capacity (default: 128)
+   * @param config.overflow - Overflow strategy: 'overwrite' evicts oldest (default), 'grow' doubles capacity
    */
-  protected constructor(options: CircularBufferOptionsEntity.Type = {}) {
-    const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
-
-    if (capacity <= 0 || !Number.isInteger(capacity)) {
-      throw new CircularBufferError('capacity must be a positive integer');
+  protected constructor(config: unknown = {}) {
+    let options: CircularBufferOptionsEntity.Type;
+    try {
+      options = CircularBufferOptionsEntity.intake(config);
+    } catch (error) {
+      throw new CircularBufferError(RuntimeError.toMessage(error), { 'cause': error });
     }
 
+    const capacity = options.capacity ?? DEFAULT_BUFFER_CAPACITY;
     this.capacity = capacity;
-    this.items = Array.from<T | undefined>({ 'length': capacity });
+    this.items = CircularBuffer.allocate<T>(capacity);
     this.#overflow = options.overflow ?? 'overwrite';
+  }
+
+  /** Allocates the backing store; a capacity the platform cannot allocate surfaces as `CircularBufferError`. */
+  private static allocate<TItem>(capacity: number): (TItem | undefined)[] {
+    try {
+      const result = Array.from<TItem | undefined>({ 'length': capacity });
+      return result;
+    } catch (error) {
+      throw new CircularBufferError(`Capacity ${String(capacity)} cannot be allocated`, { 'cause': error });
+    }
   }
 
   /**
@@ -171,7 +183,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
     try {
       const oldCapacity = this.capacity;
       const newCapacity = this.capacity * BUFFER_GROWTH_FACTOR;
-      const newItems = Array.from<T | undefined>({ 'length': newCapacity });
+      const newItems = CircularBuffer.allocate<T>(newCapacity);
       const length = this.count;
       const capacity = this.capacity;
       const head = this.head;
@@ -214,7 +226,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The incoming item that triggered the overflow
    */
-  protected onOverflow(_item: T): void {
+  protected onOverflow(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -226,7 +238,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item that was evicted
    */
-  protected onEvict(_item: T): void {
+  protected onEvict(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -237,7 +249,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    * @param _oldCapacity - Capacity before growth
    * @param _newCapacity - Capacity after growth
    */
-  protected onGrow(_oldCapacity: number, _newCapacity: number): void {
+  protected onGrow(_oldCapacity: number, _newCapacity: number): void | Promise<void> {
     // no-op
   }
 
@@ -250,7 +262,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item that was pushed or unshifted
    */
-  protected onPush(_item: T): void {
+  protected onPush(_item: T): void | Promise<void> {
     // no-op
   }
 
@@ -261,7 +273,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
    *
    * @param _item - The item about to be returned
    */
-  protected onShift(_item: T): void {
+  protected onShift(_item: T): void | Promise<void> {
     // no-op
   }
 

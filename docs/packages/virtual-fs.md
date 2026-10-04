@@ -1,11 +1,11 @@
 ---
-title: '@studnicky/virtual-fs'
+title: "@studnicky/virtual-fs"
 description: In-memory synchronous filesystem primitive with injectable clock and browser compatibility.
 ---
 
 # @studnicky/virtual-fs
 
-> In-memory synchronous filesystem primitive. Gives file-lock (and any other fs-dependent code) a browser-compatible backend. Subclass to observe every filesystem event.
+> In-memory synchronous filesystem primitive. Gives filesystem-dependent code a browser-compatible backend. Subclass to observe every filesystem event.
 
 ## Install
 
@@ -51,13 +51,13 @@ The factory seeds `/data/hello.txt`, writes a second file, renames it, reads the
 
 Subclass `VirtualFileSystem` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so the filesystem operation still wins.
 
-| Hook | When it fires | Args |
-|------|--------------|------|
-| `onCreate(path)` | A new file or directory is created (`writeFileSync` on a new path, `mkdirSync`) | `path: string` |
-| `onWrite(path)` | An existing file is overwritten (`writeFileSync` on an existing path) | `path: string` |
-| `onRead(path)` | A file or directory is read (`readFileSync`, `readdirSync`) | `path: string` |
-| `onRename(oldPath, newPath)` | A file is renamed (`renameSync`) | `oldPath: string`, `newPath: string` |
-| `onDelete(path)` | A file is deleted (`unlinkSync`) | `path: string` |
+| Hook                         | When it fires                                                                   | Args                                 |
+| ---------------------------- | ------------------------------------------------------------------------------- | ------------------------------------ |
+| `onCreate(path)`             | A new file or directory is created (`writeFileSync` on a new path, `mkdirSync`) | `path: string`                       |
+| `onWrite(path)`              | An existing file is overwritten (`writeFileSync` on an existing path)           | `path: string`                       |
+| `onRead(path)`               | A file or directory is read (`readFileSync`, `readdirSync`)                     | `path: string`                       |
+| `onRename(oldPath, newPath)` | A file is renamed (`renameSync`)                                                | `oldPath: string`, `newPath: string` |
+| `onDelete(path)`             | A file is deleted (`unlinkSync`)                                                | `path: string`                       |
 
 <<< ../../packages/virtual-fs/examples/observedVirtualFs.ts#usage
 
@@ -68,14 +68,15 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 Pass a `@studnicky/clock` `ClockProviderInterface` through `VirtualFileSystem.create({ clock })` to control `mtimeMs` timestamps for deterministic test scenarios:
 
 <!-- inline-ts-ok: conceptual API illustration -->
+
 ```typescript
-import type { ClockProviderInterface } from '@studnicky/clock/interfaces';
-import { VirtualFileSystem } from '@studnicky/virtual-fs/node';
+import type { ClockProviderInterface } from "@studnicky/clock/interfaces";
+import { VirtualFileSystem } from "@studnicky/virtual-fs/node";
 
 // Any ClockProviderInterface drives mtimeMs — here a fixed, deterministic clock.
 const clock: ClockProviderInterface = {
   hrtime: () => 1_000_000_000n,
-  now: () => 1000
+  now: () => 1000,
 };
 const vfs = VirtualFileSystem.create({ clock });
 ```
@@ -85,11 +86,12 @@ const vfs = VirtualFileSystem.create({ clock });
 `VirtualFileSystem` implements `FileSystemInterface`, exported from `@studnicky/virtual-fs/interfaces`. Any code that depends on filesystem access can accept `FileSystemInterface` and receive either the real Node.js `fs` module adapter or a `VirtualFileSystem` — enabling browser-safe and test-isolated execution of the same logic.
 
 <!-- inline-ts-ok: conceptual API illustration -->
+
 ```typescript
-import type { FileSystemInterface } from '@studnicky/virtual-fs/interfaces';
+import type { FileSystemInterface } from "@studnicky/virtual-fs/interfaces";
 
 function processFiles(fs: FileSystemInterface): void {
-  const entries = fs.readdirSync('/data');
+  const entries = fs.readdirSync("/data");
   // works in Node with NodeFileSystem or in the browser with VirtualFileSystem
 }
 ```
@@ -111,8 +113,9 @@ Use `NodeFileSystem` on the server or `OpfsFileSystem` in browsers that provide 
 `@studnicky/virtual-fs/entities` exports every schema namespace in `src/entities`.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import { EntryEntity } from '@studnicky/virtual-fs/entities';
+import { EntryEntity } from "@studnicky/virtual-fs/entities";
 ```
 
 ## Interfaces
@@ -120,19 +123,43 @@ import { EntryEntity } from '@studnicky/virtual-fs/entities';
 `@studnicky/virtual-fs/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration and state contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
+import type { StatResultInterface } from "@studnicky/virtual-fs/interfaces";
 ```
+
+## What it is
+
+`@studnicky/virtual-fs` is a filesystem boundary with a synchronous in-memory implementation and runtime-specific durable adapters. It provides files, directories, metadata, and contracts for code that needs filesystem access; it does not provide a document repository, synchronisation product, or durable service policy.
+
+## What it is for
+
+Northstar Books uses this package to test import and export logic without the host filesystem, to run server-side durable file work through Node, or to store browser-side drafts through Origin Private File System. Node and browser are runtime-specific alternatives. Entities validate file data and interfaces let Northstar accept a file-system port without coupling book-processing logic to an adapter.
+
+## Northstar Books examples
+
+- **VirtualFileSystem factory — seed, write, rename, readdir, stat** solves the “test a supplier catalogue-file import without creating real files” problem. It seeds and mutates an in-memory directory, proving that Northstar can exercise familiar filesystem behaviour in an isolated test.
+- **Observed VirtualFileSystem — lifecycle hook trace** solves the “record every file operation during a book-metadata import” problem. It traces create, write, read, rename, and delete operations, proving that Northstar can add observation without embedding metrics in filesystem logic.
+- **OpfsFileSystem — browser-native durable files** solves the “retain a bookseller’s offline import draft in the browser” problem. It uses the browser-native durable adapter through the public contract, proving that Northstar can select an environment-appropriate backing store.
+
+## Public entrypoints
+
+| Import path                        | Use it when                                                                                  |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@studnicky/virtual-fs/node`       | Northstar uses an in-memory filesystem or Node durable-file adapter in server and test code. |
+| `@studnicky/virtual-fs/browser`    | Northstar uses the browser Origin Private File System adapter for local durable files.       |
+| `@studnicky/virtual-fs/entities`   | Northstar validates file-entry data at a filesystem boundary.                                |
+| `@studnicky/virtual-fs/interfaces` | Northstar accepts synchronous or asynchronous filesystem capabilities through contracts.     |
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `FileSystemInterface` | Defines the synchronous in-memory file system contract. | `@studnicky/virtual-fs/interfaces` |
-| `AsyncFileSystemInterface` | Defines durable asynchronous file operations. | `@studnicky/virtual-fs/interfaces` |
-| `NodeFileSystem` | Provides Node promise-based filesystem operations. | `@studnicky/virtual-fs/node` |
-| `OpfsFileSystem` | Provides native browser Origin Private File System operations. | `@studnicky/virtual-fs/browser` |
-| `OpfsFileSystemOptionsInterface` | Defines OPFS construction options. | `@studnicky/virtual-fs/browser` |
-| `OpfsStorageInterface` | Defines the injected OPFS storage boundary. | `@studnicky/virtual-fs/browser` |
-| `VirtualFileSystem` | Provides virtual file system functionality. | `@studnicky/virtual-fs/node` |
-| `VirtualFileSystemError` | Represents virtual file system failures. | `@studnicky/virtual-fs/node` |
+| Symbol                           | Purpose                                                                                                                                                                       | Import path                        |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| `FileSystemInterface`            | Defines the synchronous in-memory file system contract.                                                                                                                       | `@studnicky/virtual-fs/interfaces` |
+| `AsyncFileSystemInterface`       | Defines durable asynchronous file operations.                                                                                                                                 | `@studnicky/virtual-fs/interfaces` |
+| `NodeFileSystem`                 | Provides Node promise-based filesystem operations.                                                                                                                            | `@studnicky/virtual-fs/node`       |
+| `OpfsFileSystem`                 | Provides native browser Origin Private File System operations.                                                                                                                | `@studnicky/virtual-fs/browser`    |
+| `OpfsFileSystemOptionsInterface` | Defines OPFS construction options.                                                                                                                                            | `@studnicky/virtual-fs/browser`    |
+| `OpfsStorageInterface`           | Defines the injected OPFS storage boundary.                                                                                                                                   | `@studnicky/virtual-fs/browser`    |
+| `VirtualFileSystem`              | Provides virtual file system functionality.                                                                                                                                   | `@studnicky/virtual-fs/node`       |
+| `VirtualFileSystemError`         | Represents virtual file system failures. `NodeFileSystem` and `OpfsFileSystem` reject with it, carrying the platform `fs` error or `DOMException` as `cause` and its message. | `@studnicky/virtual-fs/node`       |

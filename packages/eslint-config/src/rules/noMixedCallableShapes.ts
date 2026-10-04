@@ -1,7 +1,8 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Predicates } from '@studnicky/types/browser';
 import {
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
@@ -53,9 +54,10 @@ namespace DeclarationLocationEntity {
     },
     'required': ['location', 'name'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'location': SchemaNode.defineString({ 'type': 'string' } as const), 'name': SchemaNode.defineString({ 'type': 'string' } as const) }, ['location', 'name'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface DeclarationLocationInterface {
@@ -63,12 +65,7 @@ interface DeclarationLocationInterface {
   readonly 'name': DeclarationLocationEntity.Type['name'];
 }
 
-/**
- * Describes where a mixed union or intersection sits relative to the nearest enclosing named
- * type alias or interface declaration, walking outward through property signatures and index
- * signatures to build a dotted member path. A node with no enclosing named declaration (an
- * inline annotation on a parameter or variable, for example) reports itself generically.
- */
+// Builds the `{{location}}` dotted path; see docs/eslint/rules/no-mixed-callable-shapes.md.
 class DeclarationLocation {
   public static describe(node: Node): DeclarationLocationInterface {
     const segments: string[] = [];
@@ -76,19 +73,12 @@ class DeclarationLocation {
     let current: Node | undefined = child.parent;
 
     while (current !== undefined) {
-      if (isPropertySignature(current) && current.type === child) {
-        segments.unshift(current.name.getText());
-      } else if (isIndexSignatureDeclaration(current) && current.type === child) {
-        segments.unshift('[index]');
-      }
+      DeclarationLocation.#pushSegment(current, child, segments);
 
-      if (isTypeAliasDeclaration(current)) {
-        const name = current.name.text;
-        return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
-      }
-      if (isInterfaceDeclaration(current)) {
-        const name = current.name.text;
-        return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+      const terminal = DeclarationLocation.#describeIfDeclaration(current, segments);
+
+      if (terminal !== undefined) {
+        return terminal;
       }
 
       child = current;
@@ -96,6 +86,29 @@ class DeclarationLocation {
     }
 
     return { 'location': 'inline type', 'name': 'inline type' };
+  }
+
+  static #pushSegment(current: Node, child: Node, segments: string[]): void {
+    if (isPropertySignature(current) && current.type === child) {
+      segments.unshift(current.name.getText());
+    } else if (isIndexSignatureDeclaration(current) && current.type === child) {
+      segments.unshift('[index]');
+    }
+  }
+
+  static #describeIfDeclaration(current: Node, segments: readonly string[]): DeclarationLocationInterface | undefined {
+    if (isTypeAliasDeclaration(current)) {
+      const name = current.name.text;
+
+      return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+    }
+    if (isInterfaceDeclaration(current)) {
+      const name = current.name.text;
+
+      return { 'location': segments.length > 0 ? segments.join('.') : name, 'name': name };
+    }
+
+    return undefined;
   }
 }
 

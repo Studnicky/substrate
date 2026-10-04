@@ -23,225 +23,281 @@ import { HttpStatus } from '../constants/index.js';
 /**
  * Number matchers
  */
-const NumberMatchers = Object.freeze({
+class NumberMatchers {
   /**
    * Check if number is greater than value
    */
-  'greaterThan': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value > minimum; return comparisonResult;}; return result;},
+  public static greaterThan(minimum: number): (value: number) => boolean {
+    const result: (value: number) => boolean = (value: number): boolean => {
+      const comparisonResult = value > minimum;
+      return comparisonResult;
+    };
+    return result;
+  }
 
   /**
    * Check if number is greater than or equal to value
    */
-  'gte': (minimum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum; return comparisonResult;}; return result;},
+  public static gte(minimum: number): (value: number) => boolean {
+    const result: (value: number) => boolean = (value: number): boolean => {
+      const comparisonResult = value >= minimum;
+      return comparisonResult;
+    };
+    return result;
+  }
 
   /**
    * Check if number is in range (inclusive)
-   *
    */
-  'inRange': (minimum: number, maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value >= minimum && value <= maximum; return comparisonResult;}; return result;},
+  public static inRange(minimum: number, maximum: number): (value: number) => boolean {
+    const result: (value: number) => boolean = (value: number): boolean => {
+      const comparisonResult = value >= minimum && value <= maximum;
+      return comparisonResult;
+    };
+    return result;
+  }
 
   /**
    * Check if number is less than value
    */
-  'lessThan': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value < maximum; return comparisonResult;}; return result;},
+  public static lessThan(maximum: number): (value: number) => boolean {
+    const result: (value: number) => boolean = (value: number): boolean => {
+      const comparisonResult = value < maximum;
+      return comparisonResult;
+    };
+    return result;
+  }
 
   /**
    * Check if number is less than or equal to value
    */
-  'lte': (maximum: number) => {const result: (value: number) => boolean = (value: number): boolean => {const comparisonResult = value <= maximum; return comparisonResult;}; return result;},
+  public static lte(maximum: number): (value: number) => boolean {
+    const result: (value: number) => boolean = (value: number): boolean => {
+      const comparisonResult = value <= maximum;
+      return comparisonResult;
+    };
+    return result;
+  }
 
   /**
    * Check if number equals any of the provided values
    */
-  'oneOf': (...values: number[]) => {return (value: number): boolean => {
-    const length = values.length;
-    for (let index = 0; index < length; index += 1) {
-      if (values[index] === value) {
-        return true;
+  public static oneOf(...values: number[]): (value: number) => boolean {
+    return (value: number): boolean => {
+      const length = values.length;
+      for (let index = 0; index < length; index += 1) {
+        if (values[index] === value) {
+          return true;
+        }
       }
-    }
-    return false;
-  };}
-});
+      return false;
+    };
+  }
+}
+Object.freeze(NumberMatchers);
 
 /**
  * String matchers
  */
-const StringMatchers = Object.freeze({
+class StringMatchers {
   /**
    * Check if string contains substring (case-sensitive)
    */
-  'contains': (substring: string) => {return (value: string): boolean => {
-    const result = value.indexOf(substring) !== -1;
-    return result;
-  };},
+  public static contains(substring: string): (value: string) => boolean {
+    return (value: string): boolean => {
+      const result = value.indexOf(substring) !== -1;
+      return result;
+    };
+  }
 
   /**
    * Check if string contains substring (case-insensitive)
    */
-  'containsIgnoreCase': (substring: string) => {
+  public static containsIgnoreCase(substring: string): (value: string) => boolean {
     const lowerSubstring = substring.toLowerCase();
-
     return (value: string): boolean => {
       const result = value.toLowerCase().indexOf(lowerSubstring) !== -1;
       return result;
     };
-  },
+  }
 
   /**
    * Check if string ends with suffix (case-sensitive)
    */
-  'endsWith': (suffix: string) => {return (value: string): boolean => {
-    const result = value.length >= suffix.length && value.slice(value.length - suffix.length) === suffix;
-    return result;
-  };},
+  public static endsWith(suffix: string): (value: string) => boolean {
+    return (value: string): boolean => {
+      const result = value.length >= suffix.length && value.slice(value.length - suffix.length) === suffix;
+      return result;
+    };
+  }
 
   /**
    * Check if string length is in range
    */
-  'lengthInRange': (minimum: number, maximum: number) => {return (value: string): boolean =>
-  {const result = value.length >= minimum && value.length <= maximum; return result;};},
+  public static lengthInRange(minimum: number, maximum: number): (value: string) => boolean {
+    return (value: string): boolean => {
+      const result = value.length >= minimum && value.length <= maximum;
+      return result;
+    };
+  }
 
   /**
    * Check if string matches regex pattern
    */
-  'matches': (pattern: RegExp) => {return (value: string): boolean => {
-    const result = pattern.test(value) === true;
-    return result;
-  };},
+  public static matches(pattern: RegExp): (value: string) => boolean {
+    return (value: string): boolean => {
+      const result = pattern.test(value) === true;
+      return result;
+    };
+  }
 
   /**
    * Check if string is not empty
    */
-  'notEmpty': (value: string): boolean => {
+  public static notEmpty(value: string): boolean {
     const result = value.length > EMPTY_LENGTH;
     return result;
-  },
+  }
 
   /**
    * Check if string equals any of the provided values
    */
-  'oneOf': (...values: string[]) => {return (value: string): boolean => {
-    const length = values.length;
-    for (let index = 0; index < length; index += 1) {
-      if (values[index] === value) {
-        return true;
+  public static oneOf(...values: string[]): (value: string) => boolean {
+    return (value: string): boolean => {
+      const length = values.length;
+      for (let index = 0; index < length; index += 1) {
+        if (values[index] === value) {
+          return true;
+        }
       }
-    }
-    return false;
-  };},
+      return false;
+    };
+  }
 
   /**
    * Check if string starts with prefix (case-sensitive)
    */
-  'startsWith': (prefix: string) => {return (value: string): boolean => {
-    const result = value.indexOf(prefix) === 0;
-    return result;
-  };},
+  public static startsWith(prefix: string): (value: string) => boolean {
+    return (value: string): boolean => {
+      const result = value.indexOf(prefix) === 0;
+      return result;
+    };
+  }
 
   /**
    * Check if string starts with prefix (case-insensitive)
    */
-  'startsWithIgnoreCase': (prefix: string) => {
+  public static startsWithIgnoreCase(prefix: string): (value: string) => boolean {
     const lowerPrefix = prefix.toLowerCase();
-
     return (value: string): boolean => {
       const result = value.toLowerCase().indexOf(lowerPrefix) === 0;
       return result;
     };
   }
-});
+}
+Object.freeze(StringMatchers);
 
 /**
  * Boolean matchers
  */
-const BooleanMatchers = Object.freeze({
+class BooleanMatchers {
   /**
    * Check if value is false
    */
-  'isFalse': (value: boolean): boolean => {
+  public static isFalse(value: boolean): boolean {
     const result = !value;
     return result;
-  },
+  }
 
   /**
    * Check if value is true
    */
-  'isTrue': (value: boolean): boolean => {
-    const result = value;
+  public static isTrue(value: boolean): boolean {
+    const result = value === true;
     return result;
   }
-});
+}
+Object.freeze(BooleanMatchers);
 
 /**
  * Array matchers
  */
-const ArrayMatchers = Object.freeze({
+class ArrayMatchers {
   /**
    * Check if array contains value
    */
-  'contains': <T>(searchValue: T) => {return (value: T[]): boolean => {
-    const length = value.length;
-    for (let index = 0; index < length; index += 1) {
-      if (value[index] === searchValue) {
-        return true;
+  public static contains<T>(searchValue: T): (value: T[]) => boolean {
+    return (value: T[]): boolean => {
+      const length = value.length;
+      for (let index = 0; index < length; index += 1) {
+        if (value[index] === searchValue) {
+          return true;
+        }
       }
-    }
-    return false;
-  };},
+      return false;
+    };
+  }
 
   /**
    * Check if array contains all of the values
    */
-  'containsAll': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
-    const valuesSet = new Set(value);
-    const requiredValues = new Set(searchValues);
-    for (const requiredValue of requiredValues) {
-      if (!valuesSet.has(requiredValue)) {
-        return false;
+  public static containsAll<T>(...searchValues: T[]): (value: T[]) => boolean {
+    return (value: T[]): boolean => {
+      const valuesSet = new Set(value);
+      const requiredValues = new Set(searchValues);
+      for (const requiredValue of requiredValues) {
+        if (!valuesSet.has(requiredValue)) {
+          return false;
+        }
       }
-    }
-    return true;
-  };},
+      return true;
+    };
+  }
 
   /**
    * Check if array contains any of the values
    */
-  'containsAny': <T>(...searchValues: T[]) => {return (value: T[]): boolean => {
-    const valuesSet = new Set(value);
-    const requiredValues = new Set(searchValues);
-    for (const requiredValue of requiredValues) {
-      if (valuesSet.has(requiredValue)) {
-        return true;
+  public static containsAny<T>(...searchValues: T[]): (value: T[]) => boolean {
+    return (value: T[]): boolean => {
+      const valuesSet = new Set(value);
+      const requiredValues = new Set(searchValues);
+      for (const requiredValue of requiredValues) {
+        if (valuesSet.has(requiredValue)) {
+          return true;
+        }
       }
-    }
-    return false;
-  };},
+      return false;
+    };
+  }
 
   /**
    * Check if array length is in range
    */
-  'lengthInRange': (minimum: number, maximum: number) => {return (value: unknown[]): boolean =>
-  {const result = value.length >= minimum && value.length <= maximum; return result;};},
+  public static lengthInRange(minimum: number, maximum: number): (value: unknown[]) => boolean {
+    return (value: unknown[]): boolean => {
+      const result = value.length >= minimum && value.length <= maximum;
+      return result;
+    };
+  }
 
   /**
    * Check if array is not empty
    */
-  'notEmpty': (value: unknown[]): boolean => {
+  public static notEmpty(value: unknown[]): boolean {
     const result = value.length > EMPTY_LENGTH;
     return result;
   }
-});
+}
+Object.freeze(ArrayMatchers);
 
 /**
  * Logical combinators for composing matchers
  */
-const LogicMatchers = Object.freeze({
+class LogicMatchers {
   /**
    * Combine matchers with AND logic
-   *
    */
-  'and': <T>(...predicates: ((value: T) => boolean)[]) => {
+  public static and<T>(...predicates: ((value: T) => boolean)[]): (value: T) => boolean {
     return (value: T): boolean => {
       const predicatesLength = predicates.length;
       for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
@@ -253,24 +309,22 @@ const LogicMatchers = Object.freeze({
       }
       return true;
     };
-  },
+  }
 
   /**
    * Negate a matcher
-   *
    */
-  'not': <T>(predicate: (value: T) => boolean) => {
+  public static not<T>(predicate: (value: T) => boolean): (value: T) => boolean {
     return (value: T): boolean => {
       const result = !predicate(value);
       return result;
     };
-  },
+  }
 
   /**
    * Combine matchers with OR logic
-   *
    */
-  'or': <T>(...predicates: ((value: T) => boolean)[]) => {
+  public static or<T>(...predicates: ((value: T) => boolean)[]): (value: T) => boolean {
     return (value: T): boolean => {
       const predicatesLength = predicates.length;
       for (let predicateIndex = 0; predicateIndex < predicatesLength; predicateIndex += 1) {
@@ -282,7 +336,8 @@ const LogicMatchers = Object.freeze({
       return false;
     };
   }
-});
+}
+Object.freeze(LogicMatchers);
 
 /**
  * Common HTTP status code matchers
@@ -367,38 +422,39 @@ const NetworkMatchers = Object.freeze({
 /**
  * Common database error matchers (PostgreSQL codes)
  */
-const DatabaseMatchers = Object.freeze({
+class DatabaseMatchers {
   /**
    * Connection errors (Class 08)
    */
-  'isConnectionError': StringMatchers.startsWith('08'),
+  public static readonly isConnectionError: (value: string) => boolean = StringMatchers.startsWith('08');
 
   /**
    * Constraint violations (Class 23)
    */
-  'isConstraintViolation': StringMatchers.startsWith('23'),
+  public static readonly isConstraintViolation: (value: string) => boolean = StringMatchers.startsWith('23');
 
   /**
    * Deadlock (40001, 40P01)
    */
-  'isDeadlock': StringMatchers.oneOf('40001', '40P01'),
+  public static readonly isDeadlock: (value: string) => boolean = StringMatchers.oneOf('40001', '40P01');
 
   /**
    * Foreign key violation (23503)
    */
-  'isForeignKeyViolation': (code: string): boolean => {
+  public static isForeignKeyViolation(code: string): boolean {
     const result = code === '23503';
     return result;
-  },
+  }
 
   /**
    * Unique violation (23505)
    */
-  'isUniqueViolation': (code: string): boolean => {
+  public static isUniqueViolation(code: string): boolean {
     const result = code === '23505';
     return result;
   }
-});
+}
+Object.freeze(DatabaseMatchers);
 
 /**
  * Aggregated matchers export matching filename

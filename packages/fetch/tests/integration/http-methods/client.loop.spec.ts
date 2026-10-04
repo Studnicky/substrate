@@ -1,80 +1,78 @@
-import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClient } from '../../../src/node/index.js';
-import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './client.scenarios.json' with { type: 'json' };
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import scenarioGroups from './client.scenarios.json' with { 'type': 'json' };
+import { ClientScenarioCaseEntity } from './entities/ClientScenarioCaseEntity.js';
 
-type ScenarioCase =
-  | {
-      description: string;
-      expected: { json?: { [key: string]: unknown }; status: number };
-      input: {
-        body?: Record<string, unknown> | string;
-        method: 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
-        path: string;
-      };
-      name: string;
-    };
-
-type RequestMethod = ScenarioCase['input']['method'];
-type MethodRunner = (request: ScenarioCase['input']) => Promise<Response>;
-
-const ctx: { client: FetchClient | undefined; testUrl: string } = {
-  client: undefined,
-  testUrl: ''
-};
-
-/** The client is built in `before()`; reading it earlier is a suite-ordering defect. */
-function requireClient(): FetchClient {
-  if (ctx.client === undefined) {
-    throw RuntimeError.create('client is unavailable because before() has not run');
+class ClientRunners {
+  static async 'DELETE'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'DELETE'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const response = await client.delete(scenarioCase.input.path);
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
   }
 
-  return ctx.client;
-}
+  static async 'GET'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'GET'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const response = await client.get(scenarioCase.input.path);
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-void before(async () => {
-  ctx.testUrl = await startTestServer();
-  ctx.client = FetchClient.create({ baseURL: ctx.testUrl });
-});
+  static async 'HEAD'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'HEAD'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const response = await client.head(scenarioCase.input.path);
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-void after(async () => {
-  await stopTestServer();
-});
+  static async 'OPTIONS'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'OPTIONS'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const response = await client.options(scenarioCase.input.path);
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-function requestBodyOptions(request: ScenarioCase['input']): { body: Record<string, unknown> | string } | undefined {
-  return request.body === undefined ? undefined : { body: request.body };
-}
+  static async 'PATCH'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'PATCH'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const { body } = scenarioCase.input;
+    const response = await client.patch(scenarioCase.input.path, body === undefined ? undefined : { 'body': body });
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-const methodRunnerMap: Record<RequestMethod, MethodRunner> = {
-  DELETE: async (request) => requireClient().delete(request.path),
-  GET: async (request) => requireClient().get(request.path),
-  HEAD: async (request) => requireClient().head(request.path),
-  OPTIONS: async (request) => requireClient().options(request.path),
-  PATCH: async (request) => requireClient().patch(request.path, requestBodyOptions(request)),
-  POST: async (request) => requireClient().post(request.path, requestBodyOptions(request)),
-  PUT: async (request) => requireClient().put(request.path, requestBodyOptions(request))
-};
+  static async 'POST'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'POST'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const { body } = scenarioCase.input;
+    const response = await client.post(scenarioCase.input.path, body === undefined ? undefined : { 'body': body });
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-async function assertResponse(response: Response, expected: ScenarioCase['expected']): Promise<void> {
-  assert.strictEqual(response.status, expected.status);
+  static async 'PUT'(scenarioCase: ScenarioCaseOfType<ClientScenarioCaseEntity.Type, 'PUT'>): Promise<void> {
+    using server = TestServer.start();
+    const client = FetchClient.create({ 'baseURL': server.url });
+    const { body } = scenarioCase.input;
+    const response = await client.put(scenarioCase.input.path, body === undefined ? undefined : { 'body': body });
+    await ClientRunners.assertResponse(response, scenarioCase.expected);
+  }
 
-  if (expected.json !== undefined) {
-    assert.deepStrictEqual(await response.json(), expected.json);
+  private static async assertResponse(response: Response, expected: ClientScenarioCaseEntity.Type['expected']): Promise<void> {
+    assert.strictEqual(response.status, expected.status);
+
+    if (expected.json !== undefined) {
+      assert.deepStrictEqual(await response.json(), expected.json);
+    }
   }
 }
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const response = await methodRunnerMap[scenarioCase.input.method](scenarioCase.input);
-  await assertResponse(response, scenarioCase.expected);
-}
-
-void describe('FetchClient HTTP Methods', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ClientScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'FetchClient HTTP Methods',
+  'runners': ClientRunners
 });

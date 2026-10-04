@@ -7,7 +7,8 @@
  *
  * @module
  */
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
 import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';
@@ -37,7 +38,7 @@ export class Delay {
   public static sleep(ms: number, options: DelayOptionsInterface = {}): Promise<void> {
     const signal = options.signal;
 
-    const result = new Promise<void>((resolve, reject) => {
+    const result = new Promise<void>((resolve) => {
       let abortListenerAttached = false;
       let outcome: 'aborted' | 'complete' | 'pending' = 'pending';
       let task: ScheduledTaskInterface | undefined;
@@ -60,7 +61,7 @@ export class Delay {
         if (!finish('aborted')) {
           return;
         }
-        reject(signal?.reason);
+        resolve(CallerFault.rejection(signal?.reason));
         task?.cancel();
       };
 
@@ -78,30 +79,47 @@ export class Delay {
       }
 
       try {
-        const scheduler = options.scheduler ?? RealTimeScheduler.create();
-        const clock = options.clock ?? RealTimeClockProvider.create();
-        const atMs = clock.now() + ms;
-
-        if (outcome !== 'pending') {
-          return;
-        }
-
-        const scheduledTask = scheduler.scheduleAt(atMs, () => {
-          if (finish('complete')) {
-            resolve();
-          }
-        });
-        task = scheduledTask;
-
-        if (signal?.aborted === true) {
-          scheduledTask.cancel();
+        const scheduledTask = Delay.#scheduleSleep(ms, options, () => {
+          const isPending = outcome === 'pending';
+          return isPending;
+        }, finish, resolve);
+        if (scheduledTask !== undefined) {
+          task = scheduledTask;
         }
       } catch (error: unknown) {
         if (finish('complete')) {
-          reject(error);
+          resolve(CallerFault.rejection(error));
         }
       }
     });
     return result;
+  }
+
+  static #scheduleSleep(
+    ms: number,
+    options: DelayOptionsInterface,
+    isPending: () => boolean,
+    finish: (nextOutcome: 'aborted' | 'complete') => boolean,
+    resolve: () => void
+  ): ScheduledTaskInterface | undefined {
+    const scheduler = options.scheduler ?? RealTimeScheduler.create();
+    const clock = options.clock ?? RealTimeClockProvider.create();
+    const atMs = clock.now() + ms;
+
+    if (!isPending()) {
+      return undefined;
+    }
+
+    const scheduledTask = scheduler.scheduleAt(atMs, () => {
+      if (finish('complete')) {
+        resolve();
+      }
+    });
+
+    if (options.signal?.aborted === true) {
+      scheduledTask.cancel();
+    }
+
+    return scheduledTask;
   }
 }

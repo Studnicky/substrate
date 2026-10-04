@@ -2,9 +2,9 @@ name: Release
 
 on:
   workflow_run:
-    workflows: [ ci ]
-    branches: [ main, develop ]
-    types: [ completed ]
+    workflows: [ci]
+    branches: [main, develop]
+    types: [completed]
 
 concurrency:
   group: release-${{ github.event.workflow_run.head_branch }}
@@ -24,9 +24,9 @@ jobs:
         with:
           fetch-depth: 0
           ref: main
-      - uses: ./.github/actions/pnpm-node-setup
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          install: false
+          node-version: "24"
       - id: detect
         shell: bash
         env:
@@ -102,14 +102,14 @@ jobs:
           echo "action=$action" >> "$GITHUB_OUTPUT"
 
   validate:
-    needs: [ plan ]
+    needs: [plan]
     if: needs.plan.outputs.action == 'prepare'
     uses: ./.github/workflows/node-suite.yml
     with:
       preset: release-validate
 
   prepare:
-    needs: [ plan, validate ]
+    needs: [plan, validate]
     if: needs.plan.outputs.action == 'prepare'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -185,7 +185,7 @@ jobs:
           bash scripts/ci-suite.sh predocs-build >"$tmpdir/predocs.log" 2>&1 &
           predocs_pid=$!
 
-          node scripts/extract-release-notes.mjs >"$tmpdir/release_notes.md" &
+          node scripts/extract-release-notes.ts >"$tmpdir/release_notes.md" &
           notes_pid=$!
 
           if ! wait "$predocs_pid"; then
@@ -248,7 +248,7 @@ jobs:
           fi
 
   tag:
-    needs: [ plan ]
+    needs: [plan]
     if: needs.plan.outputs.action == 'tag'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -262,9 +262,9 @@ jobs:
           fetch-depth: 0
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: ./.github/actions/pnpm-node-setup
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          install: false
+          node-version: "24"
       - name: Verify the merged release
         shell: bash
         env:

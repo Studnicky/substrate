@@ -1,0 +1,89 @@
+{
+  "cases": [
+    {
+      "name": "on-message-envelopes",
+      "description": "onMessage fires for every envelope type",
+      "shape": "on-message-envelopes",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../../fixtures/worker/echoWorker.ts"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "seenTypes": ["log", "progress", "result"]
+      }
+    },
+    {
+      "name": "error-envelope-and-hook",
+      "description": "onMessage and onWorkerError both fire when a worker posts an error envelope",
+      "shape": "error-envelope-and-hook",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../../fixtures/worker/echoWorker.ts"
+        },
+        "items": [{ "error": "kaboom", "value": "x" }]
+      },
+      "expected": {
+        "seenTypes": ["log", "progress", "error"],
+        "seenErrors": ["kaboom"]
+      }
+    },
+    {
+      "name": "throwing-on-message",
+      "description": "a throwing onMessage hook does not prevent the worker result from resolving",
+      "shape": "throwing-on-message",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../../fixtures/worker/echoWorker.ts"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "hookErrorMessages": ["hook boom", "hook boom", "hook boom"],
+        "results": ["x"]
+      }
+    },
+    {
+      "name": "async-rejecting-on-message",
+      "description": "an async-rejecting onMessage override is routed to getHookErrors() without an unhandled rejection",
+      "shape": "async-rejecting-on-message",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../../fixtures/worker/echoWorker.ts"
+        },
+        "items": [{ "value": "x" }]
+      },
+      "expected": {
+        "hookErrorMessages": ["async onMessage boom", "async onMessage boom", "async onMessage boom"],
+        "rejectionEvents": [],
+        "results": ["x"]
+      }
+    },
+    {
+      "name": "hook-errors-instance-local",
+      "description": "records hook failures only on the worker-pool instance that owns the invoker",
+      "shape": "hook-errors-instance-local",
+      "input": {
+        "workerPool": {
+          "concurrency": 1,
+          "workerPath": "../../fixtures/worker/echoWorker.ts"
+        },
+        "firstItems": [{ "value": "first" }],
+        "secondItems": [{ "value": "second" }]
+      },
+      "expected": {
+        "firstHookErrorMessage": "first pool hook failed",
+        "firstHookErrorName": "onWorkerCreated",
+        "firstResults": ["first"],
+        "secondHookErrorMessage": "second pool hook failed",
+        "secondHookErrorName": "onWorkerCreated",
+        "secondResults": ["second"]
+      }
+    }
+  ]
+}

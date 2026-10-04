@@ -1,7 +1,31 @@
 {
   "name": "@studnicky/fsm",
-  "version": "14.0.0",
+  "version": "15.0.1",
   "description": "Pure reducer FSM with async effect interpreter and actor registry",
+  "keywords": [
+    "actor",
+    "finite-state-machine",
+    "fsm",
+    "reducer",
+    "state-machine",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/fsm"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -22,50 +46,25 @@
       "import": "./dist/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/fsm"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "fsm",
-    "state-machine",
-    "finite-state-machine",
-    "reducer",
-    "actor",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0"
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
-    "@studnicky/clock": "workspace:*",
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/clock": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*",
-    "json-schema-to-ts": "^3.1.1"
+    "@studnicky/types": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

@@ -22,6 +22,9 @@
     },
     {
       "path": "../json"
+    },
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

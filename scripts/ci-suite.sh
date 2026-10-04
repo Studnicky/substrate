@@ -35,13 +35,19 @@ package_dist_ready() {
 
 verify_dist() {
   missing=0
+  scenario_kit_dist_ready || missing=1
   for pkgjson in packages/*/package.json; do
     package_dist_ready "$pkgjson" || missing=1
   done
   test "$missing" -eq 0
 }
 
+scenario_kit_dist_ready() {
+  test -f scripts/test-helpers/scenario-kit/dist/index.js
+}
+
 dist_ready() {
+  scenario_kit_dist_ready || return 1
   for pkgjson in packages/*/package.json; do
     package_dist_ready "$pkgjson" >/dev/null 2>&1 || return 1
   done
@@ -63,6 +69,7 @@ for check in "$@"; do
     test-integration) prepare_dist && pnpm run test:integration ;;
     test-smoke) prepare_dist && pnpm run test:smoke ;;
     test-all) prepare_dist && pnpm run test:all ;;
+    test-conformance) prepare_dist && pnpm run test:conformance ;;
     build) pnpm run build && verify_dist ;;
     docs-build) prepare_dist && pnpm run docs:build ;;
     docs-includes) pnpm run lint:docs ;;

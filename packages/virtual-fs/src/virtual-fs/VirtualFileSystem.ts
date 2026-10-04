@@ -1,6 +1,5 @@
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
@@ -10,10 +9,10 @@ import type { VirtualFileSystemOptionsInterface } from '../interfaces/VirtualFil
 
 import { VirtualFileSystemError } from '../errors/VirtualFileSystemError.js';
 
-interface VirtualFileSystemConstructorInterface<
-  TInstance extends VirtualFileSystem
-> extends Function {
-  readonly 'prototype': TInstance;
+
+interface RenameSourceInterface {
+  readonly 'content': string | undefined;
+  readonly 'entry': EntryEntity.Type | undefined;
 }
 
 const DEFAULT_CLOCK: ClockProviderInterface = RealTimeClockProvider.create();
@@ -42,22 +41,8 @@ class StatResult implements StatResultInterface {
 }
 
 export class VirtualFileSystem implements FileSystemInterface {
-  static create<TInstance extends VirtualFileSystem = VirtualFileSystem>(
-    this: VirtualFileSystemConstructorInterface<TInstance>,
-    options?: VirtualFileSystemOptionsInterface
-  ): TInstance {
-    const constructed: unknown = Reflect.construct(this, [options ?? {}]);
-    if (!Predicates.isObjectLike(constructed)) {
-      throw RuntimeError.create(
-        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
-      );
-    }
-    if (!Predicates.isInstanceOf<TInstance>(constructed, this)) {
-      throw RuntimeError.create(
-        'VirtualFileSystem.create() must construct a VirtualFileSystem instance'
-      );
-    }
-    return constructed;
+  static create(options?: VirtualFileSystemOptionsInterface): VirtualFileSystem {
+    return new VirtualFileSystem(options ?? {});
   }
 
   static #splitPath(path: string): { 'name': string; 'parent': string } {
@@ -140,17 +125,16 @@ export class VirtualFileSystem implements FileSystemInterface {
     return result;
   }
 
-  mkdirSync(path: string, options?: MkdirOptionsEntity.Type): void {
-    const recursive = options?.recursive === true;
+  #mkdirTargetOccupied(path: string, recursive: boolean): boolean {
     const existingEntry = this.#entries.get(path);
 
     if (existingEntry?.shape === 'directory') {
-      if (!recursive) {
-        throw new VirtualFileSystemError(
-          `EEXIST: directory already exists, mkdir '${path}'`
-        );
+      if (recursive) {
+        return true;
       }
-      return;
+      throw new VirtualFileSystemError(
+        `EEXIST: directory already exists, mkdir '${path}'`
+      );
     }
 
     if (this.#files.has(path)) {
@@ -159,49 +143,63 @@ export class VirtualFileSystem implements FileSystemInterface {
       );
     }
 
+    return false;
+  }
+
+  #mkdirCreateSegment(path: string): void {
+    const entry: EntryEntity.Type = {
+      'mtimeMs': this.#clock.now(),
+      'shape': 'directory'
+    };
+    this.#entries.set(path, entry);
+    this.#indexAdd(path);
+    this.#invokeCreateHook(path);
+  }
+
+  #mkdirPathSegments(path: string): string[] {
+    const segments = path.split('/');
+    const filtered: string[] = [];
+    const segmentsLength = segments.length;
+    for (let i = 0; i < segmentsLength; i += 1) {
+      const s = segments[i];
+      if (s !== undefined && s.length > 0) {
+        filtered.push(s);
+      }
+    }
+    return filtered;
+  }
+
+  #mkdirRecursive(path: string): void {
+    const filtered = this.#mkdirPathSegments(path);
+    let current = '';
+    const filteredLength = filtered.length;
+    for (let i = 0; i < filteredLength; i += 1) {
+      const seg = filtered[i];
+      if (seg !== undefined) {
+        current = `${current}/${seg}`;
+        if (this.#files.has(current)) {
+          throw new VirtualFileSystemError(
+            `ENOTDIR: not a directory, mkdir '${path}'`
+          );
+        }
+        if (!this.#entries.has(current)) {
+          this.#mkdirCreateSegment(current);
+        }
+      }
+    }
+  }
+
+  mkdirSync(path: string, options?: MkdirOptionsEntity.InputType): void {
+    const recursive = options?.recursive === true;
+
+    if (this.#mkdirTargetOccupied(path, recursive)) {
+      return;
+    }
+
     if (recursive) {
-      const segments = path.split('/');
-      const filtered: string[] = [];
-      const segmentsLength = segments.length;
-      for (let i = 0; i < segmentsLength; i += 1) {
-        const s = segments[i];
-        if (s !== undefined && s.length > 0) {
-          filtered.push(s);
-        }
-      }
-      let current = '';
-      const filteredLength = filtered.length;
-      for (let i = 0; i < filteredLength; i += 1) {
-        const seg = filtered[i];
-        if (seg !== undefined) {
-          current = `${current}/${seg}`;
-          if (this.#files.has(current)) {
-            throw new VirtualFileSystemError(
-              `ENOTDIR: not a directory, mkdir '${path}'`
-            );
-          }
-          if (!this.#entries.has(current)) {
-            const entry: EntryEntity.Type = {
-              'mtimeMs': this.#clock.now(),
-              'shape': 'directory'
-            };
-            this.#entries.set(current, entry);
-            this.#indexAdd(current);
-            this.#invokeCreateHook(current);
-          }
-        }
-      }
+      this.#mkdirRecursive(path);
     } else {
-      const entry: EntryEntity.Type = {
-        'mtimeMs': this.#clock.now(),
-        'shape': 'directory'
-      };
-      this.#entries.set(path, entry);
-      this.#indexAdd(path);
-      this.hooks.invoke('onCreate', () => {
-        const result = this.onCreate(path);
-        return result;
-      });
+      this.#mkdirCreateSegment(path);
     }
   }
 
@@ -242,77 +240,110 @@ export class VirtualFileSystem implements FileSystemInterface {
     return content;
   }
 
-  renameSync(oldPath: string, newPath: string): void {
-    const content = this.#files.get(oldPath);
-    const oldEntry = this.#entries.get(oldPath);
-
-    if (content === undefined && oldEntry === undefined) {
+  #assertRenameSourceExists(
+    source: RenameSourceInterface,
+    oldPath: string,
+    newPath: string
+  ): void {
+    if (source.content === undefined && source.entry === undefined) {
       throw new VirtualFileSystemError(
         `ENOENT: no such file or directory, rename '${oldPath}' -> '${newPath}'`
       );
     }
+  }
+
+  #renameDirectoryEntry(candidate: string, prefix: string, newPath: string): void {
+    const entry = this.#entries.get(candidate);
+    if (entry === undefined) {
+      return;
+    }
+    const rest = candidate.slice(prefix.length);
+    const movedPath = `${newPath}/${rest}`;
+    this.#entries.set(movedPath, entry);
+    this.#entries.delete(candidate);
+    this.#indexRemove(candidate);
+    this.#indexAdd(movedPath);
+    if (entry.shape === 'directory') {
+      // Descendant #indexAdd calls below derive their new parent from movedPath.
+      this.#children.delete(candidate);
+    }
+  }
+
+  #renameDirectoryEntries(prefix: string, newPath: string): void {
+    const entryKeys = Array.from(this.#entries.keys());
+    const entryKeysLength = entryKeys.length;
+    for (let i = 0; i < entryKeysLength; i += 1) {
+      const candidate = entryKeys[i];
+      if (candidate?.startsWith(prefix) === true) {
+        this.#renameDirectoryEntry(candidate, prefix, newPath);
+      }
+    }
+  }
+
+  #renameDirectoryFile(candidate: string, prefix: string, newPath: string): void {
+    const fileContent = this.#files.get(candidate);
+    if (fileContent === undefined) {
+      return;
+    }
+    const rest = candidate.slice(prefix.length);
+    this.#files.set(`${newPath}/${rest}`, fileContent);
+    this.#files.delete(candidate);
+  }
+
+  #renameDirectoryFiles(prefix: string, newPath: string): void {
+    const fileKeys = Array.from(this.#files.keys());
+    const fileKeysLength = fileKeys.length;
+    for (let i = 0; i < fileKeysLength; i += 1) {
+      const candidate = fileKeys[i];
+      if (candidate?.startsWith(prefix) === true) {
+        this.#renameDirectoryFile(candidate, prefix, newPath);
+      }
+    }
+  }
+
+  #renameDirectory(oldPath: string, newPath: string, mtimeMs: number): void {
+    const prefix = `${oldPath}/`;
+    this.#renameDirectoryEntries(prefix, newPath);
+    this.#renameDirectoryFiles(prefix, newPath);
+    this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': 'directory' });
+    this.#entries.delete(oldPath);
+    this.#indexRemove(oldPath);
+    this.#indexAdd(newPath);
+    this.#children.delete(oldPath);
+  }
+
+  #renameFile(
+    oldPath: string,
+    newPath: string,
+    source: RenameSourceInterface,
+    mtimeMs: number
+  ): void {
+    if (source.content !== undefined) {
+      this.#files.set(newPath, source.content);
+      this.#files.delete(oldPath);
+    }
+
+    const shape: EntryEntity.Type['shape'] =
+      source.entry !== undefined ? source.entry.shape : 'file';
+    this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': shape });
+    this.#entries.delete(oldPath);
+    this.#indexRemove(oldPath);
+    this.#indexAdd(newPath);
+  }
+
+  renameSync(oldPath: string, newPath: string): void {
+    const source: RenameSourceInterface = {
+      'content': this.#files.get(oldPath),
+      'entry': this.#entries.get(oldPath)
+    };
+    this.#assertRenameSourceExists(source, oldPath, newPath);
 
     const mtimeMs = this.#clock.now();
 
-    if (oldEntry?.shape === 'directory') {
-      const prefix = `${oldPath}/`;
-
-      const entryKeys = Array.from(this.#entries.keys());
-      const entryKeysLength = entryKeys.length;
-      for (let i = 0; i < entryKeysLength; i += 1) {
-        const candidate = entryKeys[i];
-        if (candidate?.startsWith(prefix) === true) {
-          const rest = candidate.slice(prefix.length);
-          const entry = this.#entries.get(candidate);
-          if (entry !== undefined) {
-            const movedPath = `${newPath}/${rest}`;
-            this.#entries.set(movedPath, entry);
-            this.#entries.delete(candidate);
-            this.#indexRemove(candidate);
-            this.#indexAdd(movedPath);
-            if (entry.shape === 'directory') {
-              // The candidate's own child-listing key (it as a parent) is
-              // superseded by #indexAdd calls from its descendants below,
-              // which derive their new parent purely from movedPath — drop
-              // the stale key rather than transplant its (possibly
-              // already-drained) Set, which would be iteration-order-dependent.
-              this.#children.delete(candidate);
-            }
-          }
-        }
-      }
-
-      const fileKeys = Array.from(this.#files.keys());
-      const fileKeysLength = fileKeys.length;
-      for (let i = 0; i < fileKeysLength; i += 1) {
-        const candidate = fileKeys[i];
-        if (candidate?.startsWith(prefix) === true) {
-          const rest = candidate.slice(prefix.length);
-          const fileContent = this.#files.get(candidate);
-          if (fileContent !== undefined) {
-            this.#files.set(`${newPath}/${rest}`, fileContent);
-            this.#files.delete(candidate);
-          }
-        }
-      }
-
-      this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': 'directory' });
-      this.#entries.delete(oldPath);
-      this.#indexRemove(oldPath);
-      this.#indexAdd(newPath);
-      this.#children.delete(oldPath);
+    if (source.entry?.shape === 'directory') {
+      this.#renameDirectory(oldPath, newPath, mtimeMs);
     } else {
-      if (content !== undefined) {
-        this.#files.set(newPath, content);
-        this.#files.delete(oldPath);
-      }
-
-      const shape: EntryEntity.Type['shape'] =
-        oldEntry !== undefined ? oldEntry.shape : 'file';
-      this.#entries.set(newPath, { 'mtimeMs': mtimeMs, 'shape': shape });
-      this.#entries.delete(oldPath);
-      this.#indexRemove(oldPath);
-      this.#indexAdd(newPath);
+      this.#renameFile(oldPath, newPath, source, mtimeMs);
     }
 
     this.hooks.invoke('onRename', () => {

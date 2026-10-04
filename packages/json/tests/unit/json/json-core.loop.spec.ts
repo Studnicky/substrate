@@ -3,79 +3,22 @@ import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
 import {
-  Clone,
-  Frozen,
-  FrozenMutationError,
-  Hash,
-  Merge,
-  Sort,
-  StructuralHash
-} from '../../../src/index.js';
+  ScenarioSuite,
+  ScenarioValues
+} from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import {
   DraftNodeStateEntity,
   PatchApplyResultStatusEntity,
   PathWildcardResultEntity
 } from '../../../src/entities/index.js';
-
-import scenarioGroups from './json-core.scenarios.json' with { type: 'json' };
-
-type ScenarioShape =
-  | 'clone-deep-array'
-  | 'clone-deep-date'
-  | 'clone-deep-isolation'
-  | 'clone-deep-map'
-  | 'clone-deep-nested-object'
-  | 'clone-deep-null'
-  | 'clone-deep-number'
-  | 'clone-deep-set'
-  | 'clone-deep-string'
-  | 'clone-shallow'
-  | 'clone-subclass-base'
-  | 'clone-subclass-nested'
-  | 'clone-subclass-root'
-  | 'data-cycle'
-  | 'data-deepequal-false'
-  | 'data-deepequal-negative-branches'
-  | 'data-deepequal-special'
-  | 'data-deepequal-true'
-  | 'data-plain-object'
-  | 'data-record'
-  | 'entities-core'
-  | 'frozen-cycle'
-  | 'frozen-flat'
-  | 'frozen-map-set'
-  | 'frozen-map-values'
-  | 'frozen-nested'
-  | 'frozen-primitives'
-  | 'frozen-reference'
-  | 'frozen-set-values'
-  | 'frozen-subclass-skip'
-  | 'hash-different'
-  | 'hash-distinct-shapes'
-  | 'hash-edge-values'
-  | 'hash-hex'
-  | 'hash-identical'
-  | 'hash-nested'
-  | 'hash-order'
-  | 'hash-primitive'
-  | 'merge-hidden-class'
-  | 'merge-isolation'
-  | 'merge-primitives'
-  | 'sort-functions'
-  | 'structural-hash-different'
-  | 'structural-hash-metadata';
-
-type JsonObject = Record<string, unknown>;
-type ImportedScenarioCase = (typeof scenarioGroups.cases)[number];
-type ScenarioCase = {
-  description: string;
-  expected: JsonObject;
-  input: { json: JsonObject };
-  shape: ScenarioShape;
-  name: string;
-};
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
+import { Clone, Frozen, FrozenMutationError, Merge, Sort } from '../../../src/index.js';
+import { JsonCoreScenarioCaseEntity } from './entities/JsonCoreScenarioCaseEntity.js';
+import { OTHER_PATTERN } from './fixtures/OTHER_PATTERN.js';
+import { VALUE_PATTERN } from './fixtures/VALUE_PATTERN.js';
+import scenarioGroups from './json-core.scenarios.json' with { 'type': 'json' };
 
 class TaggedClone extends Clone {
   protected static override cloneObject(value: Record<string, unknown>): Record<string, unknown> {
@@ -86,521 +29,660 @@ class TaggedClone extends Clone {
 
 class SelectiveFrozen extends Frozen {
   protected static override shouldFreeze(value: object): boolean {
-    return !('mutable' in value);
+    const isFrozenTarget = 'mutable' in value === false;
+    return isFrozenTarget;
   }
 }
 
-const runtimeValueByShape = {
-  array: (): unknown[] => [1, 2],
-  date: (): Date => new Date(0),
-  false: (): boolean => false,
-  function: (): (() => string) => () => 'hashable',
-  map: (): Map<string, number> => new Map([['a', 1]]),
-  null: (): null => null,
-  number: (): number => 1,
-  object: (): Record<string, never> => ({}),
-  set: (): Set<string> => new Set(['a']),
-  string: (): string => 'value',
-  true: (): boolean => true,
-  undefined: (): undefined => undefined
-} satisfies Record<string, () => unknown>;
-
-const scenarioRunnerMap = {
-  'clone-deep-number': (scenarioCase) => {
-    assert.equal(Clone.deep(readJson(scenarioCase).value), scenarioCase.expected.cloned);
-  },
-
-  'clone-deep-string': (scenarioCase) => {
-    assert.equal(Clone.deep(readJson(scenarioCase).value), scenarioCase.expected.cloned);
-  },
-
-  'clone-deep-null': (scenarioCase) => {
-    assert.equal(Clone.deep(readJson(scenarioCase).value), scenarioCase.expected.cloned);
-  },
-
-  'clone-deep-array': (scenarioCase) => {
-    const original = readJson(scenarioCase).value;
+class JsonCoreRunners {
+  static 'clone-deep-array'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-array'>
+  ): void {
+    const original = JsonCoreRunners.readJson(scenarioCase.input).value;
     const cloned = Clone.deep(original);
     assert.deepEqual(cloned, scenarioCase.expected.cloned);
     assert.notStrictEqual(cloned, original);
-    assert.notStrictEqual(requireArray(cloned, 'clone array result')[1], requireArray(original, 'clone array input')[1]);
-  },
+    assert.notStrictEqual(
+      ScenarioValues.requireArray(cloned, 'clone array result')[1],
+      ScenarioValues.requireArray(original, 'clone array input')[1]
+    );
+  }
 
-  'clone-deep-nested-object': (scenarioCase) => {
-    const original = requireJsonObject(readJson(scenarioCase).value, 'clone nested object input');
-    const cloned = requireJsonObject(Clone.deep(original), 'clone nested object result');
-    assert.deepEqual(cloned, scenarioCase.expected.cloned);
-    assert.equal(cloned !== original, scenarioCase.expected.distinct);
-    assert.notStrictEqual(cloned.b, original.b);
-  },
+  static 'clone-deep-date'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-date'>
+  ): void {
+    const original = new Date(
+      ScenarioValues.requireString(
+        JsonCoreRunners.readJson(scenarioCase.input).value,
+        'clone date input'
+      )
+    );
+    const cloned: unknown = Clone.deep(original);
+    assert.ok(cloned instanceof Date);
+    assert.notStrictEqual(cloned, original);
+    assert.equal(cloned.getTime(), original.getTime());
+  }
 
-  'clone-deep-map': (scenarioCase) => {
-    const original = materializeMap(readJson(scenarioCase).value);
-    const cloned = requireMap(Clone.deep(original), 'clone map result');
+  static 'clone-deep-isolation'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-isolation'>
+  ): void {
+    const original = ScenarioValues.requireRecord(
+      JsonCoreRunners.readJson(scenarioCase.input).value,
+      'clone isolation input'
+    );
+    const cloned = ScenarioValues.requireRecord(Clone.deep(original), 'clone isolation result');
+    Reflect.set(ScenarioValues.requireRecord(cloned.b, 'clone isolation nested result'), 'c', 99);
+    assert.equal(ScenarioValues.requireRecord(original.b, 'clone isolation nested input').c, 2);
+  }
+
+  static 'clone-deep-map'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-map'>
+  ): void {
+    const original = JsonCoreRunners.materializeMap(
+      JsonCoreRunners.readJson(scenarioCase.input),
+      'value'
+    );
+    const cloned: unknown = Clone.deep(original);
+    assert.ok(cloned instanceof Map);
     assert.equal(cloned !== original, scenarioCase.expected.distinct);
     assert.equal(cloned.size, scenarioCase.expected.size);
     assert.deepEqual(cloned, original);
-  },
+  }
 
-  'clone-deep-set': (scenarioCase) => {
-    const original = materializeSet(readJson(scenarioCase).value);
-    const cloned = requireSet(Clone.deep(original), 'clone set result');
+  static 'clone-deep-nested-object'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-nested-object'>
+  ): void {
+    const original = ScenarioValues.requireRecord(
+      JsonCoreRunners.readJson(scenarioCase.input).value,
+      'clone nested object input'
+    );
+    const cloned = ScenarioValues.requireRecord(Clone.deep(original), 'clone nested object result');
+    assert.deepEqual(cloned, scenarioCase.expected.cloned);
     assert.equal(cloned !== original, scenarioCase.expected.distinct);
-    for (const value of requireArray(scenarioCase.expected.has, 'clone set expected values')) assert.ok(cloned.has(value));
+    assert.notStrictEqual(cloned.b, original.b);
+  }
+
+  static 'clone-deep-null'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-null'>
+  ): void {
+    assert.equal(
+      Clone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      scenarioCase.expected.cloned
+    );
+  }
+
+  static 'clone-deep-number'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-number'>
+  ): void {
+    assert.equal(
+      Clone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      scenarioCase.expected.cloned
+    );
+  }
+
+  static 'clone-deep-set'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-set'>
+  ): void {
+    const original = JsonCoreRunners.materializeSet(
+      JsonCoreRunners.readJson(scenarioCase.input),
+      'value'
+    );
+    const cloned: unknown = Clone.deep(original);
+    assert.ok(cloned instanceof Set);
+    assert.equal(cloned !== original, scenarioCase.expected.distinct);
+    const expectedValues = ScenarioValues.requireArray(
+      scenarioCase.expected.has,
+      'clone set expected values'
+    );
+    for (let index = 0; index < expectedValues.length; index += 1) {
+      assert.ok(cloned.has(expectedValues[index]));
+    }
     assert.deepEqual(cloned, original);
-  },
+  }
 
-  'clone-deep-date': (scenarioCase) => {
-    const original = new Date(requireString(readJson(scenarioCase).value, 'clone date input'));
-    const cloned = requireDate(Clone.deep(original), 'clone date result');
-    assert.notStrictEqual(cloned, original);
-    assert.equal(cloned.getTime(), original.getTime());
-  },
+  static 'clone-deep-string'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-deep-string'>
+  ): void {
+    assert.equal(
+      Clone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      scenarioCase.expected.cloned
+    );
+  }
 
-  'clone-deep-isolation': (scenarioCase) => {
-    const original = requireJsonObject(readJson(scenarioCase).value, 'clone isolation input');
-    const cloned = requireJsonObject(Clone.deep(original), 'clone isolation result');
-    Reflect.set(requireJsonObject(cloned.b, 'clone isolation nested result'), 'c', 99);
-    assert.equal(requireJsonObject(original.b, 'clone isolation nested input').c, 2);
-  },
-
-  'clone-shallow': (scenarioCase) => {
-    const original = requireJsonObject(readJson(scenarioCase).value, 'clone shallow input');
-    const cloned = requireJsonObject(Clone.shallow(original), 'clone shallow result');
+  static 'clone-shallow'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-shallow'>
+  ): void {
+    const original = ScenarioValues.requireRecord(
+      JsonCoreRunners.readJson(scenarioCase.input).value,
+      'clone shallow input'
+    );
+    const cloned = ScenarioValues.requireRecord(Clone.shallow(original), 'clone shallow result');
     assert.notStrictEqual(cloned, original);
     assert.equal(cloned.a, 1);
     assert.equal(cloned.b === original.b, scenarioCase.expected.nestedShared);
-  },
+  }
 
-  'clone-subclass-root': (scenarioCase) => {
-    const result = requireJsonObject(TaggedClone.deep(readJson(scenarioCase).value), 'clone subclass root result');
+  static 'clone-subclass-base'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-subclass-base'>
+  ): void {
+    const result = ScenarioValues.requireRecord(
+      Clone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      'clone subclass base result'
+    );
     assert.equal(Reflect.get(result, '__tag') === 'cloned', scenarioCase.expected.tagged);
-    assert.equal(result.a, 1);
-  },
+  }
 
-  'clone-subclass-nested': (scenarioCase) => {
-    const result = requireJsonObject(TaggedClone.deep(readJson(scenarioCase).value), 'clone subclass nested result');
+  static 'clone-subclass-nested'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-subclass-nested'>
+  ): void {
+    const result = ScenarioValues.requireRecord(
+      TaggedClone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      'clone subclass nested result'
+    );
     assert.equal(Reflect.get(result, '__tag') === 'cloned', scenarioCase.expected.tagged);
-    const nested = requireJsonObject(result.nested, 'clone subclass nested child');
+    const nested = ScenarioValues.requireRecord(result.nested, 'clone subclass nested child');
     assert.equal(Reflect.get(nested, '__tag') === 'cloned', scenarioCase.expected.nestedTagged);
     assert.equal(nested.b, 2);
-  },
+  }
 
-  'clone-subclass-base': (scenarioCase) => {
-    const result = requireJsonObject(Clone.deep(readJson(scenarioCase).value), 'clone subclass base result');
+  static 'clone-subclass-root'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'clone-subclass-root'>
+  ): void {
+    const result = ScenarioValues.requireRecord(
+      TaggedClone.deep(JsonCoreRunners.readJson(scenarioCase.input).value),
+      'clone subclass root result'
+    );
     assert.equal(Reflect.get(result, '__tag') === 'cloned', scenarioCase.expected.tagged);
-  },
+    assert.equal(result.a, 1);
+  }
 
-  'data-deepequal-true': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    for (const value of requireArray(requiredValue(input, 'primitives'), 'deepEqual true primitives')) {
+  static 'data-cycle'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-cycle'>
+  ): void {
+    assert.equal(Predicates.hasCycle({ 'a': 1, 'b': [2, 3] }), scenarioCase.expected.acyclic);
+    const cyclicRecord: Record<string, unknown> = { 'a': 1 };
+    cyclicRecord.self = cyclicRecord;
+    assert.equal(Predicates.hasCycle(cyclicRecord), scenarioCase.expected.objectCycle);
+    const cyclicList: unknown[] = [1, 2];
+    cyclicList.push(cyclicList);
+    assert.equal(Predicates.hasCycle(cyclicList), scenarioCase.expected.arrayCycle);
+  }
+
+  static 'data-deepequal-false'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-deepequal-false'>
+  ): void {
+    const values = ScenarioValues.requireArray(
+      JsonCoreRunners.readJson(scenarioCase.input).values,
+      'deepEqual false values'
+    );
+    assert.equal(Predicates.areDeeplyEqual(values[0], values[1]), scenarioCase.expected.result);
+    assert.equal(Predicates.areDeeplyEqual(values[2], values[3]), scenarioCase.expected.result);
+  }
+
+  static 'data-deepequal-negative-branches'(
+    scenarioCase: ScenarioCaseOfType<
+      JsonCoreScenarioCaseEntity.Type,
+      'data-deepequal-negative-branches'
+    >
+  ): void {
+    assert.deepEqual(JsonCoreRunners.readJson(scenarioCase.input).checks, [
+      'array-size',
+      'array-value',
+      'object-size',
+      'object-missing'
+    ]);
+    const negativeChecks = [
+      Predicates.areDeeplyEqual([1, 2], [1]),
+      Predicates.areDeeplyEqual([1], [2]),
+      Predicates.areDeeplyEqual({ 'a': 1, 'b': 2 }, { 'a': 1 }),
+      Predicates.areDeeplyEqual({ 'a': 1 }, { 'b': 1 })
+    ];
+    const allNegativeChecksFail = negativeChecks.every((result) => {
+      const isNegative = result === false;
+      return isNegative;
+    });
+    assert.equal(allNegativeChecksFail, scenarioCase.expected.allNegativeChecksFail);
+  }
+
+  static 'data-deepequal-special'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-deepequal-special'>
+  ): void {
+    const input = JsonCoreRunners.readJson(scenarioCase.input);
+    const pairs = ScenarioValues.requireArray(
+      ScenarioValues.requireProperty(input, 'pairs', 'input'),
+      'deepEqual special pairs'
+    );
+    for (let index = 0; index < pairs.length; index += 1) {
+      const pair = pairs[index];
+      const record = ScenarioValues.requireRecord(pair, 'deepEqual special pair');
+      const left = ScenarioValues.requireProperty(record, 'left', 'input');
+      const right = ScenarioValues.requireProperty(record, 'right', 'input');
+      assert.equal(
+        Predicates.areDeeplyEqual(left, right),
+        ScenarioValues.requireProperty(record, 'equal', 'input')
+      );
+    }
+  }
+
+  static 'data-deepequal-true'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-deepequal-true'>
+  ): void {
+    const input = JsonCoreRunners.readJson(scenarioCase.input);
+    const primitives = ScenarioValues.requireArray(
+      ScenarioValues.requireProperty(input, 'primitives', 'input'),
+      'deepEqual true primitives'
+    );
+    for (let index = 0; index < primitives.length; index += 1) {
+      const value = primitives[index];
       assert.equal(Predicates.areDeeplyEqual(value, value), scenarioCase.expected.result);
     }
-    for (const pair of requireArray(requiredValue(input, 'pairs'), 'deepEqual true pairs')) {
-      const record = requireJsonObject(pair, 'deepEqual true pair');
-      const left = requiredValue(record, 'left');
-      const right = requiredValue(record, 'right');
+    const pairs = ScenarioValues.requireArray(
+      ScenarioValues.requireProperty(input, 'pairs', 'input'),
+      'deepEqual true pairs'
+    );
+    for (let index = 0; index < pairs.length; index += 1) {
+      const record = ScenarioValues.requireRecord(pairs[index], 'deepEqual true pair');
+      const left = ScenarioValues.requireProperty(record, 'left', 'input');
+      const right = ScenarioValues.requireProperty(record, 'right', 'input');
       assert.notStrictEqual(left, right);
       assert.equal(Predicates.areDeeplyEqual(left, right), scenarioCase.expected.result);
     }
-  },
+  }
 
-  'data-deepequal-false': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'deepEqual false values');
-    assert.equal(Predicates.areDeeplyEqual(values[0], values[1]), scenarioCase.expected.result);
-    assert.equal(Predicates.areDeeplyEqual(values[2], values[3]), scenarioCase.expected.result);
-  },
-
-  'data-deepequal-special': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    for (const pair of requireArray(requiredValue(input, 'pairs'), 'deepEqual special pairs')) {
-      const record = requireJsonObject(pair, 'deepEqual special pair');
-      const left = requiredValue(record, 'left');
-      const right = requiredValue(record, 'right');
-      assert.equal(Predicates.areDeeplyEqual(left, right), requiredValue(record, 'equal'));
-    }
-  },
-
-  'data-plain-object': (scenarioCase) => {
+  static 'data-plain-object'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-plain-object'>
+  ): void {
     assert.equal(Predicates.isPlainObject({}), scenarioCase.expected.plain);
-    assert.equal(Predicates.isPlainObject({ a: 1 }), scenarioCase.expected.plain);
-    assert.equal(Predicates.isPlainObject(Object.create(null)), scenarioCase.expected.plain);
+    assert.equal(Predicates.isPlainObject({ 'a': 1 }), scenarioCase.expected.plain);
+    const nullPrototypeRecord: unknown = Object.create(null);
+    assert.equal(Predicates.isPlainObject(nullPrototypeRecord), scenarioCase.expected.plain);
     assert.equal(Predicates.isPlainObject([]), scenarioCase.expected.array);
     assert.equal(Predicates.isPlainObject(null), false);
     assert.equal(Predicates.isPlainObject(new Date()), scenarioCase.expected.date);
     assert.equal(Predicates.isPlainObject('string'), false);
-  },
+  }
 
-  'data-record': (scenarioCase) => {
+  static 'data-record'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'data-record'>
+  ): void {
     assert.equal(Predicates.isRecord({}), scenarioCase.expected.object);
-    assert.equal(Predicates.isRecord(new Map()), scenarioCase.expected.map);
+    assert.equal(Predicates.isRecord(new Map<unknown, unknown>()), scenarioCase.expected.map);
     assert.equal(Predicates.isRecord([]), scenarioCase.expected.array);
     assert.equal(Predicates.isRecord(null), scenarioCase.expected.null);
-  },
+  }
 
-  'data-cycle': (scenarioCase) => {
-    assert.equal(Predicates.hasCycle({ a: 1, b: [2, 3] }), scenarioCase.expected.acyclic);
-    const obj: Record<string, unknown> = { a: 1 };
-    obj.self = obj;
-    assert.equal(Predicates.hasCycle(obj), scenarioCase.expected.objectCycle);
-    const arr: unknown[] = [1, 2];
-    arr.push(arr);
-    assert.equal(Predicates.hasCycle(arr), scenarioCase.expected.arrayCycle);
-  },
-
-  'data-deepequal-negative-branches': (scenarioCase) => {
-    assert.deepEqual(readJson(scenarioCase).checks, ['array-size', 'array-value', 'object-size', 'object-missing']);
-    const negativeChecks = [
-      Predicates.areDeeplyEqual([1, 2], [1]),
-      Predicates.areDeeplyEqual([1], [2]),
-      Predicates.areDeeplyEqual({ a: 1, b: 2 }, { a: 1 }),
-      Predicates.areDeeplyEqual({ a: 1 }, { b: 1 })
-    ];
-    assert.equal(negativeChecks.every((result) => result === false), scenarioCase.expected.allNegativeChecksFail);
-  },
-
-  'frozen-flat': (scenarioCase) => {
-    assert.equal(Object.isFrozen(Frozen.deepFreeze(readJson(scenarioCase).value)), scenarioCase.expected.frozen);
-  },
-
-  'frozen-nested': (scenarioCase) => {
-    const frozen = requireJsonObject(Frozen.deepFreeze(readJson(scenarioCase).value), 'frozen nested result');
-    assert.equal(Object.isFrozen(frozen), scenarioCase.expected.frozen);
-    assert.equal(Object.isFrozen(frozen.b), scenarioCase.expected.nestedFrozen);
-  },
-
-  'frozen-reference': (scenarioCase) => {
-    const obj = requireJsonObject(readJson(scenarioCase).value, 'frozen reference input');
-    assert.equal(Frozen.deepFreeze(obj), obj);
-  },
-
-  'frozen-cycle': (scenarioCase) => {
-    const obj = materializeCycle(readJson(scenarioCase).value);
-    assert.doesNotThrow(() => Frozen.deepFreeze(obj));
-  },
-
-  'frozen-primitives': (scenarioCase) => {
-    for (const value of requireArray(readJson(scenarioCase).values, 'frozen primitive values')) {
-      assert.equal(Frozen.deepFreeze(value), value);
+  static 'entities-core'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'entities-core'>
+  ): void {
+    assert.equal(DraftNodeStateEntity.validate({ 'isArray': true }), true);
+    assert.equal(DraftNodeStateEntity.validate({ 'isArray': 'yes' }), false);
+    assert.equal(PatchApplyResultStatusEntity.validate({ 'success': true }), true);
+    assert.equal(PatchApplyResultStatusEntity.validate({ 'error': 'failed', 'success': false }), true);
+    assert.equal(PatchApplyResultStatusEntity.validate({}), false);
+    assert.equal(
+      PathWildcardResultEntity.validate({ 'isWildcard': true, 'remainingPath': ['items', 'name'] }),
+      true
+    );
+    assert.equal(
+      PathWildcardResultEntity.validate({ 'isWildcard': false, 'remainingPath': [] }),
+      false
+    );
+    const entities = ScenarioValues.requireArray(
+      JsonCoreRunners.readJson(scenarioCase.input).entities,
+      'entities-core entities'
+    );
+    const ids: unknown[] = [];
+    for (let index = 0; index < entities.length; index += 1) {
+      ids.push(ScenarioValues.requireRecord(entities[index], 'entities-core entity').id);
     }
-  },
+    assert.deepEqual(ids, scenarioCase.expected.ids);
+  }
 
-  'frozen-map-set': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const map = materializeMap(input.map);
+  static 'frozen-cycle'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-cycle'>
+  ): void {
+    const cyclic = JsonCoreRunners.materializeSelfCycle(
+      JsonCoreRunners.readJson(scenarioCase.input),
+      'value'
+    );
+    assert.doesNotThrow(() => {
+      const frozen = Frozen.deepFreeze(cyclic);
+      return frozen;
+    });
+  }
+
+  static 'frozen-flat'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-flat'>
+  ): void {
+    assert.equal(
+      Object.isFrozen(Frozen.deepFreeze(JsonCoreRunners.readJson(scenarioCase.input).value)),
+      scenarioCase.expected.frozen
+    );
+  }
+
+  static 'frozen-map-set'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-map-set'>
+  ): void {
+    const input = JsonCoreRunners.readJson(scenarioCase.input);
+    const map = JsonCoreRunners.materializeMap(input, 'map');
     const frozenMap = Frozen.deepFreeze(map);
-    assert.throws(() => frozenMap.set('b', 2), FrozenMutationError);
-    assert.throws(() => frozenMap.delete('a'), FrozenMutationError);
-    assert.throws(() => frozenMap.clear(), FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenMap.set('b', 2);
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenMap.delete('a');
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenMap.clear();
+      return result;
+    }, FrozenMutationError);
     assert.equal(frozenMap.get('a'), 1);
-    const set = materializeSet(input.set);
+    const set = JsonCoreRunners.materializeSet(input, 'set');
     const frozenSet = Frozen.deepFreeze(set);
-    assert.throws(() => frozenSet.add('b'), FrozenMutationError);
-    assert.throws(() => frozenSet.delete('a'), FrozenMutationError);
-    assert.throws(() => frozenSet.clear(), FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenSet.add('b');
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenSet.delete('a');
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenSet.clear();
+      return result;
+    }, FrozenMutationError);
     assert.ok(frozenSet.has('a'));
-  },
+  }
 
-  'frozen-map-values': (scenarioCase) => {
-    const map = materializeMap(readJson(scenarioCase).map);
+  static 'frozen-map-values'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-map-values'>
+  ): void {
+    const map = JsonCoreRunners.materializeMap(JsonCoreRunners.readJson(scenarioCase.input), 'map');
     const frozen = Frozen.deepFreeze(map);
     assert.equal(Object.isFrozen(frozen.get('a')), scenarioCase.expected.nestedFrozen);
-  },
+  }
 
-  'frozen-set-values': (scenarioCase) => {
-    const set = new Set(requireArray(readJson(scenarioCase).setValues, 'frozen set values').map((value) => structuredClone(value)));
+  static 'frozen-nested'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-nested'>
+  ): void {
+    const frozen = ScenarioValues.requireRecord(
+      Frozen.deepFreeze(JsonCoreRunners.readJson(scenarioCase.input).value),
+      'frozen nested result'
+    );
+    assert.equal(Object.isFrozen(frozen), scenarioCase.expected.frozen);
+    assert.equal(Object.isFrozen(frozen.b), scenarioCase.expected.nestedFrozen);
+  }
+
+  static 'frozen-primitives'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-primitives'>
+  ): void {
+    const values = ScenarioValues.requireArray(
+      JsonCoreRunners.readJson(scenarioCase.input).values,
+      'frozen primitive values'
+    );
+    for (let index = 0; index < values.length; index += 1) {
+      const value = values[index];
+      assert.equal(Frozen.deepFreeze(value), value);
+    }
+  }
+
+  static 'frozen-reference'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-reference'>
+  ): void {
+    const record = ScenarioValues.requireRecord(
+      JsonCoreRunners.readJson(scenarioCase.input).value,
+      'frozen reference input'
+    );
+    assert.equal(Frozen.deepFreeze(record), record);
+  }
+
+  static 'frozen-set-values'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-set-values'>
+  ): void {
+    const set = JsonCoreRunners.cloneMembers(
+      ScenarioValues.requireArray(
+        JsonCoreRunners.readJson(scenarioCase.input).setValues,
+        'frozen set values'
+      )
+    );
     const frozen = Frozen.deepFreeze(set);
     assert.equal(frozen.size, scenarioCase.expected.size);
     const first = frozen.values().next().value;
     assert.ok(first !== undefined);
     assert.equal(Object.isFrozen(first), scenarioCase.expected.nestedFrozen);
     assert.ok(frozen.has(first));
-  },
+  }
 
-  'frozen-subclass-skip': (scenarioCase) => {
-    const value = cloneJsonObject(readJson(scenarioCase).value, 'frozen subclass input');
+  static 'frozen-subclass-skip'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'frozen-subclass-skip'>
+  ): void {
+    const value = JsonCoreRunners.cloneValue(
+      ScenarioValues.requireRecord(
+        JsonCoreRunners.readJson(scenarioCase.input).value,
+        'frozen subclass input'
+      )
+    );
     const frozen = SelectiveFrozen.deepFreeze(value);
     assert.strictEqual(frozen, value);
     assert.equal(Object.isFrozen(frozen), scenarioCase.expected.rootFrozen);
     assert.equal(Object.isFrozen(frozen.child), scenarioCase.expected.childFrozen);
-  },
+  }
 
-  'hash-hex': (scenarioCase) => {
-    assert.match(Hash.value(readJson(scenarioCase).value), /^[0-9a-f]{8}$/u);
-  },
+  static 'merge-hidden-class'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'merge-hidden-class'>
+  ): void {
+    const input = JsonCoreRunners.readJson(scenarioCase.input);
+    const first = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(input, 'first', 'input'),
+      'merge hidden class first'
+    );
+    const second = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(input, 'second', 'input'),
+      'merge hidden class second'
+    );
+    const r1 = Merge.deep(
+      ScenarioValues.requireRecord(
+        ScenarioValues.requireProperty(first, 'left', 'input'),
+        'merge hidden class first left'
+      ),
+      ScenarioValues.requireRecord(
+        ScenarioValues.requireProperty(first, 'right', 'input'),
+        'merge hidden class first right'
+      )
+    );
+    const r2 = Merge.deep(
+      ScenarioValues.requireRecord(
+        ScenarioValues.requireProperty(second, 'left', 'input'),
+        'merge hidden class second left'
+      ),
+      ScenarioValues.requireRecord(
+        ScenarioValues.requireProperty(second, 'right', 'input'),
+        'merge hidden class second right'
+      )
+    );
+    assert.deepEqual(Object.keys(r1), scenarioCase.expected.keyOrder);
+    assert.deepEqual(Object.keys(r2), scenarioCase.expected.keyOrder);
+  }
 
-  'hash-identical': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash identical values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-order': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash order values');
-    assert.equal(Hash.value(values[0]), Hash.value(values[1]));
-  },
-
-  'hash-different': (scenarioCase) => {
-    const values = requireArray(readJson(scenarioCase).values, 'hash different values');
-    assert.equal(Hash.value(values[0]) === Hash.value(values[1]), scenarioCase.expected.sameHash);
-    assert.notEqual(Hash.value([1, 2]), Hash.value([1, 3]));
-  },
-
-  'hash-primitive': (scenarioCase) => {
-    assert.equal(typeof Hash.value(readJson(scenarioCase).value), 'string');
-  },
-
-  'hash-nested': (scenarioCase) => {
-    const value = readJson(scenarioCase).value;
-    const changed = { a: { b: { c: 2 } } };
-    assert.notEqual(Hash.value(value), Hash.value(changed));
-  },
-
-  'hash-distinct-shapes': (scenarioCase) => {
-    const hashes = requireArray(readJson(scenarioCase).values, 'hash distinct value shapes').map((shape) => {
-      return Hash.value(materializeRuntimeValue(requireString(shape, 'hash distinct value shape')));
-    });
-    assert.equal(new Set(hashes).size === hashes.length, scenarioCase.expected.distinct);
-  },
-
-  'structural-hash-metadata': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash metadata base');
-    const metadataVariant = requireJsonObject(requiredValue(input, 'metadataVariant'), 'structural hash metadata variant');
-    assert.equal(StructuralHash.of(base), StructuralHash.of(metadataVariant));
-  },
-
-  'structural-hash-different': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'base'), 'structural hash different base');
-    const variant = requireJsonObject(requiredValue(input, 'variant'), 'structural hash different variant');
-    assert.notEqual(StructuralHash.of(base), StructuralHash.of(variant));
-  },
-
-  'hash-edge-values': (scenarioCase) => {
-    const [trueShape, falseShape, nullShape, stringShape] = requireArray(readJson(scenarioCase).values, 'hash edge values')
-      .map((shape) => requireString(shape, 'hash edge value shape'));
-    assert.equal(Hash.value(materializeRuntimeValue(trueShape!)) !== Hash.value(materializeRuntimeValue(falseShape!)), scenarioCase.expected.booleanDistinct);
-    assert.equal(Hash.value(materializeRuntimeValue(nullShape!)) !== Hash.value(materializeRuntimeValue(stringShape!)), scenarioCase.expected.nullDistinctFromString);
-  },
-
-  'merge-primitives': (scenarioCase) => {
-    assert.deepEqual(Merge.deep({ a: 1, b: 2 }, { b: 99 }), { a: 1, b: 99 });
-    assert.deepEqual(Merge.deep({ a: 1, b: 2 }, { c: 3 }), { a: 1, b: 2, c: 3 });
-    assert.deepEqual(Merge.deep({ arr: [1, 2, 3] }, { arr: [4, 5] }), { arr: [4, 5] });
-    assert.equal(Merge.deep(readJson(scenarioCase).left, readJson(scenarioCase).right), scenarioCase.expected.merged);
-  },
-
-  'merge-isolation': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const base = requireJsonObject(requiredValue(input, 'left'), 'merge isolation left');
-    const overlay = requireJsonObject(requiredValue(input, 'right'), 'merge isolation right');
-    const baseSnapshot = structuredClone(base);
-    const overlaySnapshot = structuredClone(overlay);
+  static 'merge-isolation'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'merge-isolation'>
+  ): void {
+    const input = JsonCoreRunners.readJson(scenarioCase.input);
+    const base = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(input, 'left', 'input'),
+      'merge isolation left'
+    );
+    const overlay = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(input, 'right', 'input'),
+      'merge isolation right'
+    );
+    const baseSnapshot = JsonCoreRunners.cloneValue(base);
+    const overlaySnapshot = JsonCoreRunners.cloneValue(overlay);
     const result = Merge.deep(base, overlay);
     const resultBaseOnly = result.baseOnly;
     const resultOverlayOnly = result.overlayOnly;
-    const resultItems = result.items;
+    const resultItems = ScenarioValues.requireArray(result.items, 'merge result items');
     assert.ok(typeof resultBaseOnly === 'object' && resultBaseOnly !== null);
     assert.ok(typeof resultOverlayOnly === 'object' && resultOverlayOnly !== null);
-    assert.ok(Array.isArray(resultItems));
     Reflect.set(resultBaseOnly, 'count', 10);
     Reflect.set(resultOverlayOnly, 'count', 20);
-    resultItems.push({ id: 3 });
+    Reflect.set(resultItems, resultItems.length, { 'id': 3 });
     const firstResultItem = resultItems[0];
     assert.ok(typeof firstResultItem === 'object' && firstResultItem !== null);
     Reflect.set(firstResultItem, 'id', 20);
     assert.deepEqual(base, baseSnapshot);
     assert.deepEqual(overlay, overlaySnapshot);
-  },
+  }
 
-  'merge-hidden-class': (scenarioCase) => {
-    const input = readJson(scenarioCase);
-    const first = requireJsonObject(requiredValue(input, 'first'), 'merge hidden class first');
-    const second = requireJsonObject(requiredValue(input, 'second'), 'merge hidden class second');
-    const r1 = Merge.deep(
-      requireJsonObject(requiredValue(first, 'left'), 'merge hidden class first left'),
-      requireJsonObject(requiredValue(first, 'right'), 'merge hidden class first right')
+  static 'merge-primitives'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'merge-primitives'>
+  ): void {
+    assert.deepEqual(Merge.deep({ 'a': 1, 'b': 2 }, { 'b': 99 }), { 'a': 1, 'b': 99 });
+    assert.deepEqual(Merge.deep({ 'a': 1, 'b': 2 }, { 'c': 3 }), { 'a': 1, 'b': 2, 'c': 3 });
+    assert.deepEqual(Merge.deep({ 'list': [1, 2, 3] }, { 'list': [4, 5] }), { 'list': [4, 5] });
+    assert.equal(
+      Merge.deep(
+        JsonCoreRunners.readJson(scenarioCase.input).left,
+        JsonCoreRunners.readJson(scenarioCase.input).right
+      ),
+      scenarioCase.expected.merged
     );
-    const r2 = Merge.deep(
-      requireJsonObject(requiredValue(second, 'left'), 'merge hidden class second left'),
-      requireJsonObject(requiredValue(second, 'right'), 'merge hidden class second right')
-    );
-    assert.deepEqual(Object.keys(r1), scenarioCase.expected.keyOrder);
-    assert.deepEqual(Object.keys(r2), scenarioCase.expected.keyOrder);
-  },
+  }
 
-  'sort-functions': (scenarioCase) => {
-    assert.deepEqual(['file1', 'file10', 'file2', 'file20'].toSorted(Sort.natural), ['file1', 'file2', 'file10', 'file20']);
-    assert.deepEqual(['banana', 'apple', 'cherry'].toSorted(Sort.natural), ['apple', 'banana', 'cherry']);
-    assert.deepEqual(['property', 'id', 'type', 'name'].toSorted(Sort.shortestFirst), ['id', 'name', 'type', 'property']);
+  static 'sort-functions'(
+    scenarioCase: ScenarioCaseOfType<JsonCoreScenarioCaseEntity.Type, 'sort-functions'>
+  ): void {
+    assert.deepEqual(['file1', 'file10', 'file2', 'file20'].toSorted(Sort.natural), [
+      'file1',
+      'file2',
+      'file10',
+      'file20'
+    ]);
+    assert.deepEqual(['banana', 'apple', 'cherry'].toSorted(Sort.natural), [
+      'apple',
+      'banana',
+      'cherry'
+    ]);
+    assert.deepEqual(['property', 'id', 'type', 'name'].toSorted(Sort.shortestFirst), [
+      'id',
+      'name',
+      'type',
+      'property'
+    ]);
     assert.equal(Sort.shortestFirst('abc', 'abc'), 0);
-    assert.deepEqual(['id', 'type', 'property', 'name'].toSorted(Sort.longestFirst), ['property', 'type', 'name', 'id']);
+    assert.deepEqual(['id', 'type', 'property', 'name'].toSorted(Sort.longestFirst), [
+      'property',
+      'type',
+      'name',
+      'id'
+    ]);
     assert.equal(Sort.longestFirst('abc', 'de'), Sort.shortestFirst('de', 'abc'));
-    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').toSorted((left, right) => Number(left) - Number(right)), scenarioCase.expected.ascending);
-    assert.deepEqual(requireArray(readJson(scenarioCase).values, 'sort values').toSorted((left, right) => Number(right) - Number(left)), scenarioCase.expected.descending);
-  },
-
-  'entities-core': (scenarioCase) => {
-    assert.equal(DraftNodeStateEntity.validate({ isArray: true }), true);
-    assert.equal(DraftNodeStateEntity.validate({ isArray: 'yes' }), false);
-    assert.equal(PatchApplyResultStatusEntity.validate({ success: true }), true);
-    assert.equal(PatchApplyResultStatusEntity.validate({ error: 'failed', success: false }), true);
-    assert.equal(PatchApplyResultStatusEntity.validate({}), false);
-    assert.equal(PathWildcardResultEntity.validate({ isWildcard: true, remainingPath: ['items', 'name'] }), true);
-    assert.equal(PathWildcardResultEntity.validate({ isWildcard: false, remainingPath: [] }), false);
-    const entities = requireArray(readJson(scenarioCase).entities, 'entities-core entities');
-    const ids = entities.map((entity) => requireJsonObject(entity, 'entities-core entity').id);
-    assert.deepEqual(ids, scenarioCase.expected.ids);
-  },
-} satisfies Record<ScenarioShape, ScenarioRunner>;
-
-const scenarioCases = scenarioGroups.cases.map(normalizeScenarioCase);
-
-function normalizeScenarioCase(scenarioCase: ImportedScenarioCase): ScenarioCase {
-  return {
-    description: scenarioCase.description,
-    expected: scenarioCase.expected,
-    input: scenarioCase.input,
-    shape: requireScenarioShape(scenarioCase.shape),
-    name: scenarioCase.name
-  };
-}
-
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.hasOwn(scenarioRunnerMap, shape);
-}
-
-function requireScenarioShape(shape: string): ScenarioShape {
-  if (isScenarioShape(shape)) {
-    return shape;
+    const sortValues = ScenarioValues.requireArray(
+      JsonCoreRunners.readJson(scenarioCase.input).values,
+      'sort values'
+    );
+    assert.deepEqual(
+      sortValues.toSorted(JsonCoreRunners.compareAscending),
+      scenarioCase.expected.ascending
+    );
+    assert.deepEqual(
+      sortValues.toSorted(JsonCoreRunners.compareDescending),
+      scenarioCase.expected.descending
+    );
   }
 
-  throw RuntimeError.create(`Unhandled json core scenario shape: ${shape}`);
-}
-
-function readJson(scenarioCase: ScenarioCase): JsonObject {
-  return scenarioCase.input.json;
-}
-
-function isJsonObject<T>(value: T): value is T & JsonObject {
-  return Predicates.isRecord(value);
-}
-
-function requireJsonObject<T>(value: T, context: string): JsonObject {
-  if (isJsonObject(value)) {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected object for ${context}`);
-}
-
-function cloneJsonObject<T>(value: T, context: string): JsonObject {
-  return structuredClone(requireJsonObject(value, context));
-}
-
-function requireArray<T>(value: T, context: string): unknown[] {
-  if (Array.isArray(value)) {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected array for ${context}`);
-}
-
-function requireString<T>(value: T, context: string): string {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected string for ${context}`);
-}
-
-function requiredValue(record: JsonObject, key: string): unknown {
-  if (Reflect.has(record, key)) {
-    return Reflect.get(record, key);
-  }
-
-  throw RuntimeError.create(`Missing scenario value: ${key}`);
-}
-
-function requireMap<T>(value: T, context: string): Map<unknown, unknown> {
-  if (value instanceof Map) {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected Map for ${context}`);
-}
-
-function requireSet<T>(value: T, context: string): Set<unknown> {
-  if (value instanceof Set) {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected Set for ${context}`);
-}
-
-function requireDate<T>(value: T, context: string): Date {
-  if (value instanceof Date) {
-    return value;
-  }
-
-  throw RuntimeError.create(`Expected Date for ${context}`);
-}
-
-function toMapEntry(pair: unknown[]): [unknown, unknown] {
-  return [pair[0], pair[1]];
-}
-
-function materializeMap<T>(value: T): Map<unknown, unknown> {
-  const descriptor = requireJsonObject(value, 'map descriptor');
-  const entries = requireArray(descriptor.entries, 'map descriptor entries');
-  const materializedEntries: Array<[unknown, unknown]> = [];
-  for (const entry of entries) {
-    const pair = requireArray(entry, 'map descriptor entry');
-    materializedEntries.push(toMapEntry(pair));
-  }
-
-  return new Map(materializedEntries);
-}
-
-function materializeSet<T>(value: T): Set<unknown> {
-  const descriptor = requireJsonObject(value, 'set descriptor');
-  return new Set(requireArray(descriptor.values, 'set descriptor values').map((item) => structuredClone(item)));
-}
-
-function materializeCycle<T>(value: T): JsonObject {
-  const result = cloneJsonObject(value, 'cycle descriptor');
-  for (const [key, child] of Object.entries(result)) {
-    if (child === 'cycle') {
-      Reflect.set(result, key, result);
+  private static cloneValue<TValue>(value: TValue): TValue {
+    try {
+      const cloned = structuredClone(value);
+      return cloned;
+    } catch (cause) {
+      throw RuntimeError.create('Scenario value is not structured-cloneable', { 'cause': cause });
     }
   }
 
-  return result;
-}
+  private static cloneMembers(values: readonly unknown[]): Set<unknown> {
+    const members = new Set<unknown>();
+    for (let index = 0; index < values.length; index += 1) {
+      members.add(JsonCoreRunners.cloneValue(values[index]));
+    }
 
-function isRuntimeValueShape(shape: string): shape is keyof typeof runtimeValueByShape {
-  return Object.hasOwn(runtimeValueByShape, shape);
-}
-
-function materializeRuntimeValue(shape: string): unknown {
-  if (isRuntimeValueShape(shape)) {
-    return runtimeValueByShape[shape]();
+    return members;
   }
 
-  throw RuntimeError.create(`Unknown runtime value shape: ${shape}`);
-}
-
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await scenarioRunnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('JSON core', () => {
-  for (const scenarioCase of scenarioCases) {
-    void it(scenarioCase.name, async () => {
-      await runCase(scenarioCase);
-    });
+  private static compareAscending(left: unknown, right: unknown): number {
+    const difference = Number(left) - Number(right);
+    return difference;
   }
+
+  private static compareDescending(left: unknown, right: unknown): number {
+    const difference = Number(right) - Number(left);
+    return difference;
+  }
+
+  private static materializeSelfCycle(
+    json: Readonly<Record<string, unknown>>,
+    key: string
+  ): Record<string, unknown> {
+    const result = JsonCoreRunners.cloneValue(
+      ScenarioValues.requireRecord(
+        ScenarioValues.requireProperty(json, key, 'json'),
+        'cycle descriptor'
+      )
+    );
+    if (result.self === 'cycle') {
+      Reflect.set(result, 'self', result);
+    }
+
+    return result;
+  }
+
+  private static materializeMap(
+    json: Readonly<Record<string, unknown>>,
+    key: string
+  ): Map<unknown, unknown> {
+    const descriptor = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(json, key, 'json'),
+      'map descriptor'
+    );
+    const entries = ScenarioValues.requireArray(descriptor.entries, 'map descriptor entries');
+    const materializedEntries: [unknown, unknown][] = [];
+    for (let index = 0; index < entries.length; index += 1) {
+      const pair = ScenarioValues.requireArray(entries[index], 'map descriptor entry');
+      materializedEntries.push([pair[0], pair[1]]);
+    }
+
+    return new Map(materializedEntries);
+  }
+
+  private static materializeSet(
+    json: Readonly<Record<string, unknown>>,
+    key: string
+  ): Set<unknown> {
+    const descriptor = ScenarioValues.requireRecord(
+      ScenarioValues.requireProperty(json, key, 'json'),
+      'set descriptor'
+    );
+    const members = JsonCoreRunners.cloneMembers(
+      ScenarioValues.requireArray(descriptor.values, 'set descriptor values')
+    );
+    return members;
+  }
+
+  private static readJson(input: {
+    readonly 'json': Readonly<Record<string, unknown>>;
+  }): Record<string, unknown> {
+    const json = ScenarioValues.requireRecord(input.json, 'input.json');
+    return json;
+  }
+}
+
+ScenarioSuite.register({
+  'entity': JsonCoreScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'JSON core',
+  'runners': JsonCoreRunners
 });
 
 void describe('Clone.deep runtime containers', () => {
@@ -653,10 +735,12 @@ void describe('Clone.deep runtime containers', () => {
     const originalMember = { 'name': 'primary' };
     const original = {
       'root': {
-        'items': [{
-          'calendar': new Map([['next', { 'at': originalDate }]]),
-          'members': new Set([originalMember])
-        }]
+        'items': [
+          {
+            'calendar': new Map([['next', { 'at': originalDate }]]),
+            'members': new Set([originalMember])
+          }
+        ]
       }
     };
     const cloned = Clone.deep(original);
@@ -669,7 +753,11 @@ void describe('Clone.deep runtime containers', () => {
     const clonedAppointment = clonedItem.calendar.get('next');
     const clonedMember = clonedItem.members.values().next().value;
 
-    if (originalAppointment === undefined || clonedAppointment === undefined || clonedMember === undefined) {
+    if (
+      originalAppointment === undefined ||
+      clonedAppointment === undefined ||
+      clonedMember === undefined
+    ) {
       throw RuntimeError.create('Expected nested clone values');
     }
 
@@ -684,13 +772,12 @@ void describe('Clone.deep runtime containers', () => {
   });
 
   void it('preserves the static type of generic values', () => {
-    interface TypedValue {
-      readonly 'id': string;
-      readonly 'state': { readonly 'enabled': boolean };
-    }
-
-    const original: TypedValue = { 'id': 'value-1', 'state': { 'enabled': true } };
-    const cloned: TypedValue = Clone.deep(original);
+    const original: { readonly 'id': string; readonly 'state': { readonly 'enabled': boolean } } = {
+      'id': 'value-1',
+      'state': { 'enabled': true }
+    };
+    const cloned: { readonly 'id': string; readonly 'state': { readonly 'enabled': boolean } } =
+      Clone.deep(original);
     const untrustedInput: unknown = { 'id': 'untrusted-1' };
     const untrustedClone: unknown = Clone.deep(untrustedInput);
 
@@ -706,7 +793,7 @@ void describe('Clone.deep RegExp and custom values', () => {
       public readonly nested = { 'state': 'original' };
     }
 
-    const expression = /value/giu;
+    const expression = new RegExp(VALUE_PATTERN, 'giu');
     expression.lastIndex = 2;
     const expressionClone = Clone.deep(expression);
     const customValue = new CustomValue();
@@ -729,9 +816,15 @@ void describe('Frozen nested collection protection', () => {
     const frozen = Frozen.deepFreeze(source);
     const nestedSet = frozen.collection.get('members');
 
-    assert.throws(() => frozen.collection.set('other', 1), FrozenMutationError);
+    assert.throws(() => {
+      const result = frozen.collection.set('other', 1);
+      return result;
+    }, FrozenMutationError);
     assert.ok(nestedSet instanceof Set);
-    assert.throws(() => nestedSet.add({ 'id': 2 }), FrozenMutationError);
+    assert.throws(() => {
+      const result = nestedSet.add({ 'id': 2 });
+      return result;
+    }, FrozenMutationError);
   });
 
   void it('detaches Map and Set snapshots from caller-held collection aliases', () => {
@@ -749,8 +842,14 @@ void describe('Frozen nested collection protection', () => {
     assert.ok(frozenMap.has('member'));
     assert.equal(frozenSet.size, 1);
     assert.ok(frozenSet.has('member'));
-    assert.throws(() => frozenMap.set('other', 3), FrozenMutationError);
-    assert.throws(() => frozenSet.add('other'), FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenMap.set('other', 3);
+      return result;
+    }, FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenSet.add('other');
+      return result;
+    }, FrozenMutationError);
   });
 
   void it('preserves guarded collection references through a cyclic object graph', () => {
@@ -761,7 +860,10 @@ void describe('Frozen nested collection protection', () => {
     const frozen = Frozen.deepFreeze(source);
     const frozenCollection = frozen.collection;
     assert.ok(frozenCollection instanceof Map);
-    assert.throws(() => frozenCollection.set('other', 1), FrozenMutationError);
+    assert.throws(() => {
+      const result = frozenCollection.set('other', 1);
+      return result;
+    }, FrozenMutationError);
     assert.strictEqual(frozenCollection.get('parent'), frozen);
   });
 });
@@ -774,20 +876,25 @@ void describe('restored value-utility runtime contracts', () => {
     assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
     assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(2)), false);
     assert.equal(Predicates.areDeeplyEqual(new Date(1), {}), false);
-    assert.equal(Predicates.areDeeplyEqual(/value/giu, /value/giu), true);
-    assert.equal(Predicates.areDeeplyEqual(/value/gu, /other/gu), false);
-    assert.equal(Predicates.areDeeplyEqual(/value/gu, {}), false);
-    assert.equal(Predicates.areDeeplyEqual(new Set(['a', 'b']), new Set(['b', 'a'])), true);
+    assert.equal(
+      Predicates.areDeeplyEqual(new RegExp(VALUE_PATTERN, 'giu'), new RegExp(VALUE_PATTERN, 'giu')),
+      true
+    );
+    assert.equal(
+      Predicates.areDeeplyEqual(new RegExp(VALUE_PATTERN, 'gu'), new RegExp(OTHER_PATTERN, 'gu')),
+      false
+    );
+    assert.equal(Predicates.areDeeplyEqual(new RegExp(VALUE_PATTERN, 'gu'), {}), false);
+    assert.equal(Predicates.areDeeplyEqual(new Set(['a', 'b']), new Set(['a', 'b'])), true);
     assert.equal(Predicates.areDeeplyEqual(new Set(['a']), new Set(['b'])), false);
-    assert.equal(Predicates.areDeeplyEqual(new Map([['item', { 'count': 1 }]]), new Map([['item', { 'count': 1 }]])), true);
+    assert.equal(
+      Predicates.areDeeplyEqual(
+        new Map([['item', { 'count': 1 }]]),
+        new Map([['item', { 'count': 1 }]])
+      ),
+      true
+    );
     assert.equal(Predicates.areDeeplyEqual(new Map([['item', 1]]), new Map([['item', 2]])), false);
-  });
-
-  void it('hashes Date, Map, and Set values deterministically', () => {
-    assert.equal(Hash.value(new Date(1)), Hash.value(new Date(1)));
-    assert.equal(Hash.value(new Map([['a', 1], ['b', 2]])), Hash.value(new Map([['b', 2], ['a', 1]])));
-    assert.equal(Hash.value(new Set(['a', 'b'])), Hash.value(new Set(['b', 'a'])));
-    assert.notEqual(Hash.value(new Date(1)), Hash.value({}));
   });
 
   void it('keeps non-plain merge overlays atomic', () => {

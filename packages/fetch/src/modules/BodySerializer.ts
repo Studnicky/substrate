@@ -1,6 +1,8 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
+
+import { BodySerializationError } from '../errors/BodySerializationError.js';
 
 /**
  * Request body serialization utilities
@@ -12,7 +14,7 @@ import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptio
  *
  * Used by `FetchClient` to serialize body-bearing requests consistently.
  */
-export const BodySerializer = {
+export class BodySerializer {
   /**
    * Determines whether Content-Type header should be auto-set to application/json
    * Returns true for plain objects/arrays (not ArrayBuffer or ArrayBufferView)
@@ -20,13 +22,13 @@ export const BodySerializer = {
    * @param body - Request body to check
    * @returns True if Content-Type should be set
    */
-  'needsJsonContentType': (body: BodyRequestOptionsInterface['body']): boolean => {
+  public static needsJsonContentType(body: BodyRequestOptionsInterface['body']): boolean {
     const result = Predicates.isObjectLike(body)
       && !(body instanceof ArrayBuffer)
       && !Predicates.isArrayBufferView(body);
 
     return result;
-  },
+  }
 
   /**
    * Serializes body to a form suitable for the native fetch API
@@ -36,7 +38,7 @@ export const BodySerializer = {
    * - ArrayBufferView: copied into a detached Uint8Array of the visible byte range
    * - any other value: JSON.stringify
    */
-  'serialize': (body: BodyRequestOptionsInterface['body']): ArrayBuffer | string | Uint8Array | undefined => {
+  public static serialize(body: BodyRequestOptionsInterface['body']): ArrayBuffer | string | Uint8Array | undefined {
     if (body === undefined || body === null) {
       const result = undefined;
 
@@ -62,8 +64,12 @@ export const BodySerializer = {
       return result;
     }
 
-    const result = JSON.stringify(body);
+    try {
+      const result = JSON.stringify(body);
 
-    return result;
+      return result;
+    } catch (cause) {
+      throw new BodySerializationError(cause);
+    }
   }
-};
+}

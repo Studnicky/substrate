@@ -1,222 +1,118 @@
-import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import {
-  after, before, describe, it
-} from 'node:test';
 
-import { FetchClient } from '../../../src/node/index.js';
-import {
-  startTestServer, stopTestServer
-} from '../../helpers/test-server/index.js';
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import type { ClientConfigInterface } from '../../../src/interfaces/ClientConfigInterface.js';
+import type { BoundedJsonValueEntity } from '../../helpers/entities/BoundedJsonValueEntity.js';
 
-type RuntimeTag = { shape: 'undefined' };
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
+import { FetchClient, InvalidUrlError, RequestFailedError } from '../../../src/node/index.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import { UrlErrorsScenarioCaseEntity } from './entities/UrlErrorsScenarioCaseEntity.js';
+import scenarioGroups from './url.errors.scenarios.json' with { 'type': 'json' };
 
-type RequestDefinition = {
-  url: string;
-};
+class UrlErrorsRunners {
+  /**
+   * Captured when the module loads, before `TestServer.start()` replaces `globalThis.fetch` with the
+   * in-process TestDispatcher, so 'rejects-native' cases exercise the real runtime's URL handling
+   * instead of the mock transport.
+   */
+  private static readonly nativeFetch = globalThis.fetch;
 
-type RequestExpectation =
-  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TypeError'; messageIncludes?: readonly string[] }
-  | { shape: 'rejects-native'; error: 'TypeError'; messageIncludes: readonly string[] }
-  | { shape: 'status'; status: number };
-
-type ScenarioCase = {
-  description: string;
-  expected:
-    | { shape: 'create-ok' }
-    | { shape: 'create-throws'; messageIncludes: readonly string[] }
-    | RequestExpectation;
-  input: {
-    clientConfig?: {
-      baseURL?: RuntimeValue;
-    };
-    request?: RequestDefinition;
-  };
-  name: string;
-};
-
-import scenarioGroups from './url.errors.scenarios.json' with { type: 'json' };
-
-// Captured before `startTestServer()` monkey-patches `globalThis.fetch` with the
-// in-process TestDispatcher, so 'rejects-native' cases can exercise the real
-// runtime's URL handling instead of the mock transport.
-const nativeFetch = globalThis.fetch;
-
-let testUrl: string;
-
-void before(async () => {
-  testUrl = await startTestServer();
-});
-
-void after(async () => {
-  await stopTestServer();
-});
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
-  }
-
-  if (typeof value === 'string') {
-    return value.replaceAll('__TEST_URL__', testUrl);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    if (isRuntimeTag(value)) {
-      if (value.shape === 'undefined') {
-        return undefined;
-      }
-      const exhaustiveCheck: never = value.shape;
-      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
-    }
-
-    const materialized: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
-    }
-    return materialized;
-  }
-
-  return value;
-}
-
-function materializeRequest(request: RequestDefinition): string {
-  return materializeRuntimeValue(request.url) as string;
-}
-
-async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.create>, request: RequestDefinition): Promise<
-  | { ok: true; response: Response }
-  | { error: unknown; ok: false }
-> {
-  try {
-    return {
-      ok: true,
-      response: await clientInstance.get(materializeRequest(request))
-    };
-  } catch (error) {
-    return {
-      error,
-      ok: false
-    };
-  }
-}
-
-function assertRejectedExpectation(error: Error, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
-  assert.ok(error instanceof Error);
-
-  if (expectation.error === 'AbortError') {
-    assert.strictEqual(error.name, 'AbortError');
-  } else if (expectation.error === 'Error') {
-    assert.ok(error.name.includes('Error'));
-  } else {
-    assert.ok(error instanceof TypeError);
-  }
-
-  for (const fragment of expectation.messageIncludes ?? []) {
-    assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
-  }
-}
-
-/**
- * Runs `action` with `globalThis.fetch` restored to the real runtime fetch, bypassing
- * the TestDispatcher mock installed by `startTestServer()`. Used for cases whose
- * contract lives entirely in the native fetch/undici runtime (e.g. rejecting URLs
- * that carry userinfo) rather than in this package's own source.
- */
-async function withNativeFetch<T>(action: () => Promise<T>): Promise<T> {
-  const patchedFetch = globalThis.fetch;
-  globalThis.fetch = nativeFetch;
-  try {
-    return await action();
-  } finally {
-    globalThis.fetch = patchedFetch;
-  }
-}
-
-function assertRejectsNative(
-  result: Awaited<ReturnType<typeof inspectRequest>>,
-  expectation: Extract<RequestExpectation, { shape: 'rejects-native' }>
-): void {
-  assert.ok(!result.ok, 'expected the native runtime to reject the credentialed URL before any request reached the network');
-  assert.ok(result.error instanceof TypeError);
-  assert.equal(result.error.name, expectation.error);
-  for (const fragment of expectation.messageIncludes) {
-    assert.ok(result.error.message.toLowerCase().includes(fragment.toLowerCase()));
-  }
-}
-
-async function assertRequestExpectation(
-  result: Awaited<ReturnType<typeof inspectRequest>>,
-  expectation: Exclude<RequestExpectation, { shape: 'rejects-native' }>
-): Promise<void> {
-  if (expectation.shape === 'status') {
-    assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
-    assert.strictEqual(result.response.status, expectation.status);
-    return;
-  }
-
-  assert.ok(!result.ok, 'expected request rejection');
-  assert.ok(result.error instanceof Error);
-  assertRejectedExpectation(result.error, expectation);
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { expected } = scenarioCase;
-  const clientConfig = (scenarioCase.input.clientConfig?.baseURL === undefined ? {} : {
-      baseURL: materializeRuntimeValue(scenarioCase.input.clientConfig.baseURL) as never
-    });
-
-  if (expected.shape === 'create-throws') {
-    assert.throws(() => {
-      FetchClient.create(clientConfig as never);
-    }, (error: Error) => {
-      for (const fragment of expected.messageIncludes) {
-        assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
-      }
-      return true;
-    });
-    return;
-  }
-
-  if (expected.shape === 'create-ok') {
+  static 'create-ok'(scenarioCase: ScenarioCaseOfType<UrlErrorsScenarioCaseEntity.Type, 'create-ok'>): void {
+    using server = TestServer.start();
+    const config = UrlErrorsRunners.createConfig(scenarioCase.input.clientConfig?.baseURL, server.url);
     assert.doesNotThrow(() => {
-      FetchClient.create(clientConfig as never);
+      FetchClientConfiguration.intake(config);
     });
-    return;
   }
 
-  const clientInstance = FetchClient.create(clientConfig as never);
-
-  const { request } = scenarioCase.input;
-  if (request === undefined) {
-    assert.fail('scenario request is required for request expectations');
+  static 'create-throws'(scenarioCase: ScenarioCaseOfType<UrlErrorsScenarioCaseEntity.Type, 'create-throws'>): void {
+    using server = TestServer.start();
+    const config = UrlErrorsRunners.createConfig(scenarioCase.input.clientConfig?.baseURL, server.url);
+    const caught = RejectionProbe.captureSync(() => {
+      const result = FetchClientConfiguration.intake(config);
+      return result;
+    });
+    assert.ok(caught instanceof Error);
+    UrlErrorsRunners.assertMessageIncludes(caught, scenarioCase.expected.messageIncludes);
   }
 
-  if (expected.shape === 'rejects-native') {
-    const result = await withNativeFetch(() => inspectRequest(clientInstance, request));
-    assertRejectsNative(result, expected);
-    return;
+  static async 'rejects'(scenarioCase: ScenarioCaseOfType<UrlErrorsScenarioCaseEntity.Type, 'rejects'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = UrlErrorsRunners.createClient(scenarioCase.input.clientConfig?.baseURL, server.url);
+    const requestUrl = scenarioCase.input.request.url.replaceAll('__TEST_URL__', server.url);
+    const caught = await RejectionProbe.capture(async () => {
+      await clientInstance.get(requestUrl);
+    });
+    assert.ok(caught instanceof Error);
+    const { expected } = scenarioCase;
+
+    if (expected.error === 'AbortError') {
+      assert.strictEqual(caught.name, 'AbortError');
+    } else if (expected.error === 'Error') {
+      assert.ok(caught.name.includes('Error'));
+    } else {
+      assert.ok(caught instanceof InvalidUrlError || (caught instanceof RequestFailedError && caught.cause instanceof TypeError));
+    }
+    UrlErrorsRunners.assertMessageIncludes(caught, expected.messageIncludes);
   }
 
-  await assertRequestExpectation(await inspectRequest(clientInstance, request), expected);
+  static async 'rejects-native'(scenarioCase: ScenarioCaseOfType<UrlErrorsScenarioCaseEntity.Type, 'rejects-native'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = UrlErrorsRunners.createClient(scenarioCase.input.clientConfig?.baseURL, server.url);
+    const requestUrl = scenarioCase.input.request.url.replaceAll('__TEST_URL__', server.url);
+    const patchedFetch = globalThis.fetch;
+    globalThis.fetch = UrlErrorsRunners.nativeFetch;
+    let caught: unknown;
+    try {
+      caught = await RejectionProbe.capture(async () => {
+        await clientInstance.get(requestUrl);
+      });
+    } finally {
+      globalThis.fetch = patchedFetch;
+    }
+    assert.ok(caught instanceof RequestFailedError);
+    const cause: unknown = caught.cause;
+    assert.ok(cause instanceof TypeError);
+    assert.equal(cause.name, scenarioCase.expected.error);
+    UrlErrorsRunners.assertMessageIncludes(caught, scenarioCase.expected.messageIncludes);
+  }
+
+  static async 'status'(scenarioCase: ScenarioCaseOfType<UrlErrorsScenarioCaseEntity.Type, 'status'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = UrlErrorsRunners.createClient(scenarioCase.input.clientConfig?.baseURL, server.url);
+    const requestUrl = scenarioCase.input.request.url.replaceAll('__TEST_URL__', server.url);
+    const response = await clientInstance.get(requestUrl);
+    assert.strictEqual(response.status, scenarioCase.expected.status);
+  }
+
+  private static assertMessageIncludes(error: Error, fragments: readonly string[] | undefined): void {
+    const expectedFragments = fragments ?? [];
+    for (let index = 0; index < expectedFragments.length; index += 1) {
+      assert.ok(error.message.toLowerCase().includes((expectedFragments[index] ?? '').toLowerCase()));
+    }
+  }
+
+  private static createClient(baseURL: BoundedJsonValueEntity.Type | undefined, serverUrl: string): FetchClient {
+    const materialized = baseURL === undefined ? undefined : RuntimeValueMaterializer.materializeWithServer(baseURL, serverUrl);
+    assert.ok(materialized === undefined || typeof materialized === 'string', 'clientConfig.baseURL materializes to a string for a live FetchClient');
+    const clientConfig: ClientConfigInterface = materialized === undefined ? {} : { 'baseURL': materialized };
+    const clientInstance = FetchClient.create(clientConfig);
+    return clientInstance;
+  }
+
+  private static createConfig(baseURL: BoundedJsonValueEntity.Type | undefined, serverUrl: string): { 'baseURL'?: unknown } {
+    const config = baseURL === undefined ? {} : { 'baseURL': RuntimeValueMaterializer.materializeWithServer(baseURL, serverUrl) };
+    return config;
+  }
 }
 
-void describe('URL Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': UrlErrorsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'URL Error Scenarios',
+  'runners': UrlErrorsRunners
 });

@@ -1,6 +1,7 @@
-import type { TokenBucketOptionsEntity } from '../entities/TokenBucketOptionsEntity.js';
-import type { RateLimiterClockInterface } from './RateLimiterClockInterface.js';
+import type { MonotonicNowInterface } from '@studnicky/clock/monotonic-now/interfaces';
 
-export interface TokenBucketOptionsInterface extends TokenBucketOptionsEntity.Type {
-  readonly 'clock'?: RateLimiterClockInterface;
+import type { TokenBucketOptionsEntity } from '../entities/TokenBucketOptionsEntity.js';
+
+export interface TokenBucketOptionsInterface extends TokenBucketOptionsEntity.InputType {
+  readonly 'clock'?: MonotonicNowInterface;
 }

@@ -1,4 +1,4 @@
-import type { RuntimeValue } from '@studnicky/types/node';
+import type { RuntimeValue } from '@studnicky/types/browser';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { PluginContextInterface } from './PluginContextInterface.js';

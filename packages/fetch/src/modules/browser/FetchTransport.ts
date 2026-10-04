@@ -2,7 +2,7 @@
  * Browser HTTP transport selection.
  */
 
-import { ConfigurationError } from '../../errors/index.js';
+import { ConfigurationError, RequestFailedError } from '../../errors/index.js';
 
 const BROWSER_ERROR_MESSAGE =
   'undici connection pooling requires a Node.js runtime; the browser uses native fetch';
@@ -16,6 +16,11 @@ export class FetchTransport {
       throw new ConfigurationError(BROWSER_ERROR_MESSAGE);
     }
 
-    return await globalThis.fetch(url, init);
+    try {
+      const response = await globalThis.fetch(url, init);
+      return response;
+    } catch (cause) {
+      throw new RequestFailedError(url, cause);
+    }
   }
 }

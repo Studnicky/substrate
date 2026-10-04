@@ -146,9 +146,9 @@ assert_pending_changesets_are_valid() {
   fi
 
   repository_root=$(hook_repo_root)
-  validator_path="$repository_root/scripts/validate-changeset-ref.mjs"
+  validator_path="$repository_root/scripts/validate-changeset-ref.ts"
   if [ ! -f "$validator_path" ]; then
-    validator_path="$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.mjs"
+    validator_path="$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.ts"
   fi
   node "$validator_path" "$base_commit" "$head_commit"
 }
@@ -184,6 +184,10 @@ assert_no_pending_changesets() {
 assert_changeset_required() {
   local base_ref="$1" head_ref="${2:-HEAD}" changeset_path has_added_changeset
   has_added_changeset=false
+
+  if git diff --quiet "$base_ref...$head_ref" -- . ':!.github/**' ':!.githooks/**' ':!docs/**' ':!**/README.md' ':!**/CHANGELOG.md' ':!release_notes.md' ':!CONTRIBUTING.md' ':!SECURITY.md'; then
+    return 0
+  fi
 
   while IFS= read -r -d '' changeset_path; do
     case "$changeset_path" in

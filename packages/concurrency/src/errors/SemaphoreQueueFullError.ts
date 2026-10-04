@@ -7,6 +7,8 @@ import { ConcurrencyError } from './ConcurrencyError.js';
 
 /** Signals that a semaphore's configured waiting capacity is exhausted. */
 export class SemaphoreQueueFullError extends ConcurrencyError {
+  public override readonly name: string = 'SemaphoreQueueFullError';
+
   public readonly maximumQueueSize: number;
 
   public constructor(maximumQueueSize: number) {

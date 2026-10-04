@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/node';
+import { RuntimeError } from '@studnicky/errors/browser';
 
 export class CuckooCandidateFilter {
   readonly #buckets: (string | undefined)[][];
@@ -14,13 +14,21 @@ export class CuckooCandidateFilter {
     if (!Number.isInteger(bucketSize) || bucketSize <= 0) {
       throw RuntimeError.create('Bucket size must be a positive integer.');
     }
-    const buckets = Array.from<(string | undefined)[]>({ 'length': bucketCount });
-    for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
-      buckets[bucketIndex] = Array.from<string | undefined>({ 'length': bucketSize });
-    }
-    this.#buckets = buckets;
+    this.#buckets = CuckooCandidateFilter.allocate(bucketCount, bucketSize);
     this.#bucketSize = bucketSize;
     this.#relocationLimit = relocationLimit;
+  }
+
+  private static allocate(bucketCount: number, bucketSize: number): (string | undefined)[][] {
+    try {
+      const buckets = Array.from<(string | undefined)[]>({ 'length': bucketCount });
+      for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+        buckets[bucketIndex] = Array.from<string | undefined>({ 'length': bucketSize });
+      }
+      return buckets;
+    } catch (error) {
+      throw RuntimeError.create(`Filter of ${String(bucketCount)} buckets of ${String(bucketSize)} cannot be allocated`, { 'cause': error });
+    }
   }
 
   add(value: string): boolean {

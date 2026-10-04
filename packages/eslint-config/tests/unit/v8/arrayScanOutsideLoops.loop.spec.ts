@@ -1,33 +1,24 @@
-import { describe, it } from 'node:test';
-import { resolve } from 'node:path';
-import assert from 'node:assert/strict';
-
-import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { arrayScanOutsideLoops } from '../../../src/rules/v8/arrayScanOutsideLoops.js';
-import { Predicates } from '@studnicky/types/node';
-import scenarioGroups from './arrayScanOutsideLoops.scenarios.json' with { type: 'json' };
-
-function toMessageId(report: unknown): string {
-  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
-  const { messageId } = report;
-  return typeof messageId === 'string' ? messageId : '<no-messageId>';
-}
+import scenarioGroups from './arrayScanOutsideLoops.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
@@ -59,13 +50,13 @@ void describe('array-scan-outside-loops', () => {
     });
   });
 
-  void it('B1: PER-ITERATION IS RESOLVED VIA LoopContext: scan inside a .forEach() callback is flagged', () => {
+  void it('B1: scan inside a .forEach() callback is flagged', () => {
     ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
       'invalid': [
         {
           'code': 'declare const recordGroups: number[][]; declare const id: number; recordGroups.forEach((records) => { records.find((r) => r === id); });',
           'errors': [{ 'messageId': 'forbidden' }],
-          'name': 'find() inside a .forEach() callback - flagged (FunctionScope.isInsideLoop stopped at the callback boundary and missed this)'
+          'name': 'find() inside a .forEach() callback is flagged'
         }
       ],
       'valid': []
@@ -84,49 +75,19 @@ void describe('array-scan-outside-loops', () => {
     });
   });
 
-  void it('covers remaining guard exits directly', () => {
-    const reports: unknown[] = [];
-    const listeners = arrayScanOutsideLoops.create({
-      report(descriptor: unknown) {
-        reports.push(descriptor);
-      },
-      sourceCode: {
-        getScope() {
-          return {
-            upper: null,
-            variables: []
-          };
+  void it('covers remaining guard exits over real source', () => {
+    ruleTester.run('array-scan-outside-loops', arrayScanOutsideLoops, {
+      'invalid': [],
+      'valid': [
+        {
+          'code': 'for (let index = 0; index < 10; index += 1) { foo(); }',
+          'name': 'a bare identifier call inside a loop - not flagged (no MemberExpression callee to resolve)'
         },
-        parserServices: {}
-      }
-    } as never);
-
-    listeners.CallExpression?.({
-      callee: { type: 'Identifier' },
-      parent: { parent: null, type: 'Program' },
-      type: 'CallExpression'
-    } as never);
-
-    listeners.CallExpression?.({
-      callee: {
-        object: { type: 'Identifier', name: 'records' },
-        property: { type: 'Literal' },
-        type: 'MemberExpression'
-      },
-      parent: { parent: null, type: 'Program' },
-      type: 'CallExpression'
-    } as never);
-
-    listeners.CallExpression?.({
-      callee: {
-        object: { type: 'Identifier', name: 'records' },
-        property: { type: 'Identifier', name: 'find' },
-        type: 'MemberExpression'
-      },
-      parent: { parent: null, type: 'Program' },
-      type: 'CallExpression'
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), []);
+        {
+          'code': 'declare const records: number[]; for (let index = 0; index < 10; index += 1) { records[0](); }',
+          'name': 'a computed literal-key call inside a loop - not flagged (key is not a scan-method name)'
+        }
+      ]
+    });
   });
 });
