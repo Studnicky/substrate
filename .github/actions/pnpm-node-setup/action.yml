@@ -12,9 +12,6 @@ inputs:
   scope:
     required: false
     default: "@studnicky"
-  install:
-    required: false
-    default: "true"
   install-args:
     required: false
     default: "--frozen-lockfile"
@@ -54,8 +51,7 @@ runs:
     # re-links the full dependency graph into node_modules on every job. This
     # caches the already-linked node_modules trees themselves, keyed on the
     # lockfile, and skips `pnpm install` outright on an exact hit.
-    - if: inputs.install == 'true'
-      id: node-modules-cache
+    - id: node-modules-cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: |
@@ -66,8 +62,7 @@ runs:
       run: |
         store_path="$(pnpm store path)"
         mkdir -p "$store_path"
-    - if: inputs.install == 'true' && steps.node-modules-cache.outputs.cache-hit
-        != 'true'
+    - if: steps.node-modules-cache.outputs.cache-hit != 'true'
       shell: bash
       env:
         INSTALL_ARGS: ${{ inputs.install-args }}
@@ -87,13 +82,13 @@ runs:
             exit 1
             ;;
         esac
-    - if: inputs.install == 'true' && inputs.install-browser == 'true'
+    - if: inputs.install-browser == 'true'
       id: puppeteer-cache
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/puppeteer
         key: ${{ runner.os }}-puppeteer-${{ hashFiles('pnpm-lock.yaml') }}
-    - if: inputs.install == 'true' && inputs.install-browser == 'true' && steps.puppeteer-cache.outputs.cache-hit != 'true'
+    - if: inputs.install-browser == 'true' && steps.puppeteer-cache.outputs.cache-hit != 'true'
       name: Install Chrome Headless Shell
       shell: bash
       run: pnpm exec puppeteer browsers install chrome-headless-shell
