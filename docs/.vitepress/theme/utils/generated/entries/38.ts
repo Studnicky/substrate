@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static fixture data for the observedVfsLock example. */\n\nexport namespace VfsLockFixtures {\n  export const LOCK_PATH = '/shared/state.json';\n}\n"
+  'source': '/** Static fixture data for the observedVfsLock example. */\n\nexport namespace VfsLockFixtures {\n  export const LOCK_PATH = \'/shared/state.json\';\n}\n'
 });

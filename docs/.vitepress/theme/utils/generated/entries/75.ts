@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "export const AbortSignalFixture: { readonly 'abortedDuringDelivery': boolean[]; readonly 'received': string[] } = Object.freeze({\n  'abortedDuringDelivery': [],\n  'received': []\n});\n"
+  'source': 'export const AbortSignalFixture: { readonly \'abortedDuringDelivery\': boolean[]; readonly \'received\': string[] } = Object.freeze({\n  \'abortedDuringDelivery\': [],\n  \'received\': []\n});\n'
 });

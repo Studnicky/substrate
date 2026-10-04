@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static, read-only input data for examples/patch-predicates.ts. */\nexport namespace PatchPredicatesFixture {\n  export const Tree = { 'root': { 'child': { 'value': 42 } } };\n}\n"
+  'source': '/** Static, read-only input data for examples/patch-predicates.ts. */\nexport namespace PatchPredicatesFixture {\n  export const Tree = { \'root\': { \'child\': { \'value\': 42 } } };\n}\n'
 });

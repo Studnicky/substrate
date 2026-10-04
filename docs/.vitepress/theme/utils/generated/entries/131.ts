@@ -24,5 +24,5 @@ export const playgroundPayload = Object.freeze({
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** invalidConfigSlidingWindowLimiter — exercise the configuration error path from the public example surface. */\n\nimport { SlidingWindowLimiter, SlidingWindowLimiterConfigError } from '@studnicky/resilience/node';\nimport assert from 'node:assert/strict';\n\n// #region usage\nassert.throws(() => {\n  SlidingWindowLimiter.create({ 'algorithm': 'log', 'limit': 0, 'windowMs': 1000 });\n}, SlidingWindowLimiterConfigError);\n// #endregion usage\n\nconsole.log('invalidConfigSlidingWindowLimiter: all assertions passed');\n"
+  'source': '/** invalidConfigSlidingWindowLimiter — exercise the configuration error path from the public example surface. */\n\nimport { SlidingWindowLimiter, SlidingWindowLimiterConfigError } from \'@studnicky/resilience/node\';\nimport assert from \'node:assert/strict\';\n\n// #region usage\nassert.throws(() => {\n  SlidingWindowLimiter.create({ \'algorithm\': \'log\', \'limit\': 0, \'windowMs\': 1000 });\n}, SlidingWindowLimiterConfigError);\n// #endregion usage\n\nconsole.log(\'invalidConfigSlidingWindowLimiter: all assertions passed\');\n'
 });
