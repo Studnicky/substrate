@@ -3,6 +3,13 @@
 <<<<<<< HEAD
 =======
 
+## 15.0.2
+
+### Patch Changes
+
+- 2174773: Publish the integrated primitive release and complete package reference.
+- ea9eefe: Resolve the patched fast-uri and brace-expansion dependency graph.
+
 ## 15.0.1
 
 ### Patch Changes
