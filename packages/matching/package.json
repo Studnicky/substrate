@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/matching",
-  "version": "15.0.1",
+  "version": "15.0.2",
   "description": "Deterministic matching, scoring, encoding, and candidate-source primitives",
   "bugs": {
     "url": "https://github.com/Studnicky/substrate/issues"

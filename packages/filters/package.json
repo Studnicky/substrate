@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/filters",
-  "version": "15.0.1",
+  "version": "15.0.2",
   "description": "Composable declarative filtering primitives for @studnicky/substrate",
   "keywords": [
     "composition",

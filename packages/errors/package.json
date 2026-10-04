@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/errors",
-  "version": "15.0.1",
+  "version": "15.0.2",
   "description": "Standardized error handling for all modules",
   "keywords": [
     "base-error",
