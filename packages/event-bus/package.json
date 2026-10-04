@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/event-bus",
-  "version": "15.0.0",
+  "version": "15.0.1",
   "description": "Typed async pub/sub with independent subscriber backpressure",
   "keywords": [
     "backpressure",

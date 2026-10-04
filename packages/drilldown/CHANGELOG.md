@@ -1,5 +1,15 @@
 # @studnicky/drilldown
 
+## 15.0.1
+
+### Patch Changes
+
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/cache@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/filters@15.0.1
+
 ## 15.0.0
 
 ### Major Changes
