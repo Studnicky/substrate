@@ -207,8 +207,11 @@ function reset(): void {
 </script>
 
 <template>
-  <div v-if="!sourceLoaded" class="runnable">
+  <div v-if="!sourceLoaded && !errorText" class="runnable">
     <span class="runnable__placeholder">Loading example…</span>
+  </div>
+  <div v-else-if="!sourceLoaded" class="runnable runnable--error">
+    <strong>Unable to load example:</strong> {{ errorText }}
   </div>
   <div v-else-if="!original" class="runnable runnable--error">
     <strong>Unknown example:</strong> {{ src }}
