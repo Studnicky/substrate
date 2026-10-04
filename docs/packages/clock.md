@@ -7,6 +7,20 @@ description: Wall-clock and monotonic time with injectable providers for determi
 
 > Wall-clock and monotonic time primitives with injectable providers for deterministic testing.
 
+## What it is
+
+`@studnicky/clock` is a composable time primitive with real and virtual providers, monotonic reads, and bounded timing events. It supplies time and timing contracts; it does not define a bookstore workflow or metrics product.
+
+## What it is for
+
+Use it when Northstar Books needs consistent timestamps, deterministic tests for reservation windows, or a bounded timeline for one operation. Consumers select the clock, retain business rules, and decide where measurements go.
+
+## Northstar Books examples
+
+- **Timing event timeline** maps one book-search request to ordered timing events. It proves a caller can retain a bounded, clock-backed trace without coupling search to a telemetry vendor.
+- **Timing lifecycle hooks** maps search timing instrumentation to protected observation hooks. It proves Northstar can emit timing observations without changing the tracker's contract.
+- **Clock lifecycle hooks** maps a book-hold expiry calculation to real or virtual clock reads. It proves time-source behavior is observable and deterministic under a virtual counter.
+
 ## Install
 
 ```bash
@@ -110,22 +124,36 @@ import { RealTimeClockProviderOptionsEntity } from "@studnicky/clock/entities";
 import type { ClockProviderInterface } from "@studnicky/clock/interfaces";
 ```
 
+## Public entrypoints
+
+| Import path                                 | Use it when                                                                                                        |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `@studnicky/clock/node`                     | A Northstar Books server or worker needs runtime clocks, providers, counters, and clock errors.                    |
+| `@studnicky/clock/browser`                  | A browser bundle needs the same time primitive; it is a runtime alternative to `/node`, not another clock product. |
+| `@studnicky/clock/entities`                 | A consumer needs clock provider and counter schemas as boundary contracts.                                         |
+| `@studnicky/clock/interfaces`               | A consumer needs the typed clock-provider contract while supplying its own source.                                 |
+| `@studnicky/clock/monotonic-now`            | A consumer needs validated nondecreasing millisecond values for ordered bookstore events.                          |
+| `@studnicky/clock/monotonic-now/interfaces` | A consumer needs the monotonic-time port as a contract.                                                            |
+| `@studnicky/clock/timing`                   | A book-search or checkout operation needs a bounded timing-event primitive.                                        |
+| `@studnicky/clock/timing/entities`          | A consumer needs timing schemas as contracts at its boundary.                                                      |
+| `@studnicky/clock/timing/interfaces`        | A consumer needs the timing tracker contract while composing its own observability.                                |
+
 ## Exports
 
-| Symbol | Purpose | Import path |
-| ------------------------ | ------------------------------------------------ | ------------------------------------ |
-| `Clock`                  | Provides clock functionality.                    | `@studnicky/clock/node`              |
-| `ClockConversionError`   | Represents host timer conversion failures.       | `@studnicky/clock/node`              |
-| `ClockError`             | Represents clock failures.                       | `@studnicky/clock/node`              |
-| `MonotonicNow`           | Validates a finite, nondecreasing millisecond source. | `@studnicky/clock/monotonic-now` |
-| `MonotonicNowInterface`  | Defines the monotonic number-time port.          | `@studnicky/clock/monotonic-now/interfaces` |
-| `ClockProviderInterface` | Defines the clock provider contract.             | `@studnicky/clock/interfaces`        |
-| `RealTimeClockProvider`  | Provides real time clock provider functionality. | `@studnicky/clock/node`              |
-| `VirtualClockProvider`   | Provides virtual clock provider functionality.   | `@studnicky/clock/node`              |
-| `VirtualTimeCounter`     | Provides virtual time counter functionality.     | `@studnicky/clock/node`              |
-| `TIMING_STATUS`          | Defines supported timing event statuses.         | `@studnicky/clock/timing`            |
-| `NoOpTiming`             | Discards timing events.                          | `@studnicky/clock/timing`            |
-| `Timing`                 | Records a bounded elapsed-time event timeline.   | `@studnicky/clock/timing`            |
-| `TimingBuildError`       | Represents timing event build failures.          | `@studnicky/clock/timing`            |
-| `TimingEvent`            | Builds immutable timing event data.              | `@studnicky/clock/timing`            |
-| `TimingInterface`        | Defines the timing tracker contract.             | `@studnicky/clock/timing/interfaces` |
+| Symbol                   | Purpose                                               | Import path                                 |
+| ------------------------ | ----------------------------------------------------- | ------------------------------------------- |
+| `Clock`                  | Provides clock functionality.                         | `@studnicky/clock/node`                     |
+| `ClockConversionError`   | Represents host timer conversion failures.            | `@studnicky/clock/node`                     |
+| `ClockError`             | Represents clock failures.                            | `@studnicky/clock/node`                     |
+| `MonotonicNow`           | Validates a finite, nondecreasing millisecond source. | `@studnicky/clock/monotonic-now`            |
+| `MonotonicNowInterface`  | Defines the monotonic number-time port.               | `@studnicky/clock/monotonic-now/interfaces` |
+| `ClockProviderInterface` | Defines the clock provider contract.                  | `@studnicky/clock/interfaces`               |
+| `RealTimeClockProvider`  | Provides real time clock provider functionality.      | `@studnicky/clock/node`                     |
+| `VirtualClockProvider`   | Provides virtual clock provider functionality.        | `@studnicky/clock/node`                     |
+| `VirtualTimeCounter`     | Provides virtual time counter functionality.          | `@studnicky/clock/node`                     |
+| `TIMING_STATUS`          | Defines supported timing event statuses.              | `@studnicky/clock/timing`                   |
+| `NoOpTiming`             | Discards timing events.                               | `@studnicky/clock/timing`                   |
+| `Timing`                 | Records a bounded elapsed-time event timeline.        | `@studnicky/clock/timing`                   |
+| `TimingBuildError`       | Represents timing event build failures.               | `@studnicky/clock/timing`                   |
+| `TimingEvent`            | Builds immutable timing event data.                   | `@studnicky/clock/timing`                   |
+| `TimingInterface`        | Defines the timing tracker contract.                  | `@studnicky/clock/timing/interfaces`        |

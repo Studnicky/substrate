@@ -7,6 +7,19 @@ description: In-process LRU cache with optional TTL, capacity eviction, and keye
 
 > Capacity-bounded LRU cache with per-entry and default TTL, O(1) promotion on read.
 
+## What it is
+
+`@studnicky/cache` is a composable in-process retention primitive: a bounded LRU store with TTL and stale thresholds, plus keyed memoization with single-flight coordination. It holds derived values close to one process; it does not become a database, distributed lock, or application cache product.
+
+## What it is for
+
+Use it when a Northstar Books process needs to reuse a recently computed catalogue projection, protect an expensive lookup from concurrent duplicate work, or bound memory while keeping freshness policy explicit. The consuming application owns keys, invalidation, authoritative writes, and cross-process coordination.
+
+## Northstar Books examples
+
+- **Observed memoization — cache and single-flight lifecycle** maps concurrent requests for the same book-order summary to one loader invocation. It proves that Northstar can reuse a successful result, coalesce matching in-flight requests, and observe hits, misses, and coalescing without making memoization an order system.
+- **Observed cache — lifecycle hook trace** maps a small title-card cache to catalogue browsing. It proves the lifecycle events Northstar can emit when a card is stored, read, replaced, evicted, expired, deleted, or cleared while the catalogue remains authoritative elsewhere.
+
 ## Install
 
 ```bash
@@ -163,14 +176,24 @@ no-ops by default.
 import { LruCacheOptionsEntity } from "@studnicky/cache/entities";
 ```
 
+## Public entrypoints
+
+| Import path                   | Use it when                                                                                                                                                                 |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@studnicky/cache/node`       | A Northstar Books server or worker needs the runtime LRU cache, errors, and cache operations for derived catalogue or order reads.                                          |
+| `@studnicky/cache/browser`    | A Northstar Books browser bundle needs the same in-memory cache primitive for local derived view state; it is a runtime alternative to `/node`, not a second cache product. |
+| `@studnicky/cache/memoize`    | A book-detail or order-summary loader needs successful-result reuse and keyed single-flight work.                                                                           |
+| `@studnicky/cache/interfaces` | A consumer needs the typed cache collaborator contract, such as a deterministic clock, while composing its own application policy.                                          |
+| `@studnicky/cache/entities`   | A consumer needs cache configuration and timing schemas as contracts at its configuration boundary.                                                                         |
+
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `LruCache` | Stores bounded least-recently-used values with optional expiry. | `@studnicky/cache/node` |
-| `Memoize` | Caches successful callback results and coalesces matching concurrent calls. | `@studnicky/cache/memoize` |
-| `CacheConfigError` | Represents invalid cache configuration. | `@studnicky/cache/node` |
-| `CacheError` | Base error for cache failures. | `@studnicky/cache/node` |
-| `LruCacheCollaboratorsInterface` | Defines the typed clock collaborator `create` accepts alongside config. | `@studnicky/cache/interfaces` |
+| Symbol                           | Purpose                                                                     | Import path                   |
+| -------------------------------- | --------------------------------------------------------------------------- | ----------------------------- |
+| `LruCache`                       | Stores bounded least-recently-used values with optional expiry.             | `@studnicky/cache/node`       |
+| `Memoize`                        | Caches successful callback results and coalesces matching concurrent calls. | `@studnicky/cache/memoize`    |
+| `CacheConfigError`               | Represents invalid cache configuration.                                     | `@studnicky/cache/node`       |
+| `CacheError`                     | Base error for cache failures.                                              | `@studnicky/cache/node`       |
+| `LruCacheCollaboratorsInterface` | Defines the typed clock collaborator `create` accepts alongside config.     | `@studnicky/cache/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/cache)

@@ -7,6 +7,24 @@ description: "Async concurrency primitives: queues, channels, keyed and unkeyed 
 
 > FIFO admission queues, keyed async channels, keyed permit pools, counting semaphores, keyed mutexes, concurrent-call coalescing, async iterable combinators, and finite batch processing.
 
+## What it is
+
+`@studnicky/concurrency` is a set of composable async coordination primitives: queues, channels, permits, keyed locks, single-flight work, async-iterable combinators, batches, and platform-native file locks. It supplies admission and ordering mechanics, not a bookstore job or workflow product.
+
+## What it is for
+
+Use it when Northstar Books needs bounded catalogue indexing, per-title mutual exclusion, duplicate-read coalescing, ordered work admission, or finite back-office processing. Consumers own domain keys, retry policy, persistence, and delivery semantics.
+
+## Northstar Books examples
+
+- **FIFO queue admission** maps catalogue-change intake to bounded ordered admission and proves backpressure remains visible to the consumer.
+- **Batch fixed-window processing** maps a finite publisher-price import to fixed-size processing and proves ordered results can be collected.
+- **Keyed mutex acquisition** maps concurrent updates to one ISBN to per-key mutual exclusion while unrelated titles continue.
+- **Web Locks API mutual exclusion** maps a browser-held book-edit draft to the native Web Locks API and proves browser coordination stays runtime-specific.
+- **Channel and Semaphore** maps stock-refresh work to buffered delivery and a shared execution limit.
+- **Keyed semaphore** maps independently limited publisher feeds to per-key permit pools.
+- **AsyncIter merge / filter / enrich** maps catalogue streams to merge, filter, and enrichment combinators without Node streams.
+
 ## Install
 
 ```bash
@@ -212,6 +230,25 @@ The channel-and-semaphore demo constructs both primitives directly with `create(
 The async-iter demo uses native `async function*` generators as sources — no Node.js streams — and passes them through `AsyncIter.merge`, `AsyncIter.filter`, and `AsyncIter.enrich`. Watch the merged output interleave values from two independent ranges, the filter keep only even numbers, and the final composed pipeline emit only the multiples-of-three with a `tier` enrichment applied to values above five.
 
 <RunnableExample src="packages/concurrency/examples/asyncIter" title="AsyncIter merge / filter / enrich" />
+
+## Public entrypoints
+
+| Import path                                   | Use it when                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `@studnicky/concurrency/node`                 | A server or worker needs general runtime coordination primitives.                             |
+| `@studnicky/concurrency/browser`              | A browser bundle needs the same general primitives; it is the runtime alternative to `/node`. |
+| `@studnicky/concurrency/entities`             | A consumer needs shared coordination schemas as contracts.                                    |
+| `@studnicky/concurrency/interfaces`           | A consumer needs shared coordination interfaces as contracts.                                 |
+| `@studnicky/concurrency/queue/node`           | A server needs FIFO admission for catalogue work.                                             |
+| `@studnicky/concurrency/queue/browser`        | A browser needs the same queue primitive; it is the runtime alternative to `/queue/node`.     |
+| `@studnicky/concurrency/queue/entities`       | A consumer needs queue state and option schemas as contracts.                                 |
+| `@studnicky/concurrency/queue/interfaces`     | A consumer needs queue construction contracts.                                                |
+| `@studnicky/concurrency/mutex`                | An ISBN or order key needs FIFO mutual exclusion.                                             |
+| `@studnicky/concurrency/file-lock/node`       | A Node process needs file-based exclusive coordination.                                       |
+| `@studnicky/concurrency/file-lock/browser`    | A browser needs native Web Locks; it is the runtime alternative to `/file-lock/node`.         |
+| `@studnicky/concurrency/file-lock/entities`   | A consumer needs file-lock schemas as contracts.                                              |
+| `@studnicky/concurrency/file-lock/interfaces` | A consumer needs file-lock ports as contracts.                                                |
+| `@studnicky/concurrency/batch`                | A finite import needs bounded windowed processing.                                            |
 
 ## Exports
 

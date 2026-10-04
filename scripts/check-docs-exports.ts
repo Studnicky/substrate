@@ -80,6 +80,11 @@ interface ExportsTableRowInterface {
   readonly 'symbol': string;
 }
 
+interface PublicEntrypointTableRowInterface {
+  readonly 'importPath': string;
+  readonly 'line': number;
+}
+
 interface TypeScriptFenceInterface {
   readonly 'body': string;
   readonly 'line': number;
@@ -401,6 +406,54 @@ const getExportsTableRows = (content: string): ExportsTableRowInterface[] => {
   return rows;
 };
 
+const getPublicEntrypointHeaderIndex = (lines: string[]): number => {
+  const headingIndex = lines.findIndex((line) => {
+    return line.trim() === '## Public entrypoints';
+  });
+  return lines.findIndex((line, index) => {
+    return (
+      index > headingIndex && line.trim().replace(/\s+/gu, ' ') === '| Import path | Use it when |'
+    );
+  });
+};
+
+const parsePublicEntrypointRow = (
+  line: string,
+  lineNumber: number
+): PublicEntrypointTableRowInterface | undefined => {
+  const cells = line
+    .split('|')
+    .slice(1, -1)
+    .map((cell) => {
+      return cell.trim();
+    });
+  const importPath = cells[0]?.replace(CODE_FENCE_MARKER_RE, '') ?? '';
+  return cells.length === 2 && importPath !== ''
+    ? { 'importPath': importPath, 'line': lineNumber }
+    : undefined;
+};
+
+const getPublicEntrypointRows = (content: string): PublicEntrypointTableRowInterface[] => {
+  const lines = content.split('\n');
+  const headerIndex = getPublicEntrypointHeaderIndex(lines);
+  if (headerIndex === -1) {
+    return [];
+  }
+
+  const rows: PublicEntrypointTableRowInterface[] = [];
+  for (let index = headerIndex + 2; index < lines.length; index += 1) {
+    const line = lines[index]?.trim() ?? '';
+    if (!line.startsWith('|')) {
+      break;
+    }
+    const row = parsePublicEntrypointRow(line, index + 1);
+    if (row !== undefined) {
+      rows.push(row);
+    }
+  }
+  return rows;
+};
+
 const getTypeScriptFences = (content: string): TypeScriptFenceInterface[] => {
   const lines = content.split('\n');
   const fences: TypeScriptFenceInterface[] = [];
@@ -506,6 +559,17 @@ const resolveRowImportPath = (importPath: string): RowImportResolutionInterface 
   return { 'packageSurface': packageSurface, 'resolved': resolved, 'symbols': symbols };
 };
 
+const isPublishedPackageEntrypoint = (
+  resolved: ResolvedImportInterface | undefined,
+  packageName: string,
+  packageSurface: Map<string, Set<string>>
+): boolean => {
+  if (resolved?.packageName !== packageName) {
+    return false;
+  }
+  return packageSurface.has(resolved.subpath);
+};
+
 const checkTableRowImportPath = (
   importPath: string,
   row: ExportsTableRowInterface,
@@ -606,6 +670,65 @@ for (let index = 0; index < packages.length; index += 1) {
   const rows = doc === undefined ? [] : getExportsTableRows(doc.content);
   const packageSurface =
     packageSurfaces.get(packageInfo.manifest.name)?.surface ?? new Map<string, Set<string>>();
+  const file =
+    doc === undefined
+      ? `docs/packages/${packageInfo.name}.md`
+      : path.relative(repoRoot, doc.file).split(path.sep).join('/');
+  const publicEntrypoints = doc === undefined ? [] : getPublicEntrypointRows(doc.content);
+  const requiredSections = [
+    'What it is',
+    'What it is for',
+    'Northstar Books examples',
+    'Public entrypoints',
+    'Exports'
+  ];
+  for (let sectionIndex = 0; sectionIndex < requiredSections.length; sectionIndex += 1) {
+    const section = requiredSections[sectionIndex];
+    if (section === undefined || (doc?.content.includes(`## ${section}`) ?? false)) {
+      continue;
+    }
+    violations.push({
+      'file': file,
+      'line': 1,
+      'message': `package documentation must include a ## ${section} section.`
+    });
+  }
+  const documentedEntrypoints = new Map<string, number>();
+  for (let rowIndex = 0; rowIndex < publicEntrypoints.length; rowIndex += 1) {
+    const row = publicEntrypoints[rowIndex];
+    if (row === undefined) {
+      continue;
+    }
+    checked += 1;
+    if (documentedEntrypoints.has(row.importPath)) {
+      violations.push({
+        'file': file,
+        'line': row.line,
+        'message': `${row.importPath} is documented more than once in Public entrypoints.`
+      });
+      continue;
+    }
+    documentedEntrypoints.set(row.importPath, row.line);
+    const resolved = resolveImport(row.importPath);
+    if (!isPublishedPackageEntrypoint(resolved, packageInfo.manifest.name, packageSurface)) {
+      violations.push({
+        'file': file,
+        'line': row.line,
+        'message': `${row.importPath} is not a published entrypoint of ${packageInfo.manifest.name}.`
+      });
+    }
+  }
+  for (const subpath of packageSurface.keys()) {
+    const importPath = `${packageInfo.manifest.name}${subpath.slice(1)}`;
+    checked += 1;
+    if (!documentedEntrypoints.has(importPath)) {
+      violations.push({
+        'file': file,
+        'line': 1,
+        'message': `${importPath} is missing from Public entrypoints.`
+      });
+    }
+  }
   const runtimeSpecifier = `${packageInfo.manifest.name}/node`;
   const documentedNodeExports = new Set<string>();
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {

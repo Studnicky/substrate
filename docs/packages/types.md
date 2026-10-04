@@ -1,5 +1,5 @@
 ---
-title: '@studnicky/types'
+title: "@studnicky/types"
 description: Runtime type guards and predicates, JSON boundaries, empty-value producers, and defined-property selection.
 ---
 
@@ -36,8 +36,9 @@ The output shows `Predicates.isObject`/`asRecordArray` narrowing, scalar guards,
 `Predicates.areDeeplyEqual` compares primitives, `Date`, `RegExp`, arrays, `Map`, `Set`, and records recursively. It recognizes `NaN`, preserves array order, ignores `Map` and `Set` insertion order, and compares cyclic graph topology safely. `Predicates.hasCycle` traverses records, arrays, `Map` keys and values, and `Set` members.
 
 <!-- inline-ts-ok: predicate usage -->
+
 ```typescript
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from "@studnicky/types/node";
 
 const left = new Map([[{ id: 1 }, new Set([{ enabled: true }])]]);
 const right = new Map([[{ id: 1 }, new Set([{ enabled: true }])]]);
@@ -53,8 +54,9 @@ Predicates.hasCycle(left); // false
 `JsonObject.is` performs a shallow plain-object check and narrows `unknown` to `Record<string, unknown>`. It rejects arrays, `Map`, `Set`, class instances, and other non-plain objects.
 
 <!-- inline-ts-ok: conceptual boundary example -->
+
 ```typescript
-import { JsonObject } from '@studnicky/types/node';
+import { JsonObject } from "@studnicky/types/node";
 
 const parsed: unknown = JSON.parse(responseText);
 
@@ -71,10 +73,11 @@ Use schema validation when object members also need structural guarantees.
 `JsonValue.is` narrows `unknown` to the canonical `JSONSchema7Type` owned by `json-schema`. `JsonValue.from` recursively coerces unsupported values to `null`, producing a finite, acyclic `JSONSchema7Type` without a cast.
 
 <!-- inline-ts-ok: conceptual boundary example -->
-```typescript
-import type { JSONSchema7Type } from 'json-schema';
 
-import { JsonValue } from '@studnicky/types/node';
+```typescript
+import type { JSONSchema7Type } from "json-schema";
+
+import { JsonValue } from "@studnicky/types/node";
 
 const candidate: unknown = JSON.parse(responseText);
 
@@ -84,7 +87,7 @@ if (JsonValue.is(candidate)) {
 }
 
 const safe: JSONSchema7Type = JsonValue.from({
-  nested: [1, undefined]
+  nested: [1, undefined],
 });
 ```
 
@@ -99,8 +102,9 @@ Import `JSONSchema7Type` directly from `json-schema` when a public signature or 
 Map keys and values both follow the contract without conversion. The boundary rejects functions, symbols, bigints, non-finite numbers, non-plain class instances, invalid nested values, and cycles. Use `JsonValue` when the boundary is JSON-only.
 
 <!-- inline-ts-ok: runtime operand boundary -->
+
 ```typescript
-import { RuntimeValue } from '@studnicky/types/node';
+import { RuntimeValue } from "@studnicky/types/node";
 
 const candidate: unknown = new Map([[{ id: 1 }, new Set([new Date(0), undefined])]]);
 
@@ -119,14 +123,15 @@ A subclass declares its `name` as a literal member and passes `BaseErrorArgument
 `toJSON()` returns an [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) Problem Details object typed as `ProblemDetailsInterface`, so `JSON.stringify(error)` produces it too. The flattened `causes` extension holds `CauseNodeInterface` nodes, nearest first. `ThrownValueProjection.project` is the total, never-throwing, cycle-safe projection of any caught value (an `Error`, `AggregateError`, string, primitive, `null`, or foreign object) into `ThrownValueInterface`; the `PROBLEM_TYPE_*` and `PROBLEM_TITLE_*` constants name the problem types it mints.
 
 <!-- inline-ts-ok: conceptual subclass example -->
+
 ```typescript
-import { BaseError } from '@studnicky/types/node';
+import { BaseError } from "@studnicky/types/node";
 
 class PaymentDeclinedError extends BaseError {
-  public override readonly name: string = 'PaymentDeclinedError';
+  public override readonly name: string = "PaymentDeclinedError";
 
   public constructor(reason: string, cause?: unknown) {
-    super({ 'cause': cause, 'code': 'payments.declined', 'message': reason, 'status': 402 });
+    super({ cause: cause, code: "payments.declined", message: reason, status: 402 });
   }
 }
 ```
@@ -136,8 +141,9 @@ class PaymentDeclinedError extends BaseError {
 `CallerFault.propagate(value)` throws `value` unchanged, and `CallerFault.rejection(value)` returns a promise rejected with `value` unchanged. It is the sanctioned channel for an error raised by caller-supplied code (a task, hook, or reducer the consumer passes in), which reaches the caller as thrown. Library-originated and platform errors never pass through it: they are named `BaseError` subclasses, and a platform error is wrapped with the original as `cause`. The `@studnicky/no-native-error` rule exempts the bodies of `CallerFault.propagate` and `CallerFault.rejection` and reports every other throw, executor `reject`, `PromiseWithResolvers` `reject`, and `Promise.reject` of a non-`BaseError` value. `CallerFault.propagate` returns `never`, so it is written as a bare statement.
 
 <!-- inline-ts-ok: conceptual pass-through example -->
+
 ```typescript
-import { CallerFault } from '@studnicky/types/node';
+import { CallerFault } from "@studnicky/types/node";
 
 export async function run(task: () => Promise<string>): Promise<string> {
   try {
@@ -148,68 +154,88 @@ export async function run(task: () => Promise<string>): Promise<string> {
 }
 ```
 
+## What it is
+
+`@studnicky/types` is a collection of runtime narrowing, boundary-validation, JSON, empty-value, equality, hashing, and error-foundation primitives. It turns an unknown value into a checked value at a boundary; it does not define Northstar’s catalogue schema, request policy, or application model.
+
+## What it is for
+
+Northstar Books uses these primitives at the intake edge of catalogue filters, carts, and supplier records so domain code receives one normalized value instead of repeatedly reinterpreting unknown fields. Node and browser are runtime alternatives, and the interfaces entrypoint exposes contracts for consumers that need the package’s structural types without creating a second domain type system.
+
+## Northstar Books examples
+
+- **Predicates accessors, type predicates, and Empty producers** solves the “accept only a usable catalogue-filter payload before search logic sees it” problem. It narrows unknown records, checks scalar values, produces new empty collections, and applies a JSON boundary, proving that Northstar can normalize input once at admission.
+
+## Public entrypoints
+
+| Import path                   | Use it when                                                                                                    |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `@studnicky/types/node`       | Northstar validates and transforms runtime values in a Node catalogue, checkout, or supplier boundary.         |
+| `@studnicky/types/browser`    | Northstar applies the same browser-safe value predicates in a reader or bookseller interface.                  |
+| `@studnicky/types/interfaces` | Northstar types predicate and runtime-value contracts without re-aliasing the package’s canonical definitions. |
+
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `Predicates` | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class. | `@studnicky/types/node` |
-| `Predicate` | Typed runtime predicate composition for boolean algebra and record, array, and map structure. | `@studnicky/types/node` |
-| `PredicateFunctionInterface` | Contract for a runtime predicate that narrows `unknown` to its value type. | `@studnicky/types/interfaces` |
-| `Empty` | Produces fresh empty collection instances. | `@studnicky/types/node` |
-| `JsonObject` | Narrows values at the plain-object JSON boundary. | `@studnicky/types/node` |
-| `JsonValue` | Validates and coerces recursive JSON values. | `@studnicky/types/node` |
-| `RuntimeValue` | Typed runtime operand predicate and intake boundary for JSON data plus native Date, Map, and Set values. | `@studnicky/types/node` |
-| `RuntimeValueDateInterface` | Native Date operand contract. | `@studnicky/types/interfaces` |
-| `RuntimeValueMapInterface` | Native Map operand contract. | `@studnicky/types/interfaces` |
-| `RuntimeValueSetInterface` | Native Set operand contract. | `@studnicky/types/interfaces` |
-| `RuntimeValueArrayInterface` | Native array operand contract. | `@studnicky/types/interfaces` |
-| `RuntimeValueRecordInterface` | Native plain-record operand contract. | `@studnicky/types/interfaces` |
-| `Hash` | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values. | `@studnicky/types/node` |
-| `StructuralHash` | Schema hash with metadata-key stripping. | `@studnicky/types/node` |
-| `BaseError` | Abstract root of the error hierarchy; serializes as RFC 9457 Problem Details. | `@studnicky/types/node` |
-| `CallerFault` | Pass-through channel that rethrows an error raised by caller-supplied code unchanged (`CallerFault.propagate`) or rejects a promise with it (`CallerFault.rejection`). | `@studnicky/types/node` |
-| `RuntimeValueError` | Thrown by `RuntimeValue.intake` for a value outside the runtime operand contract (`types.runtimeValueInvalid`). | `@studnicky/types/node` |
-| `StructuralHashInputError` | Thrown by `StructuralHash.of` for a schema that is not finite, acyclic JSON (`types.structuralHashInputInvalid`). | `@studnicky/types/node` |
-| `BaseErrorArgumentsInterface` | Construction arguments passed to `BaseError` subclasses. | `@studnicky/types/interfaces` |
-| `ProblemDetailsInterface` | RFC 9457 Problem Details object returned by `BaseError.toJSON()`. | `@studnicky/types/interfaces` |
-| `CauseNodeInterface` | One node of the flattened `causes` chain. | `@studnicky/types/interfaces` |
-| `ThrownValueInterface` | Projection of an arbitrary caught value into RFC 9457 members. | `@studnicky/types/interfaces` |
-| `ThrownValueProjection` | Total, cycle-safe projection of any caught value (`ThrownValueProjection.project`). | `@studnicky/types/node` |
-| `CAUSE_CHAIN_DEPTH_LIMIT` | Maximum cause-chain depth walked or serialized. | `@studnicky/types/node` |
-| `CAUSE_DEPTH_SENTINEL` | Detail emitted when a cause chain exceeds the depth limit. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_BASE` | Namespace root of every problem type URI minted by the workspace. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_THROWN_NULLISH` | Problem type for a thrown `null` or `undefined`. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_THROWN_STRING` | Problem type for a thrown string. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_THROWN_PRIMITIVE` | Problem type for a thrown non-string primitive. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_THROWN_OBJECT` | Problem type for a thrown non-`Error` object. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_ERROR` | Problem type for a thrown native `Error`. | `@studnicky/types/node` |
-| `PROBLEM_TYPE_AGGREGATE_ERROR` | Problem type for a thrown `AggregateError`. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_THROWN_NULLISH` | Stable title paired with the thrown-nullish problem type. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_THROWN_STRING` | Stable title paired with the thrown-string problem type. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_THROWN_PRIMITIVE` | Stable title paired with the thrown-primitive problem type. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_THROWN_OBJECT` | Stable title paired with the thrown-object problem type. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_ERROR` | Stable title paired with the native-error problem type. | `@studnicky/types/node` |
-| `PROBLEM_TITLE_AGGREGATE_ERROR` | Stable title paired with the aggregate-error problem type. | `@studnicky/types/node` |
-| `TIME_ONLY_PATTERN` | Recognizes a time-only string before a consumer applies its own domain semantics. | `@studnicky/types/node` |
+| Symbol                           | Purpose                                                                                                                                                                | Import path                   |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `Predicates`                     | Type guards, atomic comparators, JSON Schema draft 2020-12 predicates, and value equality/coercion helpers, unified on one static class.                               | `@studnicky/types/node`       |
+| `Predicate`                      | Typed runtime predicate composition for boolean algebra and record, array, and map structure.                                                                          | `@studnicky/types/node`       |
+| `PredicateFunctionInterface`     | Contract for a runtime predicate that narrows `unknown` to its value type.                                                                                             | `@studnicky/types/interfaces` |
+| `Empty`                          | Produces fresh empty collection instances.                                                                                                                             | `@studnicky/types/node`       |
+| `JsonObject`                     | Narrows values at the plain-object JSON boundary.                                                                                                                      | `@studnicky/types/node`       |
+| `JsonValue`                      | Validates and coerces recursive JSON values.                                                                                                                           | `@studnicky/types/node`       |
+| `RuntimeValue`                   | Typed runtime operand predicate and intake boundary for JSON data plus native Date, Map, and Set values.                                                               | `@studnicky/types/node`       |
+| `RuntimeValueDateInterface`      | Native Date operand contract.                                                                                                                                          | `@studnicky/types/interfaces` |
+| `RuntimeValueMapInterface`       | Native Map operand contract.                                                                                                                                           | `@studnicky/types/interfaces` |
+| `RuntimeValueSetInterface`       | Native Set operand contract.                                                                                                                                           | `@studnicky/types/interfaces` |
+| `RuntimeValueArrayInterface`     | Native array operand contract.                                                                                                                                         | `@studnicky/types/interfaces` |
+| `RuntimeValueRecordInterface`    | Native plain-record operand contract.                                                                                                                                  | `@studnicky/types/interfaces` |
+| `Hash`                           | Deterministic FNV-1a 32-bit hash for arbitrary in-memory values.                                                                                                       | `@studnicky/types/node`       |
+| `StructuralHash`                 | Schema hash with metadata-key stripping.                                                                                                                               | `@studnicky/types/node`       |
+| `BaseError`                      | Abstract root of the error hierarchy; serializes as RFC 9457 Problem Details.                                                                                          | `@studnicky/types/node`       |
+| `CallerFault`                    | Pass-through channel that rethrows an error raised by caller-supplied code unchanged (`CallerFault.propagate`) or rejects a promise with it (`CallerFault.rejection`). | `@studnicky/types/node`       |
+| `RuntimeValueError`              | Thrown by `RuntimeValue.intake` for a value outside the runtime operand contract (`types.runtimeValueInvalid`).                                                        | `@studnicky/types/node`       |
+| `StructuralHashInputError`       | Thrown by `StructuralHash.of` for a schema that is not finite, acyclic JSON (`types.structuralHashInputInvalid`).                                                      | `@studnicky/types/node`       |
+| `BaseErrorArgumentsInterface`    | Construction arguments passed to `BaseError` subclasses.                                                                                                               | `@studnicky/types/interfaces` |
+| `ProblemDetailsInterface`        | RFC 9457 Problem Details object returned by `BaseError.toJSON()`.                                                                                                      | `@studnicky/types/interfaces` |
+| `CauseNodeInterface`             | One node of the flattened `causes` chain.                                                                                                                              | `@studnicky/types/interfaces` |
+| `ThrownValueInterface`           | Projection of an arbitrary caught value into RFC 9457 members.                                                                                                         | `@studnicky/types/interfaces` |
+| `ThrownValueProjection`          | Total, cycle-safe projection of any caught value (`ThrownValueProjection.project`).                                                                                    | `@studnicky/types/node`       |
+| `CAUSE_CHAIN_DEPTH_LIMIT`        | Maximum cause-chain depth walked or serialized.                                                                                                                        | `@studnicky/types/node`       |
+| `CAUSE_DEPTH_SENTINEL`           | Detail emitted when a cause chain exceeds the depth limit.                                                                                                             | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_BASE`              | Namespace root of every problem type URI minted by the workspace.                                                                                                      | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_THROWN_NULLISH`    | Problem type for a thrown `null` or `undefined`.                                                                                                                       | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_THROWN_STRING`     | Problem type for a thrown string.                                                                                                                                      | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_THROWN_PRIMITIVE`  | Problem type for a thrown non-string primitive.                                                                                                                        | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_THROWN_OBJECT`     | Problem type for a thrown non-`Error` object.                                                                                                                          | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_ERROR`             | Problem type for a thrown native `Error`.                                                                                                                              | `@studnicky/types/node`       |
+| `PROBLEM_TYPE_AGGREGATE_ERROR`   | Problem type for a thrown `AggregateError`.                                                                                                                            | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_THROWN_NULLISH`   | Stable title paired with the thrown-nullish problem type.                                                                                                              | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_THROWN_STRING`    | Stable title paired with the thrown-string problem type.                                                                                                               | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_THROWN_PRIMITIVE` | Stable title paired with the thrown-primitive problem type.                                                                                                            | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_THROWN_OBJECT`    | Stable title paired with the thrown-object problem type.                                                                                                               | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_ERROR`            | Stable title paired with the native-error problem type.                                                                                                                | `@studnicky/types/node`       |
+| `PROBLEM_TITLE_AGGREGATE_ERROR`  | Stable title paired with the aggregate-error problem type.                                                                                                             | `@studnicky/types/node`       |
+| `TIME_ONLY_PATTERN`              | Recognizes a time-only string before a consumer applies its own domain semantics.                                                                                      | `@studnicky/types/node`       |
 
 ### Selected `Predicates` static methods
 
-| Method | Description |
-|--------|-------------|
-| `isString`/`isNumber`/`isBoolean`/`isFunction`/`isNullish` | Generic-preserving type guards (`<T>(value: T): value is X & T`) — narrow an already-typed value without discarding its declared shape. |
-| `isNumberType(value)` | `typeof value === 'number'`, including `NaN`/`Infinity` — use over `isNumber` when the caller routes those values to a more specific downstream check. |
-| `isObjectLike`/`isObject`/`isRecord`/`isPlainObject` | Progressively narrower object-shape guards; see each method's doc comment for the exact exclusion each adds. |
-| `isMap`/`isSet`/`isDate`/`isArray`/`isRegExp`/`isURL`/`isError` | Type guards for the common non-primitive built-ins. |
-| `isEmptyString`/`isEmptyPlainObject`/`isEmptyArray`/`isEmptyMap`/`isEmptySet` | Emptiness checks — pair with `Empty`'s producers of the same five shapes. |
-| `areDeeplyEqual(value, other)` | Cycle-safe structural equality for primitive values, Date, RegExp, arrays, Map, Set, and records. |
-| `hasCycle(value)` | Detects cycles through records, arrays, Map keys and values, and Set members. |
-| `isFiniteNumber(value)` | True for finite `number` values. |
-| `isIntegerValue(value)` | True for integer `number` values. |
-| `inferValueType(value)` | Returns JSON Schema type name (`'null'`, `'array'`, `'object'`, etc.) |
-| `matchesType(schemaType, value)` | True if `value` satisfies the named JSON Schema type. |
-| `satisfiesUniqueItems(arr)` | Deep-equal uniqueness check. |
-| `satisfiesContentEncoding(value, encoding)` | Validates `base64`/`base64url` encoding. |
-| `satisfiesContentMediaType(value, mediaType, encoding?)` | Validates `application/json` content. |
+| Method                                                                        | Description                                                                                                                                            |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `isString`/`isNumber`/`isBoolean`/`isFunction`/`isNullish`                    | Generic-preserving type guards (`<T>(value: T): value is X & T`) — narrow an already-typed value without discarding its declared shape.                |
+| `isNumberType(value)`                                                         | `typeof value === 'number'`, including `NaN`/`Infinity` — use over `isNumber` when the caller routes those values to a more specific downstream check. |
+| `isObjectLike`/`isObject`/`isRecord`/`isPlainObject`                          | Progressively narrower object-shape guards; see each method's doc comment for the exact exclusion each adds.                                           |
+| `isMap`/`isSet`/`isDate`/`isArray`/`isRegExp`/`isURL`/`isError`               | Type guards for the common non-primitive built-ins.                                                                                                    |
+| `isEmptyString`/`isEmptyPlainObject`/`isEmptyArray`/`isEmptyMap`/`isEmptySet` | Emptiness checks — pair with `Empty`'s producers of the same five shapes.                                                                              |
+| `areDeeplyEqual(value, other)`                                                | Cycle-safe structural equality for primitive values, Date, RegExp, arrays, Map, Set, and records.                                                      |
+| `hasCycle(value)`                                                             | Detects cycles through records, arrays, Map keys and values, and Set members.                                                                          |
+| `isFiniteNumber(value)`                                                       | True for finite `number` values.                                                                                                                       |
+| `isIntegerValue(value)`                                                       | True for integer `number` values.                                                                                                                      |
+| `inferValueType(value)`                                                       | Returns JSON Schema type name (`'null'`, `'array'`, `'object'`, etc.)                                                                                  |
+| `matchesType(schemaType, value)`                                              | True if `value` satisfies the named JSON Schema type.                                                                                                  |
+| `satisfiesUniqueItems(arr)`                                                   | Deep-equal uniqueness check.                                                                                                                           |
+| `satisfiesContentEncoding(value, encoding)`                                   | Validates `base64`/`base64url` encoding.                                                                                                               |
+| `satisfiesContentMediaType(value, mediaType, encoding?)`                      | Validates `application/json` content.                                                                                                                  |
 
 ## Hashing (`Hash` and `StructuralHash`)
 

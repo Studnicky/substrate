@@ -1,11 +1,23 @@
 ---
-title: '@studnicky/context'
+title: "@studnicky/context"
 description: Async context isolation for Node and browser code.
 ---
 
 # @studnicky/context
 
 > Async context isolation for Node and browser code.
+
+## What it is
+
+`@studnicky/context` is a composable async scope primitive for Node and browser runtimes, with optional transforms and scope-local store composition. It carries values across admitted async boundaries; it is not an application request framework.
+
+## What it is for
+
+Use it when Northstar Books needs request-local identifiers, an isolated shopping-cart scope, or scoped dependencies across asynchronous catalogue work. Consumers choose what enters a scope, its lifetime, and any durable backing store.
+
+## Northstar Books examples
+
+- **Context browser scopes — overlapping async isolation** maps concurrent browser book-detail requests to separate scopes. It proves values stay isolated across explicit await boundaries even when the requests overlap.
 
 ## Install
 
@@ -28,6 +40,7 @@ The `/node` entrypoint configures AsyncLocalStorage automatically, so ordinary `
 `Context.run(initial, operation)` creates a scope, runs a synchronous operation, terminates the scope, and returns the operation value with its final snapshot. `Context.runAsync(initial, operation)` does the same for an asynchronous operation.
 
 <!-- inline-ts-ok: Consumer one-shot usage illustrates Context.runAsync automatic cleanup. -->
+
 ```typescript
 import { Context } from "@studnicky/context/node";
 
@@ -45,18 +58,20 @@ console.log(result.value, result.snapshot.get("requestId"));
 Register the supplied Context transform in Vite before running browser code. It preserves Context across ordinary native `await` continuations.
 
 <!-- inline-ts-ok: Consumer Vite configuration uses the published browser transform entrypoint. -->
+
 ```typescript
 import { defineConfig } from "vite";
 import { transform as contextAsyncTransform } from "@studnicky/context/browser/transform";
 
 export default defineConfig({
-  plugins: [contextAsyncTransform()]
+  plugins: [contextAsyncTransform()],
 });
 ```
 
 Import Context from the browser entrypoint and use ordinary `await` inside an active scope:
 
 <!-- inline-ts-ok: Consumer browser usage illustrates the published runtime entrypoint. -->
+
 ```typescript
 import { Context } from "@studnicky/context/browser";
 
@@ -76,6 +91,7 @@ scope.terminate();
 Use `scope.await(value)` when browser code crosses an await boundary without the transform. `Context.runAsync` closes the scope automatically.
 
 <!-- inline-ts-ok: Browser no-transform usage illustrates the public scope.await API. -->
+
 ```typescript
 const result = await context.runAsync({ requestId: "req-001" }, async (scope) => {
   const response = await scope.await(fetch("/api/profile"));
@@ -90,6 +106,7 @@ console.log(result.value, result.snapshot.get("requestId"));
 Callbacks invoked later need an explicitly managed scope. Remove the callback and terminate the scope when the subscription ends; `Context.run`/`Context.runAsync` are for operations that end when they return or their promise settles.
 
 <!-- inline-ts-ok: Browser callback usage illustrates the public scope.bind lifecycle. -->
+
 ```typescript
 const scope = context.initialize({ requestId: "req-001" });
 const onMessage = scope.bind((event: MessageEvent) => {
@@ -108,31 +125,33 @@ const snapshot = scope.terminate();
 `ContextStore<TState>` resolves one backing `StoreInterface<TState>` for each active Context scope. It is available from both runtime entrypoints and carries a stable synchronization identity, which each backing store must report when its scope first resolves it. A `StrataStore` can compose the scoped store with a durable Store layer.
 
 <!-- inline-ts-ok: ContextStore composes Context scopes with Store public entrypoints. -->
-```typescript
-import { Mutex } from '@studnicky/concurrency/mutex';
-import { Context } from '@studnicky/context/node';
-import { ContextStore } from '@studnicky/context/store/node';
-import type { ContextStoreOptionsInterface } from '@studnicky/context/store/interfaces';
-import { MemoryPersistence, Store } from '@studnicky/store/node';
 
-const context = Context.create({ name: 'request' });
+```typescript
+import { Mutex } from "@studnicky/concurrency/mutex";
+import { Context } from "@studnicky/context/node";
+import { ContextStore } from "@studnicky/context/store/node";
+import type { ContextStoreOptionsInterface } from "@studnicky/context/store/interfaces";
+import { MemoryPersistence, Store } from "@studnicky/store/node";
+
+const context = Context.create({ name: "request" });
 const mutex = Mutex.create<string>();
 const options: ContextStoreOptionsInterface<{ readonly items: string[] }> = {
   context,
-  key: 'request.cart',
-  synchronizationIdentity: { key: 'request.cart', mutex },
-  createStore: () => Store.create({
-    initialState: { items: [] },
-    key: 'request.cart',
-    mutex,
-    persistence: MemoryPersistence.create(),
-  }),
+  key: "request.cart",
+  synchronizationIdentity: { key: "request.cart", mutex },
+  createStore: () =>
+    Store.create({
+      initialState: { items: [] },
+      key: "request.cart",
+      mutex,
+      persistence: MemoryPersistence.create(),
+    }),
 };
 const cart = ContextStore.create(options);
 const scope = context.initialize();
 
 await scope.execute(async () => {
-  await cart.update((state) => ({ items: [...state.items, 'sku-42'] }));
+  await cart.update((state) => ({ items: [...state.items, "sku-42"] }));
 });
 scope.terminate();
 ```
@@ -161,13 +180,13 @@ Override `onInitialize` to seed default values into every scope without requirin
 
 `Context` exposes protected hook methods that a subclass can override. Scope instances remain factory-owned behind `ContextScopeInterface`. All hooks are no-ops by default, and the base class never calls a logger or metrics library.
 
-| Hook | Class | When it fires | Args |
-|------|-------|---------------|------|
-| `onInitialize` | `Context` | After `initialize()` creates the scope | `initial: Record<string, unknown> \| undefined, scope: ContextScopeInterface` |
-| `onMissingContext` | `Context` | When `get`/`set`/etc. is called with no active store; return `true` to suppress throw | `key?: string` → `boolean` |
-| `onGet` | `Context` | After a successful `get()` retrieval | `key: string, value: unknown` |
-| `onSet` | `Context` | After `set()` stores a value | `key: string, value: unknown` |
-| `onDelete` | `Context` | After `delete()` removes (or attempts to remove) a key | `key: string, existed: boolean` |
+| Hook               | Class     | When it fires                                                                         | Args                                                                          |
+| ------------------ | --------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `onInitialize`     | `Context` | After `initialize()` creates the scope                                                | `initial: Record<string, unknown> \| undefined, scope: ContextScopeInterface` |
+| `onMissingContext` | `Context` | When `get`/`set`/etc. is called with no active store; return `true` to suppress throw | `key?: string` → `boolean`                                                    |
+| `onGet`            | `Context` | After a successful `get()` retrieval                                                  | `key: string, value: unknown`                                                 |
+| `onSet`            | `Context` | After `set()` stores a value                                                          | `key: string, value: unknown`                                                 |
+| `onDelete`         | `Context` | After `delete()` removes (or attempts to remove) a key                                | `key: string, existed: boolean`                                               |
 
 <<< ../../packages/context/examples/observedContext.ts#usage
 
@@ -180,8 +199,9 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 `@studnicky/context/entities` exports every schema namespace in `src/entities`.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import { ContextConfigEntity } from '@studnicky/context/entities';
+import { ContextConfigEntity } from "@studnicky/context/entities";
 ```
 
 ## Interfaces
@@ -189,35 +209,50 @@ import { ContextConfigEntity } from '@studnicky/context/entities';
 `@studnicky/context/interfaces` exports every TypeScript interface in `src/interfaces`, including Context configuration, state, and storage contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
 import type {
   ContextRunResultInterface,
   ContextScopeInterface,
-  ContextStorageInterface
+  ContextStorageInterface,
 } from "@studnicky/context/interfaces";
 ```
 
+## Public entrypoints
+
+| Import path                            | Use it when                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `@studnicky/context/node`              | A Northstar Books Node process needs AsyncLocalStorage-backed scopes.                                  |
+| `@studnicky/context/node/transform`    | A Node build needs the async-context transform as a runtime-specific tool.                             |
+| `@studnicky/context/browser`           | A browser needs context scopes; it is the runtime alternative to `/node`.                              |
+| `@studnicky/context/browser/transform` | A Vite or Rollup browser build needs automatic await-boundary propagation.                             |
+| `@studnicky/context/entities`          | A consumer needs context configuration schemas as contracts.                                           |
+| `@studnicky/context/interfaces`        | A consumer needs context-scope and storage ports as contracts.                                         |
+| `@studnicky/context/store/node`        | A Node scope needs one backing Store per active context.                                               |
+| `@studnicky/context/store/browser`     | A browser scope needs the same ContextStore primitive; it is the runtime alternative to `/store/node`. |
+| `@studnicky/context/store/interfaces`  | A consumer needs ContextStore construction contracts.                                                  |
+
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `Context` | Creates AsyncLocalStorage-backed context scopes. | `@studnicky/context/node` |
-| `ContextStore` | Resolves a backing Store for each active Context scope. | `@studnicky/context/store/node` |
-| `ContextScopeInactiveError` | A ContextStore is used outside an active Context scope. | `@studnicky/context/store/node` |
-| `ContextStoreFactoryError` | A ContextStore factory returned a value that is not a StoreInterface. | `@studnicky/context/store/node` |
-| `ContextStoreKeyConflictError` | The Context key holds a value that is not a ContextStore backing Store. | `@studnicky/context/store/node` |
-| `ContextStoreOptionsError` | ContextStore construction received invalid options. | `@studnicky/context/store/node` |
-| `SynchronizationIdentityMismatchError` | A backing Store reports a different synchronization identity. | `@studnicky/context/store/node` |
-| `ContextAsyncRuntime` | Internal continuation runtime used by the transform. | `@studnicky/context/node` |
-| `ContextConfigError` | Reports invalid Context configuration. | `@studnicky/context/node` |
-| `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/node` |
-| `UnsupportedSourceExtensionError` | Reports a module extension the async Context transform cannot parse. | `@studnicky/context/node` |
-| `Context` | Creates browser context scopes. | `@studnicky/context/browser` |
-| `ContextAsyncRuntime` | Internal continuation runtime used by the transform. | `@studnicky/context/browser` |
-| `ContextConfigError` | Reports invalid Context configuration. | `@studnicky/context/browser` |
-| `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/browser` |
-| `UnsupportedSourceExtensionError` | Reports a module extension the async Context transform cannot parse. | `@studnicky/context/browser` |
-| `transform` | Registers the Vite or Rollup async Context transform. | `@studnicky/context/browser/transform` |
-| `ContextStorageInterface` | Defines the shared async storage contract. | `@studnicky/context/interfaces` |
-| `ContextStoreOptionsInterface` | Defines Context, key, backing-store factory, and synchronization identity. | `@studnicky/context/store/interfaces` |
-| `ContextRunResultInterface` | Describes the value and final snapshot returned by `Context.run`/`Context.runAsync`. | `@studnicky/context/interfaces` |
+| Symbol                                 | Purpose                                                                              | Import path                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
+| `Context`                              | Creates AsyncLocalStorage-backed context scopes.                                     | `@studnicky/context/node`              |
+| `ContextStore`                         | Resolves a backing Store for each active Context scope.                              | `@studnicky/context/store/node`        |
+| `ContextScopeInactiveError`            | A ContextStore is used outside an active Context scope.                              | `@studnicky/context/store/node`        |
+| `ContextStoreFactoryError`             | A ContextStore factory returned a value that is not a StoreInterface.                | `@studnicky/context/store/node`        |
+| `ContextStoreKeyConflictError`         | The Context key holds a value that is not a ContextStore backing Store.              | `@studnicky/context/store/node`        |
+| `ContextStoreOptionsError`             | ContextStore construction received invalid options.                                  | `@studnicky/context/store/node`        |
+| `SynchronizationIdentityMismatchError` | A backing Store reports a different synchronization identity.                        | `@studnicky/context/store/node`        |
+| `ContextAsyncRuntime`                  | Internal continuation runtime used by the transform.                                 | `@studnicky/context/node`              |
+| `ContextConfigError`                   | Reports invalid Context configuration.                                               | `@studnicky/context/node`              |
+| `ContextError`                         | Reports context lifecycle and lookup failures.                                       | `@studnicky/context/node`              |
+| `UnsupportedSourceExtensionError`      | Reports a module extension the async Context transform cannot parse.                 | `@studnicky/context/node`              |
+| `Context`                              | Creates browser context scopes.                                                      | `@studnicky/context/browser`           |
+| `ContextAsyncRuntime`                  | Internal continuation runtime used by the transform.                                 | `@studnicky/context/browser`           |
+| `ContextConfigError`                   | Reports invalid Context configuration.                                               | `@studnicky/context/browser`           |
+| `ContextError`                         | Reports context lifecycle and lookup failures.                                       | `@studnicky/context/browser`           |
+| `UnsupportedSourceExtensionError`      | Reports a module extension the async Context transform cannot parse.                 | `@studnicky/context/browser`           |
+| `transform`                            | Registers the Vite or Rollup async Context transform.                                | `@studnicky/context/browser/transform` |
+| `ContextStorageInterface`              | Defines the shared async storage contract.                                           | `@studnicky/context/interfaces`        |
+| `ContextStoreOptionsInterface`         | Defines Context, key, backing-store factory, and synchronization identity.           | `@studnicky/context/store/interfaces`  |
+| `ContextRunResultInterface`            | Describes the value and final snapshot returned by `Context.run`/`Context.runAsync`. | `@studnicky/context/interfaces`        |
