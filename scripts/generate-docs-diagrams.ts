@@ -60,6 +60,7 @@ try {
       const output = join(outputDirectory, `${diagram.name}.${theme.name}.svg`);
       await writeFile(config, `${JSON.stringify({
         'flowchart': { 'htmlLabels': false, 'nodeSpacing': 28, 'rankSpacing': 44, 'useMaxWidth': true },
+        'handDrawnSeed': 0,
         'securityLevel': 'strict',
         'theme': 'base',
         'themeVariables': theme.themeVariables
