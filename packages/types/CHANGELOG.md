@@ -1,5 +1,11 @@
 # Changelog
 
+## 15.0.2
+
+### Patch Changes
+
+- ea9eefe: Resolve the patched fast-uri and brace-expansion dependency graph.
+
 ## 15.0.1
 
 ### Patch Changes
