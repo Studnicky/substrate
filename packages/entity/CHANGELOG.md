@@ -1,11 +1,24 @@
 # @studnicky/entity
 
+<<<<<<< HEAD
+=======
+
+## 15.0.2
+
+### Patch Changes
+
+- Updated dependencies [2174773]
+- Updated dependencies [ea9eefe]
+  - @studnicky/types@15.0.2
+
 ## 15.0.1
 
 ### Patch Changes
 
 - Updated dependencies [3965298]
   - @studnicky/types@15.0.1
+
+> > > > > > > origin/develop
 
 ## 15.0.0
 

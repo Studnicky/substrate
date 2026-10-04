@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/basicRetry.ts. */\nexport const BasicRetryFixtures = Object.freeze({\n  'failCount': 2\n});\n"
+  'source': '/** Static input data for examples/basicRetry.ts. */\nexport const BasicRetryFixtures = Object.freeze({\n  \'failCount\': 2\n});\n'
 });

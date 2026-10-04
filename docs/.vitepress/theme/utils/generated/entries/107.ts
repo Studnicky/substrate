@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/path-sort.ts. */\nexport namespace PathSortFixture {\n  export const Document = {\n    'items': [{ 'name': 'alpha' }, { 'name': 'beta' }],\n    'user': { 'address': { 'city': 'Melbourne' } }\n  };\n}\n"
+  'source': '/** Static input data for examples/path-sort.ts. */\nexport namespace PathSortFixture {\n  export const Document = {\n    \'items\': [{ \'name\': \'alpha\' }, { \'name\': \'beta\' }],\n    \'user\': { \'address\': { \'city\': \'Melbourne\' } }\n  };\n}\n'
 });
