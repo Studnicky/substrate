@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/eslint-config",
-  "version": "15.0.0",
+  "version": "15.0.1",
   "description": "Shared ESLint flat config for @studnicky packages",
   "keywords": [
     "eslint",

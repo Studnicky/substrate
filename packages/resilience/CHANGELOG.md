@@ -1,5 +1,23 @@
 # Changelog
 
+## 15.0.1
+
+### Patch Changes
+
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/cache@15.0.1
+  - @studnicky/circular-buffer@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/concurrency@15.0.1
+  - @studnicky/config@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/event-bus@15.0.1
+  - @studnicky/fsm@15.0.1
+  - @studnicky/scheduler@15.0.1
+  - @studnicky/signal@15.0.1
+
 ## 15.0.0
 
 ### Major Changes
