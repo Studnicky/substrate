@@ -1,30 +1,22 @@
-/** configUsage — plugin smoke test. Run: npx tsx examples/configUsage.ts */
+/** configUsage — browser-safe platform-call policy smoke test. Run: npx tsx examples/configUsage.ts */
 
 import assert from 'node:assert/strict';
 
 // #region usage
-import { plugin, v8Plugin } from '../src/browser/index.js';
+import { PlatformCallDefaults } from '../src/browser/index.js';
 
-const config = {
-  'plugins': {
-    '@studnicky': plugin,
-    '@studnicky/v8': v8Plugin
-  },
-  'rules': {
-    '@studnicky/type-alias-invariants': 'error'
-  }
-};
+const entries = PlatformCallDefaults.build();
+const fetchPolicy = entries.find((entry) => {
+  const result = entry.kind === 'call' && entry.member === 'fetch' && entry.owner === '';
 
-const pluginRuleCount = Object.keys(plugin.rules).length;
-const v8PluginRuleCount = Object.keys(v8Plugin.rules).length;
+  return result;
+});
 
-console.log(`@studnicky plugin rules: ${pluginRuleCount}`);
-console.log(`@studnicky/v8 plugin rules: ${v8PluginRuleCount}`);
-console.log(`Config plugins registered: ${Object.keys(config.plugins).join(', ')}`);
+console.log(`Platform call policy entries: ${entries.length}`);
+console.log('Fetch policy:', fetchPolicy);
 // #endregion usage
 
-assert.ok('type-alias-invariants' in plugin.rules, 'plugin.rules must contain type-alias-invariants');
-assert.ok(pluginRuleCount > 0, 'plugin.rules must be non-empty');
-assert.ok(v8PluginRuleCount > 0, 'v8Plugin.rules must be non-empty');
+assert.ok(entries.length > 0, 'platform call policy defaults must be non-empty');
+assert.deepEqual(fetchPolicy, { 'kind': 'call', 'member': 'fetch', 'owner': '', 'safeWhenLiteral': 'never' });
 
 console.log('configUsage: all assertions passed');

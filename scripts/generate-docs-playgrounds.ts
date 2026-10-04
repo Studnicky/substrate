@@ -15,14 +15,6 @@ interface PackageManifestInterface {
 }
 
 function resolveExistingCanonical(canonical: string): string | undefined {
-  const browserCanonical = canonical.replace(/^(packages\/[^/]+\/src)\/index$/u, '$1/browser/index');
-  if (existsSync(path.join(repositoryRoot, `${browserCanonical  }.ts`))) {
-    return browserCanonical;
-  }
-  const rootCanonical = canonical.replace(/^(packages\/[^/]+\/src)\/browser\/index$/u, '$1/index');
-  if (existsSync(path.join(repositoryRoot, `${rootCanonical  }.ts`))) {
-    return rootCanonical;
-  }
   if (existsSync(path.join(repositoryRoot, `${canonical  }.ts`))) {
     return canonical;
   }

@@ -5,7 +5,6 @@ import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/116/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/116/3';
 import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/116/4';
 import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/116/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/116/6';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -15,10 +14,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk2(),
       loadChunk3(),
       loadChunk4(),
-      loadChunk5(),
-      loadChunk6()
+      loadChunk5()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** findSimilarText — normalize text, find candidates, and score a likely match. Run: npx tsx examples/findSimilarText.ts */\n\n// #region usage\nimport { LevenshteinScorer, NgramCandidateIndex, StringNormalizer } from '@studnicky/matching/node';\n\nconst index = new NgramCandidateIndex(3);\nconst entries = new Map([\n  ['978-0132350884', 'Clean Code'],\n  ['978-0201633610', 'Design Patterns'],\n  ['978-0321125217', 'Domain-Driven Design']\n]);\n\nfor (const [id, label] of entries) {\n  index.register(id, StringNormalizer.normalize(label));\n}\n\nconst query = StringNormalizer.normalize(' clean code ');\nconst candidates = index.candidates(query);\nconst scored = candidates.map((id): { readonly 'id': string; readonly 'score': number } => {\n  const label = entries.get(id) ?? '';\n  const result = { 'id': id, 'score': LevenshteinScorer.score(query, StringNormalizer.normalize(label)) };\n  return result;\n}).toSorted((left, right): number => { const result = right.score - left.score; return result; });\n\nconsole.log('Northstar Books title lookup:', { 'candidates': scored, 'query': query });\n// #endregion usage\n\nif (scored[0]?.id !== '978-0132350884' || (scored[0]?.score ?? 0) <= 0.8) {\n  throw new Error('Expected the Northstar Books title lookup to select Clean Code with a score above 0.8.');\n}\nconsole.log('findSimilarText: all assertions passed');\n"
+  'source': "/** findSimilarText — normalize text, find candidates, and score a likely match. Run: npx tsx examples/findSimilarText.ts */\n\n// #region usage\nimport { NgramCandidateIndex } from '@studnicky/matching/candidate-sources';\nimport { StringNormalizer } from '@studnicky/matching/normalizers';\nimport { LevenshteinScorer } from '@studnicky/matching/scorers';\n\nconst index = new NgramCandidateIndex(3);\nconst entries = new Map([\n  ['978-0132350884', 'Clean Code'],\n  ['978-0201633610', 'Design Patterns'],\n  ['978-0321125217', 'Domain-Driven Design']\n]);\n\nfor (const [id, label] of entries) {\n  index.register(id, StringNormalizer.normalize(label));\n}\n\nconst query = StringNormalizer.normalize(' clean code ');\nconst candidates = index.candidates(query);\nconst scored = candidates.map((id): { readonly 'id': string; readonly 'score': number } => {\n  const label = entries.get(id) ?? '';\n  const result = { 'id': id, 'score': LevenshteinScorer.score(query, StringNormalizer.normalize(label)) };\n  return result;\n}).toSorted((left, right): number => { const result = right.score - left.score; return result; });\n\nconsole.log('Northstar Books title lookup:', { 'candidates': scored, 'query': query });\n// #endregion usage\n\nif (scored[0]?.id !== '978-0132350884' || (scored[0]?.score ?? 0) <= 0.8) {\n  throw new Error('Expected the Northstar Books title lookup to select Clean Code with a score above 0.8.');\n}\nconsole.log('findSimilarText: all assertions passed');\n"
 });

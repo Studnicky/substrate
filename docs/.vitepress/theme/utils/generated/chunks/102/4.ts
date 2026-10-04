@@ -17,10 +17,6 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/468').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/469').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/470').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/667').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/668').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/669').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/670').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/671').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/672').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/673').then(({ playgroundModule }) => { return playgroundModule; }),
@@ -32,6 +28,10 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/679').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/680').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/681').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/682').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/682').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/683').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/684').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/685').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/686').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

@@ -6,7 +6,13 @@ import pkg from '../../package.json' with { 'type': 'json' };
 import { BROWSER_SWAPS } from './browser-swaps.js';
 
 const packageJson = pkg as {
-  'substrate'?: { 'seo'?: { 'bingSiteVerification'?: string; 'googleSiteVerification'?: string; 'twitterHandle'?: string } };
+  'substrate'?: {
+    'seo'?: {
+      'bingSiteVerification'?: string;
+      'googleSiteVerification'?: string;
+      'twitterHandle'?: string;
+    };
+  };
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -21,7 +27,7 @@ interface PluginContextInterface {
   resolve(
     source: string,
     importer: string,
-    options: Record<string, unknown>
+    options: Record<string, unknown>,
   ): Promise<ResolvedIdInterface | null>;
 }
 
@@ -50,12 +56,22 @@ function workspaceExportSourceId(source: string): string | undefined {
 const substrateBrowserSwap = (): {
   'enforce': 'pre';
   'name': string;
-  'resolveId': (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType) => Promise<string | null>;
+  'resolveId': (
+    this: PluginContextInterface,
+    source: string,
+    importer: string | undefined,
+    options?: ResolveOptionsType
+  ) => Promise<string | null>;
 } => {
   return {
     'enforce': 'pre',
     'name': 'substrate-browser-swap',
-    'resolveId': async function (this: PluginContextInterface, source: string, importer: string | undefined, options?: ResolveOptionsType): Promise<string | null> {
+    'resolveId': async function (
+      this: PluginContextInterface,
+      source: string,
+      importer: string | undefined,
+      options?: ResolveOptionsType
+    ): Promise<string | null> {
       const workspaceSource = workspaceExportSourceId(source);
       if (workspaceSource !== undefined) {
         return workspaceSource;
@@ -81,12 +97,14 @@ const substrateBrowserSwap = (): {
 };
 
 const SITE_TITLE = 'Substrate';
-const SITE_DESCRIPTION = 'Composable TypeScript primitives for builders: matching, routing, filtering, state, concurrency, time, I/O, and structured errors. Each package supplies focused contracts and operations that consumers combine into their own applications.';
+const SITE_DESCRIPTION =
+  'Composable TypeScript primitives for builders: matching, routing, filtering, state, concurrency, time, I/O, and structured errors. Each package supplies focused contracts and operations that consumers combine into their own applications.';
 const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#7c5aed';
-const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,vectorization,retry,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
+const SITE_KEYWORDS =
+  'typescript,composable,primitives,matching,filtering,topic-routing,vectorization,retry,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -98,37 +116,96 @@ const bingVerify = seo.bingSiteVerification ?? '';
 const twitterHandle = seo.twitterHandle ?? '';
 
 const ESLINT_CONFIG_RULES = [
-  'adapter-only-import', 'all-types-are-entities', 'clean-diagnostics',
-  'descriptive-identifiers', 'direct-invocation-only', 'domain-purity', 'entity-file-shape',
-  'explicit-return-binding', 'export-shape', 'hash-private-fields', 'inline-trivial-logic', 'intake-parse-only', 'interface-must-be-contract',
-  'interfaces-compose-named-types', 'known-types-outside-adapters', 'layer-import-boundary',
-  'lexical-this-only', 'no-caller-chosen-guard-type', 'no-circular-imports', 'no-double-assertion', 'no-function-registries', 'no-mixed-callable-shapes', 'no-native-error', 'no-redefined-external-types', 'no-reflect-argument-laundering', 'no-threaded-vocabulary', 'no-unchecked-overload-implementation', 'no-unparsed-assertion', 'prefer-collection-types', 'require-options-object',
-  'static-method-verbs', 'type-alias-invariants'
+  'adapter-only-import',
+  'all-types-are-entities',
+  'clean-diagnostics',
+  'descriptive-identifiers',
+  'direct-invocation-only',
+  'domain-purity',
+  'entity-file-shape',
+  'explicit-return-binding',
+  'export-shape',
+  'hash-private-fields',
+  'inline-trivial-logic',
+  'intake-parse-only',
+  'interface-must-be-contract',
+  'interfaces-compose-named-types',
+  'known-types-outside-adapters',
+  'layer-import-boundary',
+  'lexical-this-only',
+  'no-caller-chosen-guard-type',
+  'no-circular-imports',
+  'no-double-assertion',
+  'no-function-registries',
+  'no-mixed-callable-shapes',
+  'no-native-error',
+  'no-redefined-external-types',
+  'no-reflect-argument-laundering',
+  'no-threaded-vocabulary',
+  'no-unchecked-overload-implementation',
+  'no-unparsed-assertion',
+  'prefer-collection-types',
+  'require-options-object',
+  'static-method-verbs',
+  'type-alias-invariants'
 ] as const;
 
 const ESLINT_V8_RULES = [
-  'arguments-object', 'array-concat-outside-loops', 'array-from-iterators', 'array-from-map-callback',
-  'array-scan-outside-loops', 'array-splice-outside-loops', 'array-spread-outside-loops',
-  'chained-array-iteration', 'computed-class-properties', 'computed-object-properties',
-  'conditional-property-assignment', 'define-property', 'delete-property', 'dynamic-property-access',
-  'eval-function', 'for-in-loops', 'for-of-arrays', 'inline-arrow-functions', 'inline-functions',
-  'max-switch-cases', 'memoize-array-length', 'object-spread', 'prototype-modification',
-  'regexp-in-loops', 'switch-statements', 'try-catch-in-loops', 'with-statement'
+  'arguments-object',
+  'array-concat-outside-loops',
+  'array-from-iterators',
+  'array-from-map-callback',
+  'array-scan-outside-loops',
+  'array-splice-outside-loops',
+  'array-spread-outside-loops',
+  'chained-array-iteration',
+  'computed-class-properties',
+  'computed-object-properties',
+  'conditional-property-assignment',
+  'define-property',
+  'delete-property',
+  'dynamic-property-access',
+  'eval-function',
+  'for-in-loops',
+  'for-of-arrays',
+  'inline-arrow-functions',
+  'inline-functions',
+  'max-switch-cases',
+  'memoize-array-length',
+  'object-spread',
+  'prototype-modification',
+  'regexp-in-loops',
+  'switch-statements',
+  'try-catch-in-loops',
+  'with-statement'
 ] as const;
 
-const FOUNDATION_PRIMITIVES = [
-  'entity', 'errors', 'json', 'types'
-] as const;
+const FOUNDATION_PRIMITIVES = ['entity', 'errors', 'json', 'types'] as const;
 
 const BACKEND_PRIMITIVES = [
-  'cache', 'circular-buffer', 'clock', 'concurrency', 'config', 'context', 'drilldown', 'event-bus',
-  'fetch', 'filters', 'fsm', 'logger', 'matching', 'pipeline', 'resilience', 'scheduler', 'signal',
-  'store', 'virtual-fs', 'visible-range'
+  'cache',
+  'circular-buffer',
+  'clock',
+  'concurrency',
+  'config',
+  'context',
+  'drilldown',
+  'event-bus',
+  'fetch',
+  'filters',
+  'fsm',
+  'logger',
+  'matching',
+  'pipeline',
+  'resilience',
+  'scheduler',
+  'signal',
+  'store',
+  'virtual-fs',
+  'visible-range'
 ] as const;
 
-const TOOLING_PRIMITIVES = [
-  'eslint-config'
-] as const;
+const TOOLING_PRIMITIVES = ['eslint-config'] as const;
 
 const COMBINATIONS = [] as const;
 
@@ -137,10 +214,18 @@ const COMPOSITIONS = [] as const;
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
 
 const conditionalHead: HeadConfig[] = [
-  ...(googleVerify !== '' ? [['meta', { 'content': googleVerify, 'name': 'google-site-verification' }] as HeadConfig] : []),
-  ...(bingVerify !== '' ? [['meta', { 'content': bingVerify, 'name': 'msvalidate.01' }] as HeadConfig] : []),
-  ...(twitterHandle !== '' ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:site' }] as HeadConfig] : []),
-  ...(twitterHandle !== '' ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:creator' }] as HeadConfig] : [])
+  ...(googleVerify !== ''
+    ? [['meta', { 'content': googleVerify, 'name': 'google-site-verification' }] as HeadConfig]
+    : []),
+  ...(bingVerify !== ''
+    ? [['meta', { 'content': bingVerify, 'name': 'msvalidate.01' }] as HeadConfig]
+    : []),
+  ...(twitterHandle !== ''
+    ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:site' }] as HeadConfig]
+    : []),
+  ...(twitterHandle !== ''
+    ? [['meta', { 'content': `@${twitterHandle}`, 'name': 'twitter:creator' }] as HeadConfig]
+    : [])
 ];
 
 const jsonLd = JSON.stringify({
@@ -166,12 +251,21 @@ export default defineConfig({
     ['link', { 'href': `${SITE_BASE}favicon.ico`, 'rel': 'icon', 'type': 'image/x-icon' }],
     ['link', { 'href': `${SITE_BASE}icon-32.png`, 'rel': 'icon', 'sizes': '32x32', 'type': 'image/png' }],
     ['link', { 'href': `${SITE_BASE}icon-16.png`, 'rel': 'icon', 'sizes': '16x16', 'type': 'image/png' }],
-    ['link', { 'href': `${SITE_BASE}apple-touch-icon.png`, 'rel': 'apple-touch-icon', 'sizes': '180x180' }],
+    [
+      'link',
+      { 'href': `${SITE_BASE}apple-touch-icon.png`, 'rel': 'apple-touch-icon', 'sizes': '180x180' }
+    ],
     ['link', { 'href': `${SITE_BASE}manifest.webmanifest`, 'rel': 'manifest' }],
     ['link', { 'href': `${SITE_BASE}pagefind/pagefind-component-ui.css`, 'rel': 'stylesheet' }],
     ['script', { 'src': `${SITE_BASE}pagefind/pagefind-component-ui.js`, 'type': 'module' }],
     ['meta', { 'content': SITE_THEME_COLOR, 'name': 'theme-color' }],
-    ['meta', { 'content': 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1', 'name': 'robots' }],
+    [
+      'meta',
+      {
+        'content': 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1',
+        'name': 'robots'
+      }
+    ],
     ['meta', { 'content': SITE_AUTHOR_NAME, 'name': 'author' }],
     ['meta', { 'content': SITE_KEYWORDS, 'name': 'keywords' }],
     ['meta', { 'content': 'Substrate', 'name': 'application-name' }],
@@ -220,34 +314,42 @@ export default defineConfig({
           'text': 'Introduction'
         },
         {
-          'items': [
-            { 'link': '/packages/', 'text': 'Packages Index' }
-          ],
+          'items': [{ 'link': '/packages/', 'text': 'Packages Index' }],
           'text': 'Packages'
         },
         {
           'collapsed': true,
-          'items': FOUNDATION_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'items': FOUNDATION_PRIMITIVES.map((p) => {
+            return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };
+          }),
           'text': 'Foundation primitives'
         },
         {
           'collapsed': true,
-          'items': BACKEND_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'items': BACKEND_PRIMITIVES.map((p) => {
+            return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };
+          }),
           'text': 'Primitives'
         },
         {
           'collapsed': true,
-          'items': TOOLING_PRIMITIVES.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'items': TOOLING_PRIMITIVES.map((p) => {
+            return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };
+          }),
           'text': 'Tooling primitives'
         },
         {
           'collapsed': false,
-          'items': COMBINATIONS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'items': COMBINATIONS.map((p) => {
+            return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };
+          }),
           'text': 'Combinations'
         },
         {
           'collapsed': false,
-          'items': COMPOSITIONS.map(p => {return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };}),
+          'items': COMPOSITIONS.map((p) => {
+            return { 'link': `/packages/${p}`, 'text': `@studnicky/${p}` };
+          }),
           'text': 'Compositions'
         },
         {
@@ -256,20 +358,33 @@ export default defineConfig({
             { 'link': '/eslint/', 'text': 'Overview' },
             {
               'collapsed': true,
-              'items': ESLINT_CONFIG_RULES.map(r => {return { 'link': `/eslint/rules/${r}`, 'text': `@studnicky/${r}` };}),
+              'items': ESLINT_CONFIG_RULES.map((r) => {
+                return { 'link': `/eslint/rules/${r}`, 'text': `@studnicky/${r}` };
+              }),
               'text': 'Configuration rules'
             },
             {
               'collapsed': true,
-              'items': ESLINT_V8_RULES.map(r => {return { 'link': `/eslint/rules/v8/${r}`, 'text': `@studnicky/v8/${r}` };}),
+              'items': ESLINT_V8_RULES.map((r) => {
+                return { 'link': `/eslint/rules/v8/${r}`, 'text': `@studnicky/v8/${r}` };
+              }),
               'text': 'V8 performance rules'
             },
             {
               'collapsed': true,
               'items': [
-                { 'link': '/eslint/known-issues/type-alias-invariants-prefer-function-type', 'text': 'Callable contract interfaces' },
-                { 'link': '/eslint/known-issues/type-alias-invariants-primitive-brands', 'text': 'Branded primitives' },
-                { 'link': '/eslint/known-issues/type-alias-invariants-v9.0.0', 'text': 'Consumer constraints' }
+                {
+                  'link': '/eslint/known-issues/type-alias-invariants-prefer-function-type',
+                  'text': 'Callable contract interfaces'
+                },
+                {
+                  'link': '/eslint/known-issues/type-alias-invariants-primitive-brands',
+                  'text': 'Branded primitives'
+                },
+                {
+                  'link': '/eslint/known-issues/type-alias-invariants-v9.0.0',
+                  'text': 'Consumer constraints'
+                }
               ],
               'text': 'Known issues'
             }
@@ -279,18 +394,18 @@ export default defineConfig({
       ]
     },
     'siteTitle': 'Substrate',
-    'socialLinks': [
-      { 'icon': 'github', 'link': SITE_REPO }
-    ]
+    'socialLinks': [{ 'icon': 'github', 'link': SITE_REPO }]
   },
 
   'title': SITE_TITLE,
 
   'titleTemplate': ':title | Substrate',
-  'transformPageData': function(pageData) {
+  'transformPageData': function (pageData) {
     const canonical = `${SITE_URL}${pageData.relativePath.replace(/\.md$/, '')}`;
-    const title = pageData.title === '' || pageData.title === undefined ? SITE_TITLE : pageData.title;
-    const description = pageData.frontmatter.description as string | undefined ?? SITE_DESCRIPTION;
+    const title =
+      pageData.title === '' || pageData.title === undefined ? SITE_TITLE : pageData.title;
+    const description =
+      (pageData.frontmatter.description as string | undefined) ?? SITE_DESCRIPTION;
 
     (pageData.frontmatter.head as HeadConfig[] | undefined) ??= [];
     const head = pageData.frontmatter.head as HeadConfig[];
@@ -305,25 +420,16 @@ export default defineConfig({
   },
 
   'vite': {
-    'esbuild': {
-      // VitePress 1.6.4 uses Vite 5/esbuild 0.21 which does not recognise
-      // the ES2024 target from tsconfig.base.json. Override via tsconfigRaw
-      // to ES2022 for the docs build — the built output still targets modern
-      // browsers via Vite's own build target, so no functionality is lost.
-      'tsconfigRaw': {
-        'compilerOptions': {
-          'target': 'ES2022',
-          'useDefineForClassFields': true
-        }
-      }
-    },
     'plugins': [substrateBrowserSwap()],
     'resolve': {
       'alias': [
         // Browser shim for resilience/retry example leaves
         // that import named exports from node:timers/promises. Without this alias Rollup
         // fails to resolve the named export `setTimeout` from the externalized stub.
-        { 'find': 'node:timers/promises', 'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url)) }
+        {
+          'find': 'node:timers/promises',
+          'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url))
+        }
       ]
     },
     'ssr': {

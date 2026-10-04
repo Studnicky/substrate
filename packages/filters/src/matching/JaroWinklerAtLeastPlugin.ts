@@ -1,4 +1,4 @@
-import { JaroWinklerScorer } from '@studnicky/matching/browser';
+import { JaroWinklerScorer } from '@studnicky/matching/scorers';
 import { Predicates } from '@studnicky/types/browser';
 
 import { Plugin } from '../plugins/Plugin.js';

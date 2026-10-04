@@ -24,14 +24,14 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/468').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/469').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/470').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/500').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/501').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/507').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/509').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/511').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/513').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/515').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/520').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/521').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/503').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/504').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/510').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/512').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/514').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/516').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/518').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/523').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/524').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

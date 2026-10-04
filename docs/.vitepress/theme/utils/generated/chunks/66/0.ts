@@ -2,6 +2,9 @@
 export async function loadPlaygroundModulesChunk() {
   return await Promise.all([
     import('../../modules/471').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/472').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/472').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/473').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/474').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/475').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

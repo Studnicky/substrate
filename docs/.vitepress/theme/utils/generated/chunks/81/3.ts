@@ -31,7 +31,7 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/468').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/469').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/470').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/495').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/501').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/498').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/505').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

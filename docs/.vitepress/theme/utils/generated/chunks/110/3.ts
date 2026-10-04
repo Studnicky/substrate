@@ -18,12 +18,8 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/468').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/469').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/470').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/689').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/693').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/695').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/696').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/697').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/698').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/699').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/700').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/701').then(({ playgroundModule }) => { return playgroundModule; }),
@@ -32,6 +28,10 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/704').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/705').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/706').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/707').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/707').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/708').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/709').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/710').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/711').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

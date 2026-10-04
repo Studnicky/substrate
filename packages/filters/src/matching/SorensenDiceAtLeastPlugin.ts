@@ -1,4 +1,4 @@
-import { SorensenDiceScorer } from '@studnicky/matching/browser';
+import { SorensenDiceScorer } from '@studnicky/matching/scorers';
 
 import { Plugin } from '../plugins/Plugin.js';
 import { StringArrayPredicate } from './predicates/StringArrayPredicate.js';

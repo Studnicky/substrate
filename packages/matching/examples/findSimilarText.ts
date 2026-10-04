@@ -1,7 +1,9 @@
 /** findSimilarText — normalize text, find candidates, and score a likely match. Run: npx tsx examples/findSimilarText.ts */
 
 // #region usage
-import { LevenshteinScorer, NgramCandidateIndex, StringNormalizer } from '@studnicky/matching/node';
+import { NgramCandidateIndex } from '@studnicky/matching/candidate-sources';
+import { StringNormalizer } from '@studnicky/matching/normalizers';
+import { LevenshteinScorer } from '@studnicky/matching/scorers';
 
 const index = new NgramCandidateIndex(3);
 const entries = new Map([
