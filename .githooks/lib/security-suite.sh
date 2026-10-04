@@ -53,7 +53,7 @@ run_audit_check_against_base() {
   (cd "$base_dir" && pnpm audit --prod --audit-level high --json > "$base_json" 2>/dev/null) || true
 
   status=0
-  AUDIT_HEAD_JSON="$head_json" AUDIT_BASE_JSON="$base_json" AUDIT_BASE_REF="$base_ref" node -e '
+  if AUDIT_HEAD_JSON="$head_json" AUDIT_BASE_JSON="$base_json" AUDIT_BASE_REF="$base_ref" node <<'NODE'
     const fs = require("fs");
 
     const parseAuditReport = (path) => {
@@ -85,19 +85,24 @@ run_audit_check_against_base() {
 
     if (introduced.length > 0) {
       const plural = introduced.length === 1 ? "y" : "ies";
-      console.error(`security-suite: ${introduced.length} new or worsened vulnerabilit${plural} introduced relative to ${process.env.AUDIT_BASE_REF}:`);
+      console.error("security-suite: " + introduced.length + " new or worsened vulnerabilit" + plural + " introduced relative to " + process.env.AUDIT_BASE_REF + ":");
       for (const advisory of introduced) {
-        console.error(`  - [${advisory.severity}] ${advisory.title} (${key(advisory)}) in ${advisory.module_name}`);
+        console.error("  - [" + advisory.severity + "] " + advisory.title + " (" + key(advisory) + ") in " + advisory.module_name);
       }
       process.exit(1);
     }
 
     if (preexisting.length > 0) {
       const plural = preexisting.length === 1 ? "y" : "ies";
-      console.error(`security-suite: ${preexisting.length} pre-existing vulnerabilit${plural} unaffected by this change (already present on ${process.env.AUDIT_BASE_REF}); not blocking`);
+      console.error("security-suite: " + preexisting.length + " pre-existing vulnerabilit" + plural + " unaffected by this change (already present on " + process.env.AUDIT_BASE_REF + "); not blocking");
     }
     process.exit(0);
-  ' || status=$?
+NODE
+  then
+    status=0
+  else
+    status=$?
+  fi
 
   rm -rf "$base_dir"
   rm -f "$head_json" "$base_json"
@@ -211,11 +216,17 @@ run_semgrep_sarif_check() {
   fi
 
   rm -f "$targets_file"
-  if node -e '
-    const report = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
-    const findings = report.runs.flatMap((run) => run.results ?? []);
-    process.exitCode = findings.length === 0 ? 0 : 1;
-  ' "$output"; then
+  if python3 - "$output" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as sarif_file:
+    report = json.load(sarif_file)
+
+findings = [result for run in report.get("runs", []) for result in run.get("results", [])]
+sys.exit(1 if findings else 0)
+PY
+  then
     return 0
   fi
 
