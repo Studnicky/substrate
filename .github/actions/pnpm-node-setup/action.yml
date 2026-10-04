@@ -36,10 +36,17 @@ runs:
     # the job, re-warns about the unresolved placeholder.
     - shell: bash
       run: echo "NODE_AUTH_TOKEN=${{ github.token }}" >> "$GITHUB_ENV"
-    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+    - if: inputs.install == 'true'
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
       with:
         node-version: ${{ inputs.node-version }}
         cache: pnpm
+        registry-url: "https://npm.pkg.github.com"
+        scope: ${{ inputs.scope }}
+    - if: inputs.install != 'true'
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: ${{ inputs.node-version }}
         registry-url: "https://npm.pkg.github.com"
         scope: ${{ inputs.scope }}
     # actions/setup-node's cache: pnpm only caches the pnpm content-addressable
