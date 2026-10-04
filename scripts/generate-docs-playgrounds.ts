@@ -218,9 +218,9 @@ async function generate(): Promise<void> {
 
 async function lintGeneratedArtifacts(): Promise<void> {
   const artifactPattern = path.join(generatedDirectory, '**/*.ts');
-  const fixer = new ESLint({ 'fix': true });
+  const fixer = new ESLint({ 'fix': true, 'ignore': false });
   await ESLint.outputFixes(await fixer.lintFiles([artifactPattern]));
-  const verifier = new ESLint();
+  const verifier = new ESLint({ 'ignore': false });
   const results = await verifier.lintFiles([artifactPattern]);
   if (results.some((result) => { return result.errorCount > 0 || result.warningCount > 0; })) {
     const formatter = await verifier.loadFormatter('stylish');
