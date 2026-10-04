@@ -73,7 +73,7 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "undici": "^8.10.2"
+    "undici": "^8.11.2"
   },
   "devDependencies": {
     "@studnicky/resilience": "workspace:*"
