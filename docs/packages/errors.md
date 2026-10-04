@@ -1,5 +1,5 @@
 ---
-title: '@studnicky/errors'
+title: "@studnicky/errors"
 description: Standardized error hierarchy serializing to RFC 9457 Problem Details.
 ---
 
@@ -45,13 +45,13 @@ Every `BaseError` serializes to one form: an [RFC 9457](https://www.rfc-editor.o
 
 ### Member mapping
 
-| Member | Source | Why |
-|---|---|---|
-| `type` | `problemType()` — the problem namespace joined with `code` | §3.1.1: the URI reference identifying the problem type. This is the discriminant. |
-| `title` | the error's declared `name` | §3.1.2: a short summary that must NOT change between occurrences. |
-| `detail` | `message` | §3.1.4: explicitly specific to THIS occurrence. |
-| `status` | `status`, when the error carries one | §3.1.3. |
-| `instance` | `instance`, when the error carries one | §3.1.5. |
+| Member     | Source                                                     | Why                                                                               |
+| ---------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `type`     | `problemType()` — the problem namespace joined with `code` | §3.1.1: the URI reference identifying the problem type. This is the discriminant. |
+| `title`    | the error's declared `name`                                | §3.1.2: a short summary that must NOT change between occurrences.                 |
+| `detail`   | `message`                                                  | §3.1.4: explicitly specific to THIS occurrence.                                   |
+| `status`   | `status`, when the error carries one                       | §3.1.3.                                                                           |
+| `instance` | `instance`, when the error carries one                     | §3.1.5.                                                                           |
 
 Everything else is an extension member (§3.2): `code`, `correlationId`, `timestamp`, `retryable`, `context`, `stack`, and the flattened `causes` chain.
 
@@ -89,8 +89,9 @@ Override `serializeExtra()` to add extension members. Registered members always 
 `@studnicky/errors/entities` exports every schema namespace in `src/entities`, including error classifications, validation arguments and reports, error diagnostics, and native-error field projections. Each namespace exposes its `Schema`, inferred `Type`, and runtime `validate` predicate.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+import type { ErrorClassificationEntity } from "@studnicky/errors/entities";
 ```
 
 ## Interfaces
@@ -98,48 +99,48 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 `@studnicky/errors/interfaces` exports every TypeScript interface in `src/interfaces`, including `ModuleErrorInterface` plus construction and classifier contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
+import type { ModuleErrorInterface } from "@studnicky/errors/interfaces";
 ```
 
 `DomainErrorOptionsInterface`, `ErrorClassifierFunctionInterface`, `ErrorClassifierInterface`, `ModuleErrorCreateOptionsInterface`, and `ModuleErrorOptionsInterface` are imported from `/errors/interfaces` because callers pass or implement them when using the public API.
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `CliExitError` | Represents a command-line exit failure. | `@studnicky/errors/node` |
-| `DomainErrorArgumentList` | Builds typed constructor arguments for domain errors. | `@studnicky/errors/node` |
-| `HookInvocationError` | Represents a lifecycle-hook failure. | `@studnicky/errors/node` |
-| `HookInvoker` | Invokes lifecycle hooks with diagnostic handling. | `@studnicky/errors/node` |
-| `HookTimeoutError` | Represents a timed-out asynchronous hook. | `@studnicky/errors/node` |
-| `ModuleError` | Creates structured errors from named scenario defaults. | `@studnicky/errors/node` |
-| `ReentrantHookInvocationError` | Represents synchronous hook reentrancy. | `@studnicky/errors/node` |
-| `RuntimeError` | Represents a generic package-owned runtime failure. | `@studnicky/errors/node` |
-| `ValidationError` | Represents a single validation failure. | `@studnicky/errors/node` |
-| `ValidationErrors` | Collects and reports validation failures. | `@studnicky/errors/node` |
-| `DefaultHttpErrorClassifier` | Classifies standard HTTP failures for retry behavior. | `@studnicky/fetch/retry` |
-| `ErrorClassifier` | Base class for custom error classifiers. | `@studnicky/errors/node` |
-| `matchers` | Provides runtime error-classification predicates. | `@studnicky/errors/node` |
-| `EventRecorder` | Records detached event projections for observers. | `@studnicky/errors/node` |
-| `ErrorCode` | Provides standard error-code values. | `@studnicky/errors/node` |
-| `ErrorDefaults` | Provides named default error scenarios. | `@studnicky/errors/node` |
-| `HttpStatus` | Provides common HTTP status-code values. | `@studnicky/errors/node` |
-| `HTTP_INFORMATIONAL_START` | Marks the lower bound of informational HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_INFORMATIONAL_END` | Marks the upper bound of informational HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_SUCCESS_START` | Marks the lower bound of successful HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_SUCCESS_END` | Marks the upper bound of successful HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_REDIRECT_START` | Marks the lower bound of redirect HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_REDIRECT_END` | Marks the upper bound of redirect HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_CLIENT_ERROR_START` | Marks the lower bound of client-error HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_CLIENT_ERROR_END` | Marks the upper bound of client-error HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_REQUEST_TIMEOUT` | Provides the HTTP request-timeout status code. | `@studnicky/errors/node` |
-| `HTTP_SERVER_ERROR_START` | Marks the lower bound of server-error HTTP responses. | `@studnicky/errors/node` |
-| `HTTP_SERVER_ERROR_END` | Marks the upper bound of server-error HTTP responses. | `@studnicky/errors/node` |
-| `DomainErrorOptionsInterface` | Defines options passed to `DomainErrorArgumentList.build()`. | `@studnicky/errors/interfaces` |
-| `ErrorClassifierFunctionInterface` | Defines a callable custom error classifier. | `@studnicky/errors/interfaces` |
-| `ErrorClassifierInterface` | Defines a class-based custom error classifier. | `@studnicky/errors/interfaces` |
-| `ModuleErrorCreateOptionsInterface` | Defines options passed to `ModuleError.create()`. | `@studnicky/errors/interfaces` |
-| `ModuleErrorOptionsInterface` | Defines options passed to `ModuleError` subclasses. | `@studnicky/errors/interfaces` |
+| Symbol                              | Purpose                                                      | Import path                    |
+| ----------------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| `CliExitError`                      | Represents a command-line exit failure.                      | `@studnicky/errors/node`       |
+| `DomainErrorArgumentList`           | Builds typed constructor arguments for domain errors.        | `@studnicky/errors/node`       |
+| `HookInvocationError`               | Represents a lifecycle-hook failure.                         | `@studnicky/errors/node`       |
+| `HookInvoker`                       | Invokes lifecycle hooks with diagnostic handling.            | `@studnicky/errors/node`       |
+| `HookTimeoutError`                  | Represents a timed-out asynchronous hook.                    | `@studnicky/errors/node`       |
+| `ModuleError`                       | Creates structured errors from named scenario defaults.      | `@studnicky/errors/node`       |
+| `ReentrantHookInvocationError`      | Represents synchronous hook reentrancy.                      | `@studnicky/errors/node`       |
+| `RuntimeError`                      | Represents a generic package-owned runtime failure.          | `@studnicky/errors/node`       |
+| `ValidationError`                   | Represents a single validation failure.                      | `@studnicky/errors/node`       |
+| `ValidationErrors`                  | Collects and reports validation failures.                    | `@studnicky/errors/node`       |
+| `ErrorClassifier`                   | Base class for custom error classifiers.                     | `@studnicky/errors/node`       |
+| `matchers`                          | Provides runtime error-classification predicates.            | `@studnicky/errors/node`       |
+| `EventRecorder`                     | Records detached event projections for observers.            | `@studnicky/errors/node`       |
+| `ErrorCode`                         | Provides standard error-code values.                         | `@studnicky/errors/node`       |
+| `ErrorDefaults`                     | Provides named default error scenarios.                      | `@studnicky/errors/node`       |
+| `HttpStatus`                        | Provides common HTTP status-code values.                     | `@studnicky/errors/node`       |
+| `HTTP_INFORMATIONAL_START`          | Marks the lower bound of informational HTTP responses.       | `@studnicky/errors/node`       |
+| `HTTP_INFORMATIONAL_END`            | Marks the upper bound of informational HTTP responses.       | `@studnicky/errors/node`       |
+| `HTTP_SUCCESS_START`                | Marks the lower bound of successful HTTP responses.          | `@studnicky/errors/node`       |
+| `HTTP_SUCCESS_END`                  | Marks the upper bound of successful HTTP responses.          | `@studnicky/errors/node`       |
+| `HTTP_REDIRECT_START`               | Marks the lower bound of redirect HTTP responses.            | `@studnicky/errors/node`       |
+| `HTTP_REDIRECT_END`                 | Marks the upper bound of redirect HTTP responses.            | `@studnicky/errors/node`       |
+| `HTTP_CLIENT_ERROR_START`           | Marks the lower bound of client-error HTTP responses.        | `@studnicky/errors/node`       |
+| `HTTP_CLIENT_ERROR_END`             | Marks the upper bound of client-error HTTP responses.        | `@studnicky/errors/node`       |
+| `HTTP_REQUEST_TIMEOUT`              | Provides the HTTP request-timeout status code.               | `@studnicky/errors/node`       |
+| `HTTP_SERVER_ERROR_START`           | Marks the lower bound of server-error HTTP responses.        | `@studnicky/errors/node`       |
+| `HTTP_SERVER_ERROR_END`             | Marks the upper bound of server-error HTTP responses.        | `@studnicky/errors/node`       |
+| `DomainErrorOptionsInterface`       | Defines options passed to `DomainErrorArgumentList.build()`. | `@studnicky/errors/interfaces` |
+| `ErrorClassifierFunctionInterface`  | Defines a callable custom error classifier.                  | `@studnicky/errors/interfaces` |
+| `ErrorClassifierInterface`          | Defines a class-based custom error classifier.               | `@studnicky/errors/interfaces` |
+| `ModuleErrorCreateOptionsInterface` | Defines options passed to `ModuleError.create()`.            | `@studnicky/errors/interfaces` |
+| `ModuleErrorOptionsInterface`       | Defines options passed to `ModuleError` subclasses.          | `@studnicky/errors/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/errors)

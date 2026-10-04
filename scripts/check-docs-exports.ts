@@ -138,8 +138,15 @@ interface SourceFileWithParseDiagnosticsInterface {
 }
 
 const parseImportSnippet = (body: string): ts.ImportDeclaration[] | undefined => {
-  const sourceFile = ts.createSourceFile('docs-snippet.ts', body, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
-  const { parseDiagnostics } = sourceFile as SourceFileWithParseDiagnosticsInterface & ts.SourceFile;
+  const sourceFile = ts.createSourceFile(
+    'docs-snippet.ts',
+    body,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TS
+  );
+  const { parseDiagnostics } = sourceFile as SourceFileWithParseDiagnosticsInterface &
+    ts.SourceFile;
   if (parseDiagnostics.length > 0 || sourceFile.statements.length === 0) {
     return undefined;
   }
@@ -201,9 +208,16 @@ const getPackages = async (): Promise<PackageInfoInterface[]> => {
     }
     const parsedManifest: unknown = JSON.parse(await readFile(packageFile, 'utf8'));
     if (!isPackageManifest(parsedManifest)) {
-      throw new Error(`${packageFile} does not have the expected package manifest shape (missing or non-string "name").`);
+      throw new Error(
+        `${packageFile} does not have the expected package manifest shape (missing or non-string "name").`
+      );
     }
-    packages.push({ 'directory': directory, 'manifest': parsedManifest, 'name': entry.name, 'packageFile': packageFile });
+    packages.push({
+      'directory': directory,
+      'manifest': parsedManifest,
+      'name': entry.name,
+      'packageFile': packageFile
+    });
   }
   const sortedPackages = packages.toSorted((left, right) => {
     const comparison = left.name.localeCompare(right.name);
@@ -295,7 +309,8 @@ const collectExportedNamesBySubpath = (
   const surface = new Map<string, Set<string>>();
   for (const [subpath, sourcePath] of subpaths) {
     const sourceFile = context.program.getSourceFile(sourcePath);
-    const moduleSymbol = sourceFile === undefined ? undefined : context.checker.getSymbolAtLocation(sourceFile);
+    const moduleSymbol =
+      sourceFile === undefined ? undefined : context.checker.getSymbolAtLocation(sourceFile);
     if (moduleSymbol === undefined) {
       violations.push({
         'file': packageFile,
@@ -313,7 +328,10 @@ const collectExportedNamesBySubpath = (
   return surface;
 };
 
-const getExportSurface = (packageInfo: PackageInfoInterface, violations: ViolationInterface[]): Map<string, Set<string>> => {
+const getExportSurface = (
+  packageInfo: PackageInfoInterface,
+  violations: ViolationInterface[]
+): Map<string, Set<string>> => {
   const exportsMap = packageInfo.manifest.exports;
   const packageFile = path.relative(repoRoot, packageInfo.packageFile).split(path.sep).join('/');
 
@@ -345,7 +363,9 @@ const getExportsTableRows = (content: string): ExportsTableRowInterface[] => {
     return [];
   }
   const headerIndex = lines.findIndex((line, index) => {
-    const isHeader = index > headingIndex && line.trim() === '| Symbol | Purpose | Import path |';
+    const isHeader =
+      index > headingIndex &&
+      line.trim().replace(/\s+/gu, ' ') === '| Symbol | Purpose | Import path |';
     return isHeader;
   });
   if (headerIndex === -1) {
@@ -358,17 +378,24 @@ const getExportsTableRows = (content: string): ExportsTableRowInterface[] => {
     if (!line.startsWith('|')) {
       break;
     }
-    const cells = line.split('|').slice(1, -1).map((cell) => {
-      const trimmed = cell.trim();
-      return trimmed;
-    });
+    const cells = line
+      .split('|')
+      .slice(1, -1)
+      .map((cell) => {
+        const trimmed = cell.trim();
+        return trimmed;
+      });
     if (cells.length === 3) {
       const [symbolCell, , importPathCell] = cells;
       const importPaths = (importPathCell ?? '').split(IMPORT_PATH_SEPARATOR_RE).map((value) => {
         const stripped = value.trim().replace(CODE_FENCE_MARKER_RE, '');
         return stripped;
       });
-      rows.push({ 'importPaths': new Set(importPaths), 'line': index + 1, 'symbol': documentedSymbolName(symbolCell ?? '') });
+      rows.push({
+        'importPaths': new Set(importPaths),
+        'line': index + 1,
+        'symbol': documentedSymbolName(symbolCell ?? '')
+      });
     }
   }
   return rows;
@@ -397,7 +424,10 @@ const getTypeScriptFences = (content: string): TypeScriptFenceInterface[] => {
 const packages = await getPackages();
 const docs = await getDocs();
 const violations: ViolationInterface[] = [];
-const packageSurfaces = new Map<string, { 'packageInfo': PackageInfoInterface; 'surface': Map<string, Set<string>> }>();
+const packageSurfaces = new Map<
+  string,
+  { 'packageInfo': PackageInfoInterface; 'surface': Map<string, Set<string>> }
+>();
 let checked = 0;
 
 for (let index = 0; index < packages.length; index += 1) {
@@ -419,7 +449,10 @@ const resolveImport = (specifier: string): ResolvedImportInterface | undefined =
 
 const neutralSubpaths = ['./interfaces', './entities', './types'];
 
-const getNeutralCanonicalSubpath = (surface: Map<string, Set<string>>, symbol: string): string | undefined => {
+const getNeutralCanonicalSubpath = (
+  surface: Map<string, Set<string>>,
+  symbol: string
+): string | undefined => {
   const canonicalSubpath = neutralSubpaths.find((subpath) => {
     const hasSymbol = surface.get(subpath)?.has(symbol) === true;
     return hasSymbol;
@@ -447,7 +480,11 @@ const checkNamedBindingsAgainstSurface = (
     }
     bindingsChecked += 1;
     if (!symbols.has(binding)) {
-      violationsOut.push({ 'file': context.file, 'line': context.fenceLine, 'message': `${binding} is not exported by ${context.specifier}.` });
+      violationsOut.push({
+        'file': context.file,
+        'line': context.fenceLine,
+        'message': `${binding} is not exported by ${context.specifier}.`
+      });
     }
   }
   return bindingsChecked;
@@ -477,11 +514,19 @@ const checkTableRowImportPath = (
 ): void => {
   const { packageSurface, resolved, symbols } = resolveRowImportPath(importPath);
   if (symbols === undefined || resolved === undefined) {
-    violationsOut.push({ 'file': file, 'line': row.line, 'message': `${importPath} is not a published export entrypoint.` });
+    violationsOut.push({
+      'file': file,
+      'line': row.line,
+      'message': `${importPath} is not a published export entrypoint.`
+    });
     return;
   }
   if (!symbols.has(row.symbol)) {
-    violationsOut.push({ 'file': file, 'line': row.line, 'message': `${row.symbol} is not exported by ${importPath}.` });
+    violationsOut.push({
+      'file': file,
+      'line': row.line,
+      'message': `${row.symbol} is not exported by ${importPath}.`
+    });
     return;
   }
   if (resolved.subpath === './node' && packageSurface !== undefined) {
@@ -522,11 +567,20 @@ for (const doc of docs.values()) {
       const packageSurface = packageSurfaces.get(resolved.packageName);
       const symbols = packageSurface?.surface.get(resolved.subpath);
       if (symbols === undefined) {
-        violations.push({ 'file': file, 'line': fence.line, 'message': `${specifier} is not a published export entrypoint.` });
+        violations.push({
+          'file': file,
+          'line': fence.line,
+          'message': `${specifier} is not a published export entrypoint.`
+        });
         continue;
       }
       const namedBindings = getNamedBindings(declaration);
-      checked += checkNamedBindingsAgainstSurface(namedBindings, symbols, { 'fenceLine': fence.line, 'file': file, 'specifier': specifier }, violations);
+      checked += checkNamedBindingsAgainstSurface(
+        namedBindings,
+        symbols,
+        { 'fenceLine': fence.line, 'file': file, 'specifier': specifier },
+        violations
+      );
     }
   }
 
@@ -550,7 +604,8 @@ for (let index = 0; index < packages.length; index += 1) {
   }
   const doc = docs.get(packageInfo.name);
   const rows = doc === undefined ? [] : getExportsTableRows(doc.content);
-  const packageSurface = packageSurfaces.get(packageInfo.manifest.name)?.surface ?? new Map<string, Set<string>>();
+  const packageSurface =
+    packageSurfaces.get(packageInfo.manifest.name)?.surface ?? new Map<string, Set<string>>();
   const runtimeSpecifier = `${packageInfo.manifest.name}/node`;
   const documentedNodeExports = new Set<string>();
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
@@ -571,7 +626,10 @@ for (let index = 0; index < packages.length; index += 1) {
     checked += 1;
     if (!documentedNodeExports.has(symbol)) {
       violations.push({
-        'file': doc === undefined ? `docs/packages/${packageInfo.name}.md` : path.relative(repoRoot, doc.file).split(path.sep).join('/'),
+        'file':
+          doc === undefined
+            ? `docs/packages/${packageInfo.name}.md`
+            : path.relative(repoRoot, doc.file).split(path.sep).join('/'),
         'line': 1,
         'message': `${packageInfo.manifest.name} exports ${symbol} from ${runtimeSpecifier}, but its Exports table does not document it.`
       });
@@ -580,7 +638,9 @@ for (let index = 0; index < packages.length; index += 1) {
 }
 
 if (violations.length > 0) {
-  process.stderr.write(`check-docs-exports: ${String(violations.length)} documentation export violation(s).\n\n`);
+  process.stderr.write(
+    `check-docs-exports: ${String(violations.length)} documentation export violation(s).\n\n`
+  );
   for (let index = 0; index < violations.length; index += 1) {
     const violation = violations[index];
     if (violation === undefined) {

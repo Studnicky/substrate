@@ -54,7 +54,7 @@ breaker.forceOpen(); // force-open for testing
 By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors/interfaces`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/resilience/retry/node` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
 
 ```typescript
-import { DefaultHttpErrorClassifier } from "@studnicky/errors/node";
+import { DefaultHttpErrorClassifier } from "@studnicky/fetch/retry";
 
 const breaker = CircuitBreaker.create({
   failureThreshold: 5,
