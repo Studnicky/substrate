@@ -35,13 +35,19 @@ package_dist_ready() {
 
 verify_dist() {
   missing=0
+  scenario_kit_dist_ready || missing=1
   for pkgjson in packages/*/package.json; do
     package_dist_ready "$pkgjson" || missing=1
   done
   test "$missing" -eq 0
 }
 
+scenario_kit_dist_ready() {
+  test -f scripts/test-helpers/scenario-kit/dist/index.js
+}
+
 dist_ready() {
+  scenario_kit_dist_ready || return 1
   for pkgjson in packages/*/package.json; do
     package_dist_ready "$pkgjson" >/dev/null 2>&1 || return 1
   done
