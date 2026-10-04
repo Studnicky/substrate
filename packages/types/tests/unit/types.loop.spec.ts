@@ -296,15 +296,6 @@ class TypesFixtures {
     }
   }
 
-  static freshPattern(pattern: RegExp): RegExp {
-    try {
-      const fresh = new RegExp(pattern.source, pattern.flags);
-      return fresh;
-    } catch (cause) {
-      throw new TypesFixtureError('Fixture pattern did not rebuild', cause);
-    }
-  }
-
   static named(): void {}
 
   static isEntryIterable(value: unknown): value is Iterable<readonly [string, unknown]> {
@@ -970,8 +961,8 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
     assert.equal(
       Predicates.areDeeplyEqual(
-        TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive),
-        TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive)
+        PATTERN_FIXTURES.valueCaseInsensitive,
+        PATTERN_FIXTURES.valueCaseInsensitive
       ),
       true
     );
@@ -1031,7 +1022,7 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     Object.assign(date, { 'self': date });
     assert.equal(Predicates.hasCycle(date), true);
 
-    const expression = TypesFixtures.freshPattern(PATTERN_FIXTURES.cycle);
+    const expression = PATTERN_FIXTURES.cycle;
     Object.assign(expression, { 'self': expression });
     assert.equal(Predicates.hasCycle(expression), true);
   });
