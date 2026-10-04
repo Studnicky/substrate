@@ -19,13 +19,17 @@ See the [Composition Contract](/concepts/composition-contract) and
 [Package Registry](/concepts/package-registry) for the workspace-wide rules and current
 platform-parity status.
 
+## Read each package page
+
+Every package page uses the same reader contract: **What it is** identifies the primitive, **What it is for** names the consumer decision it supports, **Northstar Books examples** ties each runnable example to a bookstore problem, **Public entrypoints** lists every supported package and subpackage import path, and **Exports** names the symbols available from those paths. The pages describe building blocks that a bookstore composes into its own catalogue, checkout, fulfilment, and operations workflows; they do not prescribe a bookstore application.
+
 ## Concurrency
 
-| Package                                                       | Description                                                                                                 |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [@studnicky/concurrency](/packages/concurrency)               | Keyed async channels, semaphore, and coalesce primitives                                                    |
-| [@studnicky/virtual-fs](/packages/virtual-fs)                 | In-memory synchronous filesystem primitive with browser compatibility                                       |
-| [@studnicky/signal](/packages/signal)                         | Instance-based AbortSignal composition and timeout utilities                                                |
+| Package                                         | Description                                                           |
+| ----------------------------------------------- | --------------------------------------------------------------------- |
+| [@studnicky/concurrency](/packages/concurrency) | Keyed async channels, semaphore, and coalesce primitives              |
+| [@studnicky/virtual-fs](/packages/virtual-fs)   | In-memory synchronous filesystem primitive with browser compatibility |
+| [@studnicky/signal](/packages/signal)           | Instance-based AbortSignal composition and timeout utilities          |
 
 ## Time
 
@@ -57,29 +61,29 @@ platform-parity status.
 
 ## Matching & Routing
 
-| Package                                                     | Description                                                                                                      |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [@studnicky/matching](/packages/matching)                   | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives            |
+| Package                                   | Description                                                                                           |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [@studnicky/matching](/packages/matching) | Deterministic normalization, encoding, extraction, matching, scoring, and candidate-source primitives |
 
 ## I/O & Observability
 
-| Package                                                   | Description                                                                                                             |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [@studnicky/event-bus](/packages/event-bus)               | Publish/subscribe event bus with backpressure-aware queues                                                              |
-| [@studnicky/fetch](/packages/fetch)                       | Professional HTTP client with timeout, override hooks, and configured clients                                           |
-| [@studnicky/logger](/packages/logger)                     | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata                                   |
-| [@studnicky/errors](/packages/errors)                     | Standardized error hierarchy serializing to RFC 9457 Problem Details                                                    |
-| [@studnicky/resilience](/packages/resilience)             | Retry/backoff, circuit breaker, token bucket, keyed and sliding-window rate limiters, and dead-letter queue primitives    |
+| Package                                       | Description                                                                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [@studnicky/event-bus](/packages/event-bus)   | Publish/subscribe event bus with backpressure-aware queues                                                             |
+| [@studnicky/fetch](/packages/fetch)           | Professional HTTP client with timeout, override hooks, and configured clients                                          |
+| [@studnicky/logger](/packages/logger)         | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata                                  |
+| [@studnicky/errors](/packages/errors)         | Standardized error hierarchy serializing to RFC 9457 Problem Details                                                   |
+| [@studnicky/resilience](/packages/resilience) | Retry/backoff, circuit breaker, token bucket, keyed and sliding-window rate limiters, and dead-letter queue primitives |
 
 ## Buffers
 
-| Package                                                 | Description                                                      |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| [@studnicky/circular-buffer](/packages/circular-buffer) | Generic circular buffer with O(1) push and shift                 |
+| Package                                                 | Description                                      |
+| ------------------------------------------------------- | ------------------------------------------------ |
+| [@studnicky/circular-buffer](/packages/circular-buffer) | Generic circular buffer with O(1) push and shift |
 
 ## Foundation
 
-| Package                                             | Description                                                                               |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages                                       |
-| [@studnicky/entity](/packages/entity)               | Strict entity input compilation and cycle detection                                       |
+| Package                                             | Description                                         |
+| --------------------------------------------------- | --------------------------------------------------- |
+| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
+| [@studnicky/entity](/packages/entity)               | Strict entity input compilation and cycle detection |

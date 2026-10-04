@@ -7,6 +7,14 @@ description: Standardized error hierarchy serializing to RFC 9457 Problem Detail
 
 > Standardized error handling for all modules.
 
+## What it is
+
+A composable error-contract primitive: it gives application boundaries one structured hierarchy, named error scenarios, and RFC 9457 Problem Details serialization without prescribing an application or transport.
+
+## What it is for
+
+Northstar Books uses it to make failures from catalogue reads, stock reservations, and fulfilment hooks machine-readable at the boundary. Consumers choose the error classes, classifiers, hook utilities, and contracts they need; the package does not model a bookstore workflow.
+
 ## Install
 
 ```bash
@@ -38,6 +46,10 @@ Extend `BaseError` (exported by [`@studnicky/types`](./types.md#baseerror)) or `
 <RunnableExample src="packages/errors/examples/02-module-error" title="Creating structured ModuleError instances from named scenarios" />
 
 The output shows `ModuleError.create()` resolving `code`/`status`/`retryable` from the `NOT_FOUND` and `CONNECTION` scenario defaults, `BaseError.getCauseChain()` walking a wrapped `TIMEOUT` error's cause chain, and `toJSON()` serializing the error's `title` and `code`.
+
+## Northstar Books examples
+
+The runnable `ModuleError` scenario example models Northstar Books translating a missing ISBN record and a temporarily unavailable inventory connection into stable problem codes and retry guidance. It proves that a checkout or catalogue boundary can give clients actionable, serializable failure data while retaining the causal timeout for operators.
 
 ## RFC 9457 Problem Details
 
@@ -105,6 +117,15 @@ import type { ModuleErrorInterface } from "@studnicky/errors/interfaces";
 ```
 
 `DomainErrorOptionsInterface`, `ErrorClassifierFunctionInterface`, `ErrorClassifierInterface`, `ModuleErrorCreateOptionsInterface`, and `ModuleErrorOptionsInterface` are imported from `/errors/interfaces` because callers pass or implement them when using the public API.
+
+## Public entrypoints
+
+| Import path                    | Use it when                                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `@studnicky/errors/node`       | Northstar Books needs structured server-side catalogue, checkout, or hook failures and their runtime utilities. |
+| `@studnicky/errors/browser`    | A browser client needs the same portable error contract when it handles a catalogue or basket response.         |
+| `@studnicky/errors/entities`   | An adapter validates or describes the package's error and diagnostics data contracts.                           |
+| `@studnicky/errors/interfaces` | TypeScript code implements or accepts the public error construction and classification contracts.               |
 
 ## Exports
 

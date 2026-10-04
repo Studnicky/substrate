@@ -7,6 +7,26 @@ description: ESLint rules and flat-config suites for TypeScript projects.
 
 > 59 ESLint rules: 32 structural and semantic `@studnicky` rules and 27 `@studnicky/v8` performance rules.
 
+## What it is
+
+A composable ESLint plugin and flat-config-suite package for TypeScript structure, semantic boundaries, diagnostics, and V8-oriented performance rules. It supplies static-analysis building blocks; consumers select the rules and architecture vocabulary that fit their own codebase.
+
+## What it is for
+
+Northstar Books uses it to encode its package-boundary, entity-intake, and runtime-performance conventions in CI and local development. Consumers decide which suites apply and what their domain layers mean; the package does not implement a bookstore service or development workflow.
+
+## Northstar Books examples
+
+The runnable platform-call-policy example inspects the browser-safe default policy data. It maps to Northstar Books reviewing which platform calls its storefront may use, proving that policy data is portable while compiler-backed plugins and suites remain a Node-hosted ESLint integration.
+
+## Public entrypoints
+
+| Import path                           | Use it when                                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `@studnicky/eslint-config/node`       | Northstar Books configures ESLint plugins and flat-config suites in its Node-hosted toolchain. |
+| `@studnicky/eslint-config/browser`    | A browser-oriented consumer reads the published browser-safe platform-call policy data.        |
+| `@studnicky/eslint-config/interfaces` | TypeScript tooling implements or accepts the project-host contract for project-aware rules.    |
+
 ## Install
 
 Add the GitHub Packages registry to `.npmrc`:

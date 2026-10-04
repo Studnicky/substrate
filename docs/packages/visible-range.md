@@ -1,5 +1,5 @@
 ---
-title: '@studnicky/visible-range'
+title: "@studnicky/visible-range"
 description: Pure index/offset arithmetic for computing the visible item range of a virtualized list.
 ---
 
@@ -40,8 +40,9 @@ The output shows fixed-mode `onRangeChange` firing only when the computed range 
 `VisibleRangeError` is the root-exported package error thrown when `VisibleRange.create()` receives invalid or ambiguous config:
 
 <!-- inline-ts-ok: conceptual error-handling snippet, not backed by a runnable example file -->
+
 ```typescript
-import { VisibleRange, VisibleRangeError } from '@studnicky/visible-range/node';
+import { VisibleRange, VisibleRangeError } from "@studnicky/visible-range/node";
 
 try {
   VisibleRange.create({ count: 100 }); // neither itemSize nor estimateSize supplied
@@ -61,8 +62,8 @@ It carries a fixed `code` of `'visibleRange.invalidConfig'` and `retryable: fals
 
 Subclass `VisibleRange` and override the protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so range computation still wins.
 
-| Hook | When it fires | Args |
-|------|--------------|------|
+| Hook                   | When it fires                                                                                                           | Args                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
 | `onRangeChange(range)` | At the end of `getRange()`, only when the computed range differs from the preceding range. The first call always fires. | `range: VisibleRangeEntity.Type` |
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
@@ -76,8 +77,9 @@ Import `VisibleRange` and `VisibleRangeError` from `@studnicky/visible-range/nod
 `@studnicky/visible-range/entities` exports every schema namespace in `src/entities`.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
+import { VisibleRangeEntity } from "@studnicky/visible-range/entities";
 ```
 
 ## Interfaces
@@ -85,13 +87,35 @@ import { VisibleRangeEntity } from '@studnicky/visible-range/entities';
 `@studnicky/visible-range/interfaces` exports the typed `estimateSize` collaborator `VisibleRange.create` accepts alongside schema-validated config.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
-import type { VisibleRangeCollaboratorsInterface } from '@studnicky/visible-range/interfaces';
+import type { VisibleRangeCollaboratorsInterface } from "@studnicky/visible-range/interfaces";
 ```
+
+## What it is
+
+`@studnicky/visible-range` is a pure visible-item range calculation primitive for fixed and measured variable-size lists. It receives measurements and returns inclusive indexes; it does not observe the DOM, fetch catalogue data, or render a list.
+
+## What it is for
+
+Northstar Books uses `VisibleRange` to determine which book cards a large reader catalogue needs to render and fetch around the viewport. The browser and Node entrypoints are runtime-specific alternatives around the same DOM-free arithmetic, while entities validate a resulting range and interfaces define the variable-size measurement collaborator.
+
+## Northstar Books examples
+
+- **Fixed and variable-size visible-range computation** solves the “render only the book cards a reader can see” problem. It computes a fixed-size range and refines a variable-size range with measurements, proving that Northstar can drive its own scroll observers and renderer with deterministic indexes.
+
+## Public entrypoints
+
+| Import path                           | Use it when                                                                                         |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `@studnicky/visible-range/node`       | Northstar computes deterministic catalogue ranges in Node-side rendering or tests.                  |
+| `@studnicky/visible-range/browser`    | Northstar computes catalogue ranges in a browser while its own code supplies viewport measurements. |
+| `@studnicky/visible-range/entities`   | Northstar validates a calculated visible-range value at a boundary.                                 |
+| `@studnicky/visible-range/interfaces` | Northstar supplies the variable item-size estimator through a typed collaborator contract.          |
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `VisibleRange` | Provides visible range functionality. | `@studnicky/visible-range/node` |
-| `VisibleRangeError` | Represents visible range failures. | `@studnicky/visible-range/node` |
+| Symbol              | Purpose                               | Import path                     |
+| ------------------- | ------------------------------------- | ------------------------------- |
+| `VisibleRange`      | Provides visible range functionality. | `@studnicky/visible-range/node` |
+| `VisibleRangeError` | Represents visible range failures.    | `@studnicky/visible-range/node` |
