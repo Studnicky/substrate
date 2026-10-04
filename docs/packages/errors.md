@@ -118,7 +118,7 @@ import type { ModuleErrorInterface } from '@studnicky/errors/interfaces';
 | `RuntimeError` | Represents a generic package-owned runtime failure. | `@studnicky/errors/node` |
 | `ValidationError` | Represents a single validation failure. | `@studnicky/errors/node` |
 | `ValidationErrors` | Collects and reports validation failures. | `@studnicky/errors/node` |
-| `DefaultHttpErrorClassifier` | Classifies standard HTTP failures for retry behavior. | `@studnicky/errors/node` |
+| `DefaultHttpErrorClassifier` | Classifies standard HTTP failures for retry behavior. | `@studnicky/fetch/retry` |
 | `ErrorClassifier` | Base class for custom error classifiers. | `@studnicky/errors/node` |
 | `matchers` | Provides runtime error-classification predicates. | `@studnicky/errors/node` |
 | `EventRecorder` | Records detached event projections for observers. | `@studnicky/errors/node` |

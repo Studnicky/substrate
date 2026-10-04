@@ -2,6 +2,30 @@
   "name": "@studnicky/pipeline",
   "version": "14.0.0",
   "description": "Generic typed async pipeline for sequential context transforms",
+  "keywords": [
+    "async",
+    "middleware",
+    "pipeline",
+    "transform",
+    "typescript"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/pipeline",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/pipeline"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -16,14 +40,24 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./fsm": {
+      "types": "./dist/fsm/index.d.ts",
+      "import": "./dist/fsm/index.js"
+    },
+    "./fsm/interfaces": {
+      "types": "./dist/fsm/interfaces/index.d.ts",
+      "import": "./dist/fsm/interfaces/index.js"
+    },
+    "./fsm/entities": {
+      "types": "./dist/fsm/entities/index.d.ts",
+      "import": "./dist/fsm/entities/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
@@ -31,39 +65,15 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "license": "MIT",
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
-  },
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "keywords": [
-    "pipeline",
-    "middleware",
-    "async",
-    "transform",
-    "typescript"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/pipeline"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/pipeline",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
   "dependencies": {
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@studnicky/fsm": "workspace:*"
   },
-  "devDependencies": {
-    "@studnicky/scenario-kit": "workspace:*"
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

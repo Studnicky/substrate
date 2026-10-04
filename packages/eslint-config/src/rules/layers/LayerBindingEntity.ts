@@ -19,7 +19,7 @@ import { SchemaNode } from '@studnicky/entity/types';
 // values, even though today's matcher treats them identically, because they answer different
 // questions for a config author: 'folder' says "this directory under `sourceRoot` IS the
 // layer" (`src/domain/` -> `domain`), 'package' says "this workspace package's directory IS
-// the layer" (`packages/retry/` -> `coordinator`, `packages/errors/` -> `foundation`) — a flat
+// the layer" (`packages/resilience/` -> `coordinator`, `packages/errors/` -> `foundation`) — a flat
 // monorepo where the package IS the architectural unit, not a directory inside it. Substrate
 // is the latter: no directory inside any one package is named after a band, so 'folder'
 // bindings can never match there.
@@ -31,8 +31,8 @@ import { SchemaNode } from '@studnicky/entity/types';
 // operation with no filesystem access, callable identically from a real lint run or a unit
 // test with a fabricated path, and adding disk I/O to a function invoked per file/per import
 // in every lint run trades that for a cost with no offsetting need here — the directory name
-// substrate actually uses (`packages/retry`) already matches its package name's own unscoped
-// suffix (`@studnicky/retry`). If a project needs package.json-name resolution because its
+// substrate actually uses (`packages/resilience`) already matches its package name's own unscoped
+// suffix (`@studnicky/resilience`). If a project needs package.json-name resolution because its
 // directory names diverge from its package names, that is a real, separate capability to add
 // to 'package' matching later, not a reason to blend disk I/O into this pass now.
 //

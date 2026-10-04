@@ -54,17 +54,6 @@
       },
       "name": "registry",
       "shape": "imports-example"
-    },
-    {
-      "description": "the Northstar Books fulfilment FSM example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/traffic-light.ts"
-      },
-      "name": "traffic-light",
-      "shape": "imports-example"
     }
   ]
 }

@@ -1,10 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { SemaphoreQueueFullError } from '../../src/errors/SemaphoreQueueFullError.js';
 import { Semaphore } from '../../src/Semaphore.js';
 import { ErrorCapture } from '../helpers/ErrorCapture.js';

@@ -17,10 +17,10 @@
       "path": "./tsconfig.json"
     },
     {
-      "path": "../example-smoke-kit"
+      "path": "../entity"
     },
     {
-      "path": "../scenario-kit"
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

@@ -1,11 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { JSONSchema7Type } from 'json-schema';
 
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { mock } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { HookInvokerOptionsEntity } from '../../src/entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from '../../src/errors/HookInvocationError.js';
 import { HookInvoker } from '../../src/errors/HookInvoker.js';

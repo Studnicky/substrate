@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import type { MachineOnOffStateEntity } from './entities/MachineOnOffStateEntity.js';
 import type { MachineToggleEventEntity } from './entities/MachineToggleEventEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
 import { ReducerThrewError } from '../../src/ReducerThrewError.js';
 import { StateMachine } from '../../src/StateMachine.js';
@@ -15,12 +14,22 @@ import { TransitionRejectedError } from '../../src/TransitionRejectedError.js';
 import { StateMachineScenarioCaseEntity } from './entities/StateMachineScenarioCaseEntity.js';
 import scenarioGroups from './StateMachine.scenarios.json' with { 'type': 'json' };
 
-class ToggleMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineToggleEventEntity.Type> {
-  public constructor() { super(); }
+class ToggleMachine extends StateMachine<
+  MachineOnOffStateEntity.Type,
+  MachineToggleEventEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineOnOffStateEntity.Type { return { 'variant': 'off' }; }
+  override getInitialState(): MachineOnOffStateEntity.Type {
+    return { 'variant': 'off' };
+  }
 
-  override reduce(state: MachineOnOffStateEntity.Type, _event: MachineToggleEventEntity.Type): FsmStepInterface<MachineOnOffStateEntity.Type> {
+  override reduce(
+    state: MachineOnOffStateEntity.Type,
+    _event: MachineToggleEventEntity.Type
+  ): FsmStepInterface<MachineOnOffStateEntity.Type> {
     return {
       'effects': [],
       'state': state.variant === 'off' ? { 'variant': 'on' } : { 'variant': 'off' }
@@ -28,26 +37,46 @@ class ToggleMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineTo
   }
 }
 
-class ThrowingMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineToggleEventEntity.Type> {
-  public constructor() { super(); }
+class ThrowingMachine extends StateMachine<
+  MachineOnOffStateEntity.Type,
+  MachineToggleEventEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineOnOffStateEntity.Type { return { 'variant': 'off' }; }
+  override getInitialState(): MachineOnOffStateEntity.Type {
+    return { 'variant': 'off' };
+  }
 
-  override reduce(_state: MachineOnOffStateEntity.Type, _event: MachineToggleEventEntity.Type): FsmStepInterface<MachineOnOffStateEntity.Type> {
+  override reduce(
+    _state: MachineOnOffStateEntity.Type,
+    _event: MachineToggleEventEntity.Type
+  ): FsmStepInterface<MachineOnOffStateEntity.Type> {
     throw RuntimeError.create('boom');
   }
 }
 
-class PlainErrorThrowingMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineToggleEventEntity.Type> {
-  public constructor() { super(); }
+class PlainErrorThrowingMachine extends StateMachine<
+  MachineOnOffStateEntity.Type,
+  MachineToggleEventEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineOnOffStateEntity.Type { return { 'variant': 'off' }; }
+  override getInitialState(): MachineOnOffStateEntity.Type {
+    return { 'variant': 'off' };
+  }
 
   private static *plainSource(): Generator<number> {
     yield 1;
   }
 
-  override reduce(state: MachineOnOffStateEntity.Type, _event: MachineToggleEventEntity.Type): FsmStepInterface<MachineOnOffStateEntity.Type> {
+  override reduce(
+    state: MachineOnOffStateEntity.Type,
+    _event: MachineToggleEventEntity.Type
+  ): FsmStepInterface<MachineOnOffStateEntity.Type> {
     const source = PlainErrorThrowingMachine.plainSource();
     source.next();
     source.throw('boom-plain');
@@ -56,12 +85,22 @@ class PlainErrorThrowingMachine extends StateMachine<MachineOnOffStateEntity.Typ
   }
 }
 
-class DeliberatelyRejectingMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineToggleEventEntity.Type> {
-  public constructor() { super(); }
+class DeliberatelyRejectingMachine extends StateMachine<
+  MachineOnOffStateEntity.Type,
+  MachineToggleEventEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineOnOffStateEntity.Type { return { 'variant': 'off' }; }
+  override getInitialState(): MachineOnOffStateEntity.Type {
+    return { 'variant': 'off' };
+  }
 
-  override reduce(state: MachineOnOffStateEntity.Type, event: MachineToggleEventEntity.Type): FsmStepInterface<MachineOnOffStateEntity.Type> {
+  override reduce(
+    state: MachineOnOffStateEntity.Type,
+    event: MachineToggleEventEntity.Type
+  ): FsmStepInterface<MachineOnOffStateEntity.Type> {
     throw new TransitionRejectedError({
       'eventType': event.type,
       'reason': 'toggle is disabled',
@@ -70,12 +109,22 @@ class DeliberatelyRejectingMachine extends StateMachine<MachineOnOffStateEntity.
   }
 }
 
-class TerminatingMachine extends StateMachine<MachineOnOffStateEntity.Type, MachineToggleEventEntity.Type> {
-  public constructor() { super(); }
+class TerminatingMachine extends StateMachine<
+  MachineOnOffStateEntity.Type,
+  MachineToggleEventEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineOnOffStateEntity.Type { return { 'variant': 'off' }; }
+  override getInitialState(): MachineOnOffStateEntity.Type {
+    return { 'variant': 'off' };
+  }
 
-  override reduce(state: MachineOnOffStateEntity.Type, _event: MachineToggleEventEntity.Type): FsmStepInterface<MachineOnOffStateEntity.Type> {
+  override reduce(
+    state: MachineOnOffStateEntity.Type,
+    _event: MachineToggleEventEntity.Type
+  ): FsmStepInterface<MachineOnOffStateEntity.Type> {
     return {
       'effects': [],
       'state': state.variant === 'off' ? { 'variant': 'on' } : { 'variant': 'off' }
@@ -88,11 +137,14 @@ class TerminatingMachine extends StateMachine<MachineOnOffStateEntity.Type, Mach
   }
 }
 
-
 class ObservedPlainErrorThrowingMachine extends PlainErrorThrowingMachine {
   readonly reasons: string[] = [];
 
-  protected override onTransitionRejected(_state: MachineOnOffStateEntity.Type, _event: MachineToggleEventEntity.Type, reason: string): void {
+  protected override onTransitionRejected(
+    _state: MachineOnOffStateEntity.Type,
+    _event: MachineToggleEventEntity.Type,
+    reason: string
+  ): void {
     this.reasons.push(reason);
   }
 }
@@ -100,13 +152,18 @@ class ObservedPlainErrorThrowingMachine extends PlainErrorThrowingMachine {
 class ObservedTerminatingMachine extends TerminatingMachine {
   readonly calls: { 'event': string; 'state': string }[] = [];
 
-  protected override onTerminatedAccess(state: MachineOnOffStateEntity.Type, event: MachineToggleEventEntity.Type): void {
+  protected override onTerminatedAccess(
+    state: MachineOnOffStateEntity.Type,
+    event: MachineToggleEventEntity.Type
+  ): void {
     this.calls.push({ 'event': event.type, 'state': state.variant });
   }
 }
 
 class StateMachineRunners {
-  static 'plain-error-wraps'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'plain-error-wraps'>): void {
+  static 'plain-error-wraps'(
+    scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'plain-error-wraps'>
+  ): void {
     const machine = new ObservedPlainErrorThrowingMachine();
     const error = StateMachineRunners.captureThrownError(() => {
       machine.transition(scenarioCase.input, { 'type': 'toggle' });
@@ -117,7 +174,12 @@ class StateMachineRunners {
     assert.deepEqual(machine.reasons, [scenarioCase.expected.expectedReason]);
   }
 
-  static 'rejected-error-surfaces'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'rejected-error-surfaces'>): void {
+  static 'rejected-error-surfaces'(
+    scenarioCase: ScenarioCaseOfType<
+      StateMachineScenarioCaseEntity.Type,
+      'rejected-error-surfaces'
+    >
+  ): void {
     const machine = new DeliberatelyRejectingMachine();
     const error = StateMachineRunners.captureThrownError(() => {
       machine.transition(scenarioCase.input, { 'type': 'toggle' });
@@ -129,16 +191,26 @@ class StateMachineRunners {
     assert.equal(error.stateVariant, scenarioCase.expected.stateVariant);
   }
 
-  static 'terminated-access-hook'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'terminated-access-hook'>): void {
+  static 'terminated-access-hook'(
+    scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'terminated-access-hook'>
+  ): void {
     const machine = new ObservedTerminatingMachine();
     assert.throws(() => {
       machine.transition(scenarioCase.input, { 'type': 'toggle' });
     }, MachineTerminatedError);
     assert.equal(machine.calls.length, scenarioCase.expected.callCount);
-    assert.deepEqual(machine.calls[0], { 'event': scenarioCase.expected.callEventType, 'state': scenarioCase.expected.callStateVariant });
+    assert.deepEqual(machine.calls[0], {
+      'event': scenarioCase.expected.callEventType,
+      'state': scenarioCase.expected.callStateVariant
+    });
   }
 
-  static 'terminated-blocks-transition'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'terminated-blocks-transition'>): void {
+  static 'terminated-blocks-transition'(
+    scenarioCase: ScenarioCaseOfType<
+      StateMachineScenarioCaseEntity.Type,
+      'terminated-blocks-transition'
+    >
+  ): void {
     const machine = new TerminatingMachine();
     const onState = machine.transition(scenarioCase.input, { 'type': 'toggle' });
     assert.deepEqual(onState.state, { 'variant': scenarioCase.expected.firstTransitionStateVariant });
@@ -152,21 +224,27 @@ class StateMachineRunners {
     assert.equal(error.stateVariant, scenarioCase.expected.secondStateVariant);
   }
 
-  static 'transitions-off-on'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'transitions-off-on'>): void {
+  static 'transitions-off-on'(
+    scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'transitions-off-on'>
+  ): void {
     const machine = new ToggleMachine();
     const step = machine.transition(scenarioCase.input, { 'type': 'toggle' });
     assert.deepEqual(step.state, { 'variant': scenarioCase.expected.stateVariant });
     assert.deepEqual(step.effects, []);
   }
 
-  static 'transitions-on-off'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'transitions-on-off'>): void {
+  static 'transitions-on-off'(
+    scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'transitions-on-off'>
+  ): void {
     const machine = new ToggleMachine();
     const step = machine.transition(scenarioCase.input, { 'type': 'toggle' });
     assert.deepEqual(step.state, { 'variant': scenarioCase.expected.stateVariant });
     assert.deepEqual(step.effects, []);
   }
 
-  static 'wraps-reducer-throw'(scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'wraps-reducer-throw'>): void {
+  static 'wraps-reducer-throw'(
+    scenarioCase: ScenarioCaseOfType<StateMachineScenarioCaseEntity.Type, 'wraps-reducer-throw'>
+  ): void {
     const machine = new ThrowingMachine();
     const error = StateMachineRunners.captureThrownError(() => {
       machine.transition(scenarioCase.input, { 'type': 'toggle' });

@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
-import { withMermaid } from 'vitepress-plugin-mermaid';
 
 import pkg from '../../package.json';
 import { BROWSER_SWAPS } from './browser-swaps.js';
@@ -69,7 +68,7 @@ const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#7c5aed';
-const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,semantic-matching,vectorization,retry,throttle,mutex,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
+const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,vectorization,retry,throttle,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -104,24 +103,18 @@ const FOUNDATION_PRIMITIVES = [
 ] as const;
 
 const BACKEND_PRIMITIVES = [
-  'batch', 'cache', 'circular-buffer', 'clock', 'concurrency', 'config', 'context',
-  'drilldown', 'entity-store', 'event-bus', 'fetch', 'file-lock', 'filters', 'flag-evaluator',
-  'fsm', 'health-registry', 'logger', 'matching', 'mutex', 'paginator', 'pipeline', 'resilience',
-  'retry', 'sample-buffer', 'scheduler', 'semantic-matching', 'signal', 'store', 'system', 'throttle',
-  'timing', 'virtual-fs', 'visible-range'
+  'cache', 'circular-buffer', 'clock', 'concurrency', 'config', 'context', 'drilldown', 'event-bus',
+  'fetch', 'filters', 'fsm', 'logger', 'matching', 'pipeline', 'resilience', 'scheduler', 'signal',
+  'store', 'virtual-fs', 'visible-range'
 ] as const;
 
 const TOOLING_PRIMITIVES = [
-  'eslint-config', 'example-smoke-kit', 'scenario-kit'
+  'eslint-config'
 ] as const;
 
-const COMBINATIONS = [
-  'idempotency-guard', 'memoize', 'topic-router'
-] as const;
+const COMBINATIONS = [] as const;
 
-const COMPOSITIONS = [
-  'boundary-kit', 'bounded-dispatcher', 'process-kit', 'request-executor', 'worker-pool'
-] as const;
+const COMPOSITIONS = [] as const;
 
 type HeadConfig = [string, Record<string, string>] | [string, Record<string, string>, string];
 
@@ -146,7 +139,7 @@ const jsonLd = JSON.stringify({
   'url': SITE_URL
 });
 
-export default withMermaid(defineConfig({
+export default defineConfig({
   'appearance': true,
   'base': SITE_BASE,
   'cleanUrls': true,
@@ -157,6 +150,8 @@ export default withMermaid(defineConfig({
     ['link', { 'href': `${SITE_BASE}icon-16.png`, 'rel': 'icon', 'sizes': '16x16', 'type': 'image/png' }],
     ['link', { 'href': `${SITE_BASE}apple-touch-icon.png`, 'rel': 'apple-touch-icon', 'sizes': '180x180' }],
     ['link', { 'href': `${SITE_BASE}manifest.webmanifest`, 'rel': 'manifest' }],
+    ['link', { 'href': `${SITE_BASE}pagefind/pagefind-component-ui.css`, 'rel': 'stylesheet' }],
+    ['script', { 'src': `${SITE_BASE}pagefind/pagefind-component-ui.js`, 'type': 'module' }],
     ['meta', { 'content': SITE_THEME_COLOR, 'name': 'theme-color' }],
     ['meta', { 'content': 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1', 'name': 'robots' }],
     ['meta', { 'content': SITE_AUTHOR_NAME, 'name': 'author' }],
@@ -183,27 +178,6 @@ export default withMermaid(defineConfig({
   ],
   'lang': 'en-US',
   'lastUpdated': true,
-  'mermaid': {
-    'flowchart': {
-      'htmlLabels': true,
-      'nodeSpacing': 28,
-      'rankSpacing': 44,
-      'useMaxWidth': true
-    },
-    'theme': 'base',
-    'themeVariables': {
-      'background': '#ffffff',
-      'fontFamily': 'var(--vp-font-family-mono)',
-      'lineColor': '#94a3b8',
-      'primaryBorderColor': '#7c5aed',
-      'primaryColor': '#f5f3ff',
-      'primaryTextColor': '#2e1065',
-      'secondaryColor': '#faf5ff',
-      'tertiaryColor': '#f8fafc',
-      'textColor': '#334155'
-    }
-  },
-  'mermaidPlugin': { 'class': 'mermaid substrate-mermaid' },
   'sitemap': { 'hostname': SITE_URL },
 
   'themeConfig': {
@@ -214,7 +188,6 @@ export default withMermaid(defineConfig({
       { 'link': '/packages/', 'text': 'Packages' },
       { 'link': SITE_REPO, 'text': 'GitHub' }
     ],
-    'search': { 'provider': 'local' },
     'sidebar': {
       '/': [
         {
@@ -329,13 +302,10 @@ export default withMermaid(defineConfig({
     'plugins': [substrateBrowserSwap()],
     'resolve': {
       'alias': [
-        // Browser shim for packages/retry and packages/throttle which import
-        // named exports from node:timers/promises. Without this alias Rollup
+        // Browser shim for the resilience/retry and concurrency/throttle example leaves
+        // that import named exports from node:timers/promises. Without this alias Rollup
         // fails to resolve the named export `setTimeout` from the externalized stub.
-        { 'find': 'node:timers/promises', 'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url)) },
-        // Browser shim for packages/scenario-kit, which imports isDeepStrictEqual from node:util.
-        // Exact match only: dependencies also import the node:util/types subpath.
-        { 'find': /^node:util$/u, 'replacement': fileURLToPath(new URL('./theme/utils/NodeUtilShim.ts', import.meta.url)) }
+        { 'find': 'node:timers/promises', 'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url)) }
       ]
     },
     'ssr': {
@@ -351,4 +321,4 @@ export default withMermaid(defineConfig({
       ]
     }
   }
-}));
+});

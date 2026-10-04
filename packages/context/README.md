@@ -6,7 +6,7 @@
 
 Scoped key-value stores propagate through async boundaries without passing values down the call stack. `@studnicky/context/node` uses AsyncLocalStorage; `@studnicky/context/browser` uses the supplied transform for ordinary `await`. Without the transform, browser code uses `scope.await(value)` across an await boundary and `scope.bind(callback)` for opaque callbacks.
 
-Both runtime entrypoints expose the same Context API. Shared contracts remain available from `@studnicky/context/interfaces`, and schemas remain available from `@studnicky/context/entities`.
+The runtime entrypoints expose Context. `ContextStore<TState>` is available only from `@studnicky/context/store/node` and `@studnicky/context/store/browser`; it creates one backing `StoreInterface<TState>` per active scope and verifies the backing store's stable synchronization identity. Its options are available only from `@studnicky/context/store/interfaces`; schemas remain available from `@studnicky/context/entities`.
 
 ## Install
 

@@ -15,7 +15,7 @@ pnpm add @studnicky/context
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-`@studnicky/context/node` uses AsyncLocalStorage. `@studnicky/context/browser` uses the supplied transform for ordinary `await`; without the transform, use `scope.await(value)` across an await boundary and `scope.bind(callback)` for opaque callbacks. Entities and interfaces retain their canonical public subpaths.
+`@studnicky/context/node` uses AsyncLocalStorage. `@studnicky/context/browser` uses the supplied transform for ordinary `await`; without the transform, use `scope.await(value)` across an await boundary and `scope.bind(callback)` for opaque callbacks. Entities and interfaces retain their canonical public subpaths. `ContextStore` supplies scope-local state composition through `@studnicky/context/store/node` or `@studnicky/context/store/browser`; its options are available from `@studnicky/context/store/interfaces`.
 
 ## Node usage
 
@@ -103,6 +103,40 @@ channel.removeEventListener("message", onMessage);
 const snapshot = scope.terminate();
 ```
 
+## Context-scoped stores
+
+`ContextStore<TState>` resolves one backing `StoreInterface<TState>` for each active Context scope. It is available from both runtime entrypoints and carries a stable synchronization identity, which each backing store must report when its scope first resolves it. A `StrataStore` can compose the scoped store with a durable Store layer.
+
+<!-- inline-ts-ok: ContextStore composes Context scopes with Store public entrypoints. -->
+```typescript
+import { Mutex } from '@studnicky/concurrency/mutex';
+import { Context } from '@studnicky/context/node';
+import { ContextStore } from '@studnicky/context/store/node';
+import type { ContextStoreOptionsInterface } from '@studnicky/context/store/interfaces';
+import { MemoryPersistence, Store } from '@studnicky/store/node';
+
+const context = Context.create({ name: 'request' });
+const mutex = Mutex.create<string>();
+const options: ContextStoreOptionsInterface<{ readonly items: string[] }> = {
+  context,
+  key: 'request.cart',
+  synchronizationIdentity: { key: 'request.cart', mutex },
+  createStore: () => Store.create({
+    initialState: { items: [] },
+    key: 'request.cart',
+    mutex,
+    persistence: MemoryPersistence.create(),
+  }),
+};
+const cart = ContextStore.create(options);
+const scope = context.initialize();
+
+await scope.execute(async () => {
+  await cart.update((state) => ({ items: [...state.items, 'sku-42'] }));
+});
+scope.terminate();
+```
+
 ## Try it
 
 The playground demo does not run the Vite transform, so it uses `scope.await(value)` to preserve browser Context across its waits. Browser applications use the transform plugin and ordinary `await`.
@@ -115,7 +149,7 @@ The playground demo does not run the Vite transform, so it uses `scope.await(val
 
 ## Public API
 
-`@studnicky/context/node` provides AsyncLocalStorage-backed scopes. `@studnicky/context/browser` provides browser context scopes. Both runtime entrypoints export `Context`, `ContextError`, `ContextConfigError`, and `UnsupportedSourceExtensionError`; schemas use `@studnicky/context/entities`, and contracts use `@studnicky/context/interfaces`.
+`@studnicky/context/node` provides AsyncLocalStorage-backed scopes. `@studnicky/context/browser` provides browser context scopes. `ContextStore` and its errors are available only from the `@studnicky/context/store/node` and `@studnicky/context/store/browser` leaves; its contract is available only from `@studnicky/context/store/interfaces`. Schemas use `@studnicky/context/entities`, and Context contracts use `@studnicky/context/interfaces`.
 
 ## Extending
 
@@ -152,7 +186,7 @@ import { ContextConfigEntity } from '@studnicky/context/entities';
 
 ## Interfaces
 
-`@studnicky/context/interfaces` exports every TypeScript interface in `src/interfaces`, including configuration, state, and storage contracts.
+`@studnicky/context/interfaces` exports every TypeScript interface in `src/interfaces`, including Context configuration, state, and storage contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
@@ -168,6 +202,12 @@ import type {
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `Context` | Creates AsyncLocalStorage-backed context scopes. | `@studnicky/context/node` |
+| `ContextStore` | Resolves a backing Store for each active Context scope. | `@studnicky/context/store/node` |
+| `ContextScopeInactiveError` | A ContextStore is used outside an active Context scope. | `@studnicky/context/store/node` |
+| `ContextStoreFactoryError` | A ContextStore factory returned a value that is not a StoreInterface. | `@studnicky/context/store/node` |
+| `ContextStoreKeyConflictError` | The Context key holds a value that is not a ContextStore backing Store. | `@studnicky/context/store/node` |
+| `ContextStoreOptionsError` | ContextStore construction received invalid options. | `@studnicky/context/store/node` |
+| `SynchronizationIdentityMismatchError` | A backing Store reports a different synchronization identity. | `@studnicky/context/store/node` |
 | `ContextAsyncRuntime` | Internal continuation runtime used by the transform. | `@studnicky/context/node` |
 | `ContextConfigError` | Reports invalid Context configuration. | `@studnicky/context/node` |
 | `ContextError` | Reports context lifecycle and lookup failures. | `@studnicky/context/node` |
@@ -179,4 +219,5 @@ import type {
 | `UnsupportedSourceExtensionError` | Reports a module extension the async Context transform cannot parse. | `@studnicky/context/browser` |
 | `transform` | Registers the Vite or Rollup async Context transform. | `@studnicky/context/browser/transform` |
 | `ContextStorageInterface` | Defines the shared async storage contract. | `@studnicky/context/interfaces` |
+| `ContextStoreOptionsInterface` | Defines Context, key, backing-store factory, and synchronization identity. | `@studnicky/context/store/interfaces` |
 | `ContextRunResultInterface` | Describes the value and final snapshot returned by `Context.run`/`Context.runAsync`. | `@studnicky/context/interfaces` |

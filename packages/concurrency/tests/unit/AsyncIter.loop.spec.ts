@@ -1,9 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { AsyncIter } from '../../src/AsyncIter.js';
 import { ErrorCapture } from '../helpers/ErrorCapture.js';
 import scenarioGroups from './AsyncIter.scenarios.json' with { 'type': 'json' };

@@ -1,4 +1,4 @@
-import type { MutexInterface } from '@studnicky/mutex/interfaces';
+import type { MutexInterface } from '@studnicky/concurrency/interfaces';
 import type { StoreInterface } from '@studnicky/store/interfaces';
 
 export interface StrataStoreOptionsInterface<TState> {

@@ -1,10 +1,12 @@
+import type { FacetAccessorMapType, FacetFilterStateType } from '@studnicky/filters/facets/types';
+
 import type { GroupingOptionsEntity } from '../entities/GroupingOptionsEntity.js';
 import type { GroupNodeValueEntity } from '../entities/GroupNodeValueEntity.js';
 import type { GroupValueDiscriminantEntity } from '../entities/GroupValueDiscriminantEntity.js';
 import type { GroupValueEntity } from '../entities/GroupValueEntity.js';
 import type { PathSegmentEntity } from '../entities/PathSegmentEntity.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
-import type { FacetAccessorMapType, FacetFilterStateType, MatcherUnionType } from '../types/index.js';
+import type { MatcherUnionType } from '../types/index.js';
 import type { AnalysisResultInterface } from './AnalysisResultInterface.js';
 import type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
 import type { GroupNodeInterface } from './GroupNodeInterface.js';

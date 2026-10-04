@@ -2,6 +2,31 @@
   "name": "@studnicky/concurrency",
   "version": "14.0.0",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
+  "keywords": [
+    "async-iter",
+    "channel",
+    "coalesce",
+    "concurrency",
+    "semaphore",
+    "single-flight",
+    "typescript"
+  ],
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/concurrency"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -20,57 +45,88 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./queue/node": {
+      "types": "./dist/queue/index.d.ts",
+      "import": "./dist/queue/index.js"
+    },
+    "./queue/browser": {
+      "types": "./dist/queue/index.d.ts",
+      "import": "./dist/queue/index.js"
+    },
+    "./queue/entities": {
+      "types": "./dist/queue/entities/index.d.ts",
+      "import": "./dist/queue/entities/index.js"
+    },
+    "./queue/interfaces": {
+      "types": "./dist/queue/interfaces/index.d.ts",
+      "import": "./dist/queue/interfaces/index.js"
+    },
+    "./mutex": {
+      "types": "./dist/mutex/index.d.ts",
+      "import": "./dist/mutex/index.js"
+    },
+    "./file-lock/node": {
+      "types": "./dist/file-lock/node/index.d.ts",
+      "import": "./dist/file-lock/node/index.js"
+    },
+    "./file-lock/browser": {
+      "types": "./dist/file-lock/browser/index.d.ts",
+      "import": "./dist/file-lock/browser/index.js"
+    },
+    "./file-lock/entities": {
+      "types": "./dist/file-lock/entities/index.d.ts",
+      "import": "./dist/file-lock/entities/index.js"
+    },
+    "./file-lock/interfaces": {
+      "types": "./dist/file-lock/interfaces/index.d.ts",
+      "import": "./dist/file-lock/interfaces/index.js"
+    },
+    "./batch": {
+      "types": "./dist/batch/index.d.ts",
+      "import": "./dist/batch/index.js"
+    },
+    "./throttle/node": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/browser": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/entities": {
+      "types": "./dist/throttle/entities/index.d.ts",
+      "import": "./dist/throttle/entities/index.js"
+    },
+    "./throttle/interfaces": {
+      "types": "./dist/throttle/interfaces/index.d.ts",
+      "import": "./dist/throttle/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/concurrency"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "keywords": [
-    "semaphore",
-    "coalesce",
-    "single-flight",
-    "channel",
-    "async-iter",
-    "concurrency",
-    "typescript"
-  ],
-  "engines": {
-    "node": ">=24.0.0"
-  },
   "dependencies": {
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/signal": "workspace:*",
-    "@studnicky/types": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@studnicky/virtual-fs": "workspace:*"
   },
   "devDependencies": {
-    "@studnicky/event-bus": "workspace:*",
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*",
     "@studnicky/scheduler": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

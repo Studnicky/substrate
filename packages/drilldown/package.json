@@ -67,10 +67,7 @@
   "dependencies": {
     "@studnicky/cache": "workspace:*",
     "@studnicky/entity": "workspace:*",
-    "@studnicky/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
+    "@studnicky/types": "workspace:*",
+    "@studnicky/filters": "workspace:*"
   }
 }

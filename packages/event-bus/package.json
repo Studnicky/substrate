@@ -1,7 +1,7 @@
 {
   "name": "@studnicky/event-bus",
   "version": "14.0.0",
-  "description": "Typed async pub/sub with per-subscriber backpressure via BusQueue",
+  "description": "Typed async pub/sub with independent subscriber backpressure",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -13,13 +13,17 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./entities": {
-      "types": "./dist/entities/index.d.ts",
-      "import": "./dist/entities/index.js"
-    },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./router": {
+      "types": "./dist/router/index.d.ts",
+      "import": "./dist/router/index.js"
+    },
+    "./router/interfaces": {
+      "types": "./dist/router/interfaces/index.d.ts",
+      "import": "./dist/router/interfaces/index.js"
     }
   },
   "files": [
@@ -52,22 +56,16 @@
     "event-bus",
     "pubsub",
     "backpressure",
-    "bus-queue",
     "typescript"
   ],
   "engines": {
     "node": ">=24.0.0"
   },
   "dependencies": {
-    "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
-    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
   }
 }

@@ -1,7 +1,7 @@
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { ScenarioFileCompiler } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ContextError } from '../../../src/errors/ContextError.js';
 import scenarioGroups from './context-error.scenarios.json' with { 'type': 'json' };
 import { ContextErrorScenarioCaseEntity } from './entities/ContextErrorScenarioCaseEntity.js';

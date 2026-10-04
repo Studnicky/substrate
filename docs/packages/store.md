@@ -15,7 +15,7 @@ pnpm add @studnicky/store
 
 ## Runtime imports
 
-Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import entities and contracts from the neutral `@studnicky/store/entities` and `@studnicky/store/interfaces` paths. Import the layered Node composition from `@studnicky/store/strata`, its browser runtime from `@studnicky/store/strata/browser`, and its contract from `@studnicky/store/strata/interfaces`.
+Import runtime APIs from `@studnicky/store/node` in Node or `@studnicky/store/browser` in browsers. Import normalized entity facilities from the neutral `@studnicky/store/entity` path, persistence configuration entities from `@studnicky/store/entities`, and contracts from `@studnicky/store/interfaces`. Import the layered Node composition from `@studnicky/store/strata`, its browser runtime from `@studnicky/store/strata/browser`, and its contract from `@studnicky/store/strata/interfaces`.
 
 ## Northstar Books checkout state
 
@@ -29,15 +29,23 @@ The guarantee is that subscribers receive committed, detached snapshots only aft
 
 <<< ../../packages/store/examples/memory-store.ts#usage
 
+## Normalized entity state
+
+`@studnicky/store/entity` exports `EntityCollection`, `EntityStore`, `EntityStateInterface`, and `EntityStoreOptionsInterface`. This is the only entity-store import path.
+
+`EntityStateInterface<TEntity>` is normalized JSON-safe state: an `entities` record keyed by string ID and an ordered `ids` array. When a JSON codec persists the state, choose an entity type whose fields are JSON-safe. `EntityCollection` supplies the pure normalized-state transformations and selectors.
+
+`EntityStore<TEntity>` is an entity-oriented facade over a caller-provided `StoreInterface<EntityStateInterface<TEntity>>`. It delegates mutation and subscription to that store, so a generic `Store` or `StrataStore` supplies persistence, mutex coordination, hydration, snapshots, and subscriptions. The facade owns none of those mechanisms independently; call lifecycle methods such as `hydrate` and `clear` on the backing store.
+
 ## Shared mutation coordination
 
-Pass the same `MutexInterface<string>` to independent stores that write the same persistence key. `Store` uses its existing `key` as the mutex key, so equal store keys serialize while different keys continue independently. Import the concrete mutex from the runtime entry point and the contract from the neutral interfaces entry point.
+Pass the same `MutexInterface<string>` to independent stores that write the same persistence key. `Store` uses its existing `key` as the mutex key, so equal store keys serialize while different keys continue independently. Import the concrete mutex from `@studnicky/concurrency/mutex` and the contract from `@studnicky/concurrency/interfaces`.
 
 <!-- inline-ts-ok: Independent Store instances coordinate writes through a canonical Mutex. -->
 ```typescript
-import { Mutex } from "@studnicky/mutex/node";
+import { Mutex } from "@studnicky/concurrency/mutex";
 import { Store } from "@studnicky/store/node";
-import type { MutexInterface } from "@studnicky/mutex/interfaces";
+import type { MutexInterface } from "@studnicky/concurrency/interfaces";
 
 const mutex: MutexInterface<string> = Mutex.create<string>();
 const first = Store.create({ initialState: 0, key: "cart", mutex, persistence });
@@ -76,39 +84,6 @@ const persistence = BrowserPersistence.create({
 
 Use `JsonStateCodec.create({ decode })` only when the state is not a JSON entity and its domain supplies a different typed decoder.
 
-## Context-scoped state
-
-`ContextStore` is available from both runtime entry points and resolves one backing `Store` per active `Context` scope. It implements `StoreInterface<TState>`, so one long-lived `StrataStore` can relay every scope's updates to a durable layer. Supply its stable `synchronizationIdentity`; every backing Store is checked against it when that scope first uses the ContextStore.
-
-<!-- inline-ts-ok: Consumer composition example showing the published Node runtime and neutral interface imports. -->
-```typescript
-import { Context } from '@studnicky/context/node';
-import { Mutex } from '@studnicky/mutex/node';
-import { ContextStore, MemoryPersistence, Store } from '@studnicky/store/node';
-import type { ContextStoreOptionsInterface } from '@studnicky/store/interfaces';
-
-const context = Context.create({ name: 'request' });
-const mutex = Mutex.create<string>();
-const options: ContextStoreOptionsInterface<{ readonly items: string[] }> = {
-  context,
-  key: 'request.cart',
-  synchronizationIdentity: { key: 'request.cart', mutex },
-  createStore: () => Store.create({
-    initialState: { items: [] },
-    key: 'request.cart',
-    mutex,
-    persistence: MemoryPersistence.create(),
-  }),
-};
-const cart = ContextStore.create(options);
-const scope = context.initialize();
-
-await scope.execute(async () => {
-  await cart.update((state) => ({ items: [...state.items, 'sku-42'] }));
-});
-scope.terminate();
-```
-
 ## Try it
 
 ### Memory state
@@ -143,33 +118,30 @@ The same runtime symbols are available from `@studnicky/store/browser`; select t
 
 | Symbol | Purpose | Import path |
 |---|---|---|
+| `EntityCollection` | Pure normalized entity-state transformations and selectors. | `@studnicky/store/entity` |
+| `EntityStateInterface` | JSON-safe normalized entity record and ordered ID state. | `@studnicky/store/entity` |
+| `EntityStore` | Entity facade composed over a caller-provided StoreInterface. | `@studnicky/store/entity` |
+| `EntityStoreOptionsInterface` | Entity selector, optional ordering, and backing StoreInterface contract. | `@studnicky/store/entity` |
 | `Store` | Observable state container with serialized writes. | `@studnicky/store/node` |
 | `StrataStore` | Ordered source-to-target store composition. | `@studnicky/store/strata` |
 | `StrataStoreOptionsInterface` | Source-to-target layers and optional composition coordination. | `@studnicky/store/strata/interfaces` |
 | `MemoryPersistence` | In-memory persistence adapter. | `@studnicky/store/node` |
 | `JsonStateCodec` | JSON serialization with direct entity intake or a caller-provided typed decoder. | `@studnicky/store/node` |
-| `ContextStore` | Resolves one backing store per active Context scope. | `@studnicky/store/node` |
 | `StoreInterface` | Store contract for consumer dependencies and composition. | `@studnicky/store/interfaces` |
 | `StoreListenerInterface` | Subscriber callback contract for store state updates. | `@studnicky/store/interfaces` |
 | `StatePersistenceInterface` | Persistence port implemented by storage adapters. | `@studnicky/store/interfaces` |
 | `StateCodecInterface` | Codec contract for persisted values. | `@studnicky/store/interfaces` |
-| `ContextStoreOptionsInterface` | Context, storage key, and backing-store factory for ContextStore. | `@studnicky/store/interfaces` |
 | `BrowserPersistenceOptionsEntity` | Validates browser persistence target configuration. | `@studnicky/store/entities` |
 | `BrowserPersistence` | Browser-native persistence adapter. | `@studnicky/store/browser` |
 | `StorageTarget` | Browser persistence target selector. | `@studnicky/store/browser` |
 | `StoreError` | Abstract base of every store error. | `@studnicky/store/node` |
 | `BrowserStorageError` | Web Storage access or an operation on it failed; the platform error is the `cause`. | `@studnicky/store/node` |
-| `ContextScopeInactiveError` | A ContextStore is used outside an active Context scope. | `@studnicky/store/node` |
-| `ContextStoreFactoryError` | A ContextStore factory returned a value that is not a `StoreInterface`. | `@studnicky/store/node` |
-| `ContextStoreKeyConflictError` | The Context key of a ContextStore holds a value that is not one of its stores. | `@studnicky/store/node` |
-| `ContextStoreOptionsError` | `ContextStore.create` received invalid options. | `@studnicky/store/node` |
 | `IndexedDbEntryError` | An IndexedDB state entry is not a serialized string. | `@studnicky/store/node` |
 | `IndexedDbError` | An IndexedDB open, transaction, or request failed; the platform error is the `cause`. | `@studnicky/store/node` |
 | `IndexedDbUnavailableError` | IndexedDB persistence is selected in a runtime without IndexedDB. | `@studnicky/store/node` |
 | `StateDecodeError` | Serialized state is not valid JSON; the platform `SyntaxError` is the `cause`. | `@studnicky/store/node` |
 | `StateEncodeError` | State cannot be serialized to a JSON string. | `@studnicky/store/node` |
 | `StoreListenerMutationError` | A Store mutation is requested from inside a Store listener. | `@studnicky/store/node` |
-| `SynchronizationIdentityMismatchError` | A ContextStore backing store reports a different synchronization identity. | `@studnicky/store/node` |
 | `StrataLayerUnavailableError` | A StrataStore cannot resolve one of its layers. | `@studnicky/store/strata` |
 | `StrataStoreOptionsError` | `StrataStore.create` received layers or a mutex identity that violate the composition contract. | `@studnicky/store/strata` |
 

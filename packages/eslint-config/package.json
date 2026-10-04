@@ -76,7 +76,6 @@
   },
   "devDependencies": {
     "@sinclair/typebox": "^0.34.52",
-    "@studnicky/scenario-kit": "workspace:*",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/eslint": "^9.6.1",
     "@types/node": "^26.5.0",

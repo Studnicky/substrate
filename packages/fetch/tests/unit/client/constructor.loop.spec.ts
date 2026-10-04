@@ -1,12 +1,12 @@
 import type { JsonValueEntity } from '@studnicky/json/entities';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { JsonObject, Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RequestContextInterface } from '../../../src/node/index.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
 import { ConfigurationError, FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { AbortAwareFetch } from '../../helpers/AbortAwareFetch.js';

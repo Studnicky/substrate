@@ -28,6 +28,18 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./store/node": {
+      "types": "./dist/store/index.d.ts",
+      "import": "./dist/store/index.js"
+    },
+    "./store/browser": {
+      "types": "./dist/store/index.d.ts",
+      "import": "./dist/store/index.js"
+    },
+    "./store/interfaces": {
+      "types": "./dist/store/interfaces/index.d.ts",
+      "import": "./dist/store/interfaces/index.js"
     }
   },
   "files": [
@@ -74,12 +86,12 @@
     "@studnicky/errors": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
+    "@studnicky/store": "workspace:*",
     "@studnicky/types": "workspace:*",
     "rollup": "^4.63.1",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
+    "@studnicky/concurrency": "workspace:*"
   }
 }

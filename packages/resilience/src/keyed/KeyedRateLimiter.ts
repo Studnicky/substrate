@@ -5,6 +5,8 @@
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 
 import { LruCache } from '@studnicky/cache/browser';
+import { MonotonicNow } from '@studnicky/clock/monotonic-now';
+import { ClockError } from '@studnicky/clock/node';
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
@@ -16,8 +18,6 @@ import type { KeyedRateLimiterStrategyConfigInterface } from './interfaces/Keyed
 import type { RateLimiterStrategyInterface } from './interfaces/RateLimiterStrategyInterface.js';
 
 import { RateLimitConsumptionEntity } from '../entities/RateLimitConsumptionEntity.js';
-import { ResilienceConfigError } from '../errors/ResilienceConfigError.js';
-import { RateLimiterClock } from '../RateLimiterClock.js';
 import { TokenBucket } from '../TokenBucket.js';
 import { KeyedRateLimiterDefaultOptionsEntity } from './entities/KeyedRateLimiterDefaultOptionsEntity.js';
 import { KeyedRateLimiterRegistryOptionsEntity } from './entities/KeyedRateLimiterRegistryOptionsEntity.js';
@@ -179,9 +179,9 @@ export class KeyedRateLimiter<TStrategy extends RateLimiterStrategyInterface = T
     }
     let verifiedClock: TokenBucketOptionsInterface['clock'];
     try {
-      verifiedClock = clock === undefined ? undefined : RateLimiterClock.create(clock);
+      verifiedClock = clock === undefined ? undefined : MonotonicNow.create(clock);
     } catch (error) {
-      throw new KeyedRateLimiterConfigError(error instanceof ResilienceConfigError ? error.message : 'KeyedRateLimiter clock validation failed', error);
+      throw new KeyedRateLimiterConfigError(error instanceof ClockError ? error.message : 'KeyedRateLimiter clock validation failed', error);
     }
     const tokenBucketOptions: TokenBucketOptionsInterface = {
       'burstSize': serializableOptions.burstSize,

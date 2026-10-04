@@ -1,11 +1,11 @@
 ---
 title: '@studnicky/resilience'
-description: "Composable resilience primitives: circuit breaker, token bucket, keyed limiter, sliding-window limiter, and dead-letter queue."
+description: "Composable resilience primitives: retry, circuit breaker, token bucket, keyed limiter, sliding-window limiter, and dead-letter queue."
 ---
 
 # @studnicky/resilience
 
-> Circuit breaker, token bucket and sliding-window rate limiters, and a bounded dead-letter queue. Each primitive is independently usable and composable.
+> Retry/backoff, circuit breaker, token bucket and sliding-window rate limiters, and a bounded dead-letter queue. Each primitive is independently usable and composable.
 
 ## Install
 
@@ -15,7 +15,7 @@ pnpm add @studnicky/resilience
 
 Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
-Construct runtime primitives through `@studnicky/resilience/node` in Node or `@studnicky/resilience/browser` in browsers. Schema-backed data declarations live at `@studnicky/resilience/entities`, and type-only contracts live at `@studnicky/resilience/interfaces`.
+Construct core runtime primitives through `@studnicky/resilience/node` in Node or `@studnicky/resilience/browser` in browsers. Retry uses `@studnicky/resilience/retry/node` or `@studnicky/resilience/retry/browser`; its schema-backed data and type-only contracts live at `@studnicky/resilience/retry/entities` and `@studnicky/resilience/retry/interfaces`. Core schema-backed data declarations live at `@studnicky/resilience/entities`, and core type-only contracts live at `@studnicky/resilience/interfaces`.
 
 ## Northstar Books supplier boundary
 
@@ -24,6 +24,10 @@ Northstar Books protects catalogue and inventory-supplier calls at three differe
 Each primitive makes one guarantee only: breakers reject while their circuit is open, limiters admit only available local capacity, and queues retain only their bounded in-memory entries. These controls do not replace a supplier-wide or durable distributed rate limit; Northstar applies those at the supplier or persistence boundary.
 
 ## Usage
+
+### Retry
+
+`Retry` executes an operation until it succeeds, its retry budget is exhausted, or its caller-supplied error classifier rejects the failure. Import the executable primitive from `@studnicky/resilience/retry/node` or `@studnicky/resilience/retry/browser`; keep Retry configuration and collaborator contracts at `@studnicky/resilience/retry/interfaces`.
 
 ### CircuitBreaker
 
@@ -155,8 +159,8 @@ The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overri
 | `DeadLetterQueueRetryGenerator<T>` | Re-yields queue entries after a configurable pause. | `@studnicky/resilience/node` |
 | `DeadLetterQueueRetryGeneratorOptionsInterface<T>` | Caller-supplied retry-generator options with a live queue. | `@studnicky/resilience/interfaces` |
 | `ResilienceConfigError` | Signals invalid resilience configuration. | `@studnicky/resilience/node` |
-| `RateLimiterClock` | Validates a rate-limit clock before its readings participate in limiter arithmetic. | `@studnicky/resilience/node` |
-| `RateLimiterClockInterface` | Callable source of finite, nondecreasing millisecond readings. | `@studnicky/resilience/interfaces` |
+| `Retry` | Executes an operation under caller-supplied retry and backoff policy. | `@studnicky/resilience/retry/node` |
+| `RetryConfigInterface` | Caller-supplied retry configuration and collaborators. | `@studnicky/resilience/retry/interfaces` |
 | `ResilienceError` | Base error for the package. | `@studnicky/resilience/node` |
 | `TokenBucket` | Token-bucket rate limiter. | `@studnicky/resilience/node` |
 | `TokenBucketExhaustedError` | Signals insufficient available tokens. | `@studnicky/resilience/node` |

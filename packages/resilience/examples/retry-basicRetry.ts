@@ -1,0 +1,48 @@
+import { RuntimeError } from '@studnicky/errors/node';
+/** basicRetry — flaky operation that fails twice then succeeds. Run: npx tsx examples/basicRetry.ts */
+import assert from 'node:assert/strict';
+
+// #region usage
+import { Retry } from '../src/retry/index.js';
+import { BasicRetryFixtures } from './retry-fixtures/basicRetryFixtures.js';
+
+class Counter {
+  #value = 0;
+
+  increment(): number {
+    this.#value++;
+    return this.#value;
+  }
+
+  get value(): number {
+    return this.#value;
+  }
+}
+
+const counter = new Counter();
+
+const retry = Retry.create({
+  'errorClassifier': () => {return { 'retryable': true };},
+  'maximumRetries': 3
+});
+
+const result = await retry.execute(() => {
+  const attempt = counter.increment();
+  if (attempt <= BasicRetryFixtures.failCount) {
+    throw RuntimeError.create(`Transient failure on attempt ${attempt}`);
+  }
+  const attemptResult = Promise.resolve(`success on attempt ${attempt}`);
+  return attemptResult;
+});
+
+console.log(`Result: ${result}`);
+console.log('Stats:', retry.getStats());
+// #endregion usage
+
+assert.equal(result, `success on attempt ${BasicRetryFixtures.failCount + 1}`);
+assert.equal(retry.getStats().totalRequests, 1);
+assert.equal(retry.getStats().successfulRequests, 1);
+assert.equal(retry.getStats().failedRequests, 0);
+assert.equal(retry.getStats().totalRetries, BasicRetryFixtures.failCount);
+
+console.log('basicRetry: all assertions passed');

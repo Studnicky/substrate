@@ -1,12 +1,20 @@
-import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type {
+  EntityIntakeFunctionInterface,
+  EntityValidateFunctionInterface
+} from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
+import { BusQueueOptionsEntity } from '@studnicky/concurrency/queue/entities';
 import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 
-import { BusQueueOptionsEntity } from '../../../src/entities/BusQueueOptionsEntity.js';
-
-const TopicNode = SchemaNode.defineEnum({}, ['count', 'order:created', 'order:updated', 'ping', 'x'] as const);
+const TopicNode = SchemaNode.defineEnum({}, [
+  'count',
+  'order:created',
+  'order:updated',
+  'ping',
+  'x'
+] as const);
 
 /** Builds the per-shape variants of the scenario case; every shape shares one `input` and one open `expected` contract. */
 class EventBusScenarioBuilders {
@@ -27,13 +35,21 @@ class EventBusScenarioBuilders {
   }
 
   static variantNode<const TShape extends string>(shape: TShape) {
-    const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, { 'additionalProperties': true, 'patternProperties': {} }),
-      'input': EventBusScenarioBuilders.inputNode(),
-      'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
-      'shape': SchemaNode.defineConst({}, shape)
-    }, ['description', 'expected', 'input', 'name', 'shape'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const result = SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'description': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'expected': SchemaNode.defineObject({ 'type': 'object' } as const, {}, [] as const, {
+          'additionalProperties': true,
+          'patternProperties': {}
+        }),
+        'input': EventBusScenarioBuilders.inputNode(),
+        'name': SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const),
+        'shape': SchemaNode.defineConst({}, shape)
+      },
+      ['description', 'expected', 'input', 'name', 'shape'] as const,
+      { 'additionalProperties': false, 'patternProperties': {} }
+    );
     return result;
   }
 
@@ -59,7 +75,10 @@ class EventBusScenarioBuilders {
         'second': { 'type': 'string' },
         'secondId': { 'type': 'string' },
         'topic': { 'enum': ['count', 'order:created', 'order:updated', 'ping', 'x'] },
-        'topics': { 'items': { 'enum': ['count', 'order:created', 'order:updated', 'ping', 'x'] }, 'type': 'array' },
+        'topics': {
+          'items': { 'enum': ['count', 'order:created', 'order:updated', 'ping', 'x'] },
+          'type': 'array'
+        },
         'unhandledRejections': { 'type': 'number' }
       },
       'required': [],
@@ -69,28 +88,41 @@ class EventBusScenarioBuilders {
   }
 
   private static inputNode() {
-    const result = SchemaNode.defineObject({ 'type': 'object' } as const, {
-      'afterClose': SchemaNode.defineString({ 'type': 'string' } as const),
-      'beforeClose': SchemaNode.defineString({ 'type': 'string' } as const),
-      'bus': BusQueueOptionsEntity.Node,
-      'countPayload': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'cycles': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'disposeCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
-      'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
-      'first': SchemaNode.defineString({ 'type': 'string' } as const),
-      'firstId': SchemaNode.defineString({ 'type': 'string' } as const),
-      'hookNames': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-      'items': SchemaNode.defineArray({ 'type': 'array' } as const, SchemaNode.defineString({ 'type': 'string' } as const), undefined),
-      'mutatedBus': BusQueueOptionsEntity.Node,
-      'payload': SchemaNode.defineString({ 'type': 'string' } as const),
-      'payloadId': SchemaNode.defineString({ 'type': 'string' } as const),
-      'pingPayload': SchemaNode.defineString({ 'type': 'string' } as const),
-      'second': SchemaNode.defineString({ 'type': 'string' } as const),
-      'secondId': SchemaNode.defineString({ 'type': 'string' } as const),
-      'topic': TopicNode,
-      'topics': SchemaNode.defineArray({ 'type': 'array' } as const, TopicNode, undefined),
-      'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
-    }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+    const result = SchemaNode.defineObject(
+      { 'type': 'object' } as const,
+      {
+        'afterClose': SchemaNode.defineString({ 'type': 'string' } as const),
+        'beforeClose': SchemaNode.defineString({ 'type': 'string' } as const),
+        'bus': BusQueueOptionsEntity.Node,
+        'countPayload': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'cycles': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'disposeCount': SchemaNode.defineNumber({ 'type': 'number' } as const),
+        'errorMessage': SchemaNode.defineString({ 'type': 'string' } as const),
+        'first': SchemaNode.defineString({ 'type': 'string' } as const),
+        'firstId': SchemaNode.defineString({ 'type': 'string' } as const),
+        'hookNames': SchemaNode.defineArray(
+          { 'type': 'array' } as const,
+          SchemaNode.defineString({ 'type': 'string' } as const),
+          undefined
+        ),
+        'items': SchemaNode.defineArray(
+          { 'type': 'array' } as const,
+          SchemaNode.defineString({ 'type': 'string' } as const),
+          undefined
+        ),
+        'mutatedBus': BusQueueOptionsEntity.Node,
+        'payload': SchemaNode.defineString({ 'type': 'string' } as const),
+        'payloadId': SchemaNode.defineString({ 'type': 'string' } as const),
+        'pingPayload': SchemaNode.defineString({ 'type': 'string' } as const),
+        'second': SchemaNode.defineString({ 'type': 'string' } as const),
+        'secondId': SchemaNode.defineString({ 'type': 'string' } as const),
+        'topic': TopicNode,
+        'topics': SchemaNode.defineArray({ 'type': 'array' } as const, TopicNode, undefined),
+        'unhandledRejections': SchemaNode.defineNumber({ 'type': 'number' } as const)
+      },
+      [] as const,
+      { 'additionalProperties': false, 'patternProperties': {} }
+    );
     return result;
   }
 }
@@ -172,6 +204,8 @@ export namespace EventBusScenarioCaseEntity {
   ] as const);
   export type Type = NodeStaticType<typeof Node>;
 
-  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
-  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const validate: EntityValidateFunctionInterface<Type> =
+    EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> =
+    EntityCompiler.compileIntake<Type>(Schema);
 }

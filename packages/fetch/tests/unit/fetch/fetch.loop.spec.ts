@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { CallerFault } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { UntypedRequestClientInterface } from '../../helpers/interfaces/UntypedRequestClientInterface.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { QueryParametersEntity } from '../../../src/entities/QueryParametersEntity.js';
 import { AbortError, ConnectTimeoutError, FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { FetchTestError } from '../../helpers/FetchTestError.js';

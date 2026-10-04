@@ -1,10 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DispatcherAgent } from '../../../src/config/DispatcherAgent.js';
 import { TestDispatcher } from '../../../src/testing/TestDispatcher.js';
 import { TestTransportFlag } from '../../helpers/TestTransportFlag.js';

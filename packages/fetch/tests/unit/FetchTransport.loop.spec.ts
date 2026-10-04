@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchTransport } from '../../src/modules/FetchTransport.js';
 import { PlatformCalls } from '../helpers/PlatformCalls.js';
 import { FetchTransportScenarioCaseEntity } from './entities/FetchTransportScenarioCaseEntity.js';

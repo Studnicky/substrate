@@ -1,11 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { JsonObject, Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ScenarioJsonValueEntity } from '../entities/ScenarioJsonValueEntity.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { GuardScenarioCaseEntity } from '../entities/GuardScenarioCaseEntity.js';
 import scenarioGroups from './guard.scenarios.json' with { 'type': 'json' };
 

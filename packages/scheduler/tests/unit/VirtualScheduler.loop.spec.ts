@@ -1,15 +1,14 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { VirtualTimeCounterEntity } from '@studnicky/clock/entities';
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 import { runInNewContext } from 'node:vm';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { HeapTaskDescriptorEntity } from './entities/HeapTaskDescriptorEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { MinimumHeap } from '../../src/scheduler/MinimumHeap.js';
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';
 import { VirtualSchedulerScenarioCaseEntity } from './entities/VirtualSchedulerScenarioCaseEntity.js';

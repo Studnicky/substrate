@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { AbortError, FetchClient, TimeoutError } from '../../../src/node/index.js';
 import { FetchTestError } from '../../helpers/FetchTestError.js';
 import { TestServer } from '../../helpers/test-server/TestServer.js';

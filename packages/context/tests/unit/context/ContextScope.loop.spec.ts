@@ -1,11 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Context } from '../../../src/node/index.js';
 import scenarioGroups from './ContextScope.scenarios.json' with { 'type': 'json' };
 import { ContextScopeScenarioCaseEntity } from './entities/ContextScopeScenarioCaseEntity.js';

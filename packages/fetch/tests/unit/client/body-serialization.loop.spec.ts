@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { BodySerializationError, FetchClient } from '../../../src/node/index.js';
 import { PlatformCalls } from '../../helpers/PlatformCalls.js';
 import { RejectionProbe } from '../../helpers/RejectionProbe.js';

@@ -5,26 +5,28 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": [
-    "tests/**/*",
-    "examples/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
+      "path": "../../scripts/test-helpers/scenario-kit"
+    },
+    {
       "path": "./tsconfig.json"
+    },
+    {
+      "path": "../concurrency"
     },
     {
       "path": "../errors"
     },
     {
-      "path": "../example-smoke-kit"
+      "path": "../json"
     },
     {
-      "path": "../scenario-kit"
+    },
+    {
+      "path": "../types"
     }
   ]
 }

@@ -1,10 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DrillDown, DrillDownConfigEntity, DrilldownRulesEntity } from '../../src/index.js';
 import { TypeGuards } from '../../src/typeguards/index.js';
 import scenarioCases from './DrilldownRulesEntity.scenarios.json' with { 'type': 'json' };

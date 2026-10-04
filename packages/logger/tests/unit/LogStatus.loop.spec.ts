@@ -1,15 +1,18 @@
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
 import type { LogStatusEntity } from '../../src/entities/LogStatusEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { LOG_STATUS, STATUS_CATEGORIES } from '../../src/constants/LOG_STATUS.js';
 import { LogStatus } from '../../src/modules/LogStatus.js';
 import { LogStatusScenarioCaseEntity } from './entities/LogStatusScenarioCaseEntity.js';
 import scenarioGroups from './LogStatus.scenarios.json' with { 'type': 'json' };
 
 class LogStatusRunners {
-  static assertValues(scenarioCase: LogStatusScenarioCaseEntity.Type, actual: readonly string[]): void {
+  static assertValues(
+    scenarioCase: LogStatusScenarioCaseEntity.Type,
+    actual: readonly string[]
+  ): void {
     assert.deepStrictEqual(actual, scenarioCase.expected.values);
   }
 
@@ -87,10 +90,7 @@ class LogStatusRunners {
   }
 
   static 'status-retry-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {
-    LogStatusRunners.assertValues(scenarioCase, [
-      LOG_STATUS.RETRYING,
-      LOG_STATUS.RETRY_EXHAUSTED
-    ]);
+    LogStatusRunners.assertValues(scenarioCase, [LOG_STATUS.RETRYING, LOG_STATUS.RETRY_EXHAUSTED]);
   }
 
   static 'status-success-values'(scenarioCase: LogStatusScenarioCaseEntity.Type): void {

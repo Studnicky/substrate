@@ -1,11 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { JSONSchema7Type } from 'json-schema';
 
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { BaseError, CAUSE_DEPTH_SENTINEL, PROBLEM_TYPE_BASE, PROBLEM_TYPE_THROWN_STRING } from '@studnicky/types/browser';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ProblemDetailsEntity } from '../../src/entities/ProblemDetailsEntity.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import scenarioGroups from './base-error.scenarios.json' with { 'type': 'json' };

@@ -1,5 +1,5 @@
 ---
-"@studnicky/retry": major
+"@studnicky/resilience": major
 ---
 
 `RetryConfigInterface` (`Retry.create`'s public parameter) references `RetryConfigEntity.InputType` instead of the branded `.Type`, and `RetryConfigEntity`/`BackoffConfigEntity`/`RetryAttemptEventEntity`/`RetrySuccessEventEntity`/`RetryContextDataEntity` gain `InputType`, threaded through `create`'s second type parameter — none previously did, so each entity's own `create()` demanded already-branded input, defeating the point of `create`. `RetryConfigEntity`'s `maximumRetries` field declares `default: 3` in its schema (shared between `Schema` and `Node` via one object, so the default cannot drift between them), so `intake` fills it and `Retry`'s own `maximumRetries`/`maximumElapsedMs` fields stay branded end to end instead of losing the guarantee to a hand-written `?? DEFAULT_MAXIMUM_RETRIES` fallback.

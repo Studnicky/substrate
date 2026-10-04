@@ -5,14 +5,8 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": [
-    "tests/**/*",
-    "examples/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
       "path": "./tsconfig.json"
@@ -30,10 +24,7 @@
       "path": "../scheduler"
     },
     {
-      "path": "../scenario-kit"
-    },
-    {
-      "path": "../example-smoke-kit"
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

@@ -1,18 +1,18 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { Mock } from 'node:test';
 
 import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { it, mock } from 'node:test';
 import timersPromises from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ClockProviderInterface } from '../../src/interfaces/ClockProviderInterface.js';
 import type { RealTimeClockProviderOptionsFixtureEntity } from './entities/RealTimeClockProviderOptionsFixtureEntity.js';
 import type { RuntimeNumberEntity } from './entities/RuntimeNumberEntity.js';
 import type { VirtualTimeCounterOptionsFixtureEntity } from './entities/VirtualTimeCounterOptionsFixtureEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Clock } from '../../src/clock/Clock.js';
 import { ClockProviderEntity } from '../../src/clock/ClockProviderEntity.js';
 import { RealTimeClockProvider } from '../../src/clock/RealTimeClockProvider.js';

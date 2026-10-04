@@ -1,6 +1,5 @@
 ---
 "@studnicky/resilience": major
-"@studnicky/process-kit": patch
 "@studnicky/scheduler": patch
 ---
 
@@ -8,4 +7,4 @@
 
 `@studnicky/resilience` gains `TokenCountEntity` (`exclusiveMinimum: 0`, `default: 1`) — the constraint `TokenBucket.consume`/`waitForToken` and `RateLimitRequestEntity.tokens` both enforce, declared once. `RateLimitRequestEntity` composes it rather than restating the constraint, so the brand `TokenBucket` produces and the brand `KeyedRateLimiter` intakes are the same brand by construction. `TokenBucket.consume`/`waitForToken` validate `tokens` via `TokenCountEntity.validate` (a type-guard, not `intake` — no clone or cycle check needed for a scalar) instead of a hand-rolled `Number.isFinite`/`<= 0` check; the `tokens = 1` parameter default is gone, replaced by the schema's own `default: 1`, which `RateLimitRequestEntity.intake` now fills so `request.tokens` is always present.
 
-`@studnicky/process-kit` and `@studnicky/scheduler` update their `EffectInterpreter.create` call sites for the parameter-shape change landing alongside this in `@studnicky/fsm`.
+`@studnicky/scheduler` updates its `EffectInterpreter.create` call site for the parameter-shape change landing alongside this in `@studnicky/fsm`.

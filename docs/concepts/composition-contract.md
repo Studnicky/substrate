@@ -12,18 +12,19 @@ behaviors. Neither layer proxies another package's API.
 ## Consumer model
 
 <!-- inline-ts-ok: The contract defines a package-agnostic construction pattern. -->
+
 ```typescript
 const primitive = Primitive.create(options);
 
 const kit = Kit.create({
   primitive,
-  ...options
+  ...options,
 });
 
 const adapter = BrowserAdapter.create(options);
 
 const composition = Composition.create({
-  layers: [memoryStore, durableStore]
+  layers: [memoryStore, durableStore],
 });
 ```
 
@@ -34,12 +35,12 @@ not gain factories merely to resemble stateful modules.
 
 ## Public entrypoints
 
-| Entrypoint | Contract |
-|---|---|
-| `@studnicky/package/interfaces` | Consumer substitution contracts. |
-| `@studnicky/package/entities` | Canonical structured data and validation boundaries. |
-| `@studnicky/package/browser` | Browser-native implementation of a portable contract. |
-| `@studnicky/package/node` | Node-native implementation of a portable contract. |
+| Entrypoint                      | Contract                                              |
+| ------------------------------- | ----------------------------------------------------- |
+| `@studnicky/package/interfaces` | Consumer substitution contracts.                      |
+| `@studnicky/package/entities`   | Canonical structured data and validation boundaries.  |
+| `@studnicky/package/browser`    | Browser-native implementation of a portable contract. |
+| `@studnicky/package/node`       | Node-native implementation of a portable contract.    |
 
 Every package provides `/node` and `/browser` runtime entrypoints. Node-only capabilities stay in `/node`; browser entrypoints never import Node built-ins. Neutral entities, interfaces, and types keep their dedicated cross-runtime paths. Package API tables show `/node` paths; browser consumers import the same runtime symbol from the corresponding `/browser` path.
 
@@ -53,27 +54,27 @@ Every package provides `/node` and `/browser` runtime entrypoints. Node-only cap
    APIs.
 6. A composition implements the contract of the layer it composes when that contract exists.
 
-For example, `BoundaryKit` owns `throttle → circuit breaker → retry → callback` ordering.
-`StrataStore` owns lower-to-higher store propagation while itself implementing
-`StoreInterface<TState>`.
+For example, `StrataStore` owns lower-to-higher store propagation while itself implementing
+`StoreInterface<TState>`. Consumers compose independent primitive operations directly when
+no package-owned operation or state connects them.
 
 ## Lifecycle contract
 
-| Method | Meaning |
-|---|---|
-| `start()` | Begin a restartable process. |
-| `stop()` | Halt a restartable in-memory process. |
-| `close()` | Permanently release a service or runtime resource. |
+| Method      | Meaning                                                       |
+| ----------- | ------------------------------------------------------------- |
+| `start()`   | Begin a restartable process.                                  |
+| `stop()`    | Halt a restartable in-memory process.                         |
+| `close()`   | Permanently release a service or runtime resource.            |
 | `dispose()` | Detach listeners or composition wiring owned by the instance. |
-| `clear()` | Reset stored data without destroying the instance. |
+| `clear()`   | Reset stored data without destroying the instance.            |
 
 ## Observation contract
 
-| Mechanism | Use |
-|---|---|
+| Mechanism                | Use                                                       |
+| ------------------------ | --------------------------------------------------------- |
 | Protected lifecycle hook | Primitive-level tracing, metrics, and subclass extension. |
-| Event bus | Explicit domain or operational events. |
-| `subscribe()` | Current state snapshots only. |
+| Event bus                | Explicit domain or operational events.                    |
+| `subscribe()`            | Current state snapshots only.                             |
 
 These mechanisms are intentionally distinct. A module does not add another observation API when
 one already expresses the required semantic.

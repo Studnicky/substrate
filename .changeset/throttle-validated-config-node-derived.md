@@ -1,5 +1,5 @@
 ---
-"@studnicky/throttle": major
+"@studnicky/concurrency": major
 ---
 
 `ValidatedAdaptiveConfigEntity` and `ValidatedThrottleConfigEntity` now derive `Type` from a `SchemaNode`-built `Node` (`NodeStaticType<typeof Node>`) instead of `json-schema-to-ts`'s `FromSchema`. `Type` values now carry constraint brands (e.g. `ApplyNumberConstraintBrandsType<{minimum: 1}>`); a plain unvalidated `number` no longer satisfies a branded field. Both entities export `InputType` (`NodeInputType<typeof Node>`) for callers assembling unvalidated data, and `create` now accepts `Partial<InputType>` and returns the branded `Type`.

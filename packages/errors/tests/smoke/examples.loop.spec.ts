@@ -1,14 +1,16 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { RuntimeError } from '../../src/index.js';
 import { ExamplesSmokeScenarioCaseEntity } from './entities/ExamplesSmokeScenarioCaseEntity.js';
 import scenarioGroups from './examples.scenarios.json' with { 'type': 'json' };
 
 class ExamplesSmokeRunners {
-  static async 'smoke'(scenarioCase: ScenarioCaseOfType<ExamplesSmokeScenarioCaseEntity.Type, 'smoke'>): Promise<void> {
+  static async smoke(
+    scenarioCase: ScenarioCaseOfType<ExamplesSmokeScenarioCaseEntity.Type, 'smoke'>
+  ): Promise<void> {
     await assert.doesNotReject(async () => {
       await import(ExamplesSmokeRunners.resolveEntrypoint(scenarioCase.input.entrypoint));
     }, `Example ${scenarioCase.input.entrypoint} threw`);
@@ -19,7 +21,9 @@ class ExamplesSmokeRunners {
       const href = new URL(entrypoint, import.meta.url).href;
       return href;
     } catch (error) {
-      throw RuntimeError.create(`Example entrypoint ${entrypoint} is not a resolvable URL`, { 'cause': error });
+      throw RuntimeError.create(`Example entrypoint ${entrypoint} is not a resolvable URL`, {
+        'cause': error
+      });
     }
   }
 }

@@ -16,7 +16,7 @@ In scope:
 
 - **ReDoS** in any regex-bearing utility (predicates, config validation, path parsing).
 - **Prototype pollution** in the JSON utilities (`@studnicky/json`): deep merge, clone, patch, or path-access operations that allow `__proto__`, `constructor`, or `prototype` key injection.
-- **Unbounded resource growth** in scheduler, throttle, concurrency, circular-buffer, sample-buffer, or event-bus primitives: inputs that cause unbounded queue growth, heap exhaustion, or timer accumulation with no release path.
+- **Unbounded resource growth** in scheduler, throttle, concurrency, circular-buffer, or event-bus primitives: inputs that cause unbounded queue growth, heap exhaustion, or timer accumulation with no release path.
 - **Mutex / concurrency deadlock** introduced by the library's own locking logic (not consumer misuse).
 - **Supply chain**: compromised dependency, malicious publish, or typosquatting of a `@studnicky/*` package.
 

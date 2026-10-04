@@ -1,6 +1,4 @@
 ---
-"@studnicky/batch": major
-"@studnicky/bounded-dispatcher": major
 "@studnicky/cache": major
 "@studnicky/circular-buffer": major
 "@studnicky/clock": major
@@ -9,37 +7,22 @@
 "@studnicky/context": major
 "@studnicky/drilldown": major
 "@studnicky/entity": major
-"@studnicky/entity-store": major
 "@studnicky/errors": major
 "@studnicky/event-bus": major
-"@studnicky/example-smoke-kit": major
 "@studnicky/fetch": major
-"@studnicky/file-lock": major
 "@studnicky/filters": major
 "@studnicky/fsm": major
-"@studnicky/health-registry": major
-"@studnicky/idempotency-guard": major
 "@studnicky/json": major
 "@studnicky/logger": major
 "@studnicky/matching": major
-"@studnicky/mutex": major
-"@studnicky/paginator": major
 "@studnicky/pipeline": major
-"@studnicky/request-executor": major
 "@studnicky/resilience": major
-"@studnicky/retry": major
-"@studnicky/sample-buffer": major
-"@studnicky/scenario-kit": major
 "@studnicky/scheduler": major
 "@studnicky/signal": major
 "@studnicky/store": major
-"@studnicky/system": major
-"@studnicky/throttle": major
-"@studnicky/timing": major
 "@studnicky/types": major
 "@studnicky/virtual-fs": major
 "@studnicky/visible-range": major
-"@studnicky/worker-pool": major
 "@studnicky/eslint-config": minor
 ---
 

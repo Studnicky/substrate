@@ -1,48 +1,10 @@
 {
   "cases": [
-    {
-      "description": "the abortSignal example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/abortSignal.ts"
-      },
-      "name": "abortSignal",
-      "shape": "imports-example"
-    },
-    {
-      "description": "the multiSubscriber example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/multiSubscriber.ts"
-      },
-      "name": "multiSubscriber",
-      "shape": "imports-example"
-    },
-    {
-      "description": "the observedEventBus example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/observedEventBus.ts"
-      },
-      "name": "observedEventBus",
-      "shape": "imports-example"
-    },
-    {
-      "description": "the pubSub example runs without throwing",
-      "expected": {
-        "importsWithoutThrow": true
-      },
-      "input": {
-        "file": "../../examples/pubSub.ts"
-      },
-      "name": "pubSub",
-      "shape": "imports-example"
-    }
+    { "description": "the abortSignal example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/abortSignal.ts" }, "name": "abortSignal", "shape": "imports-example" },
+    { "description": "the multiSubscriber example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/multiSubscriber.ts" }, "name": "multiSubscriber", "shape": "imports-example" },
+    { "description": "the observedEventBus example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/observedEventBus.ts" }, "name": "observedEventBus", "shape": "imports-example" },
+    { "description": "the pubSub example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/pubSub.ts" }, "name": "pubSub", "shape": "imports-example" },
+    { "description": "the router routeTopics example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/router-routeTopics.ts" }, "name": "router-routeTopics", "shape": "imports-example" },
+    { "description": "the bounded dispatcher composition example runs without throwing", "expected": { "importsWithoutThrow": true }, "input": { "file": "../../examples/boundedDispatcherComposition.ts" }, "name": "boundedDispatcherComposition", "shape": "imports-example" }
   ]
 }

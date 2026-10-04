@@ -2,36 +2,21 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": [
-      "DOM",
-      "ESNext"
-    ],
+    "lib": ["DOM", "ESNext"],
     "rootDir": ".",
     "noEmit": true
   },
-  "include": [
-    "tests/**/*",
-    "examples/**/*"
-  ],
-  "exclude": [
-    "dist",
-    "node_modules"
-  ],
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["dist", "node_modules"],
   "references": [
     {
       "path": "./tsconfig.json"
     },
     {
-      "path": "../context"
-    },
-    {
       "path": "../json"
     },
     {
-      "path": "../mutex"
-    },
-    {
-      "path": "../example-smoke-kit"
+      "path": "../concurrency"
     }
   ]
 }

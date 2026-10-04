@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { LruCacheOptionsEntity } from '../../src/entities/LruCacheOptionsEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CacheConfigError } from '../../src/errors/CacheConfigError.js';
 import { LruCache } from '../../src/LruCache.js';
 import { LruCacheScenarioCaseEntity } from './entities/LruCacheScenarioCaseEntity.js';

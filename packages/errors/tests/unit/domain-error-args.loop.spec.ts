@@ -1,12 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 import type { BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { DomainErrorOptionsInterface } from '../../src/interfaces/DomainErrorOptionsInterface.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DomainErrorArgumentList } from '../../src/errors/DomainErrorArgumentList.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import scenarioGroups from './domain-error-args.scenarios.json' with { 'type': 'json' };

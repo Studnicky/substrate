@@ -32,9 +32,6 @@
       "path": "../pipeline"
     },
     {
-      "path": "../timing"
-    },
-    {
       "path": "../types"
     },
     {

@@ -1,12 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { PipelineFunctionInterface } from '../../../src/interfaces/PipelineFunctionInterface.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 import { PipelineSubclassScenarioCaseEntity } from './entities/PipelineSubclassScenarioCaseEntity.js';
 import scenarioGroups from './PipelineSubclass.scenarios.json' with { 'type': 'json' };

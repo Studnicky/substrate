@@ -1,16 +1,17 @@
 import type { HookInvocationError } from '@studnicky/errors/node';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
+import { MonotonicNow } from '@studnicky/clock/monotonic-now';
+import { ClockError } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { TokenBucketOptionsInterface } from '../../../src/index.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { RateLimitConsumptionEntity, TokenBucketOptionsEntity } from '../../../src/entities/index.js';
 import {
-  RateLimiterClock,
   ResilienceConfigError,
   SlidingWindowLimiter,
   TokenBucket,
@@ -444,49 +445,49 @@ void describe('Rate limiter clock boundaries', () => {
   const invalidReadings: readonly number[] = [Number.NaN, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY];
 
   void it('rejects non-callable clock collaborators', () => {
-    assert.throws(() => { RateLimiterClock.create(0); }, ResilienceConfigError);
+    assert.throws(() => { MonotonicNow.create(0); }, ClockError);
   });
 
   void it('rejects a throwing clock before rate math', () => {
-    const clock = RateLimiterClock.create((): number => { throw RuntimeError.create('clock failure'); });
-    assert.throws(() => { clock(); }, ResilienceConfigError);
+    const clock = MonotonicNow.create((): number => { throw RuntimeError.create('clock failure'); });
+    assert.throws(() => { clock(); }, ClockError);
   });
 
   void it('rejects non-finite clock readings before rate math', () => {
     for (let sourceIndex = 0; sourceIndex < invalidReadings.length; sourceIndex += 1) {
       const source = ScenarioValues.requireDefined(invalidReadings[sourceIndex], 'Scenario invalidReadings[sourceIndex]');
-      const clock = RateLimiterClock.create(() => {return source;});
-      assert.throws(() => { clock(); }, ResilienceConfigError);
+      const clock = MonotonicNow.create(() => {return source;});
+      assert.throws(() => { clock(); }, ClockError);
     }
   });
 
   void it('rejects backward clock readings before rate math', () => {
     let time = 2;
-    const clock = RateLimiterClock.create((): number => {return time;});
+    const clock = MonotonicNow.create((): number => {return time;});
     assert.equal(clock(), 2);
     time = 1;
-    assert.throws(() => { clock(); }, ResilienceConfigError);
+    assert.throws(() => { clock(); }, ClockError);
   });
 
   void it('guards TokenBucket and SlidingWindowLimiter reads', () => {
     assert.throws(() => {
       TokenBucket.create({ 'burstSize': 1, 'clock': (): number => { throw RuntimeError.create('clock failure'); }, 'requestsPerSecond': 1 });
-    }, ResilienceConfigError);
+    }, ClockError);
     assert.throws(() => {
       TokenBucket.create({ 'burstSize': 1, 'clock': (): number => {return Number.NaN;}, 'requestsPerSecond': 1 });
-    }, ResilienceConfigError);
+    }, ClockError);
     assert.throws(() => {
       SlidingWindowLimiter.create({ 'algorithm': 'log', 'clock': (): number => {return Number.POSITIVE_INFINITY;}, 'limit': 1, 'windowMs': 1 });
-    }, ResilienceConfigError);
+    }, ClockError);
 
     let tokenTime = 2;
     const tokenBucket = TokenBucket.create({ 'burstSize': 2, 'clock': (): number => {return tokenTime;}, 'requestsPerSecond': 1 });
     tokenTime = 1;
-    assert.throws(() => { tokenBucket.consume(); }, ResilienceConfigError);
+    assert.throws(() => { tokenBucket.consume(); }, ClockError);
 
     let windowTime = 2;
     const limiter = SlidingWindowLimiter.create({ 'algorithm': 'log', 'clock': (): number => {return windowTime;}, 'limit': 2, 'windowMs': 1 });
     windowTime = 1;
-    assert.throws(() => { limiter.consume(); }, ResilienceConfigError);
+    assert.throws(() => { limiter.consume(); }, ClockError);
   });
 });

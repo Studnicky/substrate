@@ -1,5 +1,5 @@
 ---
-"@studnicky/worker-pool": major
+"@studnicky/concurrency": major
 ---
 
 `WorkerPoolConfigInterface` (`WorkerPool.create`'s public parameter) references `WorkerPoolConfigEntity.InputType` instead of the branded `.Type`; `WorkerPoolConfigEntity` gains `InputType`, threaded through `create`'s second type parameter — it previously demanded already-branded input.

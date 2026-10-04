@@ -1,14 +1,19 @@
 /** Typed multi-topic pub/sub; per-subscriber BusQueue isolates errors and backpressure. */
 
+import type { BusQueueCreateOptionsInterface } from '@studnicky/concurrency/queue/interfaces';
+
+import { BusQueueOptionsEntity } from '@studnicky/concurrency/queue/entities';
+import { BusQueue, BusQueueConfigError } from '@studnicky/concurrency/queue/node';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker } from '@studnicky/errors/browser';
 import { JsonObject } from '@studnicky/types/browser';
 
-import type { BusQueueCreateOptionsInterface, EventHandlerInterface, EventSinkInterface, UnsubscribeInterface } from './interfaces/index.js';
+import type {
+  EventHandlerInterface,
+  EventSinkInterface,
+  UnsubscribeInterface
+} from './interfaces/index.js';
 
-import { BusQueue } from './BusQueue.js';
-import { BusQueueOptionsEntity } from './entities/BusQueueOptionsEntity.js';
-import { BusQueueConfigError } from './errors/BusQueueConfigError.js';
 import { EventBusClosedError } from './errors/EventBusClosedError.js';
 import { EventBusUnsubscribedError } from './errors/EventBusUnsubscribedError.js';
 
@@ -42,35 +47,50 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     protected override onEnqueue(_depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      const result = owner.hooks.invokeAsync('onEnqueue', () => { const invocationResult = owner.onEnqueue(topic); return invocationResult; });
+      const result = owner.hooks.invokeAsync('onEnqueue', () => {
+        const invocationResult = owner.onEnqueue(topic);
+        return invocationResult;
+      });
       return result;
     }
 
     protected override onDequeue(_depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      const result = owner.hooks.invokeAsync('onDequeue', () => { const invocationResult = owner.onDequeue(topic); return invocationResult; });
+      const result = owner.hooks.invokeAsync('onDequeue', () => {
+        const invocationResult = owner.onDequeue(topic);
+        return invocationResult;
+      });
       return result;
     }
 
     protected override onDrop(): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      const result = owner.hooks.invokeAsync('onDrop', () => { const invocationResult = owner.onDrop(topic); return invocationResult; });
+      const result = owner.hooks.invokeAsync('onDrop', () => {
+        const invocationResult = owner.onDrop(topic);
+        return invocationResult;
+      });
       return result;
     }
 
     protected override onOverflow(depth: number): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      const result = owner.hooks.invokeAsync('onOverflow', () => { const invocationResult = owner.onOverflow(topic, depth); return invocationResult; });
+      const result = owner.hooks.invokeAsync('onOverflow', () => {
+        const invocationResult = owner.onOverflow(topic, depth);
+        return invocationResult;
+      });
       return result;
     }
 
     protected override onHandlerError(error: unknown): Promise<void> {
       const owner = this.#owner;
       const topic = this.#topic;
-      const result = owner.hooks.invokeAsync('onHandlerError', () => { const invocationResult = owner.onHandlerError(topic, error); return invocationResult; });
+      const result = owner.hooks.invokeAsync('onHandlerError', () => {
+        const invocationResult = owner.onHandlerError(topic, error);
+        return invocationResult;
+      });
       return result;
     }
   };
@@ -93,7 +113,10 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     try {
       this.#config = Object.freeze(BusQueueOptionsEntity.intake(config ?? {}));
     } catch (error) {
-      throw new BusQueueConfigError(error instanceof SchemaIntakeError ? error.message : 'EventBus options intake failed', error);
+      throw new BusQueueConfigError(
+        error instanceof SchemaIntakeError ? error.message : 'EventBus options intake failed',
+        error
+      );
     }
   }
 
@@ -107,7 +130,9 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     return fresh;
   }
 
-  #findTopicSubscriptions<K extends keyof TTopicMap>(topic: K): Set<BusQueue<TTopicMap[K]>> | undefined {
+  #findTopicSubscriptions<K extends keyof TTopicMap>(
+    topic: K
+  ): Set<BusQueue<TTopicMap[K]>> | undefined {
     const result = this.#store[topic];
     return result;
   }
@@ -128,15 +153,21 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
     };
     const queueOptions: BusQueueCreateOptionsInterface<TTopicMap[K]> = {
       'handler': queueHandler,
-      ...(this.#config.highWaterMark !== undefined ? { 'highWaterMark': this.#config.highWaterMark } : {}),
+      ...(this.#config.highWaterMark !== undefined
+        ? { 'highWaterMark': this.#config.highWaterMark }
+        : {}),
       'signal': queueController.signal
     };
-    const getOwner = (): this => { return this; };
+    const getOwner = (): this => {
+      return this;
+    };
     const owner = getOwner();
     const queue = new EventBus.#OwnedSubscriptionQueue<TTopicMap, K>(owner, topic, queueOptions);
     let unsubscribed = false;
     const unsubscribe = (): void => {
-      if (unsubscribed) { return; }
+      if (unsubscribed) {
+        return;
+      }
       unsubscribed = true;
       topicSubscriptions.delete(queue);
       this.#queues.delete(queue);
@@ -167,30 +198,42 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
 
   async publish<K extends keyof TTopicMap>(topic: K, payload: TTopicMap[K]): Promise<void> {
     const topicSubscriptions = this.#findTopicSubscriptions(topic);
-    if (topicSubscriptions === undefined || topicSubscriptions.size === 0) { return; }
+    if (topicSubscriptions === undefined || topicSubscriptions.size === 0) {
+      return;
+    }
     await this.hooks.invokeAsync('onPublish', () => {
       const result = this.onPublish(topic, payload);
       return result;
     });
-    await Promise.all([...topicSubscriptions].map((queue) => {
-      const result = queue.enqueue(payload);
-      return result;
-    }));
+    await Promise.all(
+      [...topicSubscriptions].map((queue) => {
+        const result = queue.enqueue(payload);
+        return result;
+      })
+    );
   }
 
   async drain(): Promise<void> {
-    const promises = [...this.#queues].map(async (queue) => { await queue.drain(); });
+    const promises = [...this.#queues].map(async (queue) => {
+      await queue.drain();
+    });
     await Promise.all(promises);
   }
 
   async close(): Promise<void> {
-    await this.hooks.invokeAsync('onDispose', () => { const result = this.onDispose(); return result; });
+    await this.hooks.invokeAsync('onDispose', () => {
+      const result = this.onDispose();
+      return result;
+    });
     this.#busController.abort(new EventBusClosedError());
     await this.drain();
   }
 
   /** Fires when publish() is called for a topic (once per publish, before fan-out). */
-  protected onPublish<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void | Promise<void> {}
+  protected onPublish<K extends keyof TTopicMap>(
+    _topic: K,
+    _payload: TTopicMap[K]
+  ): void | Promise<void> {}
 
   /** Fires when a subscriber is registered for a topic. */
   protected onSubscribe(_topic: keyof TTopicMap): void {}
@@ -199,7 +242,10 @@ export class EventBus<TTopicMap extends object> implements EventSinkInterface<TT
   protected onUnsubscribe(_topic: keyof TTopicMap): void {}
 
   /** Fires after each individual event delivery to a handler (per-queue, per-event). */
-  protected onDeliver<K extends keyof TTopicMap>(_topic: K, _payload: TTopicMap[K]): void | Promise<void> {}
+  protected onDeliver<K extends keyof TTopicMap>(
+    _topic: K,
+    _payload: TTopicMap[K]
+  ): void | Promise<void> {}
 
   /** Fires when a subscriber handler throws an error. */
   protected onHandlerError(_topic: keyof TTopicMap, _error: unknown): void | Promise<void> {}

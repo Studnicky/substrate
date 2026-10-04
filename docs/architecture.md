@@ -17,7 +17,7 @@ Consumers use one canonical sequence:
 
 <!-- inline-ts-ok: conceptual Node-entrypoint and direct-construction example -->
 ```typescript
-import { Retry } from '@studnicky/retry/node';
+import { Retry } from '@studnicky/resilience/retry/node';
 
 const retry = Retry.create({ maximumRetries: 3 });
 const result = await retry.execute(async () => loadRecord());
@@ -31,7 +31,7 @@ Public methods delegate to documented protected seams. Passive observer hooks ha
 
 <!-- inline-ts-ok: conceptual subclass seam using a published Node entrypoint and application metric sink -->
 ```typescript
-import { Throttle } from '@studnicky/throttle/node';
+import { Throttle } from '@studnicky/concurrency/throttle/node';
 
 class MeteredThrottle extends Throttle {
   protected override onAcquire(activeCount: number, queuedCount: number): void {
@@ -53,7 +53,7 @@ The base class documents each extension site. Observer hooks observe committed w
 
 Composition packages expose the ordering, failure, or aggregation behavior they own. They do not proxy-export dependency functionality. Consumers import dependency-owned values and types from that dependency's canonical public entrypoint.
 
-A caller retains references to configured collaborators when it needs their state or lifecycle API. Composition classes do not add scheduler, cache, retry, signal, timing, or context getters merely to mirror their dependencies. `BoundedDispatcher.getBus()` is a functional operation: it supplies the dispatcher-owned bus used to subscribe to and drain dispatch publications.
+A caller retains references to configured collaborators when it needs their state or lifecycle API. Concurrency behavior composes directly through its owning primitives: a `Semaphore` bounds execution, an `EventBus` carries publications, a `Scheduler` selects timing, and a `Pipeline` defines execution order. Callers retain those primitives and wire their workflows from direct operations. Composition classes do not add scheduler, cache, retry, signal, timing, or context getters merely to mirror their dependencies.
 
 ## 4. Infrastructure-free defaults
 
@@ -61,7 +61,7 @@ Bare primitives never require a logger, metric backend, storage service, transpo
 
 <!-- inline-ts-ok: conceptual production extension with an application-owned logger -->
 ```typescript
-import { Retry } from '@studnicky/retry/node';
+import { Retry } from '@studnicky/resilience/retry/node';
 
 class AppRetry extends Retry {
   protected override onGiveUp(
@@ -80,54 +80,24 @@ Stateless utilities are pure-static classes. Stateful primitives are created exp
 
 ## Package families
 
-The 51 packages group into stateful primitives, stateless utilities, and matching/routing tools. The matching/routing family can feed filters, discovery, selection, or delivery without imposing a required pipeline. See the [Packages Index](/packages/) for the complete package list.
+Every published package owns a reusable building block: a data structure, a concurrency or timing primitive, a state-machine or pipeline primitive, an I/O boundary, a matching utility, or tooling that verifies those contracts. Product workflows and fixed policy assemblies remain in consumer code as direct compositions of those owners. The [Packages Index](/packages/) is the current source of truth for the public package list.
 
-```mermaid
-flowchart TD
-    subgraph Stateful["Stateful (create + direct operation + protected seams)"]
-        direction LR
-        C["Concurrency\nRetry · Throttle · Mutex · Batch\nConcurrency · File-Lock\nIdempotency-Guard · Memoize\nBounded-Dispatcher · Keyed-Work-Gate\nKeyed-Rate-Limiter"]
-        T["Time\nClock · Scheduler · Timing"]
-        S["State & Flow\nContext · FSM · Pipeline · Paginator\nProcess-Kit · Visible-Range · Flag-Evaluator"]
-        O["I/O & Observability\nEvent-Bus · Fetch · Logger · Errors\nRequest-Executor · Resilience\nBoundary-Kit\nHealth-Registry · System · Worker-Pool"]
-    end
-    subgraph Stateless["Stateless (pure / type-only)"]
-        direction LR
-        D["Data\nCache · Entity-Store · JSON\nPredicates · Types · Config"]
-        B["Buffers\nCircular-Buffer · Sample-Buffer"]
-        F["Foundation\nESLint Config"]
-    end
-    subgraph MatchingAndRouting["Matching & routing (composable evidence and delivery)"]
-        direction LR
-        M["Filters · Matching · Matching-Filters\nSemantic-Matching · Topic-Router\nTopic-Router-Models"]
-    end
-    Consumer["Consumer code"] -->|"create or extend"| Stateful
-    Consumer -->|"static call"| Stateless
-    Consumer -->|"compose"| MatchingAndRouting
-```
+<Mermaid
+  alt="Package family ownership diagram"
+  dark-src="/diagrams/architecture-package-families.dark.svg"
+  light-src="/diagrams/architecture-package-families.light.svg"
+/>
 
-Text equivalent: consumer code creates or subclasses a stateful primitive, makes a static call into a stateless utility, and composes matching/routing tools with its own policies and collaborators. Cross-package composition retains one owning package for each behavior and one canonical public entrypoint for each owner.
+Text equivalent: consumer code composes independently owned primitives and keeps its product policy, collaborator selection, and lifecycle decisions in the application. Each public behavior has one canonical owner and public entrypoint.
 
 ## FSM overview
 
 A representative stateful lifecycle uses a single transition funnel:
 
-```mermaid
-stateDiagram-v2
-  [*] --> idle : create()
-  idle --> active : execute()
-  active --> active : execute() [slots available]
-  active --> draining : drain()
-  draining --> done : last op completes
-  active --> aborted : abort()
-  draining --> aborted : abort()
-  done --> [*]
-  aborted --> [*]
-
-  note right of active
-    guard() rejects illegal transitions
-    onEnter() fires on every entry
-  end note
-```
+<Mermaid
+  alt="Stateful lifecycle state diagram"
+  dark-src="/diagrams/architecture-fsm-overview.dark.svg"
+  light-src="/diagrams/architecture-fsm-overview.light.svg"
+/>
 
 Text equivalent: `create()` starts the primitive in `idle`; operations move it through active and terminal states. A guard rejects illegal edges, and named entry hooks observe committed state changes. The primitive never enters a state rejected by its transition contract.

@@ -1,9 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ClientConfigDataEntity, FetchRequestOptionsEntity, QueryParametersEntity } from '../../../src/entities/index.js';
 import { ADDITIONAL_PROPERTIES_MESSAGE, HEADER_VALUE_TYPE_MESSAGE, UNDEFINED_JSON_MESSAGE } from './constants/ENTITY_INTAKE_MESSAGES.js';
 import scenarioGroups from './entities.scenarios.json' with { 'type': 'json' };

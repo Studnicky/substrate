@@ -2,6 +2,29 @@
   "name": "@studnicky/store",
   "version": "14.0.0",
   "description": "Observable state stores with interchangeable persistence adapters",
+  "keywords": [
+    "browser",
+    "persistence",
+    "state",
+    "store"
+  ],
+  "homepage": "https://studnicky.github.io/substrate/packages/store",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/store"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -21,6 +44,10 @@
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
     },
+    "./entity": {
+      "types": "./dist/entity/index.d.ts",
+      "import": "./dist/entity/index.js"
+    },
     "./strata": {
       "types": "./dist/strata/index.d.ts",
       "import": "./dist/strata/index.js"
@@ -34,12 +61,10 @@
       "import": "./dist/strata/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo tsconfig.build.tsbuildinfo tsconfig.tests.tsbuildinfo",
@@ -47,40 +72,17 @@
     "type-check": "tsc --noEmit",
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
-  "keywords": [
-    "store",
-    "state",
-    "persistence",
-    "browser"
-  ],
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/store"
+  "dependencies": {
+    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/entity": "workspace:*",
+    "@studnicky/json": "workspace:*",
+    "@studnicky/types": "workspace:*"
   },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "homepage": "https://studnicky.github.io/substrate/packages/store",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5"
   },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"
-  },
-  "dependencies": {
-    "@studnicky/context": "workspace:*",
-    "@studnicky/entity": "workspace:*",
-    "@studnicky/json": "workspace:*",
-    "@studnicky/mutex": "workspace:*",
-    "@studnicky/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "fake-indexeddb": "^6.2.5"
   }
 }

@@ -1,11 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { QueryParametersInterface } from '../../../src/node/index.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClient, UrlQueryString } from '../../../src/node/index.js';
 import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
 import { QueryScenarioCaseEntity } from './entities/QueryScenarioCaseEntity.js';

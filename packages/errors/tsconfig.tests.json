@@ -5,20 +5,14 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": [
-    "tests/**/*",
-    "examples/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
+  "include": ["tests/**/*", "examples/**/*"],
+  "exclude": ["node_modules", "dist"],
   "references": [
     {
-      "path": "./tsconfig.json"
+      "path": "../../scripts/test-helpers/scenario-kit"
     },
     {
-      "path": "../scenario-kit"
+      "path": "./tsconfig.json"
     },
     {
       "path": "../types"

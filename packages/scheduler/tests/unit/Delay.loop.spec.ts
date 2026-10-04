@@ -1,16 +1,16 @@
 import type { ClockProviderInterface } from '@studnicky/clock/browser';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { VirtualClockProvider, VirtualTimeCounter } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import { inspect } from 'node:util';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ScheduledTaskInterface } from '../../src/interfaces/ScheduledTaskInterface.js';
 import type { SchedulerProviderInterface } from '../../src/interfaces/SchedulerProviderInterface.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Delay } from '../../src/delay/Delay.js';
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import { VirtualScheduler } from '../../src/scheduler/VirtualScheduler.js';

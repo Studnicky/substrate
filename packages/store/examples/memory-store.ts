@@ -1,6 +1,6 @@
 /** memory-store — keep a Northstar Books cart coherent across checkout handlers. Run: npx tsx examples/memory-store.ts */
 
-import { Mutex } from '@studnicky/mutex/node';
+import { Mutex } from '@studnicky/concurrency/mutex';
 import { MemoryPersistence, Store } from '@studnicky/store/node';
 
 // #region usage

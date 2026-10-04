@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
 import type { MachineIdleStateEntity } from './entities/MachineIdleStateEntity.js';
 import type { MachineNoopEventEntity } from './entities/MachineNoopEventEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MachineRegistry } from '../../src/MachineRegistry.js';
 import { StateMachine } from '../../src/StateMachine.js';
@@ -19,14 +18,22 @@ class SimpleMachine extends StateMachine<MachineIdleStateEntity.Type, MachineNoo
     return new SimpleMachine();
   }
 
-  override getInitialState(): MachineIdleStateEntity.Type { return { 'variant': 'idle' }; }
+  override getInitialState(): MachineIdleStateEntity.Type {
+    return { 'variant': 'idle' };
+  }
 
-  override reduce(state: MachineIdleStateEntity.Type, _event: MachineNoopEventEntity.Type): FsmStepInterface<MachineIdleStateEntity.Type> {
+  override reduce(
+    state: MachineIdleStateEntity.Type,
+    _event: MachineNoopEventEntity.Type
+  ): FsmStepInterface<MachineIdleStateEntity.Type> {
     return { 'effects': [], 'state': state };
   }
 }
 
-class ObservedRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class ObservedRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): ObservedRegistry {
     return new ObservedRegistry();
   }
@@ -48,10 +55,15 @@ class ObservedRegistry extends MachineRegistry<MachineIdleStateEntity.Type, Mach
   }
 }
 
-class AsyncRejectingRegisterRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class AsyncRejectingRegisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): AsyncRejectingRegisterRegistry {
     const registry = new AsyncRejectingRegisterRegistry();
-    Object.defineProperty(registry, 'onRegister', { 'value': AsyncRejectingRegisterRegistry.rejectAfterTick });
+    Object.defineProperty(registry, 'onRegister', {
+      'value': AsyncRejectingRegisterRegistry.rejectAfterTick
+    });
     return registry;
   }
 
@@ -61,19 +73,31 @@ class AsyncRejectingRegisterRegistry extends MachineRegistry<MachineIdleStateEnt
   }
 }
 
-class OrderedRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class OrderedRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): OrderedRegistry {
     return new OrderedRegistry();
   }
 
   readonly order: string[] = [];
 
-  protected override onRegister(_id: string): void { this.order.push('register'); }
-  protected override onUnregister(_id: string): void { this.order.push('unregister'); }
-  protected override onResolveMiss(_id: string): void { this.order.push('miss'); }
+  protected override onRegister(_id: string): void {
+    this.order.push('register');
+  }
+  protected override onUnregister(_id: string): void {
+    this.order.push('unregister');
+  }
+  protected override onResolveMiss(_id: string): void {
+    this.order.push('miss');
+  }
 }
 
-class ThrowingRegisterRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class ThrowingRegisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): ThrowingRegisterRegistry {
     return new ThrowingRegisterRegistry();
   }
@@ -83,7 +107,10 @@ class ThrowingRegisterRegistry extends MachineRegistry<MachineIdleStateEntity.Ty
   }
 }
 
-class ThrowingMissRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class ThrowingMissRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): ThrowingMissRegistry {
     return new ThrowingMissRegistry();
   }
@@ -93,7 +120,10 @@ class ThrowingMissRegistry extends MachineRegistry<MachineIdleStateEntity.Type, 
   }
 }
 
-class ThrowingUnregisterRegistry extends MachineRegistry<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+class ThrowingUnregisterRegistry extends MachineRegistry<
+  MachineIdleStateEntity.Type,
+  MachineNoopEventEntity.Type
+> {
   static make(): ThrowingUnregisterRegistry {
     return new ThrowingUnregisterRegistry();
   }
@@ -104,9 +134,16 @@ class ThrowingUnregisterRegistry extends MachineRegistry<MachineIdleStateEntity.
 }
 
 class MachineRegistryHooksRunners {
-  static async 'async-rejecting-register'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'async-rejecting-register'>): Promise<void> {
+  static async 'async-rejecting-register'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'async-rejecting-register'
+    >
+  ): Promise<void> {
     let rejectionEventCount = 0;
-    const onUnhandledRejection = (): void => { rejectionEventCount += 1; };
+    const onUnhandledRejection = (): void => {
+      rejectionEventCount += 1;
+    };
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
@@ -115,8 +152,12 @@ class MachineRegistryHooksRunners {
       registry.register(scenarioCase.input.id, interpreter);
       const registered: unknown = interpreter;
       assert.equal(registry.get(scenarioCase.input.id), registered);
-      await new Promise((resolve) => { setImmediate(resolve); });
-      await new Promise((resolve) => { setImmediate(resolve); });
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
+      await new Promise((resolve) => {
+        setImmediate(resolve);
+      });
       assert.equal(rejectionEventCount, scenarioCase.expected.rejectionEvents);
       assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
       assert.equal(scenarioCase.expected.valuePreserved, true);
@@ -125,7 +166,12 @@ class MachineRegistryHooksRunners {
     }
   }
 
-  static 'duplicate-no-register-hook'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'duplicate-no-register-hook'>): void {
+  static 'duplicate-no-register-hook'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'duplicate-no-register-hook'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.registerCalls.length = 0;
@@ -136,7 +182,9 @@ class MachineRegistryHooksRunners {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'hook-order'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'hook-order'>): void {
+  static 'hook-order'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'hook-order'>
+  ): void {
     const registry = OrderedRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.get(scenarioCase.input.missingId);
@@ -145,14 +193,21 @@ class MachineRegistryHooksRunners {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'on-register'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-register'>): void {
+  static 'on-register'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-register'>
+  ): void {
     const registry = ObservedRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     assert.deepEqual(registry.registerCalls, scenarioCase.expected.registerCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'on-resolve-hit-no-hook'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-resolve-hit-no-hook'>): void {
+  static 'on-resolve-hit-no-hook'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-resolve-hit-no-hook'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.missCalls.length = 0;
@@ -162,7 +217,12 @@ class MachineRegistryHooksRunners {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'on-resolve-miss'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-resolve-miss'>): void {
+  static 'on-resolve-miss'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-resolve-miss'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     const result = registry.get(scenarioCase.input.missingId);
     assert.equal(result, undefined);
@@ -170,7 +230,9 @@ class MachineRegistryHooksRunners {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'on-unregister'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-unregister'>): void {
+  static 'on-unregister'(
+    scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-unregister'>
+  ): void {
     const registry = ObservedRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     registry.registerCalls.length = 0;
@@ -179,14 +241,24 @@ class MachineRegistryHooksRunners {
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'on-unregister-missing'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'on-unregister-missing'>): void {
+  static 'on-unregister-missing'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'on-unregister-missing'
+    >
+  ): void {
     const registry = ObservedRegistry.make();
     registry.unregister(scenarioCase.input.missingId);
     assert.deepEqual(registry.unregisterCalls, scenarioCase.expected.unregisterCalls);
     assert.equal(registry.hookErrorCount, scenarioCase.expected.hookErrorCount);
   }
 
-  static 'throwing-on-register'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'throwing-on-register'>): void {
+  static 'throwing-on-register'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-register'
+    >
+  ): void {
     const registry = ThrowingRegisterRegistry.make();
     const interpreter = MachineRegistryHooksRunners.interpreter();
     assert.doesNotThrow(() => {
@@ -198,7 +270,12 @@ class MachineRegistryHooksRunners {
     assert.equal(scenarioCase.expected.valuePreserved, true);
   }
 
-  static 'throwing-on-resolve-miss'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'throwing-on-resolve-miss'>): void {
+  static 'throwing-on-resolve-miss'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-resolve-miss'
+    >
+  ): void {
     const registry = ThrowingMissRegistry.make();
     assert.doesNotThrow(() => {
       assert.equal(registry.get(scenarioCase.input.missingId), undefined);
@@ -207,7 +284,12 @@ class MachineRegistryHooksRunners {
     assert.equal(scenarioCase.expected.valueUndefined, true);
   }
 
-  static 'throwing-on-unregister'(scenarioCase: ScenarioCaseOfType<MachineRegistryHooksScenarioCaseEntity.Type, 'throwing-on-unregister'>): void {
+  static 'throwing-on-unregister'(
+    scenarioCase: ScenarioCaseOfType<
+      MachineRegistryHooksScenarioCaseEntity.Type,
+      'throwing-on-unregister'
+    >
+  ): void {
     const registry = ThrowingUnregisterRegistry.make();
     registry.register(scenarioCase.input.id, MachineRegistryHooksRunners.interpreter());
     assert.doesNotThrow(() => {
@@ -218,7 +300,10 @@ class MachineRegistryHooksRunners {
     assert.equal(scenarioCase.expected.removed, true);
   }
 
-  private static interpreter(): EffectInterpreter<MachineIdleStateEntity.Type, MachineNoopEventEntity.Type> {
+  private static interpreter(): EffectInterpreter<
+    MachineIdleStateEntity.Type,
+    MachineNoopEventEntity.Type
+  > {
     const interpreter = EffectInterpreter.create(SimpleMachine.create());
     return interpreter;
   }

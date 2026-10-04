@@ -1,6 +1,6 @@
-import type { MutexInterface } from '@studnicky/mutex/interfaces';
+import type { MutexInterface } from '@studnicky/concurrency/interfaces';
 
-import { Mutex } from '@studnicky/mutex/node';
+import { Mutex } from '@studnicky/concurrency/mutex';
 
 import type { StoreOptionsInterface } from '../interfaces/StoreOptionsInterface.js';
 

@@ -1,16 +1,16 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { TypesScenarioCaseEntity } from '../../../../scripts/test-helpers/scenario-kit/dist/types-fixtures/TypesScenarioCaseEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { Empty } from '../../src/guards/Empty.js';
 import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
 import { Predicates } from '../../src/predicates/Predicates.js';
 import { PATTERN_FIXTURES } from '../fixtures/PATTERN_FIXTURES.js';
-import { TypesScenarioCaseEntity } from './entities/TypesScenarioCaseEntity.js';
 import scenarioGroups from './types.scenarios.json' with { 'type': 'json' };
 
 class TypesFixtureError extends BaseError {
@@ -55,122 +55,233 @@ class VerdictPredicates {
 
 /** Runtime-value markers (`{ "shape": "<name>" }`) materialized from JSON scenario data, and the outcome assertions that match them. */
 class TypesFixtures {
-  static readonly markerFactories: ReadonlyMap<string, MarkerFactoryInterface> = new Map<string, MarkerFactoryInterface>([
+  static readonly markerFactories: ReadonlyMap<string, MarkerFactoryInterface> = new Map<
+    string,
+    MarkerFactoryInterface
+  >([
     ['abortSignal', TypesFixtures.abortSignalMarker],
-    ['arrayBufferView', () => {
-      return new Uint8Array([1, 2, 3]);
-    }],
+    [
+      'arrayBufferView',
+      () => {
+        return new Uint8Array([1, 2, 3]);
+      }
+    ],
     ['asyncIterable', TypesFixtures.asyncIterableMarker],
-    ['bigint', () => {
-      return 9007199254740993n;
-    }],
-    ['blob', () => {
-      return new Blob(['payload']);
-    }],
+    [
+      'bigint',
+      () => {
+        return 9007199254740993n;
+      }
+    ],
+    [
+      'blob',
+      () => {
+        return new Blob(['payload']);
+      }
+    ],
     ['cyclicObject', TypesFixtures.cyclicObjectMarker],
-    ['date', () => {
-      return new Date(0);
-    }],
+    [
+      'date',
+      () => {
+        return new Date(0);
+      }
+    ],
     ['error', TypesFixtures.errorMarker],
-    ['formData', () => {
-      return new FormData();
-    }],
-    ['function', () => {
-      return () => {};
-    }],
-    ['headers', () => {
-      return new Headers();
-    }],
-    ['infinity', () => {
-      return Number.POSITIVE_INFINITY;
-    }],
-    ['iterable', () => {
-      return [1, 2, 3];
-    }],
-    ['map', () => {
-      return new Map();
-    }],
-    ['mapWithEntries', () => {
-      return new Map([['a', 1], ['b', 2]]);
-    }],
-    ['mapWithEntry', () => {
-      return new Map([['a', 1]]);
-    }],
-    ['namedFunction', () => {
-      return TypesFixtures.named;
-    }],
-    ['nan', () => {
-      return Number.NaN;
-    }],
-    ['negativeInfinity', () => {
-      return Number.NEGATIVE_INFINITY;
-    }],
-    ['null', () => {
-      return null;
-    }],
-    ['nullPrototypeObject', () => {
-      const bare: unknown = Object.create(null);
-      return bare;
-    }],
-    ['readableStream', () => {
-      return new ReadableStream();
-    }],
-    ['regex', () => {
-      return PATTERN_FIXTURES.value;
-    }],
-    ['request', () => {
-      return new Request('https://example.test');
-    }],
-    ['response', () => {
-      return new Response();
-    }],
-    ['set', () => {
-      return new Set();
-    }],
-    ['setWithEntry', () => {
-      return new Set([1]);
-    }],
-    ['symbol', () => {
-      const marker = Symbol('s');
-      return marker;
-    }],
+    [
+      'formData',
+      () => {
+        return new FormData();
+      }
+    ],
+    [
+      'function',
+      () => {
+        return () => {};
+      }
+    ],
+    [
+      'headers',
+      () => {
+        return new Headers();
+      }
+    ],
+    [
+      'infinity',
+      () => {
+        return Number.POSITIVE_INFINITY;
+      }
+    ],
+    [
+      'iterable',
+      () => {
+        return [1, 2, 3];
+      }
+    ],
+    [
+      'map',
+      () => {
+        return new Map();
+      }
+    ],
+    [
+      'mapWithEntries',
+      () => {
+        return new Map([
+          ['a', 1],
+          ['b', 2]
+        ]);
+      }
+    ],
+    [
+      'mapWithEntry',
+      () => {
+        return new Map([['a', 1]]);
+      }
+    ],
+    [
+      'namedFunction',
+      () => {
+        return TypesFixtures.named;
+      }
+    ],
+    [
+      'nan',
+      () => {
+        return Number.NaN;
+      }
+    ],
+    [
+      'negativeInfinity',
+      () => {
+        return Number.NEGATIVE_INFINITY;
+      }
+    ],
+    [
+      'null',
+      () => {
+        return null;
+      }
+    ],
+    [
+      'nullPrototypeObject',
+      () => {
+        const bare: unknown = Object.create(null);
+        return bare;
+      }
+    ],
+    [
+      'readableStream',
+      () => {
+        return new ReadableStream();
+      }
+    ],
+    [
+      'regex',
+      () => {
+        return PATTERN_FIXTURES.value;
+      }
+    ],
+    [
+      'request',
+      () => {
+        return new Request('https://example.test');
+      }
+    ],
+    [
+      'response',
+      () => {
+        return new Response();
+      }
+    ],
+    [
+      'set',
+      () => {
+        return new Set();
+      }
+    ],
+    [
+      'setWithEntry',
+      () => {
+        return new Set([1]);
+      }
+    ],
+    [
+      'symbol',
+      () => {
+        const marker = Symbol('s');
+        return marker;
+      }
+    ],
     ['thenable', TypesFixtures.thenableMarker],
-    ['undefined', () => {
-      return undefined;
-    }],
+    [
+      'undefined',
+      () => {
+        return undefined;
+      }
+    ],
     ['url', TypesFixtures.urlMarker],
-    ['urlSearchParams', () => {
-      return new URLSearchParams();
-    }]
+    [
+      'urlSearchParams',
+      () => {
+        return new URLSearchParams();
+      }
+    ]
   ]);
 
-  static readonly outcomeAssertions: ReadonlyMap<string, OutcomeAssertionInterface> = new Map<string, OutcomeAssertionInterface>([
-    ['date', (actual) => {
-      assert.ok(actual instanceof Date);
-    }],
-    ['function', (actual) => {
-      assert.equal(typeof actual, 'function');
-    }],
-    ['map', (actual) => {
-      assert.ok(actual instanceof Map);
-      assert.equal(actual.size, 0);
-    }],
-    ['nan', (actual) => {
-      assert.ok(Number.isNaN(actual));
-    }],
-    ['null', (actual) => {
-      assert.strictEqual(actual, null);
-    }],
-    ['regex', (actual) => {
-      assert.ok(actual instanceof RegExp);
-    }],
-    ['set', (actual) => {
-      assert.ok(actual instanceof Set);
-      assert.equal(actual.size, 0);
-    }],
-    ['undefined', (actual) => {
-      assert.strictEqual(actual, undefined);
-    }]
+  static readonly outcomeAssertions: ReadonlyMap<string, OutcomeAssertionInterface> = new Map<
+    string,
+    OutcomeAssertionInterface
+  >([
+    [
+      'date',
+      (actual) => {
+        assert.ok(actual instanceof Date);
+      }
+    ],
+    [
+      'function',
+      (actual) => {
+        assert.equal(typeof actual, 'function');
+      }
+    ],
+    [
+      'map',
+      (actual) => {
+        assert.ok(actual instanceof Map);
+        assert.equal(actual.size, 0);
+      }
+    ],
+    [
+      'nan',
+      (actual) => {
+        assert.ok(Number.isNaN(actual));
+      }
+    ],
+    [
+      'null',
+      (actual) => {
+        assert.strictEqual(actual, null);
+      }
+    ],
+    [
+      'regex',
+      (actual) => {
+        assert.ok(actual instanceof RegExp);
+      }
+    ],
+    [
+      'set',
+      (actual) => {
+        assert.ok(actual instanceof Set);
+        assert.equal(actual.size, 0);
+      }
+    ],
+    [
+      'undefined',
+      (actual) => {
+        assert.strictEqual(actual, undefined);
+      }
+    ]
   ]);
 
   static expectOutcome(actual: unknown, expected: unknown): void {
@@ -270,12 +381,18 @@ class TypesFixtures {
   }
 
   private static isMarkedOutcome(value: unknown): value is { 'shape': string } {
-    const marked = TypesFixtures.isObjectRecord(value) && typeof value.shape === 'string' && TypesFixtures.outcomeAssertions.has(value.shape);
+    const marked =
+      TypesFixtures.isObjectRecord(value) &&
+      typeof value.shape === 'string' &&
+      TypesFixtures.outcomeAssertions.has(value.shape);
     return marked;
   }
 
   private static isMarkedValue(value: unknown): value is { 'shape': string } {
-    const marked = TypesFixtures.isObjectRecord(value) && typeof value.shape === 'string' && TypesFixtures.markerFactories.has(value.shape);
+    const marked =
+      TypesFixtures.isObjectRecord(value) &&
+      typeof value.shape === 'string' &&
+      TypesFixtures.markerFactories.has(value.shape);
     return marked;
   }
 
@@ -333,213 +450,426 @@ class TypesFixtures {
 }
 
 class TypesRunners {
-  static 'asNumber'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asNumber'>): void {
-    TypesFixtures.expectOutcome(Predicates.asNumber(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static asNumber(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asNumber'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asNumber(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'asStringOrNull'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asStringOrNull'>): void {
-    TypesFixtures.expectOutcome(Predicates.asStringOrNull(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static asStringOrNull(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asStringOrNull'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asStringOrNull(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'asRecordArray'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asRecordArray'>): void {
-    TypesFixtures.expectOutcome(Predicates.asRecordArray(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static asRecordArray(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asRecordArray'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asRecordArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isString'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isString'>): void {
-    TypesFixtures.expectOutcome(Predicates.isString(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isString(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isString'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isString(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isNumber'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNumber'>): void {
-    TypesFixtures.expectOutcome(Predicates.isNumber(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isNumber(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNumber'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNumber(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isBoolean'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBoolean'>): void {
-    TypesFixtures.expectOutcome(Predicates.isBoolean(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isBoolean(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBoolean'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isBoolean(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isFunction'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFunction'>): void {
-    TypesFixtures.expectOutcome(Predicates.isFunction(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isFunction(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFunction'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isFunction(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isObject'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObject'>): void {
-    TypesFixtures.expectOutcome(Predicates.isObject(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isObject(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isNonNegativeInteger'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNonNegativeInteger'>): void {
-    TypesFixtures.expectOutcome(Predicates.isNonNegativeInteger(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isNonNegativeInteger(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNonNegativeInteger'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNonNegativeInteger(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isPositiveInteger'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPositiveInteger'>): void {
-    TypesFixtures.expectOutcome(Predicates.isPositiveInteger(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isPositiveInteger(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPositiveInteger'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isPositiveInteger(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isArray'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArray'>): void {
-    TypesFixtures.expectOutcome(Predicates.isArray(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isArray(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArray'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isDate'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isDate'>): void {
-    TypesFixtures.expectOutcome(Predicates.isDate(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isDate(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isDate'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isDate(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isError'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isError'>): void {
-    TypesFixtures.expectOutcome(Predicates.isError(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isError(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isError'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isError(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isMap'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isMap'>): void {
-    TypesFixtures.expectOutcome(Predicates.isMap(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isMap(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isMap'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isMap(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isSet'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSet'>): void {
-    TypesFixtures.expectOutcome(Predicates.isSet(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isSet(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSet'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isSet(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isObjectLike'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObjectLike'>): void {
-    TypesFixtures.expectOutcome(Predicates.isObjectLike(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isObjectLike(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObjectLike'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isObjectLike(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isRecord'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRecord'>): void {
-    TypesFixtures.expectOutcome(Predicates.isRecord(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isRecord(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRecord'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isRecord(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isPlainObject'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPlainObject'>): void {
-    TypesFixtures.expectOutcome(Predicates.isPlainObject(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isPlainObject(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPlainObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isPlainObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isNullish'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNullish'>): void {
-    TypesFixtures.expectOutcome(Predicates.isNullish(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isNullish(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNullish'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNullish(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isRegExp'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRegExp'>): void {
-    TypesFixtures.expectOutcome(Predicates.isRegExp(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isRegExp(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRegExp'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isRegExp(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isSymbol'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSymbol'>): void {
-    TypesFixtures.expectOutcome(Predicates.isSymbol(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isSymbol(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSymbol'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isSymbol(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isBigInt'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBigInt'>): void {
-    TypesFixtures.expectOutcome(Predicates.isBigInt(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isBigInt(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBigInt'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isBigInt(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isThenable'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isThenable'>): void {
-    TypesFixtures.expectOutcome(Predicates.isThenable(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isThenable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isThenable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isThenable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isIterable'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isIterable'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isIterable(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isIterable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isIterable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isIterable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isAsyncIterable'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAsyncIterable'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isAsyncIterable(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isAsyncIterable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAsyncIterable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isAsyncIterable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isArrayBufferView'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArrayBufferView'>): void {
-    TypesFixtures.expectOutcome(Predicates.isArrayBufferView(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isArrayBufferView(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArrayBufferView'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isArrayBufferView(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isBlob'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBlob'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isBlob(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isBlob(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBlob'>): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isBlob(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isFormData'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFormData'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isFormData(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isFormData(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFormData'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isFormData(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isURL'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURL'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isURL(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isURL(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURL'>): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isURL(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isURLSearchParams'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURLSearchParams'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isURLSearchParams(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isURLSearchParams(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURLSearchParams'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isURLSearchParams(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isHeaders'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isHeaders'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isHeaders(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isHeaders(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isHeaders'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isHeaders(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isRequest'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRequest'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isRequest(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isRequest(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRequest'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isRequest(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isResponse'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isResponse'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isResponse(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isResponse(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isResponse'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isResponse(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isAbortSignal'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAbortSignal'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isAbortSignal(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isAbortSignal(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAbortSignal'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isAbortSignal(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'isReadableStream'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isReadableStream'>): void {
-    TypesFixtures.expectOutcome(VerdictPredicates.isReadableStream(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static isReadableStream(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isReadableStream'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isReadableStream(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-array'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-array'>): void {
+  static 'empty-array'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-array'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.array(), scenarioCase.outcome);
   }
 
-  static 'empty-arrayIdentity'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-arrayIdentity'>): void {
+  static 'empty-arrayIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-arrayIdentity'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.array() !== Empty.array(), scenarioCase.outcome);
   }
 
-  static 'empty-isArray'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isArray'>): void {
-    TypesFixtures.expectOutcome(Predicates.isEmptyArray(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'empty-isArray'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isArray'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-isMap'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isMap'>): void {
-    TypesFixtures.expectOutcome(Predicates.isEmptyMap(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'empty-isMap'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isMap'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyMap(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-isObject'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isObject'>): void {
-    TypesFixtures.expectOutcome(Predicates.isEmptyPlainObject(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'empty-isObject'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyPlainObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-isSet'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isSet'>): void {
-    TypesFixtures.expectOutcome(Predicates.isEmptySet(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'empty-isSet'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isSet'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptySet(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-isString'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isString'>): void {
-    TypesFixtures.expectOutcome(Predicates.isEmptyString(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'empty-isString'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isString'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyString(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'empty-map'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-map'>): void {
+  static 'empty-map'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-map'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.map(), scenarioCase.outcome);
   }
 
-  static 'empty-mapIdentity'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-mapIdentity'>): void {
+  static 'empty-mapIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-mapIdentity'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.map() !== Empty.map(), scenarioCase.outcome);
   }
 
-  static 'empty-object'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-object'>): void {
+  static 'empty-object'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-object'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.object(), scenarioCase.outcome);
   }
 
-  static 'empty-objectIdentity'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-objectIdentity'>): void {
+  static 'empty-objectIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-objectIdentity'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.object() !== Empty.object(), scenarioCase.outcome);
   }
 
-  static 'empty-set'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-set'>): void {
+  static 'empty-set'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-set'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.set(), scenarioCase.outcome);
   }
 
-  static 'empty-setIdentity'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-setIdentity'>): void {
+  static 'empty-setIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-setIdentity'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.set() !== Empty.set(), scenarioCase.outcome);
   }
 
-  static 'empty-string'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-string'>): void {
+  static 'empty-string'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-string'>
+  ): void {
     TypesFixtures.expectOutcome(Empty.string(), scenarioCase.outcome);
   }
 
-  static 'jsonObject-fromEntries'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-fromEntries'>): void {
+  static 'jsonObject-fromEntries'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-fromEntries'>
+  ): void {
     const input = TypesFixtures.materialize(scenarioCase.input);
     assert.ok(TypesFixtures.isEntryIterable(input));
     TypesFixtures.expectOutcome(JsonObject.fromEntries(input), scenarioCase.outcome);
   }
 
-  static 'jsonObject-is'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-is'>): void {
-    TypesFixtures.expectOutcome(JsonObject.is(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'jsonObject-is'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-is'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonObject.is(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'jsonObject-write'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-write'>): void {
+  static 'jsonObject-write'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-write'>
+  ): void {
     const input = TypesFixtures.materialize(scenarioCase.input);
     assert.ok(Predicates.isRecord(input));
     const target = input.target;
@@ -548,15 +878,28 @@ class TypesRunners {
     assert.ok(typeof key === 'string');
     const result = JsonObject.write(target, key, input.value);
     const prototypeIntact = Object.getPrototypeOf(target) === Object.prototype;
-    TypesFixtures.expectOutcome({ 'prototypeIntact': prototypeIntact, 'result': result, 'target': target }, scenarioCase.outcome);
+    TypesFixtures.expectOutcome(
+      { 'prototypeIntact': prototypeIntact, 'result': result, 'target': target },
+      scenarioCase.outcome
+    );
   }
 
-  static 'jsonValue-from'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-from'>): void {
-    TypesFixtures.expectOutcome(JsonValue.from(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'jsonValue-from'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-from'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonValue.from(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 
-  static 'jsonValue-is'(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-is'>): void {
-    TypesFixtures.expectOutcome(JsonValue.is(TypesFixtures.materialize(scenarioCase.input)), scenarioCase.outcome);
+  static 'jsonValue-is'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-is'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonValue.is(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
 }
 
@@ -625,8 +968,17 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     assert.equal(Predicates.areDeeplyEqual(Number.NaN, Number.NaN), true);
     assert.equal(Predicates.areDeeplyEqual(-0, 0), false);
     assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
-    assert.equal(Predicates.areDeeplyEqual(TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive), TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive)), true);
-    assert.equal(Predicates.areDeeplyEqual(PATTERN_FIXTURES.valueGlobal, PATTERN_FIXTURES.other), false);
+    assert.equal(
+      Predicates.areDeeplyEqual(
+        TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive),
+        TypesFixtures.freshPattern(PATTERN_FIXTURES.valueCaseInsensitive)
+      ),
+      true
+    );
+    assert.equal(
+      Predicates.areDeeplyEqual(PATTERN_FIXTURES.valueGlobal, PATTERN_FIXTURES.other),
+      false
+    );
     assert.equal(
       Predicates.areDeeplyEqual(
         new Map<unknown, unknown>([[{ 'id': 1 }, new Set<unknown>([{ 'value': [1, 2] }])]]),
@@ -745,34 +1097,5 @@ void describe('Predicates.isInstanceOf', () => {
 
   void it('returns false when the instance check throws', () => {
     assert.equal(Predicates.isInstanceOf(new Base(), ThrowingInstanceCheck), false);
-  });
-});
-
-void describe('Predicates subclass override', () => {
-  class LaxPredicates extends Predicates {
-    public static override isObject<T>(value: T): value is Record<string, unknown> & T {
-      const result = typeof value === 'object' && value !== null;
-      return result;
-    }
-  }
-
-  void it('overridden isObject accepts arrays', () => {
-    assert.equal(LaxPredicates.isObject([1, 2, 3]), true);
-    assert.equal(LaxPredicates.isObject(null), false);
-    assert.equal(LaxPredicates.isObject({}), true);
-  });
-
-  void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {
-    const input: unknown[] = [[1, 2], { 'a': 1 }, 'skip-me', null];
-    const result = LaxPredicates.asRecordArray(input);
-
-    assert.ok(result !== undefined);
-    assert.equal(result.length, 2);
-    assert.deepEqual(result[0], [1, 2]);
-    assert.deepEqual(result[1], { 'a': 1 });
-  });
-
-  void it('base Predicates.isObject is unchanged — arrays are not records', () => {
-    assert.equal(Predicates.isObject([1, 2, 3]), false);
   });
 });

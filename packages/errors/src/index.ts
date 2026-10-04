@@ -4,7 +4,6 @@
  */
 
 export {
-  DefaultHttpErrorClassifier,
   ErrorClassifier,
   matchers
 } from './classifiers/index.js';
