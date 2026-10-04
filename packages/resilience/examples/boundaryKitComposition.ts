@@ -1,7 +1,7 @@
-import { Throttle } from '@studnicky/concurrency/throttle/node';
+import { Semaphore } from '@studnicky/concurrency/node';
 import { RuntimeError } from '@studnicky/errors/node';
-/** boundaryKitComposition — composes concurrency's Throttle, resilience's CircuitBreaker, and
- * resilience/retry's Retry into a guarded call boundary. Composition order: Throttle (bounds
+/** boundaryKitComposition — composes concurrency's Semaphore, resilience's CircuitBreaker, and
+ * resilience/retry's Retry into a guarded call boundary. Composition order: Semaphore (bounds
  * concurrency) -> CircuitBreaker (fast-fail) -> Retry (attempt and backoff) -> operation. Run:
  * npx tsx examples/boundaryKitComposition.ts */
 // #region usage
@@ -9,7 +9,7 @@ import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience/n
 import { Retry } from '@studnicky/resilience/retry/node';
 import assert from 'node:assert/strict';
 
-// One Retry/CircuitBreaker pair per protected dependency; one Throttle shared across every
+// One Retry/CircuitBreaker pair per protected dependency; one Semaphore shared across every
 // call made to that dependency, bounding how much concurrent load it ever sees.
 const retry = Retry.create({
   'errorClassifier': (_error: Error) => {
@@ -18,10 +18,10 @@ const retry = Retry.create({
   'maximumRetries': 2
 });
 const circuitBreaker = CircuitBreaker.create({ 'failureThreshold': 3, 'resetTimeoutMs': 60_000 });
-const throttle = Throttle.create({ 'concurrencyLimit': 2 });
+const semaphore = Semaphore.create({ 'permits': 2 });
 
-// The composition remains explicit: retry, circuitBreaker, and throttle stay reachable as
-// plain local variables, each with its own hooks and getStats()/state behavior.
+// The composition remains explicit: retry, circuitBreaker, and semaphore stay reachable as
+// plain local variables, each with its own hooks and state behavior.
 // #endregion usage
 
 // --- Scenario A: transient failures are absorbed by retry; the circuit breaker never
@@ -49,42 +49,42 @@ class PermanentlyFailingTask {
 }
 
 const flakyOutcomes = await Promise.all([
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(0));
       return retryResult;
     });
     return breakerResult;
   }),
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(1));
       return retryResult;
     });
     return breakerResult;
   }),
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(2));
       return retryResult;
     });
     return breakerResult;
   }),
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(0));
       return retryResult;
     });
     return breakerResult;
   }),
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(1));
       return retryResult;
     });
     return breakerResult;
   }),
-  throttle.execute(() => {
+  semaphore.withPermit(() => {
     const breakerResult = circuitBreaker.execute(() => {
       const retryResult = retry.execute(FlakyTask.make(0));
       return retryResult;
@@ -116,10 +116,10 @@ const badRetry = Retry.create({
   'maximumRetries': 1
 });
 const badBreaker = CircuitBreaker.create({ 'failureThreshold': 3, 'resetTimeoutMs': 60_000 });
-const badThrottle = Throttle.create({ 'concurrencyLimit': 5 });
+const badSemaphore = Semaphore.create({ 'permits': 5 });
 
-await badThrottle
-  .execute(() => {
+await badSemaphore
+  .withPermit(() => {
     const breakerResult = badBreaker.execute(() => {
       const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
       return retryResult;
@@ -129,8 +129,8 @@ await badThrottle
   .catch(() => {
     /* expected: MaximumRetriesExceededError bubbles through the breaker */
   });
-await badThrottle
-  .execute(() => {
+await badSemaphore
+  .withPermit(() => {
     const breakerResult = badBreaker.execute(() => {
       const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
       return retryResult;
@@ -140,8 +140,8 @@ await badThrottle
   .catch(() => {
     /* expected: MaximumRetriesExceededError bubbles through the breaker */
   });
-await badThrottle
-  .execute(() => {
+await badSemaphore
+  .withPermit(() => {
     const breakerResult = badBreaker.execute(() => {
       const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
       return retryResult;
@@ -156,8 +156,8 @@ console.log('CircuitBreaker state after 3 exhausted calls:', badBreaker.state);
 
 let fastRejected = false;
 
-await badThrottle
-  .execute(() => {
+await badSemaphore
+  .withPermit(() => {
     const breakerResult = badBreaker.execute(() => {
       const retryResult = badRetry.execute(PermanentlyFailingTask.execute);
       return retryResult;

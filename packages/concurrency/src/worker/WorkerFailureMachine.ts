@@ -1,6 +1,6 @@
 /**
  * Single point of truth for firing `onWorkerError`, driven by `@studnicky/fsm`'s `StateMachine`.
- * Mirrors `Throttle`'s `OperationLifecycleMachine`: the machine has exactly one state variant
+ * The machine has exactly one state variant
  * (`'operational'`) because there is nothing per-failure worth naming a state — a worker failure
  * is an instantaneous event, not a mode. What matters is `reduce()`'s contract, not the state
  * graph: for the one event this machine handles, the switch returns an `effects` array containing

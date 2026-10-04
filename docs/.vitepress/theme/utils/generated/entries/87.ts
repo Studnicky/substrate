@@ -6,6 +6,8 @@ import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/87/3';
 import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/87/4';
 import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/87/5';
 import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/87/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/87/7';
+import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/87/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -16,9 +18,11 @@ export const playgroundPayload = Object.freeze({
       loadChunk3(),
       loadChunk4(),
       loadChunk5(),
-      loadChunk6()
+      loadChunk6(),
+      loadChunk7(),
+      loadChunk8()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** browserFetch — a real HTTP GET over the browser-native fetch client. Run: npx tsx packages/fetch/examples/browserFetch.ts */\n\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport { BrowserFetchClient } from '../src/browser/index.js';\n\nawait (async function runBrowserFetchExample(): Promise<void> {\n  const originalFetch = globalThis.fetch;\n  globalThis.fetch = (_input, _init) => {\n    const result = Promise.resolve(new Response(JSON.stringify({\n      'completed': false,\n      'id': 1,\n      'title': 'delectus aut autem'\n    }), {\n      'headers': { 'Content-Type': 'application/json' },\n      'status': 200\n    }));\n    return result;\n  };\n\n  const api = BrowserFetchClient.create({\n    'baseURL': 'https://example.test',\n    'timeout': 8000\n  });\n\n  try {\n    console.log('GET https://example.test/todos/1 (native browser fetch)');\n\n    const response = await api.get('/todos/1');\n    const todo = await response.json();\n\n    console.log(\`status: ${  String.fromCharCode(36, 123)  }response.status}\`);\n\n    assert.equal(response.status, 200, 'expected HTTP 200');\n    assert.equal(typeof todo, 'object', 'fetched JSON body');\n\n    console.log('browserFetch: all assertions passed');\n  } finally {\n    globalThis.fetch = originalFetch;\n  }\n})();\n// #endregion usage\n`
+  'source': "/** filterProducts — keep sellable Northstar Books catalogue entries in a storefront result. Run: npx tsx examples/filterProducts.ts */\n\n// #region usage\nimport { FilterEngine, FilterMode } from '@studnicky/filters/node';\nimport assert from 'node:assert/strict';\n\nconst engine = new FilterEngine({\n  'conditions': [\n    { 'operator': 'STRING.EQUALS', 'path': 'catalogueStatus', 'value': 'listed' },\n    { 'operator': 'NUMBER.GREATER_EQUAL', 'path': 'availableCopies', 'value': 1 }\n  ],\n  'gate': 'CORE.AND',\n  'mode': FilterMode.CORE.WHITELIST\n});\n\nconst sellableBook = engine.evaluate({ 'availableCopies': 8, 'catalogueStatus': 'listed', 'isbn': '978-0-14-118776-1', 'title': 'The Left Hand of Darkness' });\nconst unavailableBook = engine.evaluate({ 'availableCopies': 0, 'catalogueStatus': 'listed', 'isbn': '978-0-06-112008-4', 'title': 'To Kill a Mockingbird' });\n\nconsole.log({ 'sellableBook': sellableBook.valid, 'unavailableBook': unavailableBook.valid });\n// #endregion usage\n\nassert.equal(sellableBook.valid, true);\nassert.equal(unavailableBook.valid, false);\nconsole.log('filterProducts: all assertions passed');\n"
 });

@@ -59,13 +59,6 @@ import { BusQueue } from "@studnicky/concurrency/queue/node";
 
 <RunnableExample src="packages/concurrency/examples/queue" title="FIFO queue admission" />
 
-### Throttle
-
-Throttle coordinates bounded asynchronous operations with queue, drain, abort, and optional adaptive concurrency. Import it from `@studnicky/concurrency/throttle/node` or `@studnicky/concurrency/throttle/browser`; shared contracts are available at `@studnicky/concurrency/throttle/interfaces`.
-
-<<< ../../packages/concurrency/examples/throttle/basicThrottle.ts#usage
-
-<RunnableExample src="packages/concurrency/examples/throttle/observedThrottle" title="Observed throttle lifecycle" />
 ## Batch finite work
 
 `Batch` processes a finite input in fixed-size windows. `process()` yields ordered fulfilled results and stops when an item rejects; `processSettled()` yields every settlement. `processContinuous()` and `processContinuousSettled()` refill capacity as each item settles, preserving input order in their final arrays.
@@ -77,7 +70,6 @@ Throttle coordinates bounded asynchronous operations with queue, drain, abort, a
 ### Compose bounded dispatch
 
 Compose `Semaphore`, `EventBus`, and a scheduler directly when an application needs bounded execution, lifecycle events, and delayed work. The application owns its topic map and publication policy.
-
 
 ### Mutex
 
@@ -223,68 +215,68 @@ The async-iter demo uses native `async function*` generators as sources — no N
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|--------|---------|-------------|
-| `AsyncIter` | Static combinators for async iterables. | `@studnicky/concurrency/node` |
-| `Batch` | Fixed-window and immediate-refill processing for finite inputs. | `@studnicky/concurrency/batch`<br>`@studnicky/concurrency/node` |
-| `BatchError` | Signals invalid Batch construction. | `@studnicky/concurrency/node` |
-| `BusQueue` | Generic FIFO admission and ordered delivery with backpressure. | `@studnicky/concurrency/queue/node` |
-| `BusQueueConfigError` | Signals invalid queue construction. | `@studnicky/concurrency/queue/node` |
-| `BusQueueCreateOptionsInterface` | Queue construction contract. | `@studnicky/concurrency/queue/interfaces` |
-| `BusQueueAbortedStateEntity` | Terminal queue lifecycle state. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueAbortEventEntity` | Queue abort lifecycle event. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueAbortingStateEntity` | Queue abort-in-progress lifecycle state. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueCreateOptionsEntity` | Schema-backed queue construction options. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueDrainingStateEntity` | Queue drain lifecycle state. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueLoopFinishedEventEntity` | Queue loop-finished lifecycle event. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueOpenStateEntity` | Queue open lifecycle state. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueOptionsEntity` | Schema-backed serializable queue options. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueReleaseForAbortEffectEntity` | Queue abort release effect. | `@studnicky/concurrency/queue/entities` |
-| `BusQueueStartLoopEventEntity` | Queue loop-start lifecycle event. | `@studnicky/concurrency/queue/entities` |
-| `Channel` | String-keyed fan-in async-generator inbox. | `@studnicky/concurrency/node` |
-| `ChannelError` | Base error for channel operations. | `@studnicky/concurrency/node` |
-| `Coalesce` | Deduplicates concurrent calls by key. | `@studnicky/concurrency/node` |
-| `CoalesceTimeoutError` | Signals a caller timeout while a coalesced operation remains in flight. | `@studnicky/concurrency/node` |
-| `CoalesceWaitCompletedError` | Abort reason for a caller's cancelled timeout timer once its wait on the shared in-flight promise finishes. | `@studnicky/concurrency/node` |
-| `ConcurrencyError` | Base error for the package. | `@studnicky/concurrency/node` |
-| `LockTimeoutError` | Signals a queued mutex acquisition deadline. | `@studnicky/concurrency/node` |
-| `Mutex` | FIFO keyed mutual exclusion with queue caps, deadlines, disposable handles, and lifecycle hooks. | `@studnicky/concurrency/mutex`<br>`@studnicky/concurrency/node` |
-| `MutexError` | Base error for mutex operations. | `@studnicky/concurrency/node` |
-| `FileLock` | Atomic-rename, single-writer lock for a Node.js file. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockConfigError` | Signals invalid file-lock configuration. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockContentionError` | Signals an unsuccessful atomic rename acquisition. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockError` | Base error for file-lock operations. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockFileSystemError` | Signals an underlying filesystem failure. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockInspection` | Inspects owner-qualified lock paths. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockLivenessError` | Signals an owner-liveness query failure. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockWebLockError` | Signals a native Web Locks API request failure. | `@studnicky/concurrency/file-lock/browser` |
-| `FileLockRecovery` | Restores an explicitly inspected lock path. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockRecoveryConflictError` | Signals recovery blocked by an occupied original path. | `@studnicky/concurrency/file-lock/node` |
-| `FileLockTimeoutError` | Signals acquisition past its deadline. | `@studnicky/concurrency/file-lock/node` |
-| `FileRenameLock` | Atomic rename acquisition and release primitive. | `@studnicky/concurrency/file-lock/node` |
-| `NodeOwnerLiveness` | Checks a Node process owner's liveness. | `@studnicky/concurrency/file-lock/node` |
-| `WebLock` | Native browser Web Locks API adapter. | `@studnicky/concurrency/file-lock/browser` |
-| `FileLockAcquiredEventEntity` | File-lock acquisition transition event. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockInspectionEntity` | Inspected owner-qualified lock-path record. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockOptionsEntity` | Validates Node file-lock options. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockPathStateEntity` | Canonical original and held lock paths. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockReleasedEventEntity` | File-lock release transition event. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockStateEntity` | File-lock lifecycle state. | `@studnicky/concurrency/file-lock/entities` |
-| `WebLockOptionsEntity` | Validates browser Web Lock options. | `@studnicky/concurrency/file-lock/entities` |
-| `FileLockCreateOptionsInterface` | Node file-lock construction contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `FileLockInspectionOptionsInterface` | Lock inspection contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `FileLockRecoveryOptionsInterface` | Explicit recovery contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `FileRenameLockCreateOptionsInterface` | Atomic rename-lock construction contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `LockInterface` | Shared idempotent release contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `OwnerLivenessInterface` | Owner liveness abstraction. | `@studnicky/concurrency/file-lock/interfaces` |
-| `OwnerTokenInterface` | Owner token abstraction. | `@studnicky/concurrency/file-lock/interfaces` |
-| `WebLockCreateOptionsInterface` | Native Web Lock construction contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `WebLockManagerInterface` | Native Web Locks manager dependency contract. | `@studnicky/concurrency/file-lock/interfaces` |
-| `QueueSizeExceededError` | Signals that a keyed mutex queue has reached its configured capacity. | `@studnicky/concurrency/node` |
-| `Semaphore` | Counting permit gate for asynchronous work. | `@studnicky/concurrency/node` |
-| `KeyedSemaphore` | Independent per-key permit gates. | `@studnicky/concurrency/node` |
-| `SemaphoreQueueFullError` | Signals that a bounded semaphore queue is full. | `@studnicky/concurrency/node` |
-| `SemaphoreError` | Base error for semaphore operations. | `@studnicky/concurrency/node` |
+| Symbol                                 | Purpose                                                                                                     | Import path                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `AsyncIter`                            | Static combinators for async iterables.                                                                     | `@studnicky/concurrency/node`                                   |
+| `Batch`                                | Fixed-window and immediate-refill processing for finite inputs.                                             | `@studnicky/concurrency/batch`<br>`@studnicky/concurrency/node` |
+| `BatchError`                           | Signals invalid Batch construction.                                                                         | `@studnicky/concurrency/node`                                   |
+| `BusQueue`                             | Generic FIFO admission and ordered delivery with backpressure.                                              | `@studnicky/concurrency/queue/node`                             |
+| `BusQueueConfigError`                  | Signals invalid queue construction.                                                                         | `@studnicky/concurrency/queue/node`                             |
+| `BusQueueCreateOptionsInterface`       | Queue construction contract.                                                                                | `@studnicky/concurrency/queue/interfaces`                       |
+| `BusQueueAbortedStateEntity`           | Terminal queue lifecycle state.                                                                             | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueAbortEventEntity`             | Queue abort lifecycle event.                                                                                | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueAbortingStateEntity`          | Queue abort-in-progress lifecycle state.                                                                    | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueCreateOptionsEntity`          | Schema-backed queue construction options.                                                                   | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueDrainingStateEntity`          | Queue drain lifecycle state.                                                                                | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueLoopFinishedEventEntity`      | Queue loop-finished lifecycle event.                                                                        | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueOpenStateEntity`              | Queue open lifecycle state.                                                                                 | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueOptionsEntity`                | Schema-backed serializable queue options.                                                                   | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueReleaseForAbortEffectEntity`  | Queue abort release effect.                                                                                 | `@studnicky/concurrency/queue/entities`                         |
+| `BusQueueStartLoopEventEntity`         | Queue loop-start lifecycle event.                                                                           | `@studnicky/concurrency/queue/entities`                         |
+| `Channel`                              | String-keyed fan-in async-generator inbox.                                                                  | `@studnicky/concurrency/node`                                   |
+| `ChannelError`                         | Base error for channel operations.                                                                          | `@studnicky/concurrency/node`                                   |
+| `Coalesce`                             | Deduplicates concurrent calls by key.                                                                       | `@studnicky/concurrency/node`                                   |
+| `CoalesceTimeoutError`                 | Signals a caller timeout while a coalesced operation remains in flight.                                     | `@studnicky/concurrency/node`                                   |
+| `CoalesceWaitCompletedError`           | Abort reason for a caller's cancelled timeout timer once its wait on the shared in-flight promise finishes. | `@studnicky/concurrency/node`                                   |
+| `ConcurrencyError`                     | Base error for the package.                                                                                 | `@studnicky/concurrency/node`                                   |
+| `LockTimeoutError`                     | Signals a queued mutex acquisition deadline.                                                                | `@studnicky/concurrency/node`                                   |
+| `Mutex`                                | FIFO keyed mutual exclusion with queue caps, deadlines, disposable handles, and lifecycle hooks.            | `@studnicky/concurrency/mutex`<br>`@studnicky/concurrency/node` |
+| `MutexError`                           | Base error for mutex operations.                                                                            | `@studnicky/concurrency/node`                                   |
+| `FileLock`                             | Atomic-rename, single-writer lock for a Node.js file.                                                       | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockConfigError`                  | Signals invalid file-lock configuration.                                                                    | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockContentionError`              | Signals an unsuccessful atomic rename acquisition.                                                          | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockError`                        | Base error for file-lock operations.                                                                        | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockFileSystemError`              | Signals an underlying filesystem failure.                                                                   | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockInspection`                   | Inspects owner-qualified lock paths.                                                                        | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockLivenessError`                | Signals an owner-liveness query failure.                                                                    | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockWebLockError`                 | Signals a native Web Locks API request failure.                                                             | `@studnicky/concurrency/file-lock/browser`                      |
+| `FileLockRecovery`                     | Restores an explicitly inspected lock path.                                                                 | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockRecoveryConflictError`        | Signals recovery blocked by an occupied original path.                                                      | `@studnicky/concurrency/file-lock/node`                         |
+| `FileLockTimeoutError`                 | Signals acquisition past its deadline.                                                                      | `@studnicky/concurrency/file-lock/node`                         |
+| `FileRenameLock`                       | Atomic rename acquisition and release primitive.                                                            | `@studnicky/concurrency/file-lock/node`                         |
+| `NodeOwnerLiveness`                    | Checks a Node process owner's liveness.                                                                     | `@studnicky/concurrency/file-lock/node`                         |
+| `WebLock`                              | Native browser Web Locks API adapter.                                                                       | `@studnicky/concurrency/file-lock/browser`                      |
+| `FileLockAcquiredEventEntity`          | File-lock acquisition transition event.                                                                     | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockInspectionEntity`             | Inspected owner-qualified lock-path record.                                                                 | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockOptionsEntity`                | Validates Node file-lock options.                                                                           | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockPathStateEntity`              | Canonical original and held lock paths.                                                                     | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockReleasedEventEntity`          | File-lock release transition event.                                                                         | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockStateEntity`                  | File-lock lifecycle state.                                                                                  | `@studnicky/concurrency/file-lock/entities`                     |
+| `WebLockOptionsEntity`                 | Validates browser Web Lock options.                                                                         | `@studnicky/concurrency/file-lock/entities`                     |
+| `FileLockCreateOptionsInterface`       | Node file-lock construction contract.                                                                       | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `FileLockInspectionOptionsInterface`   | Lock inspection contract.                                                                                   | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `FileLockRecoveryOptionsInterface`     | Explicit recovery contract.                                                                                 | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `FileRenameLockCreateOptionsInterface` | Atomic rename-lock construction contract.                                                                   | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `LockInterface`                        | Shared idempotent release contract.                                                                         | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `OwnerLivenessInterface`               | Owner liveness abstraction.                                                                                 | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `OwnerTokenInterface`                  | Owner token abstraction.                                                                                    | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `WebLockCreateOptionsInterface`        | Native Web Lock construction contract.                                                                      | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `WebLockManagerInterface`              | Native Web Locks manager dependency contract.                                                               | `@studnicky/concurrency/file-lock/interfaces`                   |
+| `QueueSizeExceededError`               | Signals that a keyed mutex queue has reached its configured capacity.                                       | `@studnicky/concurrency/node`                                   |
+| `Semaphore`                            | Counting permit gate for asynchronous work.                                                                 | `@studnicky/concurrency/node`                                   |
+| `KeyedSemaphore`                       | Independent per-key permit gates.                                                                           | `@studnicky/concurrency/node`                                   |
+| `SemaphoreQueueFullError`              | Signals that a bounded semaphore queue is full.                                                             | `@studnicky/concurrency/node`                                   |
+| `SemaphoreError`                       | Base error for semaphore operations.                                                                        | `@studnicky/concurrency/node`                                   |
 
 ## Entities
 

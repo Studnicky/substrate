@@ -701,7 +701,7 @@
     },
     {
       "name": "stats-api-shape",
-      "description": "Mutex provides the same API shape as Throttle",
+      "description": "Mutex exposes its own lock lifecycle statistics",
       "shape": "stats-api-shape",
       "input": {
         "key": "key1"

@@ -15,13 +15,10 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/31').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/32').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/33').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/34').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/35').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/36').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/37').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/38').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/39').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/40').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/50').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/51').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/52').then(({ playgroundModule }) => { return playgroundModule; }),
@@ -32,6 +29,9 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/57').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/58').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/60').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/61').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/61').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/62').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/63').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/103').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

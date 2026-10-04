@@ -16,8 +16,9 @@ Consumers use one canonical sequence:
 3. Invoke its direct operation methods.
 
 <!-- inline-ts-ok: conceptual Node-entrypoint and direct-construction example -->
+
 ```typescript
-import { Retry } from '@studnicky/resilience/retry/node';
+import { Retry } from "@studnicky/resilience/retry/node";
 
 const retry = Retry.create({ maximumRetries: 3 });
 const result = await retry.execute(async () => loadRecord());
@@ -30,21 +31,21 @@ Runtime entrypoints and direct factories define the public API. Protected constr
 Public methods delegate to documented protected seams. Passive observer hooks have no-op defaults; behavioral seams transform, classify, or intercept an operation in-band.
 
 <!-- inline-ts-ok: conceptual subclass seam using a published Node entrypoint and application metric sink -->
-```typescript
-import { Throttle } from '@studnicky/concurrency/throttle/node';
 
-class MeteredThrottle extends Throttle {
-  protected override onAcquire(activeCount: number, queuedCount: number): void {
-    metrics.gauge('throttle.active', activeCount);
-    metrics.gauge('throttle.queued', queuedCount);
+```typescript
+import { Semaphore } from "@studnicky/concurrency/node";
+
+class MeteredSemaphore extends Semaphore {
+  protected override onAcquire(permitsBefore: number): void {
+    metrics.gauge("semaphore.availableBefore", permitsBefore);
   }
 
-  protected override onRelease(activeCount: number, _totalExecuted: number): void {
-    metrics.gauge('throttle.active', activeCount);
+  protected override onRelease(permitsAfter: number): void {
+    metrics.gauge("semaphore.availableAfter", permitsAfter);
   }
 }
 
-const throttle = MeteredThrottle.create({ concurrencyLimit: 4 });
+const semaphore = MeteredSemaphore.create({ permits: 4 });
 ```
 
 The base class documents each extension site. Observer hooks observe committed work; behavioral hooks remain part of the operation's contract.
@@ -60,16 +61,17 @@ A caller retains references to configured collaborators when it needs their stat
 Bare primitives never require a logger, metric backend, storage service, transport, or framework. Consumers add application integration through subclass hooks or explicit dependency injection.
 
 <!-- inline-ts-ok: conceptual production extension with an application-owned logger -->
+
 ```typescript
-import { Retry } from '@studnicky/resilience/retry/node';
+import { Retry } from "@studnicky/resilience/retry/node";
 
 class AppRetry extends Retry {
   protected override onGiveUp(
     error: Error,
     attemptNumber: number,
-    reason: 'aborted' | 'exhausted' | 'nonRetryable'
+    reason: "aborted" | "exhausted" | "nonRetryable",
   ): void {
-    appLogger.error({ attemptNumber, error, reason }, 'retry stopped');
+    appLogger.error({ attemptNumber, error, reason }, "retry stopped");
   }
 }
 

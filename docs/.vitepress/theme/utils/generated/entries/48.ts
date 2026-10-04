@@ -3,11 +3,6 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/48/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/48/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/48/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/48/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/48/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/48/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/48/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/48/7';
-import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/48/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -15,14 +10,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7(),
-      loadChunk8()
+      loadChunk3()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `import {\n  WebWorkerFactory,\n  WebWorkerMessageTransport,\n  WebWorkerPool\n} from '../src/worker/browser/index.js';\nimport { ItemEntity } from './worker/entities/ItemEntity.js';\n\nclass BrowserWorkerPoolExample {\n  static async run(): Promise<void> {\n    const workerSource =\n      'self.onmessage = (event) => { self.postMessage({ n: event.data.n * 2 }); };';\n    const factory = WebWorkerFactory.create({\n      'options': { 'type': 'module' },\n      'script': \`data:application/javascript,${  String.fromCharCode(36, 123)  }encodeURIComponent(workerSource)}\`\n    });\n    const transport = WebWorkerMessageTransport.fromEntity<ItemEntity.Type, ItemEntity.Type>(\n      ItemEntity.intake\n    );\n    const pool = WebWorkerPool.create({\n      'factory': factory,\n      'maximumWorkers': 2,\n      'transport': transport\n    });\n\n    try {\n      const result = await pool.run([{ 'n': 1 }, { 'n': 2 }, { 'n': 3 }]);\n\n      console.log(result);\n    } finally {\n      await pool.close();\n    }\n  }\n}\n\nawait BrowserWorkerPoolExample.run();\n`
+  'source': "import type {\n  EntityCreateFunctionInterface,\n  EntityIntakeFunctionInterface,\n  EntityValidateFunctionInterface\n} from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\n\nimport { EntityCompiler } from '@studnicky/entity/browser';\nimport { SchemaNode } from '@studnicky/entity/types';\n\nexport namespace ItemEntity {\n  export const Schema = {\n    'additionalProperties': false,\n    'properties': {\n      'n': { 'type': 'number' }\n    },\n    'required': ['n'],\n    'type': 'object'\n  } as const;\n\n  export const Node = SchemaNode.defineObject(\n    { 'type': 'object' } as const,\n    { 'n': SchemaNode.defineNumber({ 'type': 'number' } as const) },\n    ['n'] as const,\n    { 'additionalProperties': false, 'patternProperties': {} }\n  );\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> =\n    EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> =\n    EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> =\n    EntityCompiler.compileCreate<Type>(Schema);\n}\n"
 });

@@ -4,6 +4,10 @@ import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/155/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/155/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/155/3';
 import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/155/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/155/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/155/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/155/7';
+import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/155/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -12,9 +16,13 @@ export const playgroundPayload = Object.freeze({
       loadChunk1(),
       loadChunk2(),
       loadChunk3(),
-      loadChunk4()
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7(),
+      loadChunk8()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** neverTimeout — demonstrates Signal.never and deadline composition. Run: npx tsx examples/neverTimeout.ts */\n\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport { Signal } from '../src/index.js';\n\nconst signals = Signal.create();\n\nclass NeverTimeoutDemo {\n  /** Signal.never() returns a fresh signal on every call. */\n  static neverIsFreshEachCall(): void {\n    const a = Signal.never();\n    const b = Signal.never();\n    const c = Signal.never();\n\n    assert.notStrictEqual(a, b, 'first and second calls return distinct objects');\n    assert.notStrictEqual(b, c, 'second and third calls return distinct objects');\n    assert.ok(!a.aborted && !b.aborted && !c.aborted, 'each fresh signal is not aborted');\n    console.log(\`neverIsFreshEachCall: a===b=${  String.fromCharCode(36, 123)  }a === b}, b===c=${  String.fromCharCode(36, 123)  }b === c}\`);\n  }\n\n  /** Signal.never() is never aborted. */\n  static neverIsNotAborted(): void {\n    const signal = Signal.never();\n\n    assert.ok(!signal.aborted, 'sentinel is not aborted');\n    console.log(\`neverIsNotAborted: aborted=${  String.fromCharCode(36, 123)  }signal.aborted}\`);\n  }\n\n  /** compose() returns an AbortSignal that is not yet aborted for a generous deadline. */\n  static async deadlineNotYetAborted(): Promise<void> {\n    using composed = await signals.compose({ 'deadlineMs': 5000 });\n    const signal = composed.signal;\n\n    assert.ok(signal instanceof AbortSignal, 'deadline composition returns an AbortSignal');\n    assert.ok(!signal.aborted, 'signal with 5 s deadline is not yet aborted');\n    console.log(\`deadlineNotYetAborted: aborted=${  String.fromCharCode(36, 123)  }signal.aborted}\`);\n  }\n\n  /** compose() with distinct deadlines returns distinct signal instances. */\n  static async deadlinesReturnDistinctInstances(): Promise<void> {\n    using first = await signals.compose({ 'deadlineMs': 1000 });\n    using second = await signals.compose({ 'deadlineMs': 2000 });\n\n    assert.notStrictEqual(first.signal, second.signal, 'different deadlines are distinct AbortSignal instances');\n    console.log(\`deadlinesReturnDistinctInstances: a===b=${  String.fromCharCode(36, 123)  }first.signal === second.signal}\`);\n  }\n}\n\nNeverTimeoutDemo.neverIsFreshEachCall();\nNeverTimeoutDemo.neverIsNotAborted();\nawait NeverTimeoutDemo.deadlineNotYetAborted();\nawait NeverTimeoutDemo.deadlinesReturnDistinctInstances();\n// #endregion usage\n\nconsole.log('neverTimeout: all assertions passed');\n`
+  'source': `/** memory-store — keep a Northstar Books cart coherent across checkout handlers. Run: npx tsx examples/memory-store.ts */\n\nimport { Mutex } from '@studnicky/concurrency/mutex';\nimport { MemoryPersistence, Store } from '@studnicky/store/node';\n\n// #region usage\nconst persistence = MemoryPersistence.create<readonly string[]>();\nconst mutex = Mutex.create<string>();\nconst store = Store.create({ 'initialState': [], 'key': 'northstar:cart:customer-42', 'mutex': mutex, 'persistence': persistence });\n\nstore.subscribe((snapshot): void => {\n  console.log(\`subscriber received ${  String.fromCharCode(36, 123)  }snapshot}\`);\n});\n\nawait store.update((snapshot): readonly string[] => {\n  const result = [...snapshot, '978-0-14-118776-1'];\n  return result;\n});\n\nconst hydrated = Store.create({ 'initialState': [], 'key': 'northstar:cart:customer-42', 'mutex': mutex, 'persistence': persistence });\n\nawait hydrated.hydrate();\n\nconsole.log({\n  'activeCart': store.getSnapshot(),\n  'hydratedCart': hydrated.getSnapshot()\n});\n// #endregion usage\n`
 });

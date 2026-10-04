@@ -109,7 +109,7 @@ export class CircularBuffer<T> implements CircularBufferInterface<T> {
   readonly #overflow: 'grow' | 'overwrite';
 
   // Deliberately NOT formalized onto `@studnicky/fsm`'s `StateMachine`, unlike
-  // Throttle/Mutex/BusQueue/CircuitBreaker/CancellableTask/etc. this session.
+  // Mutex/BusQueue/CircuitBreaker/CancellableTask/etc. this session.
   // Two structural reasons: (1) `@studnicky/fsm`'s `EffectInterpreter`/
   // `InterpreterHistory` already `extends CircularBuffer` at module top level;
   // making this package depend on `@studnicky/fsm` in turn creates a real

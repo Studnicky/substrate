@@ -3,10 +3,6 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/146/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/146/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/146/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/146/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/146/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/146/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/146/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/146/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -14,13 +10,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk3()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/**\n * di-provider — injectable SchedulerProviderInterface pattern and lifecycle hook extension.\n * Shows a LoggingScheduler subclass that records schedule and fire events, and a\n * WorkQueue that accepts any SchedulerProviderInterface (real or virtual) for easy test swap.\n *\n * Run: npx tsx packages/scheduler/examples/di-provider.ts\n */\nimport { VirtualTimeCounter } from '@studnicky/clock/node';\nimport assert from 'node:assert/strict';\n\nimport type { SchedulerLogEntryEntity } from '../src/entities/index.js';\nimport type { SchedulerProviderInterface } from '../src/index.js';\n\nimport { VirtualScheduler } from '../src/index.js';\n\n// #region usage\n\n/** VirtualScheduler subclass that appends lifecycle events to a log array. */\nclass LoggingScheduler extends VirtualScheduler {\n  public readonly log: SchedulerLogEntryEntity.Type[] = [];\n\n  public constructor(counter: Readonly<VirtualTimeCounter>) { super(counter); }\n\n  protected override onSchedule(id: string, _atMs: number, _variant: 'interval' | 'timeout'): void {\n    this.log.push({ 'event': 'schedule', 'id': id });\n  }\n\n  protected override onFire(id: string): void {\n    this.log.push({ 'event': 'fire', 'id': id });\n  }\n}\n\n/** Accepts any SchedulerProviderInterface — injectable for production/test swap. */\nclass WorkQueue {\n  readonly #scheduler: SchedulerProviderInterface;\n  public readonly processed: string[] = [];\n\n  public constructor(scheduler: SchedulerProviderInterface) {\n    this.#scheduler = scheduler;\n  }\n\n  public enqueue(atMs: number, label: string): void {\n    this.#scheduler.scheduleAt(atMs, () => { this.processed.push(label); });\n  }\n}\n\nconst counter = VirtualTimeCounter.create({ 'startMs': 0 });\nconst loggingScheduler = new LoggingScheduler(counter);\nconst queue = new WorkQueue(loggingScheduler);\n\nqueue.enqueue(100, 'alpha');\nqueue.enqueue(200, 'beta');\n\nloggingScheduler.advance(250);\n\nconsole.log('Scheduler log:', loggingScheduler.log);\nconsole.log('Processed labels:', queue.processed);\n// #endregion usage\n\nassert.equal(loggingScheduler.log.filter((event) => {\n  const result = event.event === 'schedule';\n  return result;\n}).length, 2);\nassert.equal(loggingScheduler.log.filter((event) => {\n  const result = event.event === 'fire';\n  return result;\n}).length, 2);\nassert.deepEqual(queue.processed, ['alpha', 'beta']);\n\nconsole.log('di-provider: all assertions passed');\n"
+  'source': "import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\n\nimport { EntityCompiler } from '@studnicky/entity/node';\nimport { SchemaNode } from '@studnicky/entity/types';\n\nexport namespace JobStateEntity {\n  export const Schema = {\n    'additionalProperties': false,\n    'properties': {\n      'variant': { 'enum': ['acknowledged', 'cancelled', 'completed', 'idle', 'waiting'], 'type': 'string' }\n    },\n    'required': ['variant'],\n    'type': 'object'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['acknowledged', 'cancelled', 'completed', 'idle', 'waiting'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n"
 });

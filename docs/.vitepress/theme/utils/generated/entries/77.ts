@@ -3,6 +3,10 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/77/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/77/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/77/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/77/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/77/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/77/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/77/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/77/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +14,13 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\n\nimport { EntityCompiler } from '@studnicky/entity/node';\nimport { SchemaNode } from '@studnicky/entity/types';\n\nexport namespace UserCreatedEventMapEntity {\n  export const Schema = {\n    'additionalProperties': false,\n    'properties': {\n      'user:created': {\n        'additionalProperties': false,\n        'properties': {\n          'email': { 'type': 'string' },\n          'id': { 'type': 'string' }\n        },\n        'required': ['email', 'id'],\n        'type': 'object'\n      }\n    },\n    'required': ['user:created'],\n    'type': 'object'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'user:created': SchemaNode.defineObject({ 'type': 'object' } as const, { 'email': SchemaNode.defineString({ 'type': 'string' } as const), 'id': SchemaNode.defineString({ 'type': 'string' } as const) }, ['email', 'id'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['user:created'] as const, { 'additionalProperties': false, 'patternProperties': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n"
+  'source': "/** multiSubscriber — multiple subscribers on the same topic all receive the payload; unsubscribe removes one. Run: npx tsx examples/multiSubscriber.ts */\n\nimport assert from 'node:assert/strict';\n\nimport type { OrderPlacementEventMapEntity } from './entities/OrderPlacementEventMapEntity.js';\n\n// #region usage\nimport { EventBus } from '../src/index.js';\nimport { MultiSubscriberFixture } from './fixtures/MultiSubscriberFixture.js';\n\nconst bus = EventBus.create<OrderPlacementEventMapEntity.Type>();\n\nconst unsubscribeA = bus.subscribe('order:placed', (payload) => {\n  // Northstar Books sends checkout confirmation after a successful order.\n  MultiSubscriberFixture.receivedA.push(payload.orderId);\n});\n\nbus.subscribe('order:placed', (payload) => {\n  // The fulfilment queue independently receives the same checkout event.\n  MultiSubscriberFixture.receivedB.push(payload.orderId);\n});\n\n// Confirmation and fulfilment both receive the first Northstar order event.\nawait bus.publish('order:placed', { 'orderId': 'northstar-order-1001' });\nawait bus.drain();\n\nconsole.log('After first publish — A:', MultiSubscriberFixture.receivedA, 'B:', MultiSubscriberFixture.receivedB);\n\n// Unsubscribe handler A — only B receives subsequent events\nunsubscribeA();\n\nawait bus.publish('order:placed', { 'orderId': 'northstar-order-1002' });\nawait bus.drain();\n\nconsole.log('After unsubscribe + second publish — A:', MultiSubscriberFixture.receivedA, 'B:', MultiSubscriberFixture.receivedB);\n// #endregion usage\n\nassert.equal(MultiSubscriberFixture.receivedA.length, 1, 'handler A should have received first event');\nassert.equal(MultiSubscriberFixture.receivedB.length, 2, 'handler B should have received both events');\nassert.equal(MultiSubscriberFixture.receivedA[0], 'northstar-order-1001');\nassert.equal(MultiSubscriberFixture.receivedB[0], 'northstar-order-1001');\nassert.equal(MultiSubscriberFixture.receivedB[1], 'northstar-order-1002');\n\nawait bus.close();\n\nconsole.log('multiSubscriber: all assertions passed');\n"
 });

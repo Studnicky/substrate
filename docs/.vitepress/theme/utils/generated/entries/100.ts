@@ -3,6 +3,9 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/100/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/100/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/100/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/100/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/100/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/100/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/100/6';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +13,12 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\n\nimport { EntityCompiler } from '@studnicky/entity/node';\nimport { SchemaNode } from '@studnicky/entity/types';\n\nexport namespace TrafficEventEntity {\n  export const Schema = {\n    'additionalProperties': false,\n    'properties': {\n      'type': { 'const': 'advance', 'type': 'string' }\n    },\n    'required': ['type'],\n    'type': 'object'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineConst({}, 'advance' as const) }, ['type'] as const, { 'additionalProperties': false, 'patternProperties': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n"
+  'source': `/** interpreterHistory — record and inspect an interpreter's own transitions. Run: npx tsx examples/interpreterHistory.ts */\n\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport type { FsmStepInterface } from '../src/index.js';\nimport type { TrafficEventEntity } from './entities/TrafficEventEntity.js';\nimport type { TrafficStateEntity } from './entities/TrafficStateEntity.js';\n\nimport { InterpreterHistory, StateMachine } from '../src/index.js';\n\n// --- Domain types ---\n\nclass TrafficMachine extends StateMachine<TrafficStateEntity.Type, TrafficEventEntity.Type> {\n  static make(): TrafficMachine { return new TrafficMachine(); }\n\n  getInitialState(): TrafficStateEntity.Type { return { 'variant': 'red' }; }\n\n  reduce(state: TrafficStateEntity.Type, event: TrafficEventEntity.Type): FsmStepInterface<TrafficStateEntity.Type> {\n    if (event.type === 'advance') {\n      if (state.variant === 'red')   { return { 'effects': [], 'state': { 'variant': 'green' } }; }\n      if (state.variant === 'green') { return { 'effects': [], 'state': { 'variant': 'amber' } }; }\n      if (state.variant === 'amber') { return { 'effects': [], 'state': { 'variant': 'red' } }; }\n    }\n    return { 'effects': [], 'state': state };\n  }\n}\n\n// A bounded ring of the last 2 transitions — older records are dropped.\nconst history = InterpreterHistory.create(\n  TrafficMachine.make(),\n  { 'capacity': 2, 'machineId': 'traffic-light' }\n);\n\nhistory.start();\nawait history.send({ 'type': 'advance' }); // red -> green\nawait history.send({ 'type': 'advance' }); // green -> amber\nawait history.send({ 'type': 'advance' }); // amber -> red, evicts the red -> green record\n\nconsole.log('Recorded transitions (oldest first):');\nconst historyRecords = history.history();\nconst historyRecordsLength = historyRecords.length;\nfor (let index = 0; index < historyRecordsLength; index += 1) {\n  const record = historyRecords[index]!;\n  console.log(\`  ${  String.fromCharCode(36, 123)  }record.from.variant} --[${  String.fromCharCode(36, 123)  }record.event.type}]--> ${  String.fromCharCode(36, 123)  }record.to.variant} @ ${  String.fromCharCode(36, 123)  }record.timestamp}\`);\n}\n\nhistory.stop();\n// #endregion usage\n\nconst records = history.history();\nassert.equal(records.length, 2, 'history is bounded to capacity');\nassert.deepEqual(records[0]?.from, { 'variant': 'green' }, 'oldest surviving record is green -> amber');\nassert.deepEqual(records[1]?.to, { 'variant': 'red' }, 'newest record is amber -> red');\n\nconsole.log('\\ninterpreterHistory: all assertions passed');\n`
 });

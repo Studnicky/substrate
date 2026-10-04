@@ -1,7 +1,7 @@
 {
   "name": "Substrate",
   "short_name": "Substrate",
-  "description": "A subclass-first toolkit of TypeScript primitives — retry, throttle, scheduler, clock, context, pipeline, logger, errors, json, and more.",
+  "description": "A toolkit of composable TypeScript primitives — retry, scheduler, clock, context, pipeline, logger, errors, json, and more.",
   "theme_color": "#14b8a6",
   "background_color": "#0f172a",
   "display": "standalone",

@@ -86,7 +86,7 @@ const SITE_URL = 'https://studnicky.github.io/substrate/';
 const SITE_BASE = '/substrate/';
 const SITE_OG_IMAGE = `${SITE_URL}og-image.png`;
 const SITE_THEME_COLOR = '#7c5aed';
-const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,vectorization,retry,throttle,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
+const SITE_KEYWORDS = 'typescript,composable,primitives,matching,filtering,topic-routing,vectorization,retry,scheduler,clock,async-context,pipeline,logger,errors,json,monorepo,esm,node,fsm,lifecycle-hooks,dependency-injection,circular-buffer,batch,timing,types,config,fetch,cache,concurrency,event-bus,file-lock,resilience,signal,system,abort-signal,circuit-breaker,token-bucket,dead-letter-queue';
 const SITE_AUTHOR_NAME = 'Andrew Studnicky';
 const SITE_AUTHOR_URL = 'https://github.com/Studnicky';
 const SITE_REPO = 'https://github.com/Studnicky/substrate';
@@ -320,7 +320,7 @@ export default defineConfig({
     'plugins': [substrateBrowserSwap()],
     'resolve': {
       'alias': [
-        // Browser shim for the resilience/retry and concurrency/throttle example leaves
+        // Browser shim for resilience/retry example leaves
         // that import named exports from node:timers/promises. Without this alias Rollup
         // fails to resolve the named export `setTimeout` from the externalized stub.
         { 'find': 'node:timers/promises', 'replacement': fileURLToPath(new URL('./shims/node-timers-promises.js', import.meta.url)) }

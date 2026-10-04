@@ -3,10 +3,6 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/70/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/70/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/70/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/70/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/70/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/70/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/70/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/70/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -14,13 +10,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk3()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** abortSignal — AbortSignal lifecycle: the subscription signal aborts on unsubscribe/close. Run: npx tsx examples/abortSignal.ts */\n\nimport assert from 'node:assert/strict';\n\nimport type { PingEventMapEntity } from './entities/PingEventMapEntity.js';\n\n// #region usage\nimport { EventBus } from '../src/index.js';\nimport { AbortSignalFixture } from './fixtures/AbortSignalFixture.js';\n\nconst bus = EventBus.create<PingEventMapEntity.Type>();\nconst controller = new AbortController();\n\nbus.subscribe('ping', (payload, signal) => {\n  // The signal is the subscription lifecycle signal — check it to bail out of\n  // long-running async work early, or pass it to fetch()/setTimeout() etc.\n  if (signal.aborted) { return; }\n  AbortSignalFixture.received.push(payload);\n\n  // Register a listener so in-flight async work can react to teardown.\n  signal.addEventListener('abort', () => {\n    AbortSignalFixture.abortedDuringDelivery.push(true);\n  }, { 'once': true });\n}, { 'signal': controller.signal });\n\nawait bus.publish('ping', 'first');\nawait bus.drain();\n\nconsole.log('Received before abort:', AbortSignalFixture.received);\n\n// Abort the subscriber — its signal aborts and it will no longer receive events.\ncontroller.abort();\n\nawait bus.publish('ping', 'second');\nawait bus.drain();\n\nconsole.log('Received after abort:', AbortSignalFixture.received);\n// #endregion usage\n\nassert.equal(AbortSignalFixture.received.length, 1, 'should have received first ping');\nassert.equal(AbortSignalFixture.received[0], 'first');\nassert.equal(AbortSignalFixture.abortedDuringDelivery.length, 1, 'abort listener should have fired once on teardown');\n\nawait bus.close();\n\nconsole.log('abortSignal: all assertions passed');\n"
+  'source': "import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\n\nimport { EntityCompiler } from '@studnicky/entity/node';\nimport { SchemaNode } from '@studnicky/entity/types';\n\nexport namespace OrderLifecycleEventMapEntity {\n  export const Schema = {\n    'additionalProperties': false,\n    'properties': {\n      'order:placed': {\n        'additionalProperties': false,\n        'properties': {\n          'id': { 'type': 'string' },\n          'total': { 'type': 'number' }\n        },\n        'required': ['id', 'total'],\n        'type': 'object'\n      },\n      'order:shipped': {\n        'additionalProperties': false,\n        'properties': {\n          'carrier': { 'type': 'string' },\n          'id': { 'type': 'string' }\n        },\n        'required': ['carrier', 'id'],\n        'type': 'object'\n      }\n    },\n    'required': ['order:placed', 'order:shipped'],\n    'type': 'object'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'order:placed': SchemaNode.defineObject({ 'type': 'object' } as const, { 'id': SchemaNode.defineString({ 'type': 'string' } as const), 'total': SchemaNode.defineNumber({ 'type': 'number' } as const) }, ['id', 'total'] as const, { 'additionalProperties': false, 'patternProperties': {} }), 'order:shipped': SchemaNode.defineObject({ 'type': 'object' } as const, { 'carrier': SchemaNode.defineString({ 'type': 'string' } as const), 'id': SchemaNode.defineString({ 'type': 'string' } as const) }, ['carrier', 'id'] as const, { 'additionalProperties': false, 'patternProperties': {} }) }, ['order:placed', 'order:shipped'] as const, { 'additionalProperties': false, 'patternProperties': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n"
 });

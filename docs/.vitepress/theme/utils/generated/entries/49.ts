@@ -4,10 +4,6 @@ import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/49/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/49/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/49/3';
 import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/49/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/49/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/49/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/49/7';
-import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/49/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -16,13 +12,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk1(),
       loadChunk2(),
       loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7(),
-      loadChunk8()
+      loadChunk4()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** observedWorkerPool — override the lifecycle hooks to collect telemetry. Run: npx tsx examples/observedWorkerPool.ts */\n\nimport assert from 'node:assert/strict';\nimport { fileURLToPath } from 'node:url';\n\nimport type {\n  WorkerErrorEnvelopeEntity,\n  WorkerLogEnvelopeEntity,\n  WorkerProgressEnvelopeEntity\n} from '../src/worker/entities/index.js';\n// #region usage\nimport type { WorkerResultEnvelopeInterface } from '../src/worker/interfaces/index.js';\nimport type { ItemEntity } from './worker/entities/ItemEntity.js';\n\nimport { WorkerPool } from '../src/worker/node/index.js';\n\nclass TelemetryWorkerPool extends WorkerPool<ItemEntity.Type, number> {\n  readonly logs: string[] = [];\n  readonly progressEvents: number[] = [];\n  readonly errors: { 'index': number; 'message': string }[] = [];\n\n  protected override onMessage(\n    envelope:\n      | WorkerErrorEnvelopeEntity.Type\n      | WorkerLogEnvelopeEntity.Type\n      | WorkerProgressEnvelopeEntity.Type\n      | WorkerResultEnvelopeInterface<number>,\n    index: number\n  ): void {\n    if (envelope.type === 'log') {\n      console.log(\`[worker ${  String.fromCharCode(36, 123)  }String(index)}] ${  String.fromCharCode(36, 123)  }envelope.message}\`);\n      this.logs.push(envelope.message);\n    } else if (envelope.type === 'progress') {\n      this.progressEvents.push(envelope.percent);\n    }\n  }\n\n  protected override onWorkerError(error: Error, index: number): void {\n    console.error('[worker] failed:', String(index), error.message);\n    this.errors.push({ 'index': index, 'message': error.message });\n  }\n}\n\nconst pool = TelemetryWorkerPool.create<ItemEntity.Type, number, TelemetryWorkerPool>({\n  'concurrency': 2,\n  'workerPath': fileURLToPath(new URL('./worker-observedWorkerPoolWorker.ts', import.meta.url))\n});\n\nconst results = await pool.run([{ 'n': 1 }, { 'n': 2 }, { 'n': 3 }]);\n\nconsole.log('Northstar Books fulfilment quotes (cents):', results);\n// #endregion usage\n\nassert.deepEqual(results, [495, 990, 1485]);\nassert.equal(pool.logs.length, 3);\nassert.equal(pool.progressEvents.length, 3);\nassert.equal(pool.errors.length, 0);\n\nconsole.log('observedWorkerPool: all assertions passed');\n`
+  'source': "import { RuntimeError } from '@studnicky/errors/node';\n/** custom-error — build a configuration error with an Error cause. Run: npx tsx packages/config/examples/custom-error.ts */\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport { ConfigurationError } from '../src/index.js';\n\nconst cause = RuntimeError.create('environment variable CONFIG_URL is not set');\nconst configurationError = ConfigurationError.create('configuration is invalid', cause);\n\nconsole.log('Configuration error:', configurationError.message);\nconsole.log('Cause:', configurationError.cause);\n// #endregion usage\n\nassert.equal(configurationError.message, 'configuration is invalid');\nassert.strictEqual(configurationError.cause, cause);\n\nconsole.log('custom-error: all assertions passed');\n"
 });
