@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { LogLevelEntity } from '../entities/LogLevelEntity.js';
 import type { LogLevelOptionsInterface } from '../interfaces/LogLevelOptionsInterface.js';

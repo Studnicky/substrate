@@ -1,392 +1,943 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { TypesScenarioCaseEntity } from '../../../../scripts/test-helpers/scenario-kit/dist/types-fixtures/TypesScenarioCaseEntity.js';
+import { BaseError } from '../../src/errors/BaseError.js';
 import { Empty } from '../../src/guards/Empty.js';
 import { JsonObject } from '../../src/guards/JsonObject.js';
 import { JsonValue } from '../../src/guards/JsonValue.js';
-import { PickDefined } from '../../src/objects/PickDefined.js';
 import { Predicates } from '../../src/predicates/Predicates.js';
+import { PATTERN_FIXTURES } from '../fixtures/PATTERN_FIXTURES.js';
+import scenarioGroups from './types.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './types.scenarios.json' with { type: 'json' };
+class TypesFixtureError extends BaseError {
+  public override readonly name: string = 'TypesFixtureError';
 
-type Scenario = {
-  readonly description: string;
-  readonly input?: unknown;
-  readonly outcome: unknown;
-};
+  public constructor(message: string, cause?: unknown) {
+    super({
+      'cause': cause,
+      'code': 'types.testFixtureFailed',
+      'message': message,
+      'retryable': false
+    });
+  }
+}
 
-type InputExecutor = (input: unknown) => unknown;
-type MarkerMaterializer = () => unknown;
-type OutcomeAssertion = (actual: unknown) => void;
-type ScenarioExecutor = (scenario: Scenario) => void;
+interface MarkerFactoryInterface {
+  (): unknown;
+}
 
-type MaterializeMarkers = {
-  readonly abortSignal: MarkerMaterializer;
-  readonly arrayBufferView: MarkerMaterializer;
-  readonly asyncIterable: MarkerMaterializer;
-  readonly bigint: MarkerMaterializer;
-  readonly blob: MarkerMaterializer;
-  readonly cyclicObject: MarkerMaterializer;
-  readonly date: MarkerMaterializer;
-  readonly error: MarkerMaterializer;
-  readonly formData: MarkerMaterializer;
-  readonly function: MarkerMaterializer;
-  readonly headers: MarkerMaterializer;
-  readonly infinity: MarkerMaterializer;
-  readonly iterable: MarkerMaterializer;
-  readonly map: MarkerMaterializer;
-  readonly mapWithEntry: MarkerMaterializer;
-  readonly namedFunction: MarkerMaterializer;
-  readonly nan: MarkerMaterializer;
-  readonly negativeInfinity: MarkerMaterializer;
-  readonly null: MarkerMaterializer;
-  readonly nullPrototypeObject: MarkerMaterializer;
-  readonly readableStream: MarkerMaterializer;
-  readonly regex: MarkerMaterializer;
-  readonly request: MarkerMaterializer;
-  readonly response: MarkerMaterializer;
-  readonly set: MarkerMaterializer;
-  readonly setWithEntry: MarkerMaterializer;
-  readonly symbol: MarkerMaterializer;
-  readonly thenable: MarkerMaterializer;
-  readonly undefined: MarkerMaterializer;
-  readonly url: MarkerMaterializer;
-  readonly urlSearchParams: MarkerMaterializer;
-};
+interface OutcomeAssertionInterface {
+  (actual: unknown): void;
+}
 
-function named(): void {}
+interface VerdictPredicateInterface {
+  (value: unknown): boolean;
+}
 
-const materializeMarkers = {
-  abortSignal: () => new AbortController().signal,
-  arrayBufferView: () => new Uint8Array([1, 2, 3]),
-  asyncIterable: () => ({ [Symbol.asyncIterator]: () => ({ next: () => Promise.resolve({ done: true, value: undefined }) }) }),
-  bigint: () => 9007199254740993n,
-  blob: () => new Blob(['payload']),
-  cyclicObject: () => {
+/** Boolean-verdict views of the DOM guards; their narrowed types carry library `any`, and the runners compare only the verdict. */
+class VerdictPredicates {
+  static readonly isAbortSignal: VerdictPredicateInterface = Predicates.isAbortSignal;
+  static readonly isAsyncIterable: VerdictPredicateInterface = Predicates.isAsyncIterable;
+  static readonly isBlob: VerdictPredicateInterface = Predicates.isBlob;
+  static readonly isFormData: VerdictPredicateInterface = Predicates.isFormData;
+  static readonly isHeaders: VerdictPredicateInterface = Predicates.isHeaders;
+  static readonly isIterable: VerdictPredicateInterface = Predicates.isIterable;
+  static readonly isReadableStream: VerdictPredicateInterface = Predicates.isReadableStream;
+  static readonly isRequest: VerdictPredicateInterface = Predicates.isRequest;
+  static readonly isResponse: VerdictPredicateInterface = Predicates.isResponse;
+  static readonly isURL: VerdictPredicateInterface = Predicates.isURL;
+  static readonly isURLSearchParams: VerdictPredicateInterface = Predicates.isURLSearchParams;
+}
+
+/** Runtime-value markers (`{ "shape": "<name>" }`) materialized from JSON scenario data, and the outcome assertions that match them. */
+class TypesFixtures {
+  static readonly markerFactories: ReadonlyMap<string, MarkerFactoryInterface> = new Map<
+    string,
+    MarkerFactoryInterface
+  >([
+    ['abortSignal', TypesFixtures.abortSignalMarker],
+    [
+      'arrayBufferView',
+      () => {
+        return new Uint8Array([1, 2, 3]);
+      }
+    ],
+    ['asyncIterable', TypesFixtures.asyncIterableMarker],
+    [
+      'bigint',
+      () => {
+        return 9007199254740993n;
+      }
+    ],
+    [
+      'blob',
+      () => {
+        return new Blob(['payload']);
+      }
+    ],
+    ['cyclicObject', TypesFixtures.cyclicObjectMarker],
+    [
+      'date',
+      () => {
+        return new Date(0);
+      }
+    ],
+    ['error', TypesFixtures.errorMarker],
+    [
+      'formData',
+      () => {
+        return new FormData();
+      }
+    ],
+    [
+      'function',
+      () => {
+        return () => {};
+      }
+    ],
+    [
+      'headers',
+      () => {
+        return new Headers();
+      }
+    ],
+    [
+      'infinity',
+      () => {
+        return Number.POSITIVE_INFINITY;
+      }
+    ],
+    [
+      'iterable',
+      () => {
+        return [1, 2, 3];
+      }
+    ],
+    [
+      'map',
+      () => {
+        return new Map();
+      }
+    ],
+    [
+      'mapWithEntries',
+      () => {
+        return new Map([
+          ['a', 1],
+          ['b', 2]
+        ]);
+      }
+    ],
+    [
+      'mapWithEntry',
+      () => {
+        return new Map([['a', 1]]);
+      }
+    ],
+    [
+      'namedFunction',
+      () => {
+        return TypesFixtures.named;
+      }
+    ],
+    [
+      'nan',
+      () => {
+        return Number.NaN;
+      }
+    ],
+    [
+      'negativeInfinity',
+      () => {
+        return Number.NEGATIVE_INFINITY;
+      }
+    ],
+    [
+      'null',
+      () => {
+        return null;
+      }
+    ],
+    [
+      'nullPrototypeObject',
+      () => {
+        const bare: unknown = Object.create(null);
+        return bare;
+      }
+    ],
+    [
+      'readableStream',
+      () => {
+        return new ReadableStream();
+      }
+    ],
+    [
+      'regex',
+      () => {
+        return PATTERN_FIXTURES.value;
+      }
+    ],
+    [
+      'request',
+      () => {
+        return new Request('https://example.test');
+      }
+    ],
+    [
+      'response',
+      () => {
+        return new Response();
+      }
+    ],
+    [
+      'set',
+      () => {
+        return new Set();
+      }
+    ],
+    [
+      'setWithEntry',
+      () => {
+        return new Set([1]);
+      }
+    ],
+    [
+      'symbol',
+      () => {
+        const marker = Symbol('s');
+        return marker;
+      }
+    ],
+    ['thenable', TypesFixtures.thenableMarker],
+    [
+      'undefined',
+      () => {
+        return undefined;
+      }
+    ],
+    ['url', TypesFixtures.urlMarker],
+    [
+      'urlSearchParams',
+      () => {
+        return new URLSearchParams();
+      }
+    ]
+  ]);
+
+  static readonly outcomeAssertions: ReadonlyMap<string, OutcomeAssertionInterface> = new Map<
+    string,
+    OutcomeAssertionInterface
+  >([
+    [
+      'date',
+      (actual) => {
+        assert.ok(actual instanceof Date);
+      }
+    ],
+    [
+      'function',
+      (actual) => {
+        assert.equal(typeof actual, 'function');
+      }
+    ],
+    [
+      'map',
+      (actual) => {
+        assert.ok(actual instanceof Map);
+        assert.equal(actual.size, 0);
+      }
+    ],
+    [
+      'nan',
+      (actual) => {
+        assert.ok(Number.isNaN(actual));
+      }
+    ],
+    [
+      'null',
+      (actual) => {
+        assert.strictEqual(actual, null);
+      }
+    ],
+    [
+      'regex',
+      (actual) => {
+        assert.ok(actual instanceof RegExp);
+      }
+    ],
+    [
+      'set',
+      (actual) => {
+        assert.ok(actual instanceof Set);
+        assert.equal(actual.size, 0);
+      }
+    ],
+    [
+      'undefined',
+      (actual) => {
+        assert.strictEqual(actual, undefined);
+      }
+    ]
+  ]);
+
+  static expectOutcome(actual: unknown, expected: unknown): void {
+    if (Array.isArray(expected)) {
+      TypesFixtures.expectArrayOutcome(actual, expected);
+    } else if (TypesFixtures.isMarkedOutcome(expected)) {
+      TypesFixtures.requireOutcomeAssertion(expected.shape)(actual);
+    } else if (TypesFixtures.isObjectRecord(expected)) {
+      TypesFixtures.expectRecordOutcome(actual, expected);
+    } else {
+      assert.strictEqual(actual, expected);
+    }
+  }
+
+  static named(): void {}
+
+  static isEntryIterable(value: unknown): value is Iterable<readonly [string, unknown]> {
+    const result = typeof value === 'object' && value !== null && Symbol.iterator in value;
+    return result;
+  }
+
+  static materialize(value: unknown): unknown {
+    let result: unknown = value;
+    if (Array.isArray(value)) {
+      result = TypesFixtures.materializeArray(value);
+    } else if (TypesFixtures.isMarkedValue(value)) {
+      result = TypesFixtures.requireMarkerFactory(value.shape)();
+    } else if (TypesFixtures.isObjectRecord(value)) {
+      result = TypesFixtures.materializeRecord(value);
+    }
+    return result;
+  }
+
+  private static abortSignalMarker(): unknown {
+    const controller = new AbortController();
+    const signal = controller.signal;
+    return signal;
+  }
+
+  private static asyncIterableMarker(): unknown {
+    const iterable = {
+      [Symbol.asyncIterator]: () => {
+        const iterator = {
+          'next': () => {
+            const step = Promise.resolve({ 'done': true, 'value': undefined });
+            return step;
+          }
+        };
+        return iterator;
+      }
+    };
+    return iterable;
+  }
+
+  private static cyclicObjectMarker(): unknown {
     const cyclic: Record<string, unknown> = {};
     cyclic.self = cyclic;
     return cyclic;
-  },
-  date: () => new Date(0),
-  error: () => {
+  }
+
+  private static errorMarker(): unknown {
     try {
       JSON.parse('{');
     } catch (error) {
       return error;
     }
-    return assert.fail('Expected JSON.parse() to throw for invalid JSON.');
-  },
-  formData: () => new FormData(),
-  function: () => () => {},
-  headers: () => new Headers(),
-  infinity: () => Number.POSITIVE_INFINITY,
-  iterable: () => [1, 2, 3],
-  map: () => new Map(),
-  mapWithEntry: () => new Map([['a', 1]]),
-  namedFunction: () => named,
-  nan: () => Number.NaN,
-  negativeInfinity: () => Number.NEGATIVE_INFINITY,
-  null: () => null,
-  nullPrototypeObject: () => Object.create(null),
-  readableStream: () => new ReadableStream(),
-  regex: () => /value/u,
-  request: () => new Request('https://example.test'),
-  response: () => new Response(),
-  set: () => new Set(),
-  setWithEntry: () => new Set([1]),
-  symbol: () => Symbol('s'),
-  thenable: () => {
-    const value: Record<string, unknown> = {};
-    Reflect.set(value, 'then', () => {});
-    return value;
-  },
-  undefined: () => undefined,
-  url: () => new URL('https://example.test'),
-  urlSearchParams: () => new URLSearchParams()
-} satisfies MaterializeMarkers;
-
-type OutcomeAssertions = {
-  readonly date: OutcomeAssertion;
-  readonly function: OutcomeAssertion;
-  readonly map: OutcomeAssertion;
-  readonly nan: OutcomeAssertion;
-  readonly null: OutcomeAssertion;
-  readonly regex: OutcomeAssertion;
-  readonly set: OutcomeAssertion;
-  readonly undefined: OutcomeAssertion;
-};
-
-const outcomeAssertions = {
-  date: (actual) => {
-    assert.ok(actual instanceof Date);
-  },
-  function: (actual) => {
-    assert.equal(typeof actual, 'function');
-  },
-  map: (actual) => {
-    assert.ok(actual instanceof Map);
-    assert.equal(actual.size, 0);
-  },
-  nan: (actual) => {
-    assert.ok(Number.isNaN(actual));
-  },
-  null: (actual) => {
-    assert.strictEqual(actual, null);
-  },
-  regex: (actual) => {
-    assert.ok(actual instanceof RegExp);
-  },
-  set: (actual) => {
-    assert.ok(actual instanceof Set);
-    assert.equal(actual.size, 0);
-  },
-  undefined: (actual) => {
-    assert.strictEqual(actual, undefined);
-  }
-} satisfies OutcomeAssertions;
-
-function hasOwnKey<ObjectValue extends object>(value: ObjectValue, key: PropertyKey): key is keyof ObjectValue {
-  return Object.hasOwn(value, key);
-}
-
-function getMappedValue<ValueMap extends object>(
-  valueMap: ValueMap,
-  key: PropertyKey,
-  label: string
-): ValueMap[keyof ValueMap] {
-  if (hasOwnKey(valueMap, key)) {
-    return valueMap[key];
-  }
-  return assert.fail(`Unknown ${label}: ${String(key)}`);
-}
-
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function materialize(value: unknown): unknown {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => materialize(entry));
-  }
-  if (value === null || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') {
-    return value;
+    const failure = assert.fail('Expected JSON.parse() to throw for invalid JSON.');
+    return failure;
   }
 
-  if (isObjectRecord(value) && 'shape' in value) {
-    const markerShape = value.shape;
-    if (typeof markerShape === 'string' && hasOwnKey(materializeMarkers, markerShape)) {
-      return materializeMarkers[markerShape]();
-    }
-  }
-
-  if (isObjectRecord(value)) {
-    const result: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value)) {
-      result[key] = materialize(entry);
-    }
-    return result;
-  }
-  return value;
-}
-
-function expectOutcome(actual: unknown, expected: unknown): void {
-  if (Array.isArray(expected)) {
+  private static expectArrayOutcome(actual: unknown, expected: readonly unknown[]): void {
     assert.ok(Array.isArray(actual));
     assert.equal(actual.length, expected.length);
     for (let index = 0; index < expected.length; index += 1) {
-      expectOutcome(actual[index], expected[index]);
-    }
-    return;
-  }
-
-  if (isObjectRecord(expected) && 'shape' in expected) {
-    const markerShape = expected.shape;
-    if (typeof markerShape === 'string' && hasOwnKey(outcomeAssertions, markerShape)) {
-      outcomeAssertions[markerShape](actual);
-      return;
+      TypesFixtures.expectOutcome(actual[index], expected[index]);
     }
   }
 
-  if (isObjectRecord(expected) && !Array.isArray(expected)) {
-    assert.ok(isObjectRecord(actual));
+  private static expectRecordOutcome(actual: unknown, expected: Record<string, unknown>): void {
+    assert.ok(TypesFixtures.isObjectRecord(actual));
     assert.deepStrictEqual(Object.keys(actual).toSorted(), Object.keys(expected).toSorted());
-    for (const [key, value] of Object.entries(expected)) {
-      expectOutcome(actual[key], value);
+    const entries = Object.entries(expected);
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      assert.ok(entry !== undefined);
+      TypesFixtures.expectOutcome(Reflect.get(actual, entry[0]), entry[1]);
     }
-    return;
   }
 
-  assert.strictEqual(actual, expected);
+  private static isMarkedOutcome(value: unknown): value is { 'shape': string } {
+    const marked =
+      TypesFixtures.isObjectRecord(value) &&
+      typeof value.shape === 'string' &&
+      TypesFixtures.outcomeAssertions.has(value.shape);
+    return marked;
+  }
+
+  private static isMarkedValue(value: unknown): value is { 'shape': string } {
+    const marked =
+      TypesFixtures.isObjectRecord(value) &&
+      typeof value.shape === 'string' &&
+      TypesFixtures.markerFactories.has(value.shape);
+    return marked;
+  }
+
+  private static isObjectRecord(value: unknown): value is Record<string, unknown> {
+    const result = typeof value === 'object' && value !== null && !Array.isArray(value);
+    return result;
+  }
+
+  private static materializeArray(values: readonly unknown[]): unknown[] {
+    const result: unknown[] = [];
+    for (let index = 0; index < values.length; index += 1) {
+      result.push(TypesFixtures.materialize(values[index]));
+    }
+    return result;
+  }
+
+  private static materializeRecord(value: Record<string, unknown>): Record<string, unknown> {
+    const pairs: (readonly [string, unknown])[] = [];
+    const entries = Object.entries(value);
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index];
+      assert.ok(entry !== undefined);
+      pairs.push([entry[0], TypesFixtures.materialize(entry[1])]);
+    }
+    const result = JsonObject.fromEntries(pairs);
+    return result;
+  }
+
+  private static requireMarkerFactory(shape: string): MarkerFactoryInterface {
+    const factory = TypesFixtures.markerFactories.get(shape);
+    assert.ok(factory !== undefined, `Unknown value marker: ${shape}`);
+    return factory;
+  }
+
+  private static requireOutcomeAssertion(shape: string): OutcomeAssertionInterface {
+    const assertion = TypesFixtures.outcomeAssertions.get(shape);
+    assert.ok(assertion !== undefined, `Unknown outcome marker: ${shape}`);
+    return assertion;
+  }
+
+  private static thenableMarker(): unknown {
+    const value: Record<string, unknown> = {};
+    Reflect.set(value, 'then', () => {});
+    return value;
+  }
+
+  private static urlMarker(): unknown {
+    try {
+      const url = new URL('https://example.test');
+      return url;
+    } catch (cause) {
+      throw new TypesFixtureError('Fixture URL did not parse', cause);
+    }
+  }
 }
 
-type GuardExecutors = {
-  readonly [GroupName in keyof typeof scenarioGroups.guard]: InputExecutor;
-};
-
-const guardExecutors = {
-  asNumber: (input) => Predicates.asNumber(input),
-  asRecordArray: (input) => Predicates.asRecordArray(input),
-  asStringOrNull: (input) => Predicates.asStringOrNull(input),
-  isAbortSignal: (input) => Predicates.isAbortSignal(input),
-  isArray: (input) => Predicates.isArray(input),
-  isArrayBufferView: (input) => Predicates.isArrayBufferView(input),
-  isAsyncIterable: (input) => Predicates.isAsyncIterable(input),
-  isBigInt: (input) => Predicates.isBigInt(input),
-  isBlob: (input) => Predicates.isBlob(input),
-  isBoolean: (input) => Predicates.isBoolean(input),
-  isDate: (input) => Predicates.isDate(input),
-  isError: (input) => Predicates.isError(input),
-  isFormData: (input) => Predicates.isFormData(input),
-  isFunction: (input) => Predicates.isFunction(input),
-  isHeaders: (input) => Predicates.isHeaders(input),
-  isIterable: (input) => Predicates.isIterable(input),
-  isMap: (input) => Predicates.isMap(input),
-  isNonNegativeInteger: (input) => Predicates.isNonNegativeInteger(input),
-  isNullish: (input) => Predicates.isNullish(input),
-  isNumber: (input) => Predicates.isNumber(input),
-  isObject: (input) => Predicates.isObject(input),
-  isObjectLike: (input) => Predicates.isObjectLike(input),
-  isPlainObject: (input) => Predicates.isPlainObject(input),
-  isPositiveInteger: (input) => Predicates.isPositiveInteger(input),
-  isReadableStream: (input) => Predicates.isReadableStream(input),
-  isRecord: (input) => Predicates.isRecord(input),
-  isRegExp: (input) => Predicates.isRegExp(input),
-  isRequest: (input) => Predicates.isRequest(input),
-  isResponse: (input) => Predicates.isResponse(input),
-  isSet: (input) => Predicates.isSet(input),
-  isString: (input) => Predicates.isString(input),
-  isSymbol: (input) => Predicates.isSymbol(input),
-  isThenable: (input) => Predicates.isThenable(input),
-  isURL: (input) => Predicates.isURL(input),
-  isURLSearchParams: (input) => Predicates.isURLSearchParams(input)
-} satisfies GuardExecutors;
-
-type EmptyExecutors = {
-  readonly array: ScenarioExecutor;
-  readonly arrayIdentity: ScenarioExecutor;
-  readonly isArray: ScenarioExecutor;
-  readonly isMap: ScenarioExecutor;
-  readonly isObject: ScenarioExecutor;
-  readonly isSet: ScenarioExecutor;
-  readonly isString: ScenarioExecutor;
-  readonly map: ScenarioExecutor;
-  readonly mapIdentity: ScenarioExecutor;
-  readonly object: ScenarioExecutor;
-  readonly objectIdentity: ScenarioExecutor;
-  readonly set: ScenarioExecutor;
-  readonly setIdentity: ScenarioExecutor;
-  readonly string: ScenarioExecutor;
-};
-
-const emptyExecutors = {
-  array: (scenario) => {
-    expectOutcome(Empty.array(), scenario.outcome);
-  },
-  arrayIdentity: (scenario) => {
-    expectOutcome(Empty.array() !== Empty.array(), scenario.outcome);
-  },
-  isArray: (scenario) => {
-    expectOutcome(Predicates.isEmptyArray(materialize(scenario.input)), scenario.outcome);
-  },
-  isMap: (scenario) => {
-    expectOutcome(Predicates.isEmptyMap(materialize(scenario.input)), scenario.outcome);
-  },
-  isObject: (scenario) => {
-    expectOutcome(Predicates.isEmptyPlainObject(materialize(scenario.input)), scenario.outcome);
-  },
-  isSet: (scenario) => {
-    expectOutcome(Predicates.isEmptySet(materialize(scenario.input)), scenario.outcome);
-  },
-  isString: (scenario) => {
-    expectOutcome(Predicates.isEmptyString(materialize(scenario.input)), scenario.outcome);
-  },
-  map: (scenario) => {
-    expectOutcome(Empty.map(), scenario.outcome);
-  },
-  mapIdentity: (scenario) => {
-    expectOutcome(Empty.map() !== Empty.map(), scenario.outcome);
-  },
-  object: (scenario) => {
-    expectOutcome(Empty.object(), scenario.outcome);
-  },
-  objectIdentity: (scenario) => {
-    expectOutcome(Empty.object() !== Empty.object(), scenario.outcome);
-  },
-  set: (scenario) => {
-    expectOutcome(Empty.set(), scenario.outcome);
-  },
-  setIdentity: (scenario) => {
-    expectOutcome(Empty.set() !== Empty.set(), scenario.outcome);
-  },
-  string: (scenario) => {
-    expectOutcome(Empty.string(), scenario.outcome);
+class TypesRunners {
+  static asNumber(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asNumber'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asNumber(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
-} satisfies EmptyExecutors;
 
-type JsonValueExecutors = {
-  readonly from: ScenarioExecutor;
-  readonly is: ScenarioExecutor;
-};
-
-const jsonValueExecutors = {
-  from: (scenario) => {
-    expectOutcome(JsonValue.from(materialize(scenario.input)), scenario.outcome);
-  },
-  is: (scenario) => {
-    expectOutcome(JsonValue.is(materialize(scenario.input)), scenario.outcome);
+  static asStringOrNull(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asStringOrNull'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asStringOrNull(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
   }
-} satisfies JsonValueExecutors;
 
-for (const [groupName, groupValue] of Object.entries(scenarioGroups.guard)) {
-  const execute = getMappedValue(guardExecutors, groupName, 'Predicates scenario group');
-  void describe(`Predicates.${groupName}`, () => {
-    for (const scenario of groupValue) {
-      void it(scenario.description, () => {
-        const input = materialize(scenario.input);
-        expectOutcome(execute(input), scenario.outcome);
-      });
-    }
+  static asRecordArray(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'asRecordArray'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.asRecordArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isString(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isString'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isString(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isNumber(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNumber'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNumber(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isBoolean(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBoolean'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isBoolean(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isFunction(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFunction'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isFunction(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isObject(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isNonNegativeInteger(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNonNegativeInteger'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNonNegativeInteger(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isPositiveInteger(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPositiveInteger'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isPositiveInteger(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isArray(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArray'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isDate(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isDate'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isDate(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isError(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isError'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isError(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isMap(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isMap'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isMap(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isSet(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSet'>): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isSet(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isObjectLike(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isObjectLike'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isObjectLike(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isRecord(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRecord'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isRecord(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isPlainObject(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isPlainObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isPlainObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isNullish(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isNullish'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isNullish(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isRegExp(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRegExp'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isRegExp(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isSymbol(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isSymbol'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isSymbol(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isBigInt(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBigInt'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isBigInt(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isThenable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isThenable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isThenable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isIterable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isIterable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isIterable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isAsyncIterable(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAsyncIterable'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isAsyncIterable(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isArrayBufferView(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isArrayBufferView'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isArrayBufferView(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isBlob(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isBlob'>): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isBlob(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isFormData(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isFormData'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isFormData(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isURL(scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURL'>): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isURL(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isURLSearchParams(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isURLSearchParams'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isURLSearchParams(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isHeaders(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isHeaders'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isHeaders(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isRequest(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isRequest'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isRequest(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isResponse(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isResponse'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isResponse(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isAbortSignal(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isAbortSignal'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isAbortSignal(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static isReadableStream(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'isReadableStream'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      VerdictPredicates.isReadableStream(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-array'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-array'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.array(), scenarioCase.outcome);
+  }
+
+  static 'empty-arrayIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-arrayIdentity'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.array() !== Empty.array(), scenarioCase.outcome);
+  }
+
+  static 'empty-isArray'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isArray'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyArray(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-isMap'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isMap'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyMap(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-isObject'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isObject'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyPlainObject(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-isSet'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isSet'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptySet(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-isString'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-isString'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      Predicates.isEmptyString(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'empty-map'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-map'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.map(), scenarioCase.outcome);
+  }
+
+  static 'empty-mapIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-mapIdentity'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.map() !== Empty.map(), scenarioCase.outcome);
+  }
+
+  static 'empty-object'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-object'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.object(), scenarioCase.outcome);
+  }
+
+  static 'empty-objectIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-objectIdentity'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.object() !== Empty.object(), scenarioCase.outcome);
+  }
+
+  static 'empty-set'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-set'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.set(), scenarioCase.outcome);
+  }
+
+  static 'empty-setIdentity'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-setIdentity'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.set() !== Empty.set(), scenarioCase.outcome);
+  }
+
+  static 'empty-string'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'empty-string'>
+  ): void {
+    TypesFixtures.expectOutcome(Empty.string(), scenarioCase.outcome);
+  }
+
+  static 'jsonObject-fromEntries'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-fromEntries'>
+  ): void {
+    const input = TypesFixtures.materialize(scenarioCase.input);
+    assert.ok(TypesFixtures.isEntryIterable(input));
+    TypesFixtures.expectOutcome(JsonObject.fromEntries(input), scenarioCase.outcome);
+  }
+
+  static 'jsonObject-is'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-is'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonObject.is(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'jsonObject-write'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonObject-write'>
+  ): void {
+    const input = TypesFixtures.materialize(scenarioCase.input);
+    assert.ok(Predicates.isRecord(input));
+    const target = input.target;
+    const key = input.key;
+    assert.ok(Predicates.isRecord(target));
+    assert.ok(typeof key === 'string');
+    const result = JsonObject.write(target, key, input.value);
+    const prototypeIntact = Object.getPrototypeOf(target) === Object.prototype;
+    TypesFixtures.expectOutcome(
+      { 'prototypeIntact': prototypeIntact, 'result': result, 'target': target },
+      scenarioCase.outcome
+    );
+  }
+
+  static 'jsonValue-from'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-from'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonValue.from(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+
+  static 'jsonValue-is'(
+    scenarioCase: ScenarioCaseOfType<TypesScenarioCaseEntity.Type, 'jsonValue-is'>
+  ): void {
+    TypesFixtures.expectOutcome(
+      JsonValue.is(TypesFixtures.materialize(scenarioCase.input)),
+      scenarioCase.outcome
+    );
+  }
+}
+
+ScenarioSuite.register({
+  'entity': TypesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Predicates, Empty, JsonObject, and JsonValue',
+  'runners': TypesRunners
+});
+
+void describe('JsonObject.write', () => {
+  void it('writes a string key onto a plain object and returns true', () => {
+    const target: Record<string, unknown> = {};
+    const returned = JsonObject.write(target, 'name', 'Ada');
+    assert.equal(returned, true);
+    assert.equal(target.name, 'Ada');
   });
-}
 
-void describe('Empty', () => {
-  for (const scenario of scenarioGroups.empty) {
-    const execute = getMappedValue(emptyExecutors, scenario.method, 'Empty scenario method');
-    void it(scenario.description, () => {
-      execute(scenario);
-    });
-  }
-});
+  void it('writes a symbol key onto an existing target and returns true', () => {
+    const marker = Symbol('marker');
+    const target: Record<PropertyKey, unknown> = { 'existing': 1 };
+    const returned = JsonObject.write(target, marker, 'tagged');
+    assert.equal(returned, true);
+    assert.equal(target[marker], 'tagged');
+    assert.equal(target.existing, 1);
+  });
 
-void describe('JsonObject', () => {
-  for (const scenario of scenarioGroups.jsonObject) {
-    void it(scenario.description, () => {
-      const input = materialize(scenario.input);
-      expectOutcome(JsonObject.is(input), scenario.outcome);
-    });
-  }
-});
+  void it('writes a numeric index onto an existing array and returns true', () => {
+    const target: unknown[] = ['a', 'b'];
+    const returned = JsonObject.write(target, 1, 'z');
+    assert.equal(returned, true);
+    assert.deepStrictEqual(target, ['a', 'z']);
+  });
 
-void describe('JsonValue', () => {
-  for (const scenario of scenarioGroups.jsonValue) {
-    const execute = getMappedValue(jsonValueExecutors, scenario.method, 'JsonValue scenario method');
-    void it(scenario.description, () => {
-      execute(scenario);
-    });
-  }
-});
+  void it('returns false and leaves a frozen target unchanged, matching Reflect.set', () => {
+    const target: Record<string, unknown> = Object.freeze({ 'locked': true });
+    const returned = JsonObject.write(target, 'locked', false);
+    assert.equal(returned, false);
+    assert.equal(target.locked, true);
+  });
 
-void describe('PickDefined', () => {
-  for (const scenario of scenarioGroups.pickDefined) {
-    void it(scenario.description, () => {
-      const input = materialize(scenario.input);
-      assert.ok(isObjectRecord(input) && !Array.isArray(input));
-      expectOutcome(PickDefined.from(input), scenario.outcome);
-    });
-  }
+  void it('rejects a __proto__ key and leaves the target prototype unchanged', () => {
+    const target: Record<string, unknown> = {};
+    const returned = JsonObject.write(target, '__proto__', { 'polluted': true });
+    assert.equal(returned, false);
+    assert.equal(Reflect.getPrototypeOf(target), Object.prototype);
+  });
 });
 
 void describe('Predicates.areNaNStrict', () => {
@@ -408,12 +959,21 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     assert.equal(Predicates.areDeeplyEqual(Number.NaN, Number.NaN), true);
     assert.equal(Predicates.areDeeplyEqual(-0, 0), false);
     assert.equal(Predicates.areDeeplyEqual(new Date(1), new Date(1)), true);
-    assert.equal(Predicates.areDeeplyEqual(/value/giu, /value/giu), true);
-    assert.equal(Predicates.areDeeplyEqual(/value/gu, /other/gu), false);
     assert.equal(
       Predicates.areDeeplyEqual(
-        new Map<unknown, unknown>([[{ id: 1 }, new Set<unknown>([{ value: [1, 2] }])]]),
-        new Map<unknown, unknown>([[{ id: 1 }, new Set<unknown>([{ value: [1, 2] }])]])
+        PATTERN_FIXTURES.valueCaseInsensitive,
+        PATTERN_FIXTURES.valueCaseInsensitive
+      ),
+      true
+    );
+    assert.equal(
+      Predicates.areDeeplyEqual(PATTERN_FIXTURES.valueGlobal, PATTERN_FIXTURES.other),
+      false
+    );
+    assert.equal(
+      Predicates.areDeeplyEqual(
+        new Map<unknown, unknown>([[{ 'id': 1 }, new Set<unknown>([{ 'value': [1, 2] }])]]),
+        new Map<unknown, unknown>([[{ 'id': 1 }, new Set<unknown>([{ 'value': [1, 2] }])]])
       ),
       true
     );
@@ -433,7 +993,7 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     assert.equal(Predicates.areDeeplyEqual(leftSet, rightSet), true);
 
     const twoNodeCycle: Record<string, unknown> = {};
-    const secondNode: Record<string, unknown> = { next: twoNodeCycle };
+    const secondNode: Record<string, unknown> = { 'next': twoNodeCycle };
     twoNodeCycle.next = secondNode;
     const selfCycle: Record<string, unknown> = {};
     selfCycle.next = selfCycle;
@@ -453,17 +1013,17 @@ void describe('Predicates.areDeeplyEqual and hasCycle', () => {
     setCycle.add(setCycle);
     assert.equal(Predicates.hasCycle(setCycle), true);
 
-    const shared = { value: 1 };
-    assert.equal(Predicates.hasCycle({ first: shared, second: shared }), false);
+    const shared = { 'value': 1 };
+    assert.equal(Predicates.hasCycle({ 'first': shared, 'second': shared }), false);
   });
 
   void it('detects cycles through Date and RegExp enumerable properties', () => {
     const date = new Date();
-    Object.assign(date, { self: date });
+    Object.assign(date, { 'self': date });
     assert.equal(Predicates.hasCycle(date), true);
 
-    const expression = /cycle/u;
-    Object.assign(expression, { self: expression });
+    const expression = PATTERN_FIXTURES.cycle;
+    Object.assign(expression, { 'self': expression });
     assert.equal(Predicates.hasCycle(expression), true);
   });
 });
@@ -493,7 +1053,7 @@ void describe('Predicates.isInstanceOf', () => {
 
   class ThrowingInstanceCheck {
     public static [Symbol.hasInstance](): boolean {
-      throw new Error('Instance check failed.');
+      throw new TypesFixtureError('Instance check failed.');
     }
   }
 
@@ -528,33 +1088,5 @@ void describe('Predicates.isInstanceOf', () => {
 
   void it('returns false when the instance check throws', () => {
     assert.equal(Predicates.isInstanceOf(new Base(), ThrowingInstanceCheck), false);
-  });
-});
-
-void describe('Predicates subclass override', () => {
-  class LaxPredicates extends Predicates {
-    public static override isObject<T>(value: T): value is T & Record<string, unknown> {
-      return typeof value === 'object' && value !== null;
-    }
-  }
-
-  void it('overridden isObject accepts arrays', () => {
-    assert.equal(LaxPredicates.isObject([1, 2, 3]), true);
-    assert.equal(LaxPredicates.isObject(null), false);
-    assert.equal(LaxPredicates.isObject({}), true);
-  });
-
-  void it('asRecordArray delegates through overridden isObject — nested arrays pass filter', () => {
-    const input: unknown[] = [[1, 2], { a: 1 }, 'skip-me', null];
-    const result = LaxPredicates.asRecordArray(input);
-
-    assert.ok(result !== undefined);
-    assert.equal(result.length, 2);
-    assert.deepEqual(result[0], [1, 2]);
-    assert.deepEqual(result[1], { a: 1 });
-  });
-
-  void it('base Predicates.isObject is unchanged — arrays are not records', () => {
-    assert.equal(Predicates.isObject([1, 2, 3]), false);
   });
 });

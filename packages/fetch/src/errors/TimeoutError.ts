@@ -17,6 +17,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class TimeoutError extends FetchBaseError {
+  public override readonly name: string = 'TimeoutError';
+
   /**
    * The URL that was fetched
    */

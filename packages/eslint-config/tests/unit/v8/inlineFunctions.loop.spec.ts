@@ -1,24 +1,15 @@
-import assert from 'node:assert/strict';
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { inlineFunctions } from '../../../src/rules/v8/inlineFunctions.js';
-import { Predicates } from '@studnicky/types/node';
-import scenarioGroups from './inlineFunctions.scenarios.json' with { type: 'json' };
-
-function toMessageId(report: unknown): string {
-  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
-  const { messageId } = report;
-  return typeof messageId === 'string' ? messageId : '<no-messageId>';
-}
+import scenarioGroups from './inlineFunctions.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // `projectService`/`tsconfigRootDir` (not bare `sourceType: 'module'`) is required
 // here: the redesigned rule resolves `.forEach` and other per-element iteration
@@ -27,13 +18,13 @@ const repoRoot = resolve(import.meta.dirname, '../../../..');
 // module comment), so any scenario relying on it would silently pass with zero
 // errors regardless of what the rule actually does — a vacuous test.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
@@ -43,21 +34,15 @@ void describe('inline-functions', () => {
     ruleTester.run('inline-functions', inlineFunctions, scenarioGroups);
   });
 
-  void it('covers guard exits directly', () => {
-    const reports: unknown[] = [];
-    const listeners = inlineFunctions.create({
-      report(descriptor: unknown) {
-        reports.push(descriptor);
-      }
-    } as never);
-
-    // BlockStatement body (always true for FunctionExpression), but the
-    // containing shape matches none of the recognized rebuilt-per-call/iteration
-    // positions.
-    listeners.FunctionExpression?.({
-      parent: { type: 'ClassBody' }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), []);
+  void it('covers remaining guard exits over real source', () => {
+    ruleTester.run('inline-functions', inlineFunctions, {
+      'invalid': [],
+      'valid': [
+        {
+          'code': 'class C { fn = function () { return 1; }; }',
+          'name': 'a FunctionExpression as a class field initializer - container matches none of the recognized rebuilt-per-call/iteration positions'
+        }
+      ]
+    });
   });
 });

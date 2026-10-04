@@ -1,24 +1,15 @@
-import assert from 'node:assert/strict';
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { inlineArrowFunctions } from '../../../src/rules/v8/inlineArrowFunctions.js';
-import { Predicates } from '@studnicky/types/node';
-import scenarioGroups from './inlineArrowFunctions.scenarios.json' with { type: 'json' };
-
-function toMessageId(report: unknown): string {
-  if (!Predicates.isRecord(report)) { return '<no-messageId>'; }
-  const { messageId } = report;
-  return typeof messageId === 'string' ? messageId : '<no-messageId>';
-}
+import scenarioGroups from './inlineArrowFunctions.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // `projectService`/`tsconfigRootDir` (not bare `sourceType: 'module'`) is required
 // here: the redesigned rule resolves `.forEach` and other per-element iteration
@@ -28,13 +19,13 @@ const repoRoot = resolve(import.meta.dirname, '../../../..');
 // on it would silently pass with zero errors regardless of what the rule
 // actually does — a vacuous test.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });
@@ -44,34 +35,23 @@ void describe('inline-arrow-functions', () => {
     ruleTester.run('inline-arrow-functions', inlineArrowFunctions, scenarioGroups);
   });
 
-  void it('covers guard exits directly', () => {
-    const reports: unknown[] = [];
-    const listeners = inlineArrowFunctions.create({
-      report(descriptor: unknown) {
-        reports.push(descriptor);
-      }
-    } as never);
-
-    // Non-BlockStatement body short-circuits before any position check runs.
-    listeners.ArrowFunctionExpression?.({
-      body: { type: 'Identifier' },
-      parent: { type: 'Property', parent: { type: 'ObjectExpression' } }
-    } as never);
-
-    // Single-statement BlockStatement body short-circuits on the statement-count
-    // gate before any position check runs.
-    listeners.ArrowFunctionExpression?.({
-      body: { body: [{ type: 'ReturnStatement' }], type: 'BlockStatement' },
-      parent: { type: 'Property', parent: { type: 'ObjectExpression' } }
-    } as never);
-
-    // Multi-statement BlockStatement body, but the containing shape matches none
-    // of the recognized rebuilt-per-call/iteration positions.
-    listeners.ArrowFunctionExpression?.({
-      body: { body: [{ type: 'ExpressionStatement' }, { type: 'ReturnStatement' }], type: 'BlockStatement' },
-      parent: { type: 'MethodDefinition', parent: { type: 'ClassBody' } }
-    } as never);
-
-    assert.deepEqual(reports.map(toMessageId), []);
+  void it('covers remaining guard exits over real source', () => {
+    ruleTester.run('inline-arrow-functions', inlineArrowFunctions, {
+      'invalid': [],
+      'valid': [
+        {
+          'code': 'const o = { fn: (x: number) => x };',
+          'name': 'a non-BlockStatement (concise) body short-circuits before any position check runs'
+        },
+        {
+          'code': 'const o = { fn: (x: number) => { return x; } };',
+          'name': 'a single-statement BlockStatement body short-circuits on the statement-count gate'
+        },
+        {
+          'code': 'class C { method = (x: number): number => { console.log(x); return x; }; }',
+          'name': 'a multi-statement BlockStatement body whose container is a class field, not a recognized rebuilt-per-call/iteration position'
+        }
+      ]
+    });
   });
 });

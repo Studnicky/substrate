@@ -1,7 +1,8 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 import { DateRangeFilterRuleEntity } from './DateRangeFilterRuleEntity.js';
 import { NumericRangeFilterRuleEntity } from './NumericRangeFilterRuleEntity.js';
@@ -11,9 +12,10 @@ import { ValueFilterRuleEntity } from './ValueFilterRuleEntity.js';
 export namespace FilterRuleEntity {
   export const Schema = {
     'oneOf': [DateRangeFilterRuleEntity.Schema, NumericRangeFilterRuleEntity.Schema, ValueFilterRuleEntity.Schema]
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineOneOf({}, [DateRangeFilterRuleEntity.Node, NumericRangeFilterRuleEntity.Node, ValueFilterRuleEntity.Node]);
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

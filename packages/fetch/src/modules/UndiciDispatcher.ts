@@ -4,7 +4,6 @@
  */
 
 
-import { RuntimeError } from '@studnicky/errors/node';
 import { RaceTimeout } from '@studnicky/signal/node';
 import { Predicates } from '@studnicky/types/node';
 import { Agent } from 'undici';
@@ -20,7 +19,7 @@ import {
   POOL_PRESSURE_THRESHOLD
 } from '../constants/POOL_HEALTH.js';
 import { SocketDispatcherStatsEntity } from '../entities/SocketDispatcherStatsEntity.js';
-import { ConfigurationError } from '../errors/index.js';
+import { ConfigurationError, ConstructionError, DispatcherShutdownError } from '../errors/index.js';
 import { TestDispatcher } from '../testing/TestDispatcher.js';
 
 interface UndiciDispatcherSubclassInterface<TInstance> extends Function {
@@ -73,9 +72,9 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
     this: UndiciDispatcherSubclassInterface<TInstance>,
     agent: Agent | TestDispatcher
   ): TInstance {
-    const result = Reflect.construct(this, [agent]) as object;
+    const result: unknown = Reflect.construct(this, [agent]);
     if (!Predicates.isInstanceOf(result, this)) {
-      throw RuntimeError.create('UndiciDispatcher.create() did not construct the requested subclass.');
+      throw new ConstructionError('UndiciDispatcher.create() did not construct the requested subclass.');
     }
     const instance: TInstance = result;
     return instance;
@@ -195,7 +194,11 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
       return;
     }
 
-    await this.agent.close();
+    try {
+      await this.agent.close();
+    } catch (cause) {
+      throw new DispatcherShutdownError('undici Agent close failed', cause);
+    }
   }
 
   /**
@@ -227,7 +230,7 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
    * await dispatcher.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.agent instanceof TestDispatcher) {
       await this.agent.destroy(options);
       return;
@@ -239,22 +242,26 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
       await RaceTimeout.wait(timeout, undefined);
     }
 
-    await this.agent.destroy();
+    try {
+      await this.agent.destroy();
+    } catch (cause) {
+      throw new DispatcherShutdownError('undici Agent destroy failed', cause);
+    }
   }
 
   /**
    * Get connection pool statistics for all origins
    *
-   * @returns Frozen record mapping origin URLs to frozen dispatcher statistics
+   * @returns Map of origin URLs to frozen dispatcher statistics conforming to the pool-stats shape
    */
-  getStats(): Readonly<Record<string, unknown>> {
+  getStats(): ReadonlyMap<string, Readonly<SocketDispatcherStatsEntity.Type>> {
     if (this.agent instanceof TestDispatcher) {
       const result = this.agent.getStats();
       return result;
     }
 
     const stats = this.agent.stats;
-    const frozenStats: Record<string, unknown> = {};
+    const frozenStats = new Map<string, Readonly<SocketDispatcherStatsEntity.Type>>();
 
     const originEntries = Object.entries(stats);
     const originEntryLength = originEntries.length;
@@ -264,11 +271,13 @@ export class UndiciDispatcher implements UndiciDispatcherInterface {
         continue;
       }
       const [origin, dispatcherStats] = entry;
-      Reflect.set(frozenStats, origin, Object.freeze({ ...dispatcherStats }));
+      if (!SocketDispatcherStatsEntity.validate(dispatcherStats)) {
+        continue;
+      }
+      frozenStats.set(origin, Object.freeze({ ...dispatcherStats }));
     }
 
-    const result = Object.freeze(frozenStats);
-    return result;
+    return frozenStats;
   }
 
 }

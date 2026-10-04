@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { DateRangeFilterRuleEntity } from '../../entities/DateRangeFilterRuleEntity.js';
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';
@@ -29,10 +29,16 @@ class FilterPredicates {
   }
 
   static passesFilter(item: Record<string, unknown>, filter: FilterRuleEntity.Type): boolean {
-    const handler = filterDispatch[filter.type];
-
-    const result = handler !== undefined ? handler(item, filter) : true;
-    return result;
+    switch (filter.type) {
+      case 'date':
+        return FilterPredicates.passesDateFilter(item, filter);
+      case 'numeric':
+        return FilterPredicates.passesNumericFilter(item, filter);
+      case 'value':
+        return FilterPredicates.passesValueFilter(item, filter);
+      default:
+        return filter;
+    }
   }
 
   static passesNumericFilter(item: Record<string, unknown>, filter: NumericRangeFilterRuleEntity.Type): boolean {
@@ -68,12 +74,6 @@ class FilterPredicates {
     return result;
   }
 }
-
-const filterDispatch: Record<string, (item: Record<string, unknown>, filter: FilterRuleEntity.Type) => boolean> = {
-  'date': (item, filter) => { const result = FilterPredicates.passesDateFilter(item, filter as DateRangeFilterRuleEntity.Type); return result; },
-  'numeric': (item, filter) => { const result = FilterPredicates.passesNumericFilter(item, filter as NumericRangeFilterRuleEntity.Type); return result; },
-  'value': (item, filter) => { const result = FilterPredicates.passesValueFilter(item, filter as ValueFilterRuleEntity.Type); return result; }
-};
 
 /**
  * Provides filter operations for data records.

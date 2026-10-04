@@ -6,14 +6,10 @@
  * @module
  */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
 
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 
-interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
 
 /**
  * Mutable counter that tracks virtual epoch-ms for test scenarios.
@@ -21,16 +17,12 @@ interface VirtualTimeCounterSubclassInterface<TInstance> extends Function {
  * instances see the change immediately.
  */
 export class VirtualTimeCounter {
-  static create<TInstance extends VirtualTimeCounter = VirtualTimeCounter>(
-    this: VirtualTimeCounterSubclassInterface<TInstance>,
-    options: Partial<VirtualTimeCounterOptionsEntity.Type> = {}
-  ): TInstance {
+  static create(
+    this: typeof VirtualTimeCounter,
+    options: VirtualTimeCounterOptionsEntity.InputType = {}
+  ): VirtualTimeCounter {
     const resolvedOptions = VirtualTimeCounterOptionsEntity.intake(options);
-    const result: unknown = Reflect.construct(this, [resolvedOptions]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('VirtualTimeCounter.create() did not construct the requested subclass.');
-    }
-    return result;
+    return new this(resolvedOptions);
   }
 
   /** Current virtual epoch-ms. Must be non-negative. */

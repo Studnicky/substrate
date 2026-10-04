@@ -32,10 +32,10 @@
       "path": "../pipeline"
     },
     {
-      "path": "../timing"
+      "path": "../types"
     },
     {
-      "path": "../types"
+      "path": "../signal"
     }
   ]
 }

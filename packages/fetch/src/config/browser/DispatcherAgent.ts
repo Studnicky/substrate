@@ -1,8 +1,6 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-
 import type { DispatcherConfigEntity } from '../../entities/DispatcherConfigEntity.js';
 
-import { ConfigurationError } from '../../errors/index.js';
+import { ConfigurationError, ConstructionError } from '../../errors/index.js';
 
 const BROWSER_ERROR_MESSAGE =
   'undici connection pooling requires a Node.js runtime; the browser uses native fetch';
@@ -10,7 +8,7 @@ const BROWSER_ERROR_MESSAGE =
 /** Rejects Node-only connection pooling in browser builds. */
 export class DispatcherAgent {
   private constructor() {
-    throw RuntimeError.create('DispatcherAgent is a static factory');
+    throw new ConstructionError('DispatcherAgent is a static factory');
   }
 
   static create(_config: DispatcherConfigEntity.Type): never {

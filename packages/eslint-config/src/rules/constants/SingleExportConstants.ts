@@ -1,10 +1,17 @@
-/** Data constants for the `single-export` rule: index-file basenames, the topology folder names that impose a naming convention on their contents, and the word-splitting / SCREAMING_SNAKE_CASE matchers used to validate exported names. */
+/** Data constants for the `export-shape` rule: index-file basenames, the topology folder names that impose a naming convention on their contents, and the word-splitting / SCREAMING_SNAKE_CASE matchers used to validate exported names. */
 
 export const INDEX_FILES: ReadonlySet<string> = new Set([
   'index.cts',
   'index.mts',
   'index.ts',
   'index.tsx'
+]);
+
+export const CANONICAL_INDEX_BASES: ReadonlySet<string> = new Set([
+  'index.js',
+  'index.mjs',
+  'index.mts',
+  'index.ts'
 ]);
 
 export const RESTRICTED_TOPOLOGY_NAMES = [

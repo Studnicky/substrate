@@ -1,4 +1,4 @@
-/** Data constants for the `type-alias-invariants` rule: the matchers used to locate a `readonly` modifier token, the primitive TS keyword node types that make a type alias a forbidden primitive wrapper, and their display names for the diagnostic message. */
+/** Data constants for the `type-alias-invariants` rule: the matchers for locating a `readonly` modifier token, the primitive TS keyword node types that make a type alias a forbidden primitive wrapper, and their display names for the diagnostic message. */
 
 export const READONLY_KEYWORD_PATTERN = /\breadonly\b/u;
 

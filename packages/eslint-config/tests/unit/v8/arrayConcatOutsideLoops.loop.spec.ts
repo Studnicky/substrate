@@ -1,16 +1,15 @@
-import { describe, it } from 'node:test';
-import { resolve } from 'node:path';
-
-import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { arrayConcatOutsideLoops } from '../../../src/rules/v8/arrayConcatOutsideLoops.js';
-import scenarioGroups from './arrayConcatOutsideLoops.scenarios.json' with { type: 'json' };
+import scenarioGroups from './arrayConcatOutsideLoops.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // TYPE SERVICES ARE MANDATORY FOR THIS RULE'S TESTS.
 //
@@ -31,13 +30,13 @@ const repoRoot = resolve(import.meta.dirname, '../../../..');
 // A type-aware rule tested without type services does not fail loudly in every
 // direction — `valid` scenarios still pass, for the wrong reason. Keep this config.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });

@@ -1,4 +1,4 @@
 export interface ContextRunResultInterface<TResult> {
-  readonly 'snapshot': Record<string, unknown>;
+  readonly 'snapshot': ReadonlyMap<string, unknown>;
   readonly 'value': TResult;
 }

@@ -9,6 +9,8 @@ Disallows `new RegExp(...)`, `RegExp(...)`, and regular-expression literals in a
 
 For a hoistable pattern on Node v24, testing with a single reused regular expression took 62.39 ms and constructing one per iteration took 202.95 ms over 5,000,000 iterations: 3.25x slower.
 
+The invariance check is a scope-analysis proof, not name matching: it resolves each identifier referenced by the pattern/flags arguments to its declaration and asks whether that declaration sits inside the nearest per-iteration boundary. When a referenced identifier's declaration cannot be resolved at all — a global, an import, an unresolvable scope — that is not treated as proof of loop-variance; only a positively proven loop-scoped reference exempts the construction, so the rule still reports the common case by default.
+
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect

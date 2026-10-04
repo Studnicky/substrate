@@ -12,17 +12,32 @@ export class ValidatePath {
    * @returns true if valid, false otherwise
    */
   static validatePath(path: string): boolean {
+    const earlyResult = ValidatePath.checkEarlyExit(path);
+
+    if (earlyResult !== null) {
+      return earlyResult;
+    }
+
+    // Split by dots and validate each segment
+    const segments = path.split('.');
+
+    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+      if (!ValidatePath.isValidPathSegment(segments[segmentIndex]!)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** `null` means none of the shortcut cases apply, so the caller falls through to segment-by-segment validation. */
+  private static checkEarlyExit(path: string): boolean | null {
     if (typeof path !== 'string') {
       return false;
     }
 
-    // Allow empty string as a valid field name (edge case but valid in JS)
-    if (path === '') {
-      return true;
-    }
-
-    // Allow single space as a valid field name (edge case but valid in JS)
-    if (path === ' ') {
+    // Allow empty string or a single space as a valid field name (edge case but valid in JS)
+    if (path === '' || path === ' ') {
       return true;
     }
 
@@ -38,68 +53,56 @@ export class ValidatePath {
       return true;
     }
 
-    // Must not start or end with dot
-    if (path.startsWith('.') || path.endsWith('.')) {
+    // Must not start or end with dot, and must not have consecutive dots
+    if (path.startsWith('.') || path.endsWith('.') || path.includes('..')) {
       return false;
     }
 
-    // Must not have consecutive dots
-    if (path.includes('..')) {
+    return null;
+  }
+
+  private static isValidPathSegment(segment: string): boolean {
+    // Each segment must be non-empty
+    if (segment.length === 0) {
       return false;
     }
 
-    // Split by dots and validate each segment
-    const segments = path.split('.');
+    // Check for array notation (allowed)
+    if (!segment.includes('[')) {
+      // Regular segment - validate identifier
+      const result = ValidatePath.isValidSegment(segment);
 
-    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-      const segment = segments[segmentIndex]!;
-
-      // Each segment must be non-empty
-      if (segment.length === 0) {
-        return false;
-      }
-
-      // Check for array notation (allowed)
-      if (!segment.includes('[')) {
-        // Regular segment - validate identifier
-        if (!ValidatePath.isValidSegment(segment)) {
-          return false;
-        }
-        continue;
-      }
-
-      const parts = segment.split('[');
-      const fieldName = parts[0];
-      const bracketPart = parts[1];
-
-      // Must have field name before bracket
-      if (fieldName === undefined || fieldName.length === 0) {
-        return false;
-      }
-
-      // Validate field name part
-      if (!ValidatePath.isValidSegment(fieldName)) {
-        return false;
-      }
-
-      // Check bracket part
-      if (parts.length !== 2 || bracketPart === undefined) {
-        return false;
-      }
-      if (!bracketPart.endsWith(']')) {
-        return false;
-      }
-
-      // Remove closing bracket
-      const indexPart = bracketPart.slice(0, -1);
-
-      // Index must be number or wildcard
-      if (indexPart !== '*' && !WHOLE_NUMBER_PATTERN.test(indexPart)) {
-        return false;
-      }
+      return result;
     }
 
-    return true;
+    const result = ValidatePath.isValidBracketedSegment(segment);
+
+    return result;
+  }
+
+  private static isValidBracketedSegment(segment: string): boolean {
+    const parts = segment.split('[');
+    const fieldName = parts[0];
+    const bracketPart = parts[1];
+
+    // Must have field name before bracket, and it must validate as an identifier
+    if (fieldName === undefined || fieldName.length === 0 || !ValidatePath.isValidSegment(fieldName)) {
+      return false;
+    }
+
+    // Check bracket part
+    if (parts.length !== 2 || bracketPart === undefined) {
+      return false;
+    }
+    if (!bracketPart.endsWith(']')) {
+      return false;
+    }
+
+    // Remove closing bracket; index must be number or wildcard
+    const indexPart = bracketPart.slice(0, -1);
+    const result = indexPart === '*' || WHOLE_NUMBER_PATTERN.test(indexPart);
+
+    return result;
   }
 
   /**

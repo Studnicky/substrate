@@ -5,6 +5,10 @@ import assert from 'node:assert/strict';
 
 // #region usage
 class DefaultClockLimiter extends SlidingWindowLimiter {
+  static override create(options: Parameters<typeof SlidingWindowLimiter.create>[0]): DefaultClockLimiter {
+    return new DefaultClockLimiter(options);
+  }
+
   hasNoHookErrors(): boolean {
     const result = this.getHookErrors().length === 0;
     return result;

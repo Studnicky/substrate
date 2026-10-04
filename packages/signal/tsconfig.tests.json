@@ -18,7 +18,16 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../clock"
+    },
+    {
+      "path": "../entity"
+    },
+    {
       "path": "../errors"
+    },
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

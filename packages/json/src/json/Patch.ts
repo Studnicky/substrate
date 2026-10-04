@@ -1,7 +1,7 @@
 /** RFC-6902 JSON Patch operations for arbitrary object targets. */
 
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import { ESCAPED_SLASH_PATTERN, ESCAPED_TILDE_PATTERN, SLASH_PATTERN, TILDE_PATTERN } from '../constants/JsonPointerConstants.js';
 import { JsonValueEntity } from '../entities/JsonValueEntity.js';
@@ -45,7 +45,16 @@ export class Patch {
       const candidate: unknown = candidates[index];
       parsedOperations.push(PatchOperationEntity.intake(candidate));
     }
-    this.#operations = structuredClone(parsedOperations);
+    this.#operations = Patch.detach(parsedOperations);
+  }
+
+  private static detach<T>(value: T): T {
+    try {
+      const result = structuredClone(value);
+      return result;
+    } catch (cause) {
+      throw new PatchError('Patch operations cannot be cloned', 'clone', '', cause);
+    }
   }
 
   private static diffArray(base: unknown[], next: unknown[], path: string, operations: PatchOperationEntity.Type[]): void {
@@ -98,7 +107,7 @@ export class Patch {
 
   /** Return a deeply isolated projection of the patch operations. */
   public get operations(): readonly PatchOperationEntity.Type[] {
-    const result = structuredClone(this.#operations);
+    const result = Patch.detach(this.#operations);
     return result;
   }
 
@@ -108,7 +117,7 @@ export class Patch {
     for (let index = 0; index < operationLength; index += 1) {
       const operation = this.#operations[index];
       if (operation !== undefined) {
-        this.applyOperation(target, structuredClone(operation));
+        this.applyOperation(target, Patch.detach(operation));
       }
     }
     const result = target;
@@ -190,14 +199,14 @@ export class Patch {
     for (let index = 0; index < parts.length - 1; index += 1) {
       const part = parts[index]!;
       if (!Predicates.isObjectLike(current)) {throw new PatchError(`Intermediate path not traversable: ${path}`, 'setValue', path);}
-      if (!Reflect.has(current, part)) {Reflect.set(current, part, {});}
+      if (!Reflect.has(current, part)) {JsonObject.write(current, part, {});}
       current = Reflect.get(current, part);
     }
     const lastPart = parts.at(-1);
     if (lastPart === undefined || !Predicates.isObjectLike(current)) {
       throw new PatchError(`Cannot set on non-object at: ${path}`, 'setValue', path);
     }
-    Reflect.set(current, lastPart, value);
+    JsonObject.write(current, lastPart, value);
   }
 
   /** Remove the value at `path` from `target`. */
@@ -248,7 +257,7 @@ export class Patch {
 
   private applyReplace(target: Record<string, unknown>, operation: PatchOperationEntity.Type): void {
     const resolved = this.resolveReplaceTarget(target, operation.path);
-    if (resolved !== undefined) {Reflect.set(resolved.container, resolved.key, this.requireValue(operation));}
+    if (resolved !== undefined) {JsonObject.write(resolved.container, resolved.key, this.requireValue(operation));}
   }
 
   private applyRemove(target: Record<string, unknown>, operation: PatchOperationEntity.Type): void {
@@ -293,7 +302,12 @@ export class Patch {
   /** Produce a human-readable description of a single operation. */
   protected describeOp(operation: PatchOperationEntity.Type): string {
     if (operation.op === 'add' || operation.op === 'replace' || operation.op === 'test') {
-      return `${operation.op.toUpperCase()} ${operation.path} = ${JSON.stringify(this.requireValue(operation))}`;
+      const value = this.requireValue(operation);
+      try {
+        return `${operation.op.toUpperCase()} ${operation.path} = ${JSON.stringify(value)}`;
+      } catch (error) {
+        throw new PatchError(`${operation.op} operation value is not JSON-serializable`, operation.op, operation.path, error);
+      }
     }
     if (operation.op === 'copy' || operation.op === 'move') {
       return `${operation.op.toUpperCase()} ${this.requireFrom(operation)} → ${operation.path}`;

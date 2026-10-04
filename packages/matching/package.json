@@ -1,7 +1,23 @@
 {
   "name": "@studnicky/matching",
-  "version": "14.0.0",
+  "version": "15.0.0",
   "description": "Deterministic matching, scoring, encoding, and candidate-source primitives",
+  "bugs": {
+    "url": "https://github.com/Studnicky/substrate/issues"
+  },
+  "license": "MIT",
+  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Studnicky/substrate.git",
+    "directory": "packages/matching"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -40,40 +56,37 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./semantic/node": {
+      "types": "./dist/semantic/node/index.d.ts",
+      "import": "./dist/semantic/node/index.js"
+    },
+    "./semantic/browser": {
+      "types": "./dist/semantic/browser/index.d.ts",
+      "import": "./dist/semantic/browser/index.js"
+    },
+    "./semantic/entities": {
+      "types": "./dist/semantic/entities/index.d.ts",
+      "import": "./dist/semantic/entities/index.js"
+    },
+    "./semantic/interfaces": {
+      "types": "./dist/semantic/interfaces/index.d.ts",
+      "import": "./dist/semantic/interfaces/index.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist coverage test-reports tsconfig.tsbuildinfo",
     "type-check": "tsc --noEmit",
-    "test": "node ../../scripts/test-suite.mjs all --package ."
-  },
-  "license": "MIT",
-  "author": "Andrew Studnicky <a.j.studnicky@gmail.com>",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Studnicky/substrate.git",
-    "directory": "packages/matching"
-  },
-  "bugs": {
-    "url": "https://github.com/Studnicky/substrate/issues"
-  },
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
-    "access": "public"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=11.0.0"
+    "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
     "@studnicky/cache": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "double-metaphone": "2.0.1",
@@ -81,5 +94,9 @@
   },
   "devDependencies": {
     "@types/picomatch": "4.0.3"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
   }
 }

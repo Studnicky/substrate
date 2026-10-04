@@ -11,15 +11,17 @@ import { MultiSubscriberFixture } from './fixtures/MultiSubscriberFixture.js';
 const bus = EventBus.create<OrderPlacementEventMapEntity.Type>();
 
 const unsubscribeA = bus.subscribe('order:placed', (payload) => {
+  // Northstar Books sends checkout confirmation after a successful order.
   MultiSubscriberFixture.receivedA.push(payload.orderId);
 });
 
 bus.subscribe('order:placed', (payload) => {
+  // The fulfilment queue independently receives the same checkout event.
   MultiSubscriberFixture.receivedB.push(payload.orderId);
 });
 
-// Both handlers receive the first event
-await bus.publish('order:placed', { 'orderId': 'order-1' });
+// Confirmation and fulfilment both receive the first Northstar order event.
+await bus.publish('order:placed', { 'orderId': 'northstar-order-1001' });
 await bus.drain();
 
 console.log('After first publish — A:', MultiSubscriberFixture.receivedA, 'B:', MultiSubscriberFixture.receivedB);
@@ -27,7 +29,7 @@ console.log('After first publish — A:', MultiSubscriberFixture.receivedA, 'B:'
 // Unsubscribe handler A — only B receives subsequent events
 unsubscribeA();
 
-await bus.publish('order:placed', { 'orderId': 'order-2' });
+await bus.publish('order:placed', { 'orderId': 'northstar-order-1002' });
 await bus.drain();
 
 console.log('After unsubscribe + second publish — A:', MultiSubscriberFixture.receivedA, 'B:', MultiSubscriberFixture.receivedB);
@@ -35,9 +37,9 @@ console.log('After unsubscribe + second publish — A:', MultiSubscriberFixture.
 
 assert.equal(MultiSubscriberFixture.receivedA.length, 1, 'handler A should have received first event');
 assert.equal(MultiSubscriberFixture.receivedB.length, 2, 'handler B should have received both events');
-assert.equal(MultiSubscriberFixture.receivedA[0], 'order-1');
-assert.equal(MultiSubscriberFixture.receivedB[0], 'order-1');
-assert.equal(MultiSubscriberFixture.receivedB[1], 'order-2');
+assert.equal(MultiSubscriberFixture.receivedA[0], 'northstar-order-1001');
+assert.equal(MultiSubscriberFixture.receivedB[0], 'northstar-order-1001');
+assert.equal(MultiSubscriberFixture.receivedB[1], 'northstar-order-1002');
 
 await bus.close();
 

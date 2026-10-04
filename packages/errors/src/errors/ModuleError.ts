@@ -1,3 +1,5 @@
+import { BaseError } from '@studnicky/types/browser';
+
 /**
  * Base error class for all modules in the monorepo.
  *
@@ -20,6 +22,8 @@
  * import { ErrorDefaults } from '@studnicky/errors';
  *
  * export class GraphStoreError extends ModuleError {
+ *   public override readonly name: string = 'GraphStoreError';
+ *
  *   static override create(
  *     message: string,
  *     options?: Omit<ModuleErrorCreateOptionsInterface, 'scenario'>
@@ -45,7 +49,7 @@ import type {
 
 import { ErrorDefaults } from '../constants/index.js';
 import { DefensiveSnapshot } from '../validation/DefensiveSnapshot.js';
-import { BaseError } from './BaseError.js';
+import { ErrorScenarioGuard } from '../validation/ErrorScenarioGuard.js';
 import { ValidationError } from './ValidationError.js';
 
 /**
@@ -54,6 +58,8 @@ import { ValidationError } from './ValidationError.js';
  * typing from the original implementation.
  */
 export class ModuleError extends BaseError implements ModuleErrorInterface {
+  public override readonly name: string = 'ModuleError';
+
   /**
    * Create a new ModuleError with scenario defaults.
    *
@@ -61,7 +67,7 @@ export class ModuleError extends BaseError implements ModuleErrorInterface {
    * User-provided options take precedence over scenario defaults.
    */
   static create(message: string, options: ModuleErrorCreateOptionsInterface): ModuleError {
-    if (!(options.scenario in ErrorDefaults)) {
+    if (!ErrorScenarioGuard.isKnownScenario(options.scenario)) {
       throw ValidationError.create({
         'message': `Must be one of: ${Object.keys(ErrorDefaults).join(', ')}`,
         'path': 'scenario',

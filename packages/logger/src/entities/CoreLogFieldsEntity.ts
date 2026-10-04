@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Core fields present on EVERY log record.
@@ -31,9 +32,17 @@ export namespace CoreLogFieldsEntity {
     'required': ['event', 'status'],
     'title': 'CoreLogFields',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/CoreLogFields', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Core log fields present on every normalized log record.', 'title': 'CoreLogFields', 'type': 'object' } as const, { 'event': SchemaNode.defineString({
+    'description': 'Hierarchical event identifier: component.operation',
+    'type': 'string'
+  } as const), 'status': SchemaNode.defineEnum({}, [
+    'cached', 'complete', 'failed', 'in_progress', 'invalid', 'not_found', 'partial',
+    'pending', 'rate_limited', 'retry_exhausted', 'retrying', 'skipped', 'success',
+    'timeout', 'unauthorized', 'unavailable'
+  ] as const) }, ['event', 'status'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

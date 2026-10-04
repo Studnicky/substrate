@@ -1,28 +1,27 @@
-import { describe, it } from 'node:test';
-import { resolve } from 'node:path';
-
-import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { arraySpliceOutsideLoops } from '../../../src/rules/v8/arraySpliceOutsideLoops.js';
-import scenarioGroups from './arraySpliceOutsideLoops.scenarios.json' with { type: 'json' };
+import scenarioGroups from './arraySpliceOutsideLoops.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // `projectService`/`tsconfigRootDir` (not a bare `sourceType: 'module'`) is required:
 // the rule now resolves call identity via `CallIdentity`/`checker.getResolvedSignature`,
 // which needs type services to resolve anything at all.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts']
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });

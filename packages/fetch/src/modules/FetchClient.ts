@@ -2,12 +2,13 @@
  * Configured HTTP client with subclass-overridable lifecycle hooks
  */
 
+import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 import type { Agent } from 'undici';
 
 import { Clock, RealTimeClockProvider } from '@studnicky/clock/node';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { HookInvoker } from '@studnicky/errors/node';
 import { Signal } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { type BaseError, CallerFault, Predicates } from '@studnicky/types/node';
 
 import type { DestroyOptionsEntity } from '../entities/DestroyOptionsEntity.js';
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
@@ -17,7 +18,7 @@ import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.
 import type { FetchClientInterface } from '../interfaces/FetchClientInterface.js';
 import type { FetchOptionsInterface } from '../interfaces/FetchOptionsInterface.js';
 import type { RequestContextInterface } from '../interfaces/RequestContextInterface.js';
-import type { RequestIdGeneratorInterface } from '../interfaces/RequestIdGeneratorInterface.js';
+import type { ResolvedClientConfigInterface } from '../interfaces/ResolvedClientConfigInterface.js';
 import type { ResponseContextInterface } from '../interfaces/ResponseContextInterface.js';
 import type { TestDispatcher } from '../testing/TestDispatcher.js';
 
@@ -27,6 +28,8 @@ import {
   BodyTimeoutError,
   ConfigurationError,
   ConnectTimeoutError,
+  ConstructionError,
+  type FetchBaseError,
   HeadersTimeoutError,
   SocketError,
   SocketExhaustionError,
@@ -35,6 +38,8 @@ import {
 import { BodySerializer } from './BodySerializer.js';
 import { FetchClientConfiguration } from './FetchClientConfiguration.js';
 import { FetchTransport } from './FetchTransport.js';
+import { RequestErrorClassifier } from './RequestErrorClassifier.js';
+import { RequestInitEncoder } from './RequestInitEncoder.js';
 import { UndiciDispatcher } from './UndiciDispatcher.js';
 import { UrlQueryString } from './UrlQueryString.js';
 
@@ -52,9 +57,24 @@ interface FetchClientSubclassInterface<TInstance> extends Function {
   readonly 'prototype': TInstance;
 }
 
-interface ValidatedClientConfigInterface {
-  readonly 'config': ClientConfigInterface;
-  readonly 'queryParameters': QueryParametersEntity.Type | undefined;
+/** Tracks the deadline/abort signal produced while preparing a request, for reuse when classifying its failure. */
+interface RequestSignalStateInterface {
+  'externalSignal': AbortSignal | undefined;
+  'requestSignal': AbortSignal | undefined;
+  'requestSignalHandle': ComposedSignalInterface | undefined;
+  'timeoutMs': number | undefined;
+}
+
+interface ComposeRequestSignalOptionsInterface {
+  readonly 'externalSignal': AbortSignal | undefined;
+  readonly 'timeout': number | undefined;
+}
+
+/** The outcome fields every lifecycle hook call in `executeRequest`'s failure path needs. */
+interface RequestOutcomeInterface {
+  readonly 'duration': number;
+  readonly 'method': string;
+  readonly 'requestId': string;
 }
 
 /**
@@ -95,16 +115,16 @@ export class FetchClient implements FetchClientInterface {
     this: FetchClientSubclassInterface<TInstance>,
     config: ClientConfigInterface = {}
   ): TInstance {
-    const result = Reflect.construct(this, [config]) as object;
+    const result: unknown = Reflect.construct(this, [config]);
     if (!Predicates.isInstanceOf(result, this)) {
-      throw RuntimeError.create('FetchClient.create() did not construct the requested subclass.');
+      throw new ConstructionError('FetchClient.create() did not construct the requested subclass.');
     }
     return result;
   }
 
   protected readonly hooks: HookInvoker;
 
-  private readonly config: ClientConfigInterface;
+  private readonly config: ResolvedClientConfigInterface;
   private readonly queryParameters: QueryParametersEntity.Type | undefined;
   private readonly clock: Clock;
   private readonly dispatcher: undefined | UndiciDispatcher;
@@ -112,7 +132,7 @@ export class FetchClient implements FetchClientInterface {
   private readonly signal: Signal;
 
   protected constructor(config: ClientConfigInterface = {}) {
-    const validated = FetchClient.validateConfig(config);
+    const validated = FetchClientConfiguration.intake(config, FetchClientConfiguration.collaboratorsFrom(config));
 
     this.config = validated.config;
     this.queryParameters = validated.queryParameters;
@@ -234,7 +254,7 @@ export class FetchClient implements FetchClientInterface {
    * await client.destroy({ timeout: 5000 });
    * ```
    */
-  async destroy(options?: DestroyOptionsEntity.Type): Promise<void> {
+  async destroy(options?: DestroyOptionsEntity.InputType): Promise<void> {
     if (this.dispatcher !== undefined) {
       await this.hooks.invokeAsync('onDispatcherDestroy', () => {
         const result = this.onDispatcherDestroy();
@@ -253,122 +273,138 @@ export class FetchClient implements FetchClientInterface {
     requestId: string
   ): Promise<Response> {
     const startTime = this.clock.now();
-    let timeoutMs: number | undefined;
-    let requestSignal: AbortSignal | undefined;
-    let externalSignal: AbortSignal | undefined;
+    const state: RequestSignalStateInterface = { 'externalSignal': undefined, 'requestSignal': undefined, 'requestSignalHandle': undefined, 'timeoutMs': undefined };
 
     try {
-      if (!Predicates.isString(requestContext.url) || requestContext.url === '') {
-        throw new ConfigurationError('url must be a non-empty string');
-      }
-
-      const {
-        dispatcher,
-        'json': _json,
-        'metadata': _metadata,
-        'requestId': _requestId,
-        'signal': configuredSignal,
-        timeout,
-        ...standardOptions
-      } = requestContext.options;
-
-      if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout) || !Number.isInteger(timeout))) {
-        throw new ConfigurationError('timeout must be a positive number and integer');
-      }
-
-      externalSignal = configuredSignal ?? undefined;
-      if (timeout !== undefined || externalSignal !== undefined) {
-        timeoutMs = timeout;
-        const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
-        if (timeout !== undefined) {
-          composeOptions.deadlineMs = timeout;
-        }
-        if (externalSignal !== undefined) {
-          composeOptions.signal = externalSignal;
-        }
-        requestSignal = await this.signal.compose(composeOptions);
-      }
-
-      const requestInit: Record<string, unknown> = requestSignal === undefined
-        ? { ...standardOptions }
-        : { ...standardOptions, 'signal': requestSignal };
-
-      if (dispatcher !== undefined) {
-        requestInit.dispatcher = dispatcher;
-      }
-
+      const requestInit = await this.prepareRequestInit(requestContext, state);
       const response = await FetchTransport.fetch(requestContext.url, requestInit);
-
       const duration = this.clock.now() - startTime;
 
-      if (response.ok) {
-        await this.hooks.invokeAsync('onResponseSuccess', () => {
-          const result = this.onResponseSuccess(method, requestId, response.status, duration);
-          return result;
-        });
-      } else {
-        await this.hooks.invokeAsync('onResponseError', () => {
-          const result = this.onResponseError(method, requestId, response.status, duration);
-          return result;
-        });
-      }
-
+      await this.handleResponseHooks(response, method, requestId, duration);
       return response;
     } catch (error) {
       const duration = this.clock.now() - startTime;
-      let requestError = error;
+      return await this.handleRequestError(error, requestContext, { 'duration': duration, 'method': method, 'requestId': requestId }, state);
+    } finally {
+      state.requestSignalHandle?.dispose();
+    }
+  }
 
-      if (
-        !(error instanceof TimeoutError)
-        && !(error instanceof AbortError)
-        && (error instanceof Error || error instanceof DOMException)
-        && (error.name === 'AbortError' || error.name === 'TimeoutError')
-      ) {
-        requestError = requestSignal?.aborted === true && timeoutMs !== undefined && externalSignal?.aborted !== true
-          ? new TimeoutError(requestContext.url, timeoutMs)
-          : new AbortError(requestContext.url, error.message);
-      }
+  /** Validates and encodes the outgoing request, composing the deadline/abort signal used by the fetch call. */
+  private async prepareRequestInit(
+    requestContext: RequestContextInterface,
+    state: RequestSignalStateInterface
+  ): Promise<Record<string, unknown>> {
+    if (!Predicates.isString(requestContext.url) || requestContext.url === '') {
+      throw new ConfigurationError('url must be a non-empty string');
+    }
 
-      const hookError = Predicates.isError(requestError) ? requestError : RuntimeError.create(String(requestError));
+    const encoded = RequestInitEncoder.encode(requestContext.options);
+    const { dispatcher, 'signal': configuredSignal, timeout } = encoded;
 
-      if (requestError instanceof TimeoutError) {
-        await this.hooks.invokeAsync('onTimeout', () => {
-          const result = this.onTimeout(method, requestId, requestContext.url, requestError.timeoutMs);
-          return result;
-        });
-        await this.hooks.invokeAsync('onRequestError', () => {
-          const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
-          return result;
-        });
-        throw requestError;
-      }
+    this.assertValidRequestTimeout(timeout);
 
-      if (requestError instanceof AbortError) {
-        await this.hooks.invokeAsync('onAbort', () => {
-          const result = this.onAbort(method, requestId, requestContext.url);
-          return result;
-        });
-        await this.hooks.invokeAsync('onRequestError', () => {
-          const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
-          return result;
-        });
-        throw requestError;
-      }
+    state.externalSignal = configuredSignal ?? undefined;
+    if (timeout !== undefined || state.externalSignal !== undefined) {
+      state.timeoutMs = timeout;
+      state.requestSignalHandle = await this.composeRequestSignal({ 'externalSignal': state.externalSignal, 'timeout': timeout });
+      state.requestSignal = state.requestSignalHandle.signal;
+    }
 
-      if (Predicates.isError(requestError)) {
-        const wrappedError = await this.wrapUndiciError(requestError, requestContext.url, method, requestId, duration);
+    const requestInit: Record<string, unknown> = state.requestSignal === undefined
+      ? { ...encoded.requestInit }
+      : { ...encoded.requestInit, 'signal': state.requestSignal };
 
-        if (wrappedError !== undefined) {
-          throw wrappedError;
-        }
-      }
+    if (dispatcher !== undefined) {
+      requestInit.dispatcher = dispatcher;
+    }
 
-      await this.hooks.invokeAsync('onRequestError', () => {
-        const result = this.onRequestError(hookError, method, requestId, requestContext.url, duration);
+    return requestInit;
+  }
+
+  /** Deadline/signal must be a positive, finite integer — undici and Signal.compose both reject anything else silently. */
+  private assertValidRequestTimeout(timeout: number | undefined): void {
+    if (timeout !== undefined && (!Predicates.isNumberType(timeout) || timeout <= 0 || !Number.isFinite(timeout) || !Number.isInteger(timeout))) {
+      throw new ConfigurationError('timeout must be a positive number and integer');
+    }
+  }
+
+  private async composeRequestSignal(options: ComposeRequestSignalOptionsInterface): Promise<ComposedSignalInterface> {
+    const composeOptions: { 'deadlineMs'?: number; 'signal'?: AbortSignal; } = {};
+    if (options.timeout !== undefined) {
+      composeOptions.deadlineMs = options.timeout;
+    }
+    if (options.externalSignal !== undefined) {
+      composeOptions.signal = options.externalSignal;
+    }
+    const result = await this.signal.compose(composeOptions);
+    return result;
+  }
+
+  private async handleResponseHooks(response: Response, method: string, requestId: string, duration: number): Promise<void> {
+    if (response.ok) {
+      await this.hooks.invokeAsync('onResponseSuccess', () => {
+        const result = this.onResponseSuccess(method, requestId, response.status, duration);
         return result;
       });
+    } else {
+      await this.hooks.invokeAsync('onResponseError', () => {
+        const result = this.onResponseError(method, requestId, response.status, duration);
+        return result;
+      });
+    }
+  }
+
+  /** Classifies the caught failure, fires the matching lifecycle hook, and always rethrows. */
+  private async handleRequestError(
+    error: unknown,
+    requestContext: RequestContextInterface,
+    outcome: RequestOutcomeInterface,
+    state: RequestSignalStateInterface
+  ): Promise<never> {
+    const requestError = RequestErrorClassifier.classifyAbortOrTimeout(RequestErrorClassifier.platformCause(error), requestContext.url, state);
+
+    if (requestError instanceof TimeoutError) {
+      await this.hooks.invokeAsync('onTimeout', () => {
+        const result = this.onTimeout(outcome.method, outcome.requestId, requestContext.url, requestError.timeoutMs);
+        return result;
+      });
+      await this.reportRequestError(requestError, outcome, requestContext.url);
       throw requestError;
     }
+
+    if (requestError instanceof AbortError) {
+      await this.hooks.invokeAsync('onAbort', () => {
+        const result = this.onAbort(outcome.method, outcome.requestId, requestContext.url);
+        return result;
+      });
+      await this.reportRequestError(requestError, outcome, requestContext.url);
+      throw requestError;
+    }
+
+    if (Predicates.isError(requestError)) {
+      const wrappedError = await this.wrapUndiciError(requestError, requestContext.url, outcome.method, outcome.requestId, outcome.duration);
+
+      if (wrappedError !== undefined) {
+        throw wrappedError;
+      }
+    }
+
+    const named = RequestErrorClassifier.toNamed(requestError, requestContext.url);
+    await this.reportRequestError(named, outcome, requestContext.url);
+    if (RequestErrorClassifier.isCallerAbortReason(requestError, state.externalSignal)) {
+      // The caller aborted the request's own signal with this value; it belongs to the caller.
+      CallerFault.propagate(requestError);
+    }
+    throw named;
+  }
+
+  /** Reclassifies a caught abort/timeout DOMException into the request's own error types; every other error passes through unchanged. */
+  private async reportRequestError(hookError: BaseError, outcome: RequestOutcomeInterface, url: string): Promise<void> {
+    await this.hooks.invokeAsync('onRequestError', () => {
+      const result = this.onRequestError(hookError, outcome.method, outcome.requestId, url, outcome.duration);
+      return result;
+    });
   }
 
   /**
@@ -442,11 +478,10 @@ export class FetchClient implements FetchClientInterface {
    */
   private async handleSocketExhaustion(
     url: string,
-    errorCode: string,
     method: string,
     requestId: string,
     duration: number
-  ): Promise<Error | undefined> {
+  ): Promise<SocketExhaustionError | undefined> {
     if (this.dispatcher === undefined) {
       return undefined;
     }
@@ -459,18 +494,13 @@ export class FetchClient implements FetchClientInterface {
 
     const stats = this.dispatcher.checkDispatcherHealth(origin).stats;
 
+    const exhaustion = new SocketExhaustionError(url, stats);
     await this.hooks.invokeAsync('onRequestError', () => {
-      const result = this.onRequestError(
-        RuntimeError.create(`Connection pool exhaustion: ${errorCode}`),
-        method,
-        requestId,
-        url,
-        duration
-      );
+      const result = this.onRequestError(exhaustion, method, requestId, url, duration);
       return result;
     });
 
-    return new SocketExhaustionError(url, stats);
+    return exhaustion;
   }
 
   /**
@@ -550,7 +580,7 @@ export class FetchClient implements FetchClientInterface {
 
   /** Fires when an HTTP request fails. */
   protected onRequestError(
-    _error: Error,
+    _error: BaseError,
     _method: string,
     _requestId: string,
     _url: string,
@@ -719,7 +749,7 @@ export class FetchClient implements FetchClientInterface {
     method: string,
     requestId: string,
     duration: number
-  ): Promise<Error | undefined> {
+  ): Promise<FetchBaseError | undefined> {
     if (!('code' in error) || !Predicates.isString(error.code)) {
       return undefined;
     }
@@ -732,7 +762,7 @@ export class FetchClient implements FetchClientInterface {
     }
 
     if (errorType === 'connect') {
-      const exhaustionError = await this.handleSocketExhaustion(url, errorCode, method, requestId, duration);
+      const exhaustionError = await this.handleSocketExhaustion(url, method, requestId, duration);
 
       if (exhaustionError !== undefined) {
         return exhaustionError;
@@ -750,39 +780,6 @@ export class FetchClient implements FetchClientInterface {
     }
 
     return new BodyTimeoutError(url, error);
-  }
-
-  private static validateConfig(config: ClientConfigInterface): ValidatedClientConfigInterface {
-    const validated = FetchClientConfiguration.intake(config);
-
-    if (validated.config.requestIdGenerator !== undefined) {
-      FetchClient.assertRequestIdGenerator(validated.config.requestIdGenerator);
-    }
-    if (validated.config.clock !== undefined && (!Predicates.isFunction(validated.config.clock.hrtime) || !Predicates.isFunction(validated.config.clock.now))) {
-      throw new ConfigurationError('clock must implement ClockProviderInterface');
-    }
-    if (validated.config.signal !== undefined && !(validated.config.signal instanceof Signal)) {
-      throw new ConfigurationError('signal must be a Signal instance');
-    }
-
-    return validated;
-  }
-
-  private static assertRequestIdGenerator(requestIdGenerator: RequestIdGeneratorInterface): void {
-    if (!Predicates.isFunction(requestIdGenerator)) {
-      throw new ConfigurationError('requestIdGenerator must be a function');
-    }
-
-    try {
-      if (!Predicates.isString(requestIdGenerator())) {
-        throw new ConfigurationError('requestIdGenerator must return a string');
-      }
-    } catch (error) {
-      if (error instanceof ConfigurationError) {
-        throw error;
-      }
-      throw new ConfigurationError(`requestIdGenerator function error: ${Predicates.isError(error) ? error.message : String(error)}`);
-    }
   }
 
 }

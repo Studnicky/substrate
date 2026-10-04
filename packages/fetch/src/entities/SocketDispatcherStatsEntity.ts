@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Socket dispatcher statistics for connection monitoring
@@ -48,11 +49,37 @@ export namespace SocketDispatcherStatsEntity {
     'required': ['connected', 'free', 'pending', 'queued', 'running', 'size'],
     'title': 'SocketDispatcherStats',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/SocketDispatcherStats', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Socket dispatcher statistics for a single origin', 'title': 'SocketDispatcherStats', 'type': 'object' } as const, { 'connected': SchemaNode.defineNumber({
+    'description': 'Number of open socket connections',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'free': SchemaNode.defineNumber({
+    'description': 'Number of open connections without active requests',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'pending': SchemaNode.defineNumber({
+    'description': 'Number of pending requests waiting for a connection',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'queued': SchemaNode.defineNumber({
+    'description': 'Number of queued requests',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'running': SchemaNode.defineNumber({
+    'description': 'Number of currently active requests',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'size': SchemaNode.defineNumber({
+    'description': 'Total number of active, pending, or queued requests',
+    'minimum': 0,
+    'type': 'integer'
+  } as const) }, ['connected', 'free', 'pending', 'queued', 'running', 'size'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
-  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
 }

@@ -327,7 +327,7 @@
         }
       },
       "expected": {
-        "errorCode": "errors.runtime",
+        "errorCode": "fetch.configurationInvalid",
         "origin": "http://127.0.0.1:41234",
         "errorMessage": "Blob request bodies are not supported in the fetch test dispatcher"
       }

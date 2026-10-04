@@ -18,7 +18,13 @@
       "path": "./tsconfig.json"
     },
     {
+      "path": "../concurrency"
+    },
+    {
       "path": "../errors"
+    },
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

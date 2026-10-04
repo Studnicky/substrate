@@ -146,9 +146,9 @@ assert_pending_changesets_are_valid() {
   fi
 
   repository_root=$(hook_repo_root)
-  validator_path="$repository_root/scripts/validate-changeset-ref.mjs"
+  validator_path="$repository_root/scripts/validate-changeset-ref.ts"
   if [ ! -f "$validator_path" ]; then
-    validator_path="$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.mjs"
+    validator_path="$RELEASE_GATES_ROOT/scripts/validate-changeset-ref.ts"
   fi
   node "$validator_path" "$base_commit" "$head_commit"
 }

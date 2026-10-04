@@ -2,11 +2,12 @@
  * URL and query string utilities as static class methods
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { QueryParametersInterface } from '../interfaces/QueryParametersInterface.js';
 
 import { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
+import { QueryEncodingError } from '../errors/QueryEncodingError.js';
 
 /**
  * URL and query string utilities
@@ -26,25 +27,29 @@ export class UrlQueryString {
 
   static buildQueryStringFromEntity(parameters: QueryParametersEntity.Type): string {
     const pairs: string[] = [];
-    const parameterNames = Object.keys(parameters);
-    const parameterNameLength = parameterNames.length;
-    for (let index = 0; index < parameterNameLength; index += 1) {
-      const key = parameterNames[index];
-      if (key === undefined) {
-        continue;
-      }
-      const value: unknown = Reflect.get(parameters, key);
-      const encodedKey = encodeURIComponent(key);
-
-      if (Predicates.isArray(value)) {
-        const valueLength = value.length;
-        for (let valueIndex = 0; valueIndex < valueLength; valueIndex += 1) {
-          const item: unknown = Reflect.get(value, valueIndex);
-          pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
+    try {
+      const parameterNames = Object.keys(parameters);
+      const parameterNameLength = parameterNames.length;
+      for (let index = 0; index < parameterNameLength; index += 1) {
+        const key = parameterNames[index];
+        if (key === undefined) {
+          continue;
         }
-      } else {
-        pairs.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
+        const value: unknown = Reflect.get(parameters, key);
+        const encodedKey = encodeURIComponent(key);
+
+        if (Predicates.isArray(value)) {
+          const valueLength = value.length;
+          for (let valueIndex = 0; valueIndex < valueLength; valueIndex += 1) {
+            const item: unknown = Reflect.get(value, valueIndex);
+            pairs.push(`${encodedKey}=${encodeURIComponent(String(item))}`);
+          }
+        } else {
+          pairs.push(`${encodedKey}=${encodeURIComponent(String(value))}`);
+        }
       }
+    } catch (cause) {
+      throw new QueryEncodingError(cause);
     }
 
     const result = pairs.join('&');
@@ -85,11 +90,11 @@ export class UrlQueryString {
             items.push(item);
           }
         }
-        Reflect.set(result, key, items);
+        JsonObject.write(result, key, items);
         continue;
       }
 
-      Reflect.set(result, key, runtimeValue);
+      JsonObject.write(result, key, runtimeValue);
     }
 
     return result;
@@ -139,7 +144,6 @@ export class UrlQueryString {
 
     const searchParameters = new globalThis.URLSearchParams(cleanQuery);
     const parsedValues = new Map<string, string | string[]>();
-    const result: Record<string, unknown> = {};
 
     const searchParameterEntries = Array.from(searchParameters.entries());
     const searchParameterEntryLength = searchParameterEntries.length;
@@ -163,17 +167,7 @@ export class UrlQueryString {
       }
     }
 
-    const parsedValueEntries = Array.from(parsedValues.entries());
-    const parsedValueEntryLength = parsedValueEntries.length;
-    for (let index = 0; index < parsedValueEntryLength; index += 1) {
-      const entry = parsedValueEntries[index];
-      if (entry === undefined) {
-        continue;
-      }
-      const [key, value] = entry;
-      Reflect.set(result, key, value);
-    }
-
+    const result = JsonObject.fromEntries(parsedValues);
     const parsed = QueryParametersEntity.intake(result);
     return parsed;
   }

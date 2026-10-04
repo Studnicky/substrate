@@ -1,6 +1,12 @@
 export { plugin } from './plugin.js';
-export { entitySuite } from './suites/entitySuite.js';
-export { HexagonalSuite } from './suites/hexagonalSuite.js';
-export { hygieneSuite } from './suites/hygieneSuite.js';
-export { v8Suite } from './suites/v8Suite.js';
+export { PlatformCallDefaults } from './rules/shared/PlatformCallDefaults.js';
+export { classMechanicsSuite } from './suites/classMechanicsSuite.js';
+export { diagnosticsSuite } from './suites/diagnosticsSuite.js';
+export { entityModelSuite } from './suites/entityModelSuite.js';
+export { LayerBoundarySuite } from './suites/layerBoundarySuite.js';
+export { moduleDesignSuite } from './suites/moduleDesignSuite.js';
+export { v8CollectionTraversalSuite } from './suites/v8CollectionTraversalSuite.js';
+export { v8ObjectShapeSuite } from './suites/v8ObjectShapeSuite.js';
+export { v8RepeatedWorkSuite } from './suites/v8RepeatedWorkSuite.js';
+export { VocabularySuite } from './suites/vocabularySuite.js';
 export { v8Plugin } from './v8Plugin.js';

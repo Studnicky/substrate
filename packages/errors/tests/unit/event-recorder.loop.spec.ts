@@ -1,34 +1,16 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { EventRecorder } from '../../src/index.js';
-import scenarioGroups from './event-recorder.scenarios.json' with { type: 'json' };
+import { EventRecorderScenarioCaseEntity } from './entities/EventRecorderScenarioCaseEntity.js';
+import scenarioGroups from './event-recorder.scenarios.json' with { 'type': 'json' };
 
-interface RecordedEventInterface {
-  shape: string;
-  nested: { value: number };
-}
-
-type ScenarioShape = 'detaches-recorded-events';
-
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: { recorder: { event: RecordedEventInterface } };
-  shape: ScenarioShape;
-  name: string;
-};
-
-function runCase(scenario: ScenarioCase): void {
-  scenarioRunners[scenario.shape](scenario);
-}
-
-type ScenarioRunner = (scenario: ScenarioCase) => void;
-
-const scenarioRunners = {
-  'detaches-recorded-events': (scenario) => {
-    const { expected, input } = scenario;
-    const recorder = new EventRecorder<RecordedEventInterface>();
+class EventRecorderRunners {
+  static 'detaches-recorded-events'(scenarioCase: ScenarioCaseOfType<EventRecorderScenarioCaseEntity.Type, 'detaches-recorded-events'>): void {
+    const { expected, input } = scenarioCase;
+    const recorder = new EventRecorder<EventRecorderScenarioCaseEntity.Type['input']['recorder']['event']>();
     const source = input.recorder.event;
 
     recorder.record(source, 'request');
@@ -45,12 +27,11 @@ const scenarioRunners = {
 
     assert.deepStrictEqual(recorder.events[0], expected.detachedProjection);
   }
-} satisfies Record<ScenarioShape, ScenarioRunner>;
+}
 
-void describe('EventRecorder', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': EventRecorderScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'EventRecorder',
+  'runners': EventRecorderRunners
 });

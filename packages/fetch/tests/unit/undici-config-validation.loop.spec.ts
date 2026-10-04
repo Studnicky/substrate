@@ -1,97 +1,42 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
-import { FetchClient } from '../../src/node/index.js';
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { InvalidClientFactory } from '../helpers/InvalidClientFactory.js';
+import { RejectionProbe } from '../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../helpers/RuntimeValueMaterializer.js';
+import { UndiciConfigValidationScenarioCaseEntity } from './entities/UndiciConfigValidationScenarioCaseEntity.js';
+import scenarioGroups from './undici-config-validation.scenarios.json' with { 'type': 'json' };
 
-type RuntimeTag =
-  | { shape: 'infinity' }
-  | { shape: 'undefined' };
-
-type ExpectedOutcome =
-  | { shape: 'ok'; messageIncludes?: readonly string[] }
-  | { shape: 'throws'; messageIncludes: readonly string[] };
-
-type ScenarioCase = {
-  description: string;
-  expected: ExpectedOutcome;
-  input: {
-    dispatcher: RuntimeValue;
-  };
-  name: string;
-};
-
-import scenarioGroups from './undici-config-validation.scenarios.json' with { type: 'json' };
-
-type ExpectedOutcomeRunner = (config: unknown, expected: ExpectedOutcome) => void;
-type RuntimeTagMaterializer = (value: RuntimeTag) => unknown;
-
-const runtimeTagMap: Record<RuntimeTag['shape'], RuntimeTagMaterializer> = {
-  infinity: () => Number.POSITIVE_INFINITY,
-  undefined: () => undefined
-};
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return value !== null && typeof value === 'object' && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
-  }
-
-  if (isRuntimeTag(value)) {
-    return runtimeTagMap[value.shape](value);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    const materialized: Record<string, unknown> = {};
-
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry);
-    }
-
-    return materialized;
-  }
-
-  return value;
-}
-
-const expectedOutcomeMap: Record<ExpectedOutcome['shape'], ExpectedOutcomeRunner> = {
-  ok: (config) => {
+class UndiciConfigValidationRunners {
+  static 'ok'(scenarioCase: ScenarioCaseOfType<UndiciConfigValidationScenarioCaseEntity.Type, 'ok', 'outcome'>): void {
+    const config = UndiciConfigValidationRunners.buildConfig(scenarioCase.input.dispatcher);
     assert.doesNotThrow(() => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'dispatcher': config }]);
-    });
-  },
-  throws: (config, expected) => {
-    const { messageIncludes } = expected;
-    assert.ok(messageIncludes !== undefined);
-    assert.throws(() => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'dispatcher': config }]);
-    }, (error: Error) => {
-      assert.ok(error.message.length > 0);
-      return true;
+      InvalidClientFactory.create(config);
     });
   }
-};
 
-function runCase(scenarioCase: ScenarioCase): void {
-  const config = materializeRuntimeValue(scenarioCase.input.dispatcher);
-  expectedOutcomeMap[scenarioCase.expected.shape](config, scenarioCase.expected);
+  static 'throws'(scenarioCase: ScenarioCaseOfType<UndiciConfigValidationScenarioCaseEntity.Type, 'throws', 'outcome'>): void {
+    assert.ok(scenarioCase.expected.messageIncludes !== undefined);
+    const config = UndiciConfigValidationRunners.buildConfig(scenarioCase.input.dispatcher);
+    const caught = RejectionProbe.captureSync(() => {
+      const created = InvalidClientFactory.create(config);
+      return created;
+    });
+    assert.ok(caught instanceof Error);
+    assert.ok(caught.message.length > 0);
+  }
+
+  private static buildConfig(value: ScenarioCaseOfType<UndiciConfigValidationScenarioCaseEntity.Type, 'ok', 'outcome'>['input']['dispatcher']): object {
+    const config = { 'dispatcher': RuntimeValueMaterializer.materialize(value) };
+    return config;
+  }
 }
 
-void describe('pool configuration validation', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.registerBy('outcome', {
+  'entity': UndiciConfigValidationScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'pool configuration validation',
+  'runners': UndiciConfigValidationRunners
 });

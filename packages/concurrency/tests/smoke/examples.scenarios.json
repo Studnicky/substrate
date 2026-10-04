@@ -1,0 +1,247 @@
+{
+  "cases": [
+    {
+      "description": "the asyncIter example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/asyncIter.ts"
+      },
+      "name": "asyncIter",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the queue example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/queue.ts"
+      },
+      "name": "queue",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the channelSemaphore example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/channelSemaphore.ts"
+      },
+      "name": "channelSemaphore",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the coalesce example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/coalesce.ts"
+      },
+      "name": "coalesce",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the keyedSemaphore example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/keyedSemaphore.ts"
+      },
+      "name": "keyedSemaphore",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedConcurrency example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedConcurrency.ts"
+      },
+      "name": "observedConcurrency",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the batch basic processing example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/batch-basic-processing.ts"
+      },
+      "name": "batch-basic-processing",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observed batch example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/batch-observed.ts"
+      },
+      "name": "batch-observed",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the batch settled example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/batch-settled.ts"
+      },
+      "name": "batch-settled",
+      "shape": "imports-example"
+    },
+    {
+      "description": "runs mutex acquire/release without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "mutex-acquire-release.ts"
+      },
+      "name": "runs mutex acquire/release without throwing",
+      "shape": "smoke"
+    },
+    {
+      "description": "runs keyed mutex without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "mutex-keyed.ts"
+      },
+      "name": "runs keyed mutex without throwing",
+      "shape": "smoke"
+    },
+    {
+      "description": "runs observed mutex without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "mutex-observed.ts"
+      },
+      "name": "runs observed mutex without throwing",
+      "shape": "smoke"
+    },
+    {
+      "description": "the acquireRelease example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-acquireRelease.ts"
+      },
+      "name": "acquireRelease",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the browserWebLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-browserWebLock.ts"
+      },
+      "name": "browserWebLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedFileLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-observedFileLock.ts"
+      },
+      "name": "observedFileLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observedVfsLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-observedVfsLock.ts"
+      },
+      "name": "observedVfsLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the timeoutContention example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-timeoutContention.ts"
+      },
+      "name": "timeoutContention",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the usingDispose example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-usingDispose.ts"
+      },
+      "name": "usingDispose",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the vfsLock example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/file-lock-vfsLock.ts"
+      },
+      "name": "vfsLock",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the browser WorkerPool example is registered in the docs playground",
+      "expected": {
+        "registeredInDocsPlayground": true
+      },
+      "input": {
+        "file": "../../examples/worker-browserWorkerPool.ts"
+      },
+      "name": "worker-browserWorkerPool",
+      "shape": "browser-example"
+    },
+    {
+      "description": "the observed WorkerPool example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/worker-observedWorkerPool.ts"
+      },
+      "name": "worker-observedWorkerPool",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the observed WorkerPool worker entry is referenced by its parent example",
+      "expected": {
+        "referencedByParent": true
+      },
+      "input": {
+        "file": "../../examples/worker-observedWorkerPoolWorker.ts",
+        "parentFile": "../../examples/worker-observedWorkerPool.ts"
+      },
+      "name": "worker-observedWorkerPoolWorker",
+      "shape": "worker-entry"
+    }
+  ]
+}

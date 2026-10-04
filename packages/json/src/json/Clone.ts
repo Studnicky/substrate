@@ -1,6 +1,9 @@
 /** Deep cloning for JavaScript values. */
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
+
+import { CloneError } from '../errors/CloneError.js';
+import { SameKind } from './SameKind.js';
 
 export class Clone {
   /** Clone an array element-by-element. */
@@ -44,37 +47,42 @@ export class Clone {
 
   /** Clone a RegExp while retaining its source, flags, and current index. */
   protected static cloneRegExp(value: RegExp): RegExp {
-    const result = structuredClone(value);
+    let result: RegExp;
+    try {
+      result = structuredClone(value);
+    } catch (cause) {
+      throw new CloneError(cause);
+    }
     result.lastIndex = value.lastIndex;
     return result;
   }
 
   /** Clone an object's own enumerable keys. */
   protected static cloneObject(value: Record<string, unknown>): Record<string, unknown> {
-    const cloned: Record<string, unknown> = {};
-
     const entries = Object.entries(value);
+    const clonedEntries = new Map<string, unknown>();
     for (let index = 0; index < entries.length; index += 1) {
       const entry = entries[index];
       if (entry === undefined) {
         continue;
       }
       const [key, item] = entry;
-      Reflect.set(cloned, key, this.deep(item));
+      clonedEntries.set(key, this.deep(item));
     }
 
+    const cloned = JsonObject.fromEntries(clonedEntries);
     return cloned;
   }
 
   /** Recursively deep-clone a value. */
-  public static deep<T>(value: T): T;
-  public static deep(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
-    const result = this.clone(value);
+  public static deep<T>(value: T): T {
+    const cloned: unknown = this.clone(value);
+    const result = SameKind.assert(cloned, value);
     return result;
   }
 
   /** Implement `deep` across the full JavaScript value domain. */
-  protected static clone(value: PropertyKey | bigint | boolean | object | null | undefined): PropertyKey | bigint | boolean | object | null | undefined {
+  protected static clone(value: unknown): unknown {
     if (!Predicates.isObjectLike(value)) {
       return value;
     }

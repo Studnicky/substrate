@@ -1,60 +1,18 @@
-import type { Rule } from 'eslint';
+import type { Rule, Scope } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
   FUNCTION_TYPES, LOOP_TYPES, MESSAGE, RULE_NAME
 } from './constants/RegexpInLoopsConstants.js';
 
-// A13 — GATED ON LOOP-INVARIANCE, NOT JUST LOOP-MEMBERSHIP.
-//
-// Measured (Node v24, 5,000,000-iteration loop calling `.test()` on the same string; 3
-// warm-up calls, median of 7; command: `node scratchpad/bench.mjs`, see the `A13`
-// section):
-//
-//   hoisted regex, .test() x N               62.39ms
-//   new RegExp() per iteration, .test() x N  202.95ms   -> 3.25x
-//
-// The cost is real when the pattern CAN be hoisted. But the previous implementation
-// flagged every `RegExp`/`new RegExp` construction inside a loop unconditionally,
-// including loop-VARIANT patterns where hoisting is not merely inconvenient but
-// IMPOSSIBLE:
-//
-//   for (let i = 0; i < patterns.length; i += 1) {
-//     const re = new RegExp(patterns[i]);   // flagged - but `patterns[i]` changes every
-//     ...                                    // iteration; there is nowhere outside the
-//   }                                        // loop this value still exists to hoist to.
-//
-// The fix below proves, via scope analysis (`sourceCode.getScope`, walking `.variables`
-// per scope — NOT name matching against a hardcoded pattern), whether the pattern/flags
-// argument references any binding declared inside the nearest per-iteration boundary
-// (the loop's own iteration variable, a loop-body-local `const`, or an iteration-callback
-// parameter). If so, the construction is loop-variant and the rule reports nothing — its
-// own prescribed remedy ("hoist to the outer scope") would be advice for something that
-// cannot be done. A regex LITERAL (`/foo/g`) has no argument expression at all — it is
-// always loop-invariant by construction — so this gate applies only to the two
-// constructor forms.
-//
-// When a referenced identifier's declaration cannot be resolved at all (a global, an
-// import, an unresolvable scope), the rule does NOT treat that as proof of loop-variance
-// — the base claim (regex construction in a loop is costly when hoistable) still holds
-// for the common case, and only a POSITIVELY PROVEN loop-scoped reference suppresses the
-// report. This mirrors this file set's standing posture of "prove it before enforcing,
-// prove it before EXEMPTING too."
-//
-// PER-ITERATION IS RESOLVED VIA `LoopContext`, NOT `FunctionScope.isInsideLoop` — a
-// regex constructed inside a `.forEach()`/`.map()` callback allocates once per element,
-// identically to one inside a loop keyword; `LoopContext.isPerIteration` sees that.
+// Gated on loop-invariance, not just loop-membership. Benchmark and proof method:
+// docs/eslint/rules/v8/regexp-in-loops.md.
 
 class BoundaryWalk {
-  /**
-   * The nearest ancestor that is either a loop keyword or a function boundary.
-   * `LoopContext.isPerIteration` has already proven, by the time this runs, that
-   * whichever one is found first IS a genuine per-iteration boundary (a real loop,
-   * or a proven per-element iteration callback) — this walk does not re-verify that,
-   * it only locates the node so its range can be used for the reference check below.
-   */
+  /** Nearest loop-keyword or function-boundary ancestor; per-iteration proof already done by the caller. */
   public static findEnclosing(node: Rule.Node): Rule.Node | undefined {
     let current: Rule.Node | null = node.parent;
 
@@ -70,19 +28,14 @@ class BoundaryWalk {
 }
 
 class ExpressionWalk {
-  /**
-   * Collects every `Identifier` node within `node`'s subtree that denotes a variable
-   * READ — excluding non-computed member/property names, which are not variable
-   * references (`obj.length` never reads a binding named `length`; `obj[key]` does,
-   * via `key`, and computed member expressions are walked accordingly).
-   */
+  /** Every `Identifier` denoting a variable read; excludes non-computed member/property names. */
   public static collectVariableReferences(node: unknown, out: Rule.Node[] = []): Rule.Node[] {
-    if (!Predicates.isRecord(node) || typeof node.type !== 'string') {
+    if (!AstHelpers.isNode(node)) {
       return out;
     }
 
     if (node.type === 'Identifier') {
-      out.push(node as unknown as Rule.Node);
+      out.push(node);
 
       return out;
     }
@@ -105,6 +58,14 @@ class ExpressionWalk {
       return out;
     }
 
+    if (Predicates.isRecord(node)) {
+      ExpressionWalk.#visitEntries(node, out);
+    }
+
+    return out;
+  }
+
+  static #visitEntries(node: Record<string, unknown>, out: Rule.Node[]): void {
     const entries = Object.entries(node);
     const entriesLength = entries.length;
 
@@ -133,8 +94,6 @@ class ExpressionWalk {
         ExpressionWalk.collectVariableReferences(value, out);
       }
     }
-
-    return out;
   }
 }
 
@@ -155,9 +114,37 @@ class PatternInvariance {
     return false;
   }
 
+  static #identifierName(identifierNode: Rule.Node): string | undefined {
+    const rawName = AstHelpers.getNodeProperty(identifierNode, 'name');
+    const result = typeof rawName === 'string' ? rawName : undefined;
+
+    return result;
+  }
+
+  static #isWithinBoundary(declarationNode: unknown, boundaryNode: Rule.Node): boolean {
+    if (!AstHelpers.isNode(declarationNode)) {
+      return false;
+    }
+
+    const declRange = declarationNode.range;
+    const boundaryRange = boundaryNode.range;
+
+    if (declRange === undefined || boundaryRange === undefined) {
+      return false;
+    }
+
+    const result = declRange[0] >= boundaryRange[0] && declRange[1] <= boundaryRange[1];
+
+    return result;
+  }
+
   static #isDeclaredWithin(identifierNode: Rule.Node, boundaryNode: Rule.Node, context: Rule.RuleContext): boolean {
-    const name = (identifierNode as unknown as { readonly 'name': string }).name;
-    let scope = context.sourceCode.getScope(identifierNode) as { readonly 'upper': typeof scope | null; readonly 'variables': readonly { readonly 'defs': readonly { readonly 'node': unknown }[]; readonly 'name': string }[] } | null;
+    const name = PatternInvariance.#identifierName(identifierNode);
+
+    if (name === undefined) {
+      return false;
+    }
+    let scope: Scope.Scope | null = context.sourceCode.getScope(identifierNode);
 
     while (scope !== null) {
       const { variables } = scope;
@@ -170,20 +157,7 @@ class PatternInvariance {
           continue;
         }
 
-        const declarationNode = candidate.defs.at(0)?.node;
-
-        if (!Predicates.isRecord(declarationNode)) {
-          return false;
-        }
-
-        const declRange = declarationNode.range as readonly [number, number] | undefined;
-        const boundaryRange = (boundaryNode as unknown as { readonly 'range': readonly [number, number] }).range;
-
-        if (declRange === undefined) {
-          return false;
-        }
-
-        const result = declRange[0] >= boundaryRange[0] && declRange[1] <= boundaryRange[1];
+        const result = PatternInvariance.#isWithinBoundary(candidate.defs.at(0)?.node, boundaryNode);
 
         return result;
       }
@@ -246,8 +220,8 @@ export const regexpInLoops: Rule.RuleModule = {
       const boundary = BoundaryWalk.findEnclosing(node);
 
       if (boundary !== undefined) {
-        const rawArgumentList = (node as unknown as { readonly 'arguments'?: readonly unknown[] }).arguments;
-        const argumentList = rawArgumentList ?? [];
+        const rawArgumentList = AstHelpers.getNodeProperty(node, 'arguments');
+        const argumentList = Predicates.isArray(rawArgumentList) ? rawArgumentList : [];
         const argumentListLength = argumentList.length;
         let isLoopVariant = false;
 
@@ -281,9 +255,7 @@ export const regexpInLoops: Rule.RuleModule = {
         return;
       }
 
-      // A literal has no argument expression to test for loop-variance — it is always
-      // hoistable by construction, so this listener reports directly rather than going
-      // through `reportIfHoistable`'s argument walk.
+      // No argument expression to test for loop-variance, so this reports directly.
       if (!LoopContext.isPerIteration(node, context)) {
         return;
       }

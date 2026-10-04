@@ -1,5 +1,7 @@
 import type { Rule } from 'eslint';
 
+import { JsonObject } from '@studnicky/types/browser';
+
 export class SelectorRule {
   public static create(ruleName: string, selector: string, message: string): Rule.RuleModule {
     const create: NonNullable<Rule.RuleModule['create']> = (context) => {
@@ -10,8 +12,7 @@ export class SelectorRule {
         });
       };
 
-      const listeners: Record<string, (node: Rule.Node) => void> = {};
-      Reflect.set(listeners, selector, reportForbidden);
+      const listeners = JsonObject.fromEntries<(node: Rule.Node) => void>([[selector, reportForbidden]]);
 
       return listeners;
     };

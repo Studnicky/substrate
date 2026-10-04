@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
 import type { ChannelKeyTransitionEventEntity } from './entities/ChannelKeyTransitionEventEntity.js';
@@ -24,8 +24,8 @@ import type { ChannelKeyVariantEntity } from './entities/ChannelKeyVariantEntity
  *   already-closed key must stay legal and idempotent rather than reject.
  *
  * Stateless and shared: `Channel` keeps the actual per-key state on its own
- * per-key entry and calls `transition()` once per change, mirroring
- * `@studnicky/mutex`'s `MutexKeyMachine`.
+ * per-key entry and calls `transition()` once per change, using the
+ * same explicit lifecycle-machine pattern as the package's keyed mutex.
  */
 export class ChannelKeyMachine extends StateMachine<ChannelKeyStateEntity.Type, ChannelKeyTransitionEventEntity.Type, never> {
   constructor() {

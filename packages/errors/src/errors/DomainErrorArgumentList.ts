@@ -5,9 +5,9 @@
  *
  * @module
  */
-import { PickDefined } from '@studnicky/types/node';
 
-import type { BaseErrorArgumentsInterface } from '../interfaces/BaseErrorArgumentsInterface.js';
+import { type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
+
 import type { DomainErrorOptionsInterface } from '../interfaces/DomainErrorOptionsInterface.js';
 
 /** Builds `BaseErrorArgumentsInterface` values for domain error `super()` calls. */
@@ -26,12 +26,10 @@ export class DomainErrorArgumentList {
     return {
       'code': options.code,
       'message': options.message(fields),
-      ...PickDefined.from({
-        'cause': options.cause,
-        'correlationId': options.correlationId,
-        'metadata': options.metadata,
-        'retryable': options.retryable
-      })
+      ...(options.cause === undefined ? {} : { 'cause': options.cause }),
+      ...(options.correlationId === undefined ? {} : { 'correlationId': options.correlationId }),
+      ...(options.metadata === undefined ? {} : { 'metadata': options.metadata }),
+      ...(options.retryable === undefined ? {} : { 'retryable': options.retryable })
     };
   }
 }

@@ -7,7 +7,7 @@ description: 'Disallows built-in Array.splice calls that execute once per iterat
 
 Disallows `Array.prototype.splice` when it executes once per iteration of a loop keyword or a built-in per-element iteration callback. Each splice shifts the elements after its cut point, making one call O(n) and repeated calls quadratic. The rule resolves the standard-library signature, so computed access is covered and same-named user methods are not.
 
-A deferred callback defined inside a loop is not reported merely because of its lexical location: a non-iteration function boundary stops the per-iteration analysis. Build the retained collection with `filter` or another out-of-place operation instead of repeatedly removing elements.
+A deferred callback defined inside a loop is not reported merely because of its lexical location: a non-iteration function boundary stops the per-iteration analysis. For example, `data.splice(0, 1)` inside a network-response callback passed to `fetchThen` is not reported even when that call sits inside a `for...of`, because the callback runs once per response, not once per loop iteration. Build the retained collection with `filter` or another out-of-place operation instead of repeatedly removing elements.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 

@@ -136,7 +136,7 @@ jobs:
           install: false
 
       - name: Extract changelog notes
-        run: node scripts/extract-release-notes.mjs > release_notes.md
+        run: node scripts/extract-release-notes.ts > release_notes.md
 
       - name: Create GitHub Release
         env:

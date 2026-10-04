@@ -1,3 +1,5 @@
+import { CallerFault } from '@studnicky/types/browser';
+
 import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 
 export class BrowserContextStorage implements ContextStorageInterface {
@@ -34,7 +36,7 @@ export class BrowserContextStorage implements ContextStorageInterface {
       result = callback();
     } catch (error) {
       BrowserContextStorage.restore(beforeRun);
-      throw error;
+      CallerFault.propagate(error);
     }
 
     if (result instanceof Promise) {
@@ -75,7 +77,7 @@ export class BrowserContextStorage implements ContextStorageInterface {
       },
       (error: unknown) => {
         BrowserContextStorage.restore(activeStores);
-        throw error;
+        CallerFault.propagate(error);
       }
     );
     return result;

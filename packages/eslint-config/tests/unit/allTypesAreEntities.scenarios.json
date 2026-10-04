@@ -2,12 +2,12 @@
   "valid": [
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
-      "filename": "packages/retry/src/entities/TypePlacementRuleFixtureEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/TypePlacementRuleFixtureEntity.ts",
       "name": "exact schema-derived entity namespace Type form is valid"
     },
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
-      "filename": "packages/retry/tests/unit/entity-form.test.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/tests/unit/entity-form.test.ts",
       "name": "the exact entity form remains valid in a test because semantics, not path, decide"
     },
     {
@@ -27,13 +27,33 @@
     },
     {
       "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst CanonicalSchema = { type: 'string' } as const satisfies JSONSchema;\nexport namespace CanonicalEntity {\n  export const Schema = { type: 'string' } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}\ntype RenameType = CanonicalEntity.Type;",
-      "filename": "packages/retry/src/models/Rename.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/Rename.ts",
       "name": "naked canonical rename is left to the aliasing rule"
     },
     {
       "code": "type ForwardingType<T> = Array<T>;",
       "filename": "packages/retry/src/models/Forwarding.ts",
       "name": "generic forwarding alias is left to the aliasing rule"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n}",
+      "filename": "packages/retry/src/entities/NodeStaticTypeFixtureEntity.ts",
+      "name": "NodeStaticType<typeof Node>-derived entity namespace Type form is valid (constraint-carrying engine)"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ContextLookupEntity {\n  export const Schema = {\n    additionalProperties: false,\n    properties: { found: { type: 'boolean' }, value: {} },\n    required: ['found', 'value'],\n    type: 'object'\n  } as const;\n  export type Type = { found: boolean; value: unknown };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).found === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+      "filename": "packages/retry/src/entities/ContextLookupEntity.ts",
+      "name": "an entity Type composing an empty schema (`{}`, matches any value) does not trigger the canonical-entity-alias mismatch"
+    },
+    {
+      "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+      "filename": "packages/retry/src/entities/ValidatedAdaptiveConfigEntity.ts",
+      "name": "an entity Type composing an anyOf value discriminant does not trigger the canonical-entity-alias mismatch"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';\n// Ambient augmentation stands in for the real @studnicky/entity/types export until feature/inferref merges NodeInputType \u2014 re-point this import then.\ndeclare module '@studnicky/entity/types' {\n  export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = TNode extends SchemaNodeInterface<unknown, infer S> ? S : never;\n}\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n  export type InputType = NodeInputType<typeof Node>;\n}",
+      "filename": "packages/retry/src/entities/NodeInputTypeFixtureEntity.ts",
+      "name": "NodeInputType<typeof Node>-derived entity namespace InputType form is valid, on the same terms as Type"
     }
   ],
   "invalid": [
@@ -44,7 +64,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "entities path does not exempt a top-level canonical alias"
     },
     {
@@ -54,7 +74,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/types/Foo.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/types/Foo.ts",
       "name": "src types path does not exempt a top-level canonical alias"
     },
     {
@@ -64,7 +84,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/tests/unit/foo.test.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/tests/unit/foo.test.ts",
       "name": "test path does not exempt a top-level canonical alias"
     },
     {
@@ -84,7 +104,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/eslint.config.mjs",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/eslint.config.mjs",
       "name": "config path does not exempt a top-level canonical alias"
     },
     {
@@ -94,7 +114,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/NonEntityNamespace.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/NonEntityNamespace.ts",
       "name": "an arbitrary namespace does not exempt a canonical alias"
     },
     {
@@ -104,7 +124,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/WrongEntityMember.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/WrongEntityMember.ts",
       "name": "an entity namespace accepts only its Type member"
     },
     {
@@ -114,7 +134,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/CompositionEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/CompositionEntity.ts",
       "name": "canonical composition is not a direct schema-derived entity Type"
     },
     {
@@ -124,7 +144,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/BorrowedSchemaEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/BorrowedSchemaEntity.ts",
       "name": "entity Type must derive from the Schema owned by its namespace"
     },
     {
@@ -134,7 +154,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/models/FooComment.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/models/FooComment.ts",
       "name": "comment before a canonical alias is inert"
     },
     {
@@ -144,7 +164,7 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "a trivial distributive-identity conditional wrapper does not hide a canonical alias"
     },
     {
@@ -154,8 +174,28 @@
           "messageId": "forbidden-type-alias"
         }
       ],
-      "filename": "packages/retry/src/entities/FooEntity.ts",
+      "filename": "packages/eslint-config/tests/fixtures/relocated/src/entities/FooEntity.ts",
       "name": "an interface extending a schema-derived type is the same canonical-derivation pattern as a type alias"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport const ExternalNode = defineNode<string>({ type: 'string' } as const);\nexport namespace CanonicalEntity {\n  export type Type = NodeStaticType<typeof ExternalNode>;\n}",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/ExternalNodeFixtureEntity.ts",
+      "name": "NodeStaticType referencing a Node the namespace does not itself own is still rejected"
+    },
+    {
+      "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';\n// Ambient augmentation stands in for the real @studnicky/entity/types export until feature/inferref merges NodeInputType \u2014 re-point this import then.\ndeclare module '@studnicky/entity/types' {\n  export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = TNode extends SchemaNodeInterface<unknown, infer S> ? S : never;\n}\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace OtherEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n}\nexport namespace CanonicalEntity {\n  export const Node = defineNode<number>({ type: 'number' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n  export type InputType = NodeInputType<typeof OtherEntity.Node>;\n}",
+      "errors": [
+        {
+          "messageId": "forbidden-type-alias"
+        }
+      ],
+      "filename": "packages/retry/src/entities/CrossEntityInputTypeFixtureEntity.ts",
+      "name": "InputType deriving from a different namespace own Node is rejected"
     }
   ]
 }

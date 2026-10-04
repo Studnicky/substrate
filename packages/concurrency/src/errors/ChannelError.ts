@@ -7,6 +7,8 @@ import { ConcurrencyError } from './ConcurrencyError.js';
 
 /** Thrown when `subscribe()` is called for a key that already has an active subscriber. */
 export class ChannelError extends ConcurrencyError {
+  public override readonly name: string = 'ChannelError';
+
   public readonly key: string;
 
   public constructor(key: string) {

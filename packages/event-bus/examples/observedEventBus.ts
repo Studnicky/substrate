@@ -8,6 +8,9 @@ import type { OrderStatusEventMapEntity } from './entities/OrderStatusEventMapEn
 import { EventBus } from '../src/index.js';
 
 class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
+  static createTraced(): TracedBus {
+    return new TracedBus();
+  }
   readonly deliverLog: { 'payload': unknown; 'topic': string }[] = [];
   readonly dequeueLog: string[] = [];
   readonly disposeLog: number[] = [];
@@ -46,7 +49,7 @@ class TracedBus extends EventBus<OrderStatusEventMapEntity.Type> {
   }
 }
 
-const bus = TracedBus.create();
+const bus = TracedBus.createTraced();
 
 // Subscribe two handlers to 'order:created', one to 'order:updated'
 const unsub1 = bus.subscribe('order:created', (payload) => {
@@ -80,7 +83,8 @@ assert.equal(bus.deliverLog.length, 5, 'Five delivers total');
 // 2 subscribers × 2 publishes + 1 × 1 = 5 enqueues
 assert.equal(bus.enqueueLog.length, 5, 'Five enqueues');
 assert.equal(bus.dequeueLog.length, 5, 'Five dequeues');
-assert.equal(bus.unsubscribeLog.length, 1, 'One explicit unsubscribe');
+// unsub1() fires one; close() aborts the bus signal, which unsubscribes the two still-live subscriptions (handler-B, handler-C) through the same path.
+assert.equal(bus.unsubscribeLog.length, 3, 'One explicit unsubscribe plus two from close() teardown');
 assert.equal(bus.disposeLog.length, 1, 'One dispose');
 
 console.log('observedEventBus: all assertions passed');

@@ -7,10 +7,13 @@
  */
 
 export {
+  AlphabeticGroupValueEntity,
   AlphabeticRangeEntity,
   AutoGroupingConfigEntity,
+  CidrGroupValueEntity,
   CidrRangeEntity,
   DateGranularityValueEntity,
+  DateGroupValueEntity,
   DateRangeEntity,
   DateRangeFilterRuleEntity,
   DiscoverValuesOptionsEntity,
@@ -20,8 +23,10 @@ export {
   GranularityOptionsEntity,
   GroupingOptionsEntity,
   GroupNodeValueEntity,
+  GroupRuleEntity,
   GroupSortPropertyEntity,
   GroupValueDiscriminantEntity,
+  GroupValueEntity,
   JsonPropertyTypeEntity,
   NumericRangeFilterRuleEntity,
   OutlierMarkerEntity,
@@ -31,11 +36,15 @@ export {
   PropertyOrderEntity,
   PropertyPathEntity,
   RangeEntity,
+  RangeGroupValueEntity,
   RangeIndicesEntity,
+  SemverGroupValueEntity,
   SemverRangeEntity,
+  SequentialGroupValueEntity,
   SequentialRangeEntity,
   SortDirectionEntity,
   SortRuleEntity,
+  StringGroupValueEntity,
   ValueFilterRuleEntity
 } from './entities/index.js';
 export {
@@ -43,6 +52,7 @@ export {
   GroupingStrategy,
   PropertyType
 } from './enums.js';
+export { DrilldownRulesBuildError } from './errors/DrilldownRulesBuildError.js';
 export type {
   DataAnalyzerInterface,
   DrillDownInterface,
@@ -68,7 +78,6 @@ export { DataAnalyzer } from './modules/DataAnalyzer.js';
 
 export { DrillDown } from './modules/DrillDown.js';
 
-export { FacetedDiscovery } from './modules/FacetedDiscovery.js';
 export { ruleValidator } from './modules/rules/index.js';
 
 export { DrillDownConfigEntity } from './schema/DrillDownConfigEntity.js';
@@ -76,7 +85,5 @@ export { DrillDownConfigEntity } from './schema/DrillDownConfigEntity.js';
 export { DrilldownRulesEntity } from './schema/DrilldownRulesEntity.js';
 
 export type {
-  FacetAccessorMapType,
-  FacetFilterStateType,
   MatcherUnionType
 } from './types/index.js';

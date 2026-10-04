@@ -1,21 +1,24 @@
 {
-  "isObject": [
+  "cases": [
     {
-      "description": "returns true for a plain object",
+      "name": "returns true for a plain object",
+      "predicate": "isObject",
       "input": {
         "a": 1
       },
       "outcome": true
     },
     {
-      "description": "returns false for null",
+      "name": "returns false for null",
+      "predicate": "isObject",
       "input": {
         "shape": "null"
       },
       "outcome": false
     },
     {
-      "description": "returns false for an array",
+      "name": "returns false for an array",
+      "predicate": "isObject",
       "input": [
         1,
         2
@@ -23,130 +26,138 @@
       "outcome": false
     },
     {
-      "description": "returns false for a string",
+      "name": "returns false for a string",
+      "predicate": "isObject",
       "input": "hello",
       "outcome": false
     },
     {
-      "description": "returns false for a Map instance",
+      "name": "returns false for a Map instance",
+      "predicate": "isObject",
       "input": {
         "shape": "map"
       },
       "outcome": false
     },
     {
-      "description": "returns false for a Set instance",
+      "name": "returns false for a Set instance",
+      "predicate": "isObject",
       "input": {
         "shape": "set"
       },
       "outcome": false
-    }
-  ],
-  "isString": [
+    },
     {
-      "description": "returns true for a string",
+      "name": "returns true for a string",
+      "predicate": "isString",
       "input": "hello",
       "outcome": true
     },
     {
-      "description": "returns false for a number",
+      "name": "returns false for a number",
+      "predicate": "isString",
       "input": 42,
       "outcome": false
     },
     {
-      "description": "returns false for undefined",
+      "name": "returns false for undefined",
+      "predicate": "isString",
       "input": {
         "shape": "undefined"
       },
       "outcome": false
-    }
-  ],
-  "isNumber": [
+    },
     {
-      "description": "returns true for a finite number",
+      "name": "returns true for a finite number",
+      "predicate": "isNumber",
       "input": 42,
       "outcome": true
     },
     {
-      "description": "returns false for NaN",
+      "name": "returns false for NaN",
+      "predicate": "isNumber",
       "input": {
         "shape": "nan"
       },
       "outcome": false
     },
     {
-      "description": "returns false for a string",
+      "name": "returns false for a string",
+      "predicate": "isNumber",
       "input": "42",
       "outcome": false
-    }
-  ],
-  "asNumber": [
+    },
     {
-      "description": "returns number for a number value",
+      "name": "returns number for a number value",
+      "predicate": "asNumber",
       "input": 7,
       "outcome": 7
     },
     {
-      "description": "returns undefined for a non-number",
+      "name": "returns undefined for a non-number",
+      "predicate": "asNumber",
       "input": "seven",
       "outcome": {
         "shape": "undefined"
       }
-    }
-  ],
-  "isBoolean": [
+    },
     {
-      "description": "returns true for true",
+      "name": "returns true for true",
+      "predicate": "isBoolean",
       "input": true,
       "outcome": true
     },
     {
-      "description": "returns true for false",
+      "name": "returns true for false",
+      "predicate": "isBoolean",
       "input": false,
       "outcome": true
     },
     {
-      "description": "returns false for a string",
+      "name": "returns false for a string",
+      "predicate": "isBoolean",
       "input": "true",
       "outcome": false
     },
     {
-      "description": "returns false for 0",
+      "name": "returns false for 0",
+      "predicate": "isBoolean",
       "input": 0,
       "outcome": false
-    }
-  ],
-  "isFunction": [
+    },
     {
-      "description": "returns true for an arrow function",
+      "name": "returns true for an arrow function",
+      "predicate": "isFunction",
       "input": {
         "shape": "function"
       },
       "outcome": true
     },
     {
-      "description": "returns true for a named function",
+      "name": "returns true for a named function",
+      "predicate": "isFunction",
       "input": {
         "shape": "namedFunction"
       },
       "outcome": true
     },
     {
-      "description": "returns false for an object",
+      "name": "returns false for an object",
+      "predicate": "isFunction",
       "input": {},
       "outcome": false
     },
     {
-      "description": "returns false for null",
+      "name": "returns false for null",
+      "predicate": "isFunction",
       "input": {
         "shape": "null"
       },
       "outcome": false
-    }
-  ],
-  "asStringOrNull": [
+    },
     {
-      "description": "returns null for null",
+      "name": "returns null for null",
+      "predicate": "asStringOrNull",
       "input": {
         "shape": "null"
       },
@@ -155,30 +166,32 @@
       }
     },
     {
-      "description": "returns string for a string value",
+      "name": "returns string for a string value",
+      "predicate": "asStringOrNull",
       "input": "hello",
       "outcome": "hello"
     },
     {
-      "description": "returns undefined for a number",
+      "name": "returns undefined for a number",
+      "predicate": "asStringOrNull",
       "input": 42,
       "outcome": {
         "shape": "undefined"
       }
     },
     {
-      "description": "returns undefined for undefined",
+      "name": "returns undefined for undefined",
+      "predicate": "asStringOrNull",
       "input": {
         "shape": "undefined"
       },
       "outcome": {
         "shape": "undefined"
       }
-    }
-  ],
-  "asRecordArray": [
+    },
     {
-      "description": "returns filtered array of records from a mixed array",
+      "name": "returns filtered array of records from a mixed array",
+      "predicate": "asRecordArray",
       "input": [
         {
           "a": 1
@@ -201,7 +214,8 @@
       ]
     },
     {
-      "description": "returns undefined for a non-array",
+      "name": "returns undefined for a non-array",
+      "predicate": "asRecordArray",
       "input": {
         "a": 1
       },
@@ -210,7 +224,8 @@
       }
     },
     {
-      "description": "returns undefined when no records are in the array",
+      "name": "returns undefined when no records are in the array",
+      "predicate": "asRecordArray",
       "input": [
         "a",
         {
@@ -221,58 +236,64 @@
       "outcome": {
         "shape": "undefined"
       }
-    }
-  ],
-  "isNonNegativeInteger": [
+    },
     {
-      "description": "returns true for 0",
+      "name": "returns true for 0",
+      "predicate": "isNonNegativeInteger",
       "input": 0,
       "outcome": true
     },
     {
-      "description": "returns true for a positive integer",
+      "name": "returns true for a positive integer",
+      "predicate": "isNonNegativeInteger",
       "input": 1,
       "outcome": true
     },
     {
-      "description": "returns false for -1",
+      "name": "returns false for -1",
+      "predicate": "isNonNegativeInteger",
       "input": -1,
       "outcome": false
     },
     {
-      "description": "returns false for a float",
+      "name": "returns false for a float",
+      "predicate": "isNonNegativeInteger",
       "input": 0.5,
       "outcome": false
     },
     {
-      "description": "returns false for a string",
+      "name": "returns false for a string",
+      "predicate": "isNonNegativeInteger",
       "input": "1",
       "outcome": false
-    }
-  ],
-  "isPositiveInteger": [
+    },
     {
-      "description": "returns true for 1",
+      "name": "returns true for 1",
+      "predicate": "isPositiveInteger",
       "input": 1,
       "outcome": true
     },
     {
-      "description": "returns false for 0",
+      "name": "returns false for 0",
+      "predicate": "isPositiveInteger",
       "input": 0,
       "outcome": false
     },
     {
-      "description": "returns false for -1",
+      "name": "returns false for -1",
+      "predicate": "isPositiveInteger",
       "input": -1,
       "outcome": false
     },
     {
-      "description": "returns false for a float",
+      "name": "returns false for a float",
+      "predicate": "isPositiveInteger",
       "input": 1.5,
       "outcome": false
     },
     {
-      "description": "returns false for a string",
+      "name": "returns false for a string",
+      "predicate": "isPositiveInteger",
       "input": "1",
       "outcome": false
     }

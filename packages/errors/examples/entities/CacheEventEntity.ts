@@ -1,6 +1,7 @@
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /** Cache-access event recorded by the EventRecorder example. */
 export namespace CacheEventEntity {
@@ -12,9 +13,10 @@ export namespace CacheEventEntity {
     },
     'required': ['event', 'key'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'event': SchemaNode.defineEnum({}, ['hit', 'miss'] as const), 'key': SchemaNode.defineString({ 'type': 'string' } as const) }, ['event', 'key'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);

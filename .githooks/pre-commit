@@ -18,7 +18,7 @@ fi
 
 staged_files=$(git diff --cached --name-only)
 case "$staged_files" in
-  *package.json*|*pnpm-lock.yaml*|*docs/public/*|*assets/brand/*|*packages/*|*scripts/dependency-diagram.mjs*|*scripts/stamp-version.mjs*)
+  *package.json*|*pnpm-lock.yaml*|*docs/public/*|*assets/brand/*|*packages/*|*scripts/dependency-diagram.ts*|*scripts/stamp-version.ts*)
     bash scripts/ci-suite.sh generated-artifacts >"$tmpdir/generated-artifacts.log" 2>&1 &
     generated_artifacts_pid=$!
     ;;

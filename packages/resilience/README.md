@@ -29,13 +29,13 @@ pnpm add @studnicky/resilience
 Tracks failures and opens the circuit after a threshold, then probes with a limited number of calls after a timeout.
 
 ```typescript
-import { CircuitBreaker, CircuitBreakerOpenError } from '@studnicky/resilience/node';
+import { CircuitBreaker, CircuitBreakerOpenError } from "@studnicky/resilience/node";
 
 const breaker = CircuitBreaker.create({
-  failureThreshold: 5,    // open after 5 consecutive failures
+  failureThreshold: 5, // open after 5 consecutive failures
   resetTimeoutMs: 10_000, // probe after 10 s
-  successThreshold: 2,    // close after 2 successes in half-open
-  name: 'payment-api',
+  successThreshold: 2, // close after 2 successes in half-open
+  name: "payment-api",
 });
 
 try {
@@ -46,32 +46,47 @@ try {
   }
 }
 
-breaker.state;       // 'closed' | 'open' | 'halfOpen'
-breaker.reset();     // restore the closed state
+breaker.state; // 'closed' | 'open' | 'halfOpen'
+breaker.reset(); // restore the closed state
 breaker.forceOpen(); // force-open for testing
 ```
 
-By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors/interfaces`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/retry/node` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
+By default every thrown error counts toward `failureThreshold`. To only count real, non-transient errors — e.g. skip errors already being retried by a wrapped `Retry` — supply an `errorClassifier`. The option accepts `ErrorClassifierFunctionInterface` or `ErrorClassifierInterface` from `@studnicky/errors/interfaces`, and both produce `ErrorClassificationEntity.Type`. This is the same classifier family that `@studnicky/resilience/retry/node` uses. A classification of `{ retryable: true }` means the error is transient and already handled elsewhere, so it does NOT count toward the threshold; `{ retryable: false }` means real breakage, so it DOES count:
 
 ```typescript
-import { DefaultHttpErrorClassifier } from '@studnicky/errors/node';
+import type { ErrorClassificationEntity } from "@studnicky/errors/entities";
+
+import { ErrorClassifier } from "@studnicky/errors/node";
+
+class RequestErrorClassifier extends ErrorClassifier {
+  classify(error: Error, _attemptNumber: number): ErrorClassificationEntity.Type {
+    if (error.message.includes("temporarily unavailable")) {
+      return { reason: "Temporary upstream failure", retryable: true };
+    }
+
+    return { reason: "Permanent request failure", retryable: false };
+  }
+}
 
 const breaker = CircuitBreaker.create({
   failureThreshold: 5,
   resetTimeoutMs: 10_000,
-  errorClassifier: DefaultHttpErrorClassifier.create(),
+  errorClassifier: new RequestErrorClassifier(),
 });
 ```
 
 For classification logic that can't be expressed as config, extend `CircuitBreaker` and override the protected `classifyError(error, attemptNumber)` method (bypassed when `errorClassifier` is supplied in options):
 
 ```typescript
-import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
+import type { ErrorClassificationEntity } from "@studnicky/errors/entities";
 
-import { CircuitBreaker } from '@studnicky/resilience/node';
+import { CircuitBreaker } from "@studnicky/resilience/node";
 
 class MyBreaker extends CircuitBreaker {
-  protected override classifyError(error: unknown, _attemptNumber: number): ErrorClassificationEntity.Type {
+  protected override classifyError(
+    error: unknown,
+    _attemptNumber: number,
+  ): ErrorClassificationEntity.Type {
     return { retryable: error instanceof TransientError };
   }
 }
@@ -82,7 +97,7 @@ class MyBreaker extends CircuitBreaker {
 Token bucket rate limiter. `consume` throws immediately when exhausted; `waitForToken` blocks until tokens refill. Both operations accept positive finite token counts, including fractional units. An optional `clock` supplies finite, nondecreasing millisecond readings for deterministic tests.
 
 ```typescript
-import { TokenBucket, TokenBucketExhaustedError } from '@studnicky/resilience/node';
+import { TokenBucket, TokenBucketExhaustedError } from "@studnicky/resilience/node";
 
 const bucket = TokenBucket.create({
   requestsPerSecond: 10,
@@ -92,7 +107,7 @@ const bucket = TokenBucket.create({
 // Non-blocking — throws when empty
 try {
   const admission = bucket.consume();
-  console.log('Remaining rate-limit capacity:', admission.remainingTokens);
+  console.log("Remaining rate-limit capacity:", admission.remainingTokens);
   await sendRequest();
 } catch (err) {
   if (err instanceof TokenBucketExhaustedError) {
@@ -110,15 +125,19 @@ bucket.available; // current token count
 // consume() and waitForToken() return { consumedTokens, remainingTokens }.
 ```
 
+### KeyedRateLimiter
+
+KeyedRateLimiter creates one TokenBucket or supplied structural rate-limiting strategy per key. It bounds retained keys with maximumKeys and evicts idle keys with keyIdleTtlMs. Its runtime API is available from @studnicky/resilience/keyed, schemas from @studnicky/resilience/keyed/entities, and contracts from @studnicky/resilience/keyed/interfaces.
+
 ### SlidingWindowLimiter
 
 Use a sliding window when a limit is a fixed number of requests within a rolling interval. Select `log` for exact accounting or `counter` for a constant-space approximation.
 
 ```typescript
-import { SlidingWindowExhaustedError, SlidingWindowLimiter } from '@studnicky/resilience/node';
+import { SlidingWindowExhaustedError, SlidingWindowLimiter } from "@studnicky/resilience/node";
 
 const limiter = SlidingWindowLimiter.create({
-  algorithm: 'log',
+  algorithm: "log",
   limit: 100,
   windowMs: 60_000,
 });
@@ -141,7 +160,7 @@ try {
 Bounded FIFO queue for items that failed processing. Drain via async generator.
 
 ```typescript
-import { DeadLetterQueue } from '@studnicky/resilience/node';
+import { DeadLetterQueue } from "@studnicky/resilience/node";
 
 const dlq = DeadLetterQueue.create<JobPayload>({ capacity: 1000 });
 
@@ -149,7 +168,7 @@ const dlq = DeadLetterQueue.create<JobPayload>({ capacity: 1000 });
 try {
   await processJob(job);
 } catch (err) {
-  dlq.enqueue(job, 'processing failed', err instanceof Error ? err : undefined);
+  dlq.enqueue(job, "processing failed", err instanceof Error ? err : undefined);
 }
 
 // Drain asynchronously
@@ -164,7 +183,7 @@ dlq.close(); // drain loop stops after current entries are consumed
 ### DeadLetterQueueRetryGenerator — timed re-delivery
 
 ```typescript
-import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from '@studnicky/resilience/node';
+import { DeadLetterQueue, DeadLetterQueueRetryGenerator } from "@studnicky/resilience/node";
 
 const dlq = DeadLetterQueue.create<JobPayload>();
 const retryGen = DeadLetterQueueRetryGenerator.create({ deadLetterQueue: dlq, intervalMs: 5_000 });
@@ -183,13 +202,13 @@ Subclass a resilience primitive when the application needs lifecycle telemetry. 
 Entity namespaces own serializable configuration and state. Import them from `@studnicky/resilience/entities`:
 
 ```typescript
-import { CircuitBreakerOptionsEntity } from '@studnicky/resilience/entities';
+import { CircuitBreakerOptionsEntity } from "@studnicky/resilience/entities";
 ```
 
 Type-only contracts are available from `@studnicky/resilience/interfaces`:
 
 ```typescript
-import type { DeadLetterQueueEntryInterface } from '@studnicky/resilience/interfaces';
+import type { DeadLetterQueueEntryInterface } from "@studnicky/resilience/interfaces";
 ```
 
 Entity source files import `JSONSchema` and `FromSchema` directly from `json-schema-to-ts` and `ValidateFunction` directly from `ajv`. Both owner packages are direct dependencies of `@studnicky/resilience`; dependency-owned declarations are not proxy-exported through another substrate package.

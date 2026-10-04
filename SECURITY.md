@@ -16,7 +16,7 @@ In scope:
 
 - **ReDoS** in any regex-bearing utility (predicates, config validation, path parsing).
 - **Prototype pollution** in the JSON utilities (`@studnicky/json`): deep merge, clone, patch, or path-access operations that allow `__proto__`, `constructor`, or `prototype` key injection.
-- **Unbounded resource growth** in scheduler, throttle, concurrency, circular-buffer, sample-buffer, or event-bus primitives: inputs that cause unbounded queue growth, heap exhaustion, or timer accumulation with no release path.
+- **Unbounded resource growth** in scheduler, throttle, concurrency, circular-buffer, or event-bus primitives: inputs that cause unbounded queue growth, heap exhaustion, or timer accumulation with no release path.
 - **Mutex / concurrency deadlock** introduced by the library's own locking logic (not consumer misuse).
 - **Supply chain**: compromised dependency, malicious publish, or typosquatting of a `@studnicky/*` package.
 
@@ -28,26 +28,10 @@ Out of scope:
 
 ## Dependency pins
 
-`pnpm.overrides` in the root `package.json` carries exactly one entry. An override is a blunt
-instrument — it applies to every resolution in the graph regardless of what a dependent
-declares — so it is used only where no dependency bump reaches the fix.
+`pnpm.overrides` in the root `package.json` constrains selected transitive dependency
+resolutions across the workspace.
 
-### `vite: ^6.4.3`
+### `vite: ^8.3.0`
 
-Keep this. It is not redundant.
-
-`vitepress` is the only dependent, it is a docs-build devDependency, and its latest stable
-release (1.6.4) declares `vite: ^5.4.14`. The vite 5.x line carries
-[GHSA-fx2h-pf6j-xcff](https://github.com/advisories/GHSA-fx2h-pf6j-xcff) (HIGH, `server.fs.deny`
-bypass) plus an open moderate path-traversal advisory, and the fix for the HIGH ships only in
-6.4.3 — there is no 5.x backport. Removing this override resolves vite to 5.4.21 and reintroduces
-both advisories.
-
-The alternative — `vitepress@2.x`, the only line declaring vite 6 support — is a prerelease
-(`2.0.0-alpha.19`, no beta or rc exists) and drops `vitepress-plugin-mermaid`, which
-peer-requires `vitepress: ^1.0.0`.
-
-So the override forces a vite major that vitepress does not declare. That mismatch is accepted
-deliberately: vite 6.4.3 has no open advisories, and the docs build has been green on every run
-since the pin landed. Revisit when a stable `vitepress` 2.x ships with a mermaid plugin that
-supports it.
+The Vite override constrains every Vite resolution to the `^8.3.0` range, including VitePress's
+Vite dependency. The docs build completes with this constraint under Vite 8 and Rolldown.

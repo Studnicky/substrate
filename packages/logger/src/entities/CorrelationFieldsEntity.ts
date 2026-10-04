@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
 import { EntityCompiler } from '@studnicky/entity/node';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Correlation fields for tracing operations across the stack.
@@ -38,9 +39,25 @@ export namespace CorrelationFieldsEntity {
     'required': ['requestId'],
     'title': 'CorrelationFields',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/CorrelationFields', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Correlation fields for tracing operations across the stack.', 'title': 'CorrelationFields', 'type': 'object' } as const, { 'orgId': SchemaNode.defineString({
+    'description': 'Organization ID for multi-tenant contexts.',
+    'type': 'string'
+  } as const), 'requestId': SchemaNode.defineString({
+    'description': 'Unique request identifier (UUID v4). From X-Request-Id header or generated.',
+    'type': 'string'
+  } as const), 'teamId': SchemaNode.defineString({
+    'description': 'Team ID within organization.',
+    'type': 'string'
+  } as const), 'traceId': SchemaNode.defineString({
+    'description': 'Distributed trace ID for cross-service tracing. From X-Trace-Id header or propagated context.',
+    'type': 'string'
+  } as const), 'userId': SchemaNode.defineString({
+    'description': 'Authenticated user ID.',
+    'type': 'string'
+  } as const) }, ['requestId'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

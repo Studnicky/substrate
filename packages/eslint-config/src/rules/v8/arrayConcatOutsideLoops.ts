@@ -1,37 +1,19 @@
-import type { Rule } from 'eslint';
+import type { Rule, Scope } from 'eslint';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
+import { AstHelpers } from '../shared/astHelpers.js';
 import { CallIdentity } from '../shared/CallIdentity.js';
 import { LoopContext } from '../shared/LoopContext.js';
 import {
   CONCAT_METHODS, CONCAT_OWNERS, MESSAGE, RULE_NAME
 } from './constants/ArrayConcatOutsideLoopsConstants.js';
 
-// Measured cost of the pattern this rule forbids, 200-element chunks:
-//   result = result.concat(chunk)  in a loop   150.3 ms
-//   result.push(...chunk)          in a loop    20.6 ms   -> 7.3x
-//
-// IDENTITY IS RESOLVED, NOT NAME-MATCHED. See `shared/CallIdentity.ts` for why; the
-// short version is that the previous name-matching implementation both missed
-// `result[CONCAT](chunk)` and falsely reported a user-defined `Rope.concat`. Roughly
-// 150 lines of alias/indirection chasing collapsed into one resolved-signature check
-// that no spelling can evade.
-//
-// `.call`/`.apply` indirection is deliberately NOT handled here. `arr.concat.call(...)`
-// resolves to `CallableFunction.call`, not `Array.concat`, so it would need its own
-// special case — but `direct-invocation-only` already forbids `.call`/`.apply`
-// outright, so the pattern is unreachable in compliant code. The two rules cover the
-// surface together rather than each half-implementing the other's job.
+// See docs/eslint/rules/v8/array-concat-outside-loops.md for the measured rationale.
+// `.call`/`.apply` indirection resolves to `CallableFunction.call`, not `Array.concat`.
 
 class HelperReachability {
-  /**
-   * A concat call that is not itself per-iteration still runs per-iteration when it
-   * lives in a helper whose every call site is per-iteration. Only two helper shapes
-   * are provable without whole-program call-graph analysis: a named
-   * `function helper() {}`, or `const helper = () => {}` / `= function () {}`. Both
-   * expose exactly one binding whose references are the call sites.
-   */
+  /** Provable only for a named `function helper() {}` or `const helper = () => {}`/`= function () {}`. */
   public static isReachedOnlyPerIteration(node: Rule.Node, context: Rule.RuleContext): boolean {
     const enclosing = HelperReachability.#findEnclosingFunction(node);
 
@@ -39,17 +21,7 @@ class HelperReachability {
       return false;
     }
 
-    // `getDeclaredVariables` resolves the binding the declaration actually creates.
-    // The predecessor walked the scope chain comparing variable NAMES, which a shadowed
-    // binding defeats; this cannot be shadowed because it starts from the declaration.
-    //
-    // Which node OWNS the binding differs by helper shape, and getting this wrong fails
-    // silently rather than loudly:
-    //   function helper() {}      -> the FunctionDeclaration declares `helper`
-    //   const helper = () => {}   -> the VariableDeclarator declares `helper`; the arrow
-    //                                itself declares NOTHING, so asking it returns []
-    // Ask the declarator in the second case, or every `const`-assigned helper silently
-    // reports zero call sites and is never flagged.
+    // Resolves the binding from its declaration, so it cannot be shadowed by name.
     const owner = HelperReachability.#bindingOwner(enclosing);
     const declared = context.sourceCode.getDeclaredVariables(owner);
     const variable = declared.at(0);
@@ -58,39 +30,47 @@ class HelperReachability {
       return false;
     }
 
+    const callSites = HelperReachability.#collectCallSites(variable.references);
+
+    if (callSites === undefined || callSites.length === 0) {
+      return false;
+    }
+
+    const result = HelperReachability.#allSitesPerIteration(callSites, context);
+    return result;
+  }
+
+  /** `undefined` means a reference was passed around as a value — where it runs is unprovable. */
+  static #collectCallSites(references: readonly Scope.Reference[]): Rule.Node[] | undefined {
     const callSites: Rule.Node[] = [];
-    const references = variable.references;
     const length = references.length;
 
     for (let index = 0; index < length; index += 1) {
       const reference = references.at(index);
 
-      if (reference === undefined) {
-        continue;
-      }
-      if (reference.init === true) {
+      if (reference === undefined || reference.init === true) {
         continue;
       }
 
-      const identifier = reference.identifier as unknown as Rule.Node;
-      const parent = identifier.parent;
+      const identifier = reference.identifier;
 
-      // A reference that is not a callee means the helper is passed around as a
-      // value; where it ultimately runs is unprovable, so report nothing.
-      if (parent === null || !Predicates.isRecord(parent)) {
-        return false;
+      if (!AstHelpers.isNode(identifier)) {
+        return undefined;
       }
-      if (parent.type !== 'CallExpression' || parent.callee !== identifier) {
-        return false;
+
+      const parent = AstHelpers.getParent(identifier);
+
+      if (parent?.type !== 'CallExpression' || parent.callee !== identifier) {
+        return undefined;
       }
 
       callSites.push(identifier);
     }
 
-    if (callSites.length === 0) {
-      return false;
-    }
+    return callSites;
+  }
 
+  static #allSitesPerIteration(callSites: readonly Rule.Node[], context: Rule.RuleContext): boolean {
     const siteCount = callSites.length;
 
     for (let siteIndex = 0; siteIndex < siteCount; siteIndex += 1) {

@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
-import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
+import { type Declaration, isCallLikeExpression, type Node, type TypeChecker } from 'typescript';
 
 import { AstHelpers } from './astHelpers.js';
 
@@ -53,7 +53,7 @@ import { AstHelpers } from './astHelpers.js';
 
 // The match target is passed as two plain parameters (method name, owning interfaces)
 // rather than bundled into a `{ method, owners }` shape. A bundle would need to be
-// either an interface — which `single-export` forbids alongside the class, and which
+// either an interface — which `export-shape` forbids alongside the class, and which
 // `interfaces-compose-named-types` rejects for carrying bare `string` members — or a
 // schema-derived entity, which cannot express `ReadonlySet<string>` in JSON Schema.
 // Two parameters need no such contortion and read the same at every call site.
@@ -78,11 +78,28 @@ class DeclarationNames {
   }
 
   /**
+   * Reads the enclosing owner's name for a declaration — an interface/class member's
+   * parent has it directly; a `declare namespace X { function f() {} }` member's
+   * parent is the namespace body, so the name sits one level further up.
+   */
+  public static ownerNameOf(declaration: Declaration): string | undefined {
+    const direct = DeclarationNames.of(declaration.parent);
+
+    if (direct !== undefined) {
+      return direct;
+    }
+
+    const result = DeclarationNames.of(declaration.parent.parent);
+
+    return result;
+  }
+
+  /**
    * True when the declaration comes from a TypeScript lib file (`lib.es5.d.ts`,
    * `lib.dom.d.ts`, …) rather than from project or dependency source. This is the
    * check that separates a genuine built-in from a same-named user method.
    */
-  public static isFromStandardLibrary(declaration: ts.Declaration): boolean {
+  public static isFromStandardLibrary(declaration: Declaration): boolean {
     const fileName = declaration.getSourceFile().fileName;
     const basename = fileName.slice(fileName.lastIndexOf('/') + 1);
 
@@ -93,14 +110,8 @@ class DeclarationNames {
 }
 
 export class CallIdentity {
-  /**
-   * True when `node` resolves to one of `methods` declared on one of `owners` in the
-   * standard library — independent of how the callee was spelled. Dot access,
-   * computed literal, and computed const binding all resolve identically.
-   *
-   * Returns `false` when type services are unavailable, so consumers go silent rather
-   * than guessing. See the module comment for why that trade is deliberate.
-   */
+  // True when `node` resolves to one of `methods` declared on one of `owners` in the
+  // standard library, independent of callee spelling; `false` when type services are unavailable.
   public static isBuiltinCall(
     node: Rule.Node,
     context: Rule.RuleContext,
@@ -115,12 +126,12 @@ export class CallIdentity {
 
     const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
 
-    if (tsNode === undefined) {
+    if (tsNode === undefined || !isCallLikeExpression(tsNode)) {
       return false;
     }
 
     const checker = servicesUnknown.program.getTypeChecker();
-    const signature = checker.getResolvedSignature(tsNode as ts.CallLikeExpression);
+    const signature = checker.getResolvedSignature(tsNode);
 
     const declaration = signature?.declaration;
 
@@ -136,7 +147,7 @@ export class CallIdentity {
       return false;
     }
 
-    const owner = DeclarationNames.of(declaration.parent);
+    const owner = DeclarationNames.ownerNameOf(declaration);
 
     if (owner === undefined) {
       return false;
@@ -145,5 +156,55 @@ export class CallIdentity {
     const result = owners.has(owner);
 
     return result;
+  }
+
+  /** Resolves a name node to one of `memberNames` declared on `ownerName` in the file ending `sourceFileSuffix`, so a same-named declaration elsewhere cannot satisfy the check. */
+  public static isDeclarationIdentity(
+    node: unknown,
+    context: Rule.RuleContext,
+    ownerName: string,
+    memberNames: ReadonlySet<string>,
+    sourceFileSuffix: string
+  ): boolean {
+    const servicesUnknown: unknown = context.sourceCode.parserServices;
+
+    if (!AstHelpers.hasTypeServices(servicesUnknown)) {
+      return false;
+    }
+
+    const tsNode = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
+
+    if (tsNode === undefined) {
+      return false;
+    }
+
+    const checker = servicesUnknown.program.getTypeChecker();
+    const declaration = CallIdentity.resolveMemberDeclaration(checker, tsNode, memberNames);
+
+    if (declaration === undefined) {
+      return false;
+    }
+
+    const owner = DeclarationNames.of(declaration.parent);
+
+    if (owner !== ownerName) {
+      return false;
+    }
+
+    const result = declaration.getSourceFile().fileName.endsWith(sourceFileSuffix);
+
+    return result;
+  }
+
+  private static resolveMemberDeclaration(checker: TypeChecker, tsNode: Node, memberNames: ReadonlySet<string>): Declaration | undefined {
+    const symbol = checker.getSymbolAtLocation(tsNode);
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.at(0);
+    const declaredName = declaration === undefined ? undefined : DeclarationNames.of(declaration);
+
+    if (declaration === undefined || declaredName === undefined || !memberNames.has(declaredName)) {
+      return undefined;
+    }
+
+    return declaration;
   }
 }

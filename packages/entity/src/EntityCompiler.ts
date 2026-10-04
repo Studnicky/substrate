@@ -1,11 +1,14 @@
 /**
  * EntityCompiler — schema-as-source-of-truth runtime validation.
  *
- * Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate
- * backed by Ajv. Entities declare a single `Schema` (`as const satisfies
- * JSONSchema`) and derive both their compile-time `Type`
- * (via `FromSchema`) and their runtime `validate` guard from it — there is no
- * second, hand-written validator to drift out of sync.
+ * Compiles a JSON Schema 2020-12 document into a reusable type-guard predicate.
+ * Entities declare a single `Schema` (`as const satisfies JSONSchema`) and derive
+ * both their compile-time `Type` (via `FromSchema`) and their runtime `validate`
+ * guard from it — there is no second, hand-written validator to drift out of sync.
+ *
+ * This base class holds every rule that does not depend on a compilation backend.
+ * The node and browser entrypoints each subclass it, overriding the protected
+ * static `registries` accessor with a backend suited to their runtime.
  *
  * `compileIntake` parses data from outside the codebase; `compileCreate` builds
  * object entities from trusted data. Both fill schema defaults and validate the
@@ -16,52 +19,60 @@
  *
  * @module
  */
-import { JsonObject, JsonValue, Predicates } from '@studnicky/types/node';
+import { JsonObject, JsonValue, Predicates } from '@studnicky/types/browser';
 
 import type { EntityCreateFunctionInterface } from './interfaces/EntityCreateFunctionInterface.js';
 import type { EntityIntakeFunctionInterface } from './interfaces/EntityIntakeFunctionInterface.js';
 import type { EntityValidateFunctionInterface } from './interfaces/EntityValidateFunctionInterface.js';
 import type { EntityValidationErrorInterface } from './interfaces/EntityValidationErrorInterface.js';
+import type { SchemaCompilerInterface } from './interfaces/SchemaCompilerInterface.js';
+import type { SchemaRegistrySetInterface } from './interfaces/SchemaRegistrySetInterface.js';
 
-import { EntityAjvInstance } from './EntityAjvInstance.js';
+import { EntityCloneError } from './EntityCloneError.js';
+import { EntityCompilerConfigurationError } from './EntityCompilerConfigurationError.js';
+import { SchemaId } from './SchemaId.js';
 import { SchemaIntakeError } from './SchemaIntakeError.js';
-
-interface SchemaRegistryInterface {
-  readonly 'compile': <TValidated>(schema: object) => EntityValidateFunctionInterface<TValidated>;
-  readonly 'getSchema': <TValidated>(key: string) => EntityValidateFunctionInterface<TValidated> | undefined;
-}
+import { SchemaPattern } from './SchemaPattern.js';
 
 export class EntityCompiler {
-  private static readonly patternPropertyValidators = new WeakMap<object, Map<string, EntityValidateFunctionInterface<Record<string, null>>>>();
+  private static readonly patternPropertyMatchers = new WeakMap<object, Map<string, RegExp>>();
+  private static readonly lazyValidatorsByRegistry = new WeakMap<SchemaCompilerInterface, Map<string, EntityValidateFunctionInterface<never>>>();
+
+  /** The compilation backend to dispatch to. Every runtime entrypoint overrides this. */
+  protected static get registries(): SchemaRegistrySetInterface {
+    throw new EntityCompilerConfigurationError('EntityCompiler must be extended with a runtime-specific registries accessor.');
+  }
+
   /**
    * Compiles `schema` into a type-guard predicate. The returned function
-   * narrows `unknown` to `TValidated` and carries Ajv's `.errors` array after
-   * each call, so callers needing detail can pair it with {@link formatErrors}.
+   * narrows `unknown` to `TValidated` and carries the backend's `.errors` array
+   * after each call, so callers needing detail can pair it with {@link EntityCompiler.formatErrors}.
    *
-   * Compile once at module load and reuse; compilation is the expensive step.
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O. Compile once at module load and reuse; compilation is the expensive step.
    */
-  public static compile<TValidated>(schema: object): EntityValidateFunctionInterface<TValidated> {
-    const id = EntityCompiler.schemaId(schema);
-    if (id !== undefined) {
-      const existing = EntityAjvInstance.assert.getSchema<TValidated>(id);
-      if (existing !== undefined) {
-        return existing;
-      }
-    }
-    const result = EntityAjvInstance.assert.compile<TValidated>(schema);
+  public static compile<TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<TValidated> {
+    const result = EntityCompiler.lazySchemaValidator<TValidated>(this.registries.assert, schema, remoteSchemas);
     return result;
   }
 
   /**
    * Compiles `schema` into an untrusted-input parser. The parser clones input
-   * before Ajv applies schema defaults, leaving the caller's value unchanged.
+   * before defaults are applied, leaving the caller's value unchanged.
    *
    * Cyclic values are rejected before cloning because JSON Schema models JSON
    * trees rather than object graphs. Scalar values are never coerced — a `"true"`
    * string for a `boolean` field is rejected, not silently accepted as `true`.
+   *
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O.
    */
-  public static compileIntake<TValidated>(schema: object): EntityIntakeFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.intake, schema);
+  public static compileIntake<TValidated>(
+    schema: object | boolean, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityIntakeFunctionInterface<TValidated> {
+    const validate = EntityCompiler.lazySchemaValidator<TValidated>(this.registries.intake, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
     const intake: EntityIntakeFunctionInterface<TValidated> = (input) => {
       if (Predicates.hasCycle(input)) {
@@ -74,8 +85,8 @@ export class EntityCompiler {
       let cloned: unknown;
       try {
         cloned = structuredClone(normalized);
-      } catch {
-        throw new SchemaIntakeError('input is not structured-cloneable', [], schemaIdentifier);
+      } catch (error: unknown) {
+        throw new EntityCloneError('input is not structured-cloneable', error);
       }
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
@@ -89,14 +100,22 @@ export class EntityCompiler {
   /**
    * Compiles `schema` into a trusted-data factory that fills schema defaults
    * without coercing values or removing properties.
+   *
+   * `remoteSchemas`, keyed by the URI a `$ref` addresses them by, are resolved as if externally
+   * retrieved — no network I/O.
    */
-  public static compileCreate<TValidated extends object>(
-    schema: object
-  ): EntityCreateFunctionInterface<TValidated> {
-    const validate = EntityCompiler.schemaValidator<TValidated>(EntityAjvInstance.create, schema);
+  public static compileCreate<TStatic extends object, TInput extends object = TStatic>(
+    schema: object, remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityCreateFunctionInterface<TStatic, TInput> {
+    const validate = EntityCompiler.lazySchemaValidator<TStatic>(this.registries.create, schema, remoteSchemas);
     const schemaIdentifier = EntityCompiler.schemaIdentifier(schema);
-    const create: EntityCreateFunctionInterface<TValidated> = (partial = {}) => {
-      const cloned = structuredClone(partial);
+    const create: EntityCreateFunctionInterface<TStatic, TInput> = (partial = {}) => {
+      let cloned: Partial<TInput>;
+      try {
+        cloned = structuredClone(partial);
+      } catch (error: unknown) {
+        throw new EntityCloneError('input is not structured-cloneable', error);
+      }
       if (!validate(cloned)) {
         const errors = validate.errors ?? [];
         throw new SchemaIntakeError(EntityCompiler.formatErrors(errors), errors, schemaIdentifier);
@@ -107,7 +126,7 @@ export class EntityCompiler {
   }
 
   /**
-   * Renders an Ajv error array into a single human-readable line. Returns a
+   * Renders an error array into a single human-readable line. Returns a
    * stable fallback when the array is empty, `null`, or `undefined`.
    */
   public static formatErrors(errors: Readonly<readonly EntityValidationErrorInterface[]> | null | undefined): string {
@@ -119,13 +138,13 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Renders a single Ajv error object. */
+  /** Renders a single schema-validation error object. */
   private static formatError(error: Readonly<EntityValidationErrorInterface>): string {
     const result = EntityCompiler.formatPathMessage(error.instancePath, error.message ?? 'invalid');
     return result;
   }
 
-  /** Renders JSON-validity errors using the same path convention as Ajv errors. */
+  /** Renders JSON-validity errors using the same path convention as schema-validation errors. */
   private static formatJsonValidityErrors(value: unknown): string {
     const messages = EntityCompiler.collectJsonValidityErrors(value);
     const result = messages.join('; ');
@@ -134,38 +153,41 @@ export class EntityCompiler {
 
   /** Finds every non-JSON value in a finite, acyclic candidate. */
   private static collectJsonValidityErrors(value: unknown, path = ''): string[] {
-    if (value === null || Predicates.isString(value) || Predicates.isBoolean(value)) {
-      return [];
-    }
-    if (Predicates.isNumberType(value)) {
-      const message = Number.isFinite(value) ? undefined : EntityCompiler.describeInvalidJsonNumber(value);
-      const result = message === undefined ? [] : [EntityCompiler.formatPathMessage(path, message)];
-      return result;
-    }
-    if (Predicates.isArray(value)) {
-      const messages: string[] = [];
-      const length = value.length;
-      for (let index = 0; index < length; index += 1) {
-        const item: unknown = value.at(index);
-        messages.push(...EntityCompiler.collectJsonValidityErrors(item, `${path}/${index}`));
-      }
-      return messages;
-    }
-    if (JsonObject.is(value)) {
-      const messages: string[] = [];
-      const keys = Object.keys(value);
-      const length = keys.length;
-      for (let index = 0; index < length; index += 1) {
-        const key = keys[index]!;
-        const item: unknown = Reflect.get(value, key);
-        const escapedKey = key.replaceAll('~', '~0').replaceAll('/', '~1');
-        const nextPath = `${path}/${escapedKey}`;
-        messages.push(...EntityCompiler.collectJsonValidityErrors(item, nextPath));
-      }
-      return messages;
-    }
-
+    if (value === null || Predicates.isString(value) || Predicates.isBoolean(value)) { return []; }
+    if (Predicates.isNumberType(value)) { const result = EntityCompiler.collectNumberValidityErrors(value, path); return result; }
+    if (Predicates.isArray(value)) { const result = EntityCompiler.collectArrayValidityErrors(value, path); return result; }
+    if (JsonObject.is(value)) { const result = EntityCompiler.collectObjectValidityErrors(value, path); return result; }
     return [EntityCompiler.formatPathMessage(path, `${typeof value} is not valid JSON data`)];
+  }
+
+  private static collectNumberValidityErrors(value: number, path: string): string[] {
+    const message = Number.isFinite(value) ? undefined : EntityCompiler.describeInvalidJsonNumber(value);
+    const result = message === undefined ? [] : [EntityCompiler.formatPathMessage(path, message)];
+    return result;
+  }
+
+  private static collectArrayValidityErrors(value: readonly unknown[], path: string): string[] {
+    const messages: string[] = [];
+    const length = value.length;
+    for (let index = 0; index < length; index += 1) {
+      const item: unknown = value.at(index);
+      messages.push(...EntityCompiler.collectJsonValidityErrors(item, `${path}/${index}`));
+    }
+    return messages;
+  }
+
+  private static collectObjectValidityErrors(value: object, path: string): string[] {
+    const messages: string[] = [];
+    const keys = Object.keys(value);
+    const length = keys.length;
+    for (let index = 0; index < length; index += 1) {
+      const key = keys[index]!;
+      const item: unknown = Reflect.get(value, key);
+      const escapedKey = key.replaceAll('~', '~0').replaceAll('/', '~1');
+      const nextPath = `${path}/${escapedKey}`;
+      messages.push(...EntityCompiler.collectJsonValidityErrors(item, nextPath));
+    }
+    return messages;
   }
 
   /** Formats a message at a JSON Pointer path, substituting the root label when needed. */
@@ -184,8 +206,11 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Finds the schema label carried by intake errors. */
-  private static schemaIdentifier(schema: object): string | undefined {
+  /** Finds the schema label carried by intake errors; a boolean schema has none. */
+  private static schemaIdentifier(schema: object | boolean): string | undefined {
+    if (typeof schema !== 'object') {
+      return undefined;
+    }
     const id: unknown = Reflect.get(schema, '$id');
     if (Predicates.isString(id)) {
       return id;
@@ -196,61 +221,65 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Omits explicit undefined values only for optional properties the schema declares. */
+  /** Omits explicit undefined values only for optional properties the schema declares; a boolean schema declares none. */
   private static omitUndefinedDeclaredProperties(
     value: unknown,
-    schema: object,
-    rootSchema: object = schema
+    schema: object | boolean,
+    rootSchema: object | boolean = schema
   ): unknown {
-    if (Predicates.isArray(value)) {
-      const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
-      if (itemSchemas.length === 0) {
-        const result = value;
-        return result;
+    if (typeof schema !== 'object' || typeof rootSchema !== 'object') { return value; }
+    if (Predicates.isArray(value)) { const result = EntityCompiler.omitUndefinedInArray(value, schema, rootSchema); return result; }
+    if (!Predicates.isRecord(value)) { return value; }
+    const result = EntityCompiler.omitUndefinedInRecord(value, schema, rootSchema);
+    return result;
+  }
+
+  private static omitUndefinedInArray(value: readonly unknown[], schema: object, rootSchema: object): unknown {
+    const itemSchemas = EntityCompiler.itemSchemas(schema, rootSchema, new Set<string>());
+    if (itemSchemas.length === 0) { return value; }
+    const result = value.map((item) => {
+      let normalized = item;
+      const schemaCount = itemSchemas.length;
+      for (let index = 0; index < schemaCount; index += 1) {
+        normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, itemSchemas[index]!, rootSchema);
       }
-      const result = value.map((item) => {
-        let normalized = item;
-        const schemaCount = itemSchemas.length;
-        for (let index = 0; index < schemaCount; index += 1) {
-          normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, itemSchemas[index]!, rootSchema);
-        }
-        return normalized;
-      });
-      return result;
-    }
-    if (!Predicates.isRecord(value)) {
-      const result = value;
-      return result;
-    }
+      return normalized;
+    });
+    return result;
+  }
+
+  private static omitUndefinedInRecord(value: Readonly<Record<string, unknown>>, schema: object, rootSchema: object): unknown {
     const keys = Object.keys(value);
-    if (keys.length === 0) {
-      const result = value;
-      return result;
-    }
+    if (keys.length === 0) { return value; }
     const result: Record<string, unknown> = {};
     for (let index = 0; index < keys.length; index += 1) {
       const key = keys[index]!;
-      const item = Reflect.get(value, key);
-      const propertySchemas = EntityCompiler.propertySchemas(schema, rootSchema, key, new Set<string>());
-      if (item === undefined) {
-        if (EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
-          continue;
-        }
-        Reflect.set(result, key, item);
-        continue;
-      }
-      if (propertySchemas.length === 0) {
-        Reflect.set(result, key, item);
-        continue;
-      }
-      let normalized: unknown = item;
-      const schemaCount = propertySchemas.length;
-      for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
-        normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
-      }
-      Reflect.set(result, key, normalized);
+      EntityCompiler.omitUndefinedProperty(result, value, key, schema, rootSchema);
     }
     return result;
+  }
+
+  private static omitUndefinedProperty(
+    result: Record<string, unknown>, value: Readonly<Record<string, unknown>>, key: string, schema: object, rootSchema: object
+  ): void {
+    const item = Reflect.get(value, key);
+    if (item === undefined) {
+      if (!EntityCompiler.isOptionalDeclaredProperty(schema, rootSchema, key, new Set<string>())) {
+        JsonObject.write(result, key, item);
+      }
+      return;
+    }
+    const propertySchemas = EntityCompiler.propertySchemas(schema, rootSchema, key, new Set<string>());
+    if (propertySchemas.length === 0) {
+      JsonObject.write(result, key, item);
+      return;
+    }
+    let normalized: unknown = item;
+    const schemaCount = propertySchemas.length;
+    for (let schemaIndex = 0; schemaIndex < schemaCount; schemaIndex += 1) {
+      normalized = EntityCompiler.omitUndefinedDeclaredProperties(normalized, propertySchemas[schemaIndex]!, rootSchema);
+    }
+    JsonObject.write(result, key, normalized);
   }
 
   /** Returns every object schema that declares a property through local references and composition. */
@@ -296,15 +325,7 @@ export class EntityCompiler {
     const referenceOptional = referencedSchema === undefined
       ? false
       : EntityCompiler.isOptionalDeclaredProperty(referencedSchema.schema, rootSchema, propertyName, referencedSchema.references);
-    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
-    const directPropertySchema = properties === undefined
-      ? undefined
-      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
-    const patternPropertySchema = directPropertySchema === undefined
-      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
-      : undefined;
-    const directOptional = (directPropertySchema ?? patternPropertySchema) !== undefined
-      && !EntityCompiler.isRequiredProperty(schema, propertyName);
+    const directOptional = EntityCompiler.isDirectlyOptionalProperty(schema, propertyName);
     const allOfOptional = EntityCompiler.hasOptionalAllOfProperty(schema, rootSchema, propertyName, references);
     const conditionalOptional = EntityCompiler.hasOptionalConditionalProperty(schema, rootSchema, propertyName, references);
     const declared = referenceOptional || directOptional || allOfOptional || conditionalOptional === true;
@@ -312,6 +333,19 @@ export class EntityCompiler {
       return false;
     }
     const result = conditionalOptional !== false;
+    return result;
+  }
+
+  /** A property declared directly via `properties`/`patternProperties`, and not itself `required`. */
+  private static isDirectlyOptionalProperty(schema: object, propertyName: string): boolean {
+    const properties = EntityCompiler.getSchemaObjectMember(schema, 'properties');
+    const directPropertySchema = properties === undefined
+      ? undefined
+      : EntityCompiler.getSchemaObjectMember(properties, propertyName);
+    const patternPropertySchema = directPropertySchema === undefined
+      ? EntityCompiler.getPatternPropertySchema(EntityCompiler.getSchemaObjectMember(schema, 'patternProperties'), propertyName)
+      : undefined;
+    const result = (directPropertySchema ?? patternPropertySchema) !== undefined && !EntityCompiler.isRequiredProperty(schema, propertyName);
     return result;
   }
 
@@ -357,7 +391,7 @@ export class EntityCompiler {
     return result;
   }
 
-  /** Finds an object-valued pattern schema that declares a property name. */
+  /** Finds an object-valued pattern schema whose regex matches a property name. */
   private static getPatternPropertySchema(
     patternProperties: Record<string, unknown> | undefined,
     propertyName: string
@@ -365,9 +399,9 @@ export class EntityCompiler {
     if (patternProperties === undefined) {
       return undefined;
     }
-    const validators = EntityCompiler.patternPropertyValidators.get(patternProperties)
-      ?? new Map<string, EntityValidateFunctionInterface<Record<string, null>>>();
-    EntityCompiler.patternPropertyValidators.set(patternProperties, validators);
+    const matchers = EntityCompiler.patternPropertyMatchers.get(patternProperties)
+      ?? new Map<string, RegExp>();
+    EntityCompiler.patternPropertyMatchers.set(patternProperties, matchers);
     const patterns = Object.keys(patternProperties);
     for (let index = 0; index < patterns.length; index += 1) {
       const pattern = patterns[index]!;
@@ -375,20 +409,12 @@ export class EntityCompiler {
       if (patternSchema === undefined) {
         continue;
       }
-      let validator = validators.get(pattern);
-      if (validator === undefined) {
-        const patternMatchSchema: Record<string, boolean> = {};
-        Reflect.set(patternMatchSchema, pattern, true);
-        validator = EntityAjvInstance.assert.compile<Record<string, null>>({
-          'additionalProperties': false,
-          'patternProperties': patternMatchSchema,
-          'type': 'object'
-        });
-        validators.set(pattern, validator);
+      let matcher = matchers.get(pattern);
+      if (matcher === undefined) {
+        matcher = SchemaPattern.compile(pattern);
+        matchers.set(pattern, matcher);
       }
-      const candidate: Record<string, null> = {};
-      Reflect.set(candidate, propertyName, null);
-      if (validator(candidate)) {
+      if (matcher.test(propertyName)) {
         return patternSchema;
       }
     }
@@ -570,24 +596,61 @@ export class EntityCompiler {
     const result = Predicates.isRecord(member) ? member : undefined;
     return result;
   }
-  private static schemaValidator<TValidated>(
-    registry: SchemaRegistryInterface,
-    schema: object
+
+  /** Compiles or reuses the cached validator a registry keeps for a schema's `$id`. */
+  private static lazySchemaValidator<TValidated>(
+    registry: SchemaCompilerInterface,
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
   ): EntityValidateFunctionInterface<TValidated> {
-    const id = EntityCompiler.schemaId(schema);
+    const id = SchemaId.of(schema);
+    if (id === undefined) {
+      const result = EntityCompiler.createLazySchemaValidator(registry, schema, remoteSchemas);
+      return result;
+    }
+    const validators = EntityCompiler.lazyValidatorsByRegistry.get(registry) ?? new Map<string, EntityValidateFunctionInterface<never>>();
+    EntityCompiler.lazyValidatorsByRegistry.set(registry, validators);
+    const existing = validators.get(id);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const validator = EntityCompiler.createLazySchemaValidator(registry, schema, remoteSchemas);
+    validators.set(id, validator);
+    return validator;
+  }
+
+  private static createLazySchemaValidator(
+    registry: SchemaCompilerInterface,
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<never> {
+    let validator: EntityValidateFunctionInterface<never> | undefined;
+    const lazy: EntityValidateFunctionInterface<never> = (data): data is never => {
+      validator ??= EntityCompiler.schemaValidator<never>(registry, schema, remoteSchemas);
+      const result = validator(data);
+      const errors = validator.errors;
+      if (lazy.errors !== errors) {
+        Reflect.set(lazy, 'errors', errors);
+      }
+      return result;
+    };
+    Reflect.set(lazy, 'errors', undefined);
+    return lazy;
+  }
+
+  private static schemaValidator<TValidated>(
+    registry: SchemaCompilerInterface,
+    schema: object | boolean,
+    remoteSchemas?: ReadonlyMap<string, object | boolean>
+  ): EntityValidateFunctionInterface<TValidated> {
+    const id = SchemaId.of(schema);
     if (id !== undefined) {
       const existing = registry.getSchema<TValidated>(id);
       if (existing !== undefined) {
         return existing;
       }
     }
-    const result = registry.compile<TValidated>(schema);
-    return result;
-  }
-
-  private static schemaId(schema: object): string | undefined {
-    const id: unknown = Reflect.get(schema, '$id');
-    const result = Predicates.isString(id) ? id : undefined;
+    const result = registry.compile<TValidated>(schema, remoteSchemas);
     return result;
   }
 }

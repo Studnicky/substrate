@@ -15,7 +15,8 @@
         ],
         "timeoutMs": 1,
         "urlIncludes": "127.0.0.1"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "timeout-error-instance",
@@ -26,7 +27,8 @@
       },
       "expected": {
         "error": "TimeoutError"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "abort-error-properties",
@@ -41,7 +43,8 @@
           "aborted"
         ],
         "urlIncludes": "127.0.0.1"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "abort-error-instance",
@@ -52,7 +55,8 @@
       },
       "expected": {
         "error": "AbortError"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "network-error-propagation",
@@ -62,7 +66,8 @@
       },
       "expected": {
         "error": "Error"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "http-404-response",
@@ -73,7 +78,8 @@
       "expected": {
         "ok": false,
         "status": 404
-      }
+      },
+      "shape": "resolves"
     }
   ]
 }

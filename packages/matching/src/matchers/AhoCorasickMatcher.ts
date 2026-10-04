@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 export class AhoCorasickMatcher {
   readonly #root = new AhoCorasickNode();
@@ -38,30 +38,48 @@ export class AhoCorasickMatcher {
   }
 
   private buildFailureLinks(): void {
+    const queue = this.seedFailureQueue();
+    for (let index = 0; index < queue.length; index += 1) {
+      const node = queue[index];
+      if (node !== undefined) {
+        this.extendFailureLinks(node, queue);
+      }
+    }
+  }
+
+  private seedFailureQueue(): AhoCorasickNode[] {
     const queue: AhoCorasickNode[] = [];
     for (const child of this.#root.children.values()) {
       child.failure = this.#root;
       queue.push(child);
     }
-    for (let index = 0; index < queue.length; index += 1) {
-      const node = queue[index];
-      if (node === undefined) {
-        continue;
-      }
-      for (const [character, child] of node.children) {
-        let failure = node.failure;
-        while (failure !== undefined && failure !== this.#root && !failure.children.has(character)) {
-          failure = failure.failure;
-        }
-        const fallback = failure?.children.get(character);
-        child.failure = fallback === undefined || fallback === child ? this.#root : fallback;
-        for (let idIndex = 0; idIndex < child.failure.ids.length; idIndex += 1) {
-          const id = child.failure.ids[idIndex];
-          if (id !== undefined) {
-            child.ids.push(id);
-          }
-        }
-        queue.push(child);
+    return queue;
+  }
+
+  private extendFailureLinks(node: AhoCorasickNode, queue: AhoCorasickNode[]): void {
+    for (const [character, child] of node.children) {
+      const target = this.resolveFailureTarget(node, character, child);
+      child.failure = target;
+      AhoCorasickMatcher.mergeFailureIds(child, target);
+      queue.push(child);
+    }
+  }
+
+  private resolveFailureTarget(node: AhoCorasickNode, character: string, child: AhoCorasickNode): AhoCorasickNode {
+    let failure = node.failure;
+    while (failure !== undefined && failure !== this.#root && !failure.children.has(character)) {
+      failure = failure.failure;
+    }
+    const fallback = failure?.children.get(character);
+    const target = fallback === undefined || fallback === child ? this.#root : fallback;
+    return target;
+  }
+
+  private static mergeFailureIds(child: AhoCorasickNode, target: AhoCorasickNode): void {
+    for (let idIndex = 0; idIndex < target.ids.length; idIndex += 1) {
+      const id = target.ids[idIndex];
+      if (id !== undefined) {
+        child.ids.push(id);
       }
     }
   }

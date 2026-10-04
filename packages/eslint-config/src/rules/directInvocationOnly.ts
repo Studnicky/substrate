@@ -1,7 +1,7 @@
 import type { Rule, Scope } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;
@@ -54,6 +54,70 @@ class BannedProperty {
 
 interface AliasBindingInterface {
   readonly 'object': unknown;
+}
+
+class AliasedBoundCallResolution {
+  // `rebind(null)` where `rebind` was earlier bound to `fn.bind` via a bare property read —
+  // resolve the identifier through the scope manager (never by name alone, to respect
+  // shadowing) and treat it as the original member-expression call if it resolves to a
+  // tracked alias binding.
+  public static reportIfAliased(
+    node: Rule.Node,
+    calleeName: string,
+    context: Rule.RuleContext,
+    aliasBindings: WeakMap<object, AliasBindingInterface>,
+    isProvablyCallable: (objectNode: unknown) => boolean
+  ): void {
+    let scope: Scope.Scope | null = context.sourceCode.getScope(node);
+
+    while (scope !== null) {
+      const variable = AliasedBoundCallResolution.#findVariable(scope.variables, calleeName);
+
+      if (variable !== undefined) {
+        AliasedBoundCallResolution.#reportIfBoundAlias(node, variable, context, aliasBindings, isProvablyCallable);
+
+        return;
+      }
+
+      scope = scope.upper;
+    }
+  }
+
+  static #findVariable(scopeVariables: readonly Scope.Variable[], name: string): Scope.Variable | undefined {
+    const scopeVariablesLength = scopeVariables.length;
+
+    for (let index = 0; index < scopeVariablesLength; index += 1) {
+      const candidate = scopeVariables.at(index);
+
+      if (candidate?.name === name) {
+        return candidate;
+      }
+    }
+
+    return undefined;
+  }
+
+  static #reportIfBoundAlias(
+    node: Rule.Node,
+    variable: Scope.Variable,
+    context: Rule.RuleContext,
+    aliasBindings: WeakMap<object, AliasBindingInterface>,
+    isProvablyCallable: (objectNode: unknown) => boolean
+  ): void {
+    const defs = variable.defs;
+    const defsLength = defs.length;
+
+    for (let index = 0; index < defsLength; index += 1) {
+      const def = defs.at(index);
+      const binding = def === undefined ? undefined : aliasBindings.get(def.node);
+
+      if (binding !== undefined && isProvablyCallable(binding.object)) {
+        context.report({ 'messageId': 'forbidden', 'node': node });
+
+        return;
+      }
+    }
+  }
 }
 
 export const directInvocationOnly: Rule.RuleModule = {
@@ -119,39 +183,8 @@ export const directInvocationOnly: Rule.RuleModule = {
         return;
       }
 
-      // `rebind(null)` where `rebind` was earlier bound to `fn.bind` via a bare property read —
-      // resolve the identifier through the scope manager (never by name alone, to respect
-      // shadowing) and treat it as the original member-expression call if it resolves to a
-      // tracked alias binding.
       if (callee.type === 'Identifier') {
-        let scope: Scope.Scope | null = context.sourceCode.getScope(node);
-
-        while (scope !== null) {
-          let variable: Scope.Variable | undefined;
-          const scopeVariables = scope.variables;
-          const scopeVariablesLength = scopeVariables.length;
-          for (let index = 0; index < scopeVariablesLength; index += 1) {
-            const candidate = scopeVariables.at(index);
-            if (candidate?.name === callee.name) { variable = candidate; break; }
-          }
-
-          if (variable !== undefined) {
-            const defs = variable.defs;
-            const defsLength = defs.length;
-            for (let index = 0; index < defsLength; index += 1) {
-              const def = defs.at(index);
-              const binding = def === undefined ? undefined : aliasBindings.get(def.node);
-
-              if (binding !== undefined && isProvablyCallable(binding.object)) {
-                context.report({ 'messageId': 'forbidden', 'node': node });
-                return;
-              }
-            }
-            return;
-          }
-
-          scope = scope.upper;
-        }
+        AliasedBoundCallResolution.reportIfAliased(node, callee.name, context, aliasBindings, isProvablyCallable);
       }
     };
 

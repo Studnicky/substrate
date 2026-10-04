@@ -10,8 +10,8 @@
  * default hook is a no-op.
  */
 
-import { HookInvoker } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 import type { ClampEventEntity } from '../entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../entities/ClampRuleEntity.js';
@@ -78,7 +78,7 @@ export class ClampedConfig {
       }
       const clamped = Math.min(Math.max(raw, rule.minimum), rule.maximum);
 
-      Reflect.set(result, field, clamped);
+      JsonObject.write(result, field, clamped);
       const event: ClampEventEntity.Type = {
         'clamped': clamped,
         'field': field,

@@ -23,4 +23,28 @@ export class JsonObject {
     const result = prototype === Object.prototype || prototype === null;
     return result;
   }
+
+  /**
+   * The sanctioned runtime-keyed construction write — converts `Map`/pair-iterable
+   * entries into a plain object; see docs/eslint/rules/v8/dynamic-property-access.md.
+   */
+  public static fromEntries<T>(entries: Iterable<readonly [string, T]>): Record<string, T> {
+    const result: Record<string, T> = {};
+    for (const [key, value] of entries) {
+      result[key] = value;
+    }
+    return result;
+  }
+
+  /**
+   * The sanctioned runtime-keyed mutation write — one `[[Set]]` onto an existing target,
+   * guarded against `__proto__` pollution; see docs/eslint/rules/v8/dynamic-property-access.md.
+   */
+  public static write(target: object, key: PropertyKey, value: unknown): boolean {
+    if (key === '__proto__') {
+      return false;
+    }
+    const result = Reflect.set(target, key, value);
+    return result;
+  }
 }

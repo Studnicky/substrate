@@ -86,9 +86,8 @@ class Job {
       });
     };
 
-    const interpreter = EffectInterpreter.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>({
-      'handler': handler,
-      'machine': JobProcess.make()
+    const interpreter = EffectInterpreter.create<JobStateEntity.Type, JobEventEntity.Type, JobEffectEntity.Type>(JobProcess.make(), {
+      'handler': handler
     });
 
     const waitForScheduledDispatch = (): Promise<void> => {
@@ -149,8 +148,8 @@ console.log('Job A final state:', jobA.interpreter.getState().variant);
 
 const jobB = Job.make();
 const controllerB = new AbortController();
-const composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
-const cancellationB = CancellationWiring.wire(jobB.interpreter, jobB.scheduledTaskReference, composedSignalB);
+using composedSignalB = await signalSource.compose({ 'signal': controllerB.signal });
+const cancellationB = CancellationWiring.wire(jobB.interpreter, jobB.scheduledTaskReference, composedSignalB.signal);
 
 jobB.interpreter.start();
 await jobB.interpreter.send({ 'type': 'start' });

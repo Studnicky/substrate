@@ -6,23 +6,8 @@ import {
   MESSAGE, RULE_NAME, SPLICE_METHODS, SPLICE_OWNERS
 } from './constants/ArraySpliceOutsideLoopsConstants.js';
 
-// A8/A14 FIX: the previous implementation was a bare `SelectorRule` descendant
-// selector — `:matches(ForStatement, ...) CallExpression[callee.property.name="splice"]`
-// — with NO function-boundary check at all. A descendant combinator matches at ANY
-// nesting depth, so it flagged `splice` inside a callback that is defined once inside a
-// loop but never RUNS per-iteration:
-//
-//   for (const id of ids) {
-//     fetchThen((data) => { data.splice(0, 1); });   // reported — but this callback
-//   }                                                 // runs once per network response,
-//                                                      // not once per loop iteration.
-//
-// `LoopContext.isPerIteration` fixes this: it stops at a function boundary unless that
-// function is itself a proven per-element iteration callback (`.forEach()`, `.map()`,
-// …), so a deferred callback like the one above — not an argument to any per-element
-// iteration method — correctly falls through unflagged. Identity is resolved via
-// `CallIdentity` for the same reason as every sibling rule in this file set: name
-// matching missed `arr[SPLICE_KEY](0, 1)` and falsely flagged a same-named user method.
+// LoopContext.isPerIteration stops at a function boundary unless that function is itself a
+// proven per-element iteration callback; see docs/eslint/rules/v8/array-splice-outside-loops.md.
 
 export const arraySpliceOutsideLoops: Rule.RuleModule = {
   'create': (context) => {

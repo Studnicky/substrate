@@ -1,0 +1,12 @@
+export const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
+export const TIME_PATTERN = /^\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/iu;
+export const DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/u;
+export const DURATION_PATTERN = /^P(?:\d+W|(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?)$/u;
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+export const HOSTNAME_PATTERN = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/iu;
+export const IPV4_PATTERN = /^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)$/u;
+export const IPV6_PATTERN = /^(?:[a-f0-9]{0,4}:){2,7}[a-f0-9]{0,4}$/iu;
+export const URI_PATTERN = /^[a-z][a-z0-9+.-]*:\S*$/iu;
+export const URI_REFERENCE_PATTERN = /^\S*$/u;
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+export const JSON_POINTER_PATTERN = /^(?:\/(?:[^~/]|~0|~1)*)*$/u;

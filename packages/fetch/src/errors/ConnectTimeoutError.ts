@@ -20,6 +20,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class ConnectTimeoutError extends FetchBaseError {
+  public override readonly name: string = 'ConnectTimeoutError';
+
   /**
    * Undici error code
    */

@@ -1,31 +1,36 @@
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
-import scenarioGroups from './examples.scenarios.json' with { type: 'json' };
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 
-type ScenarioCase = {
-  description: string;
-  expected: {
-    imports: true;
-  };
-  input: {
-    entrypoint: string;
-  };
-  name: string;
-};
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { RuntimeError } from '../../src/index.js';
+import { ExamplesSmokeScenarioCaseEntity } from './entities/ExamplesSmokeScenarioCaseEntity.js';
+import scenarioGroups from './examples.scenarios.json' with { 'type': 'json' };
 
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  await assert.doesNotReject(async () => {
-    await import(new URL(scenarioCase.input.entrypoint, import.meta.url).href);
-  }, `Example ${scenarioCase.input.entrypoint} threw`);
+class ExamplesSmokeRunners {
+  static async smoke(
+    scenarioCase: ScenarioCaseOfType<ExamplesSmokeScenarioCaseEntity.Type, 'smoke'>
+  ): Promise<void> {
+    await assert.doesNotReject(async () => {
+      await import(ExamplesSmokeRunners.resolveEntrypoint(scenarioCase.input.entrypoint));
+    }, `Example ${scenarioCase.input.entrypoint} threw`);
+  }
+
+  private static resolveEntrypoint(entrypoint: string): string {
+    try {
+      const href = new URL(entrypoint, import.meta.url).href;
+      return href;
+    } catch (error) {
+      throw RuntimeError.create(`Example entrypoint ${entrypoint} is not a resolvable URL`, {
+        'cause': error
+      });
+    }
+  }
 }
 
-void describe('examples smoke', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ExamplesSmokeScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'examples smoke',
+  'runners': ExamplesSmokeRunners
 });

@@ -2,7 +2,7 @@
  * Standard property names used in filter configurations
  */
 
-import { Frozen } from '@studnicky/json/node';
+import { Frozen } from '@studnicky/json/browser';
 
 export const PropertyName = Frozen.deepFreeze({
   'CORE': {

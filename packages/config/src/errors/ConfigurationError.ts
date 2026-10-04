@@ -1,4 +1,4 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /**
  * Configuration validation error. Extends `BaseError` so consumers get
@@ -7,6 +7,8 @@ import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/n
  * Use `ConfigurationError.create(message)` to construct an instance.
  */
 export class ConfigurationError extends BaseError {
+  public override readonly name: string = 'ConfigurationError';
+
   /** Fixed error code for all configuration validation failures. */
   public static readonly errorCode = 'config.invalid';
 
@@ -15,7 +17,7 @@ export class ConfigurationError extends BaseError {
    * @param message - Human-readable description of the validation failure.
    * @param cause   - Optional underlying cause.
    */
-  public static create(message: string, cause?: Error): ConfigurationError {
+  public static create(message: string, cause?: unknown): ConfigurationError {
     const result = new ConfigurationError({ 'cause': cause, 'code': ConfigurationError.errorCode, 'message': message, 'retryable': false });
     return result;
   }

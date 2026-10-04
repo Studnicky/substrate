@@ -1,6 +1,8 @@
 import { FsmError } from './errors/FsmError.js';
 
 export class ReducerThrewError extends FsmError {
+  public override readonly name: string = 'ReducerThrewError';
+
   readonly eventType: string;
   readonly stateVariant: string;
 

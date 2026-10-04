@@ -2,10 +2,8 @@
  * Comparator functions with direct function access
  */
 
-import { Frozen } from '@studnicky/json/node';
-import { Predicates } from '@studnicky/types/node';
-
-import type { ComparatorFunctionInterface } from '../interfaces.js';
+import { Frozen } from '@studnicky/json/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import { AreDeeplyEqual } from '../comparators/composite/areDeeplyEqual.js';
 import { AreStringsEqualCaseAware } from '../comparators/composite/areStringsEqualCaseAware.js';
@@ -26,8 +24,8 @@ export const Comparator = Frozen.deepFreeze({
     'isEqual': AreValuesStrictEqual.areValuesStrictEqual,
     'isInRange': IsInRange.isInRange,
     'isOutsideRange': IsOutsideRange.isOutsideRange,
-    'matchesPattern': DoesValueMatchPattern.doesValueMatchPattern as ComparatorFunctionInterface,
-    'stringCompareCaseAware': AreStringsEqualCaseAware.areStringsEqualCaseAware as ComparatorFunctionInterface,
+    'matchesPattern': DoesValueMatchPattern.matchesFilterValue,
+    'stringCompareCaseAware': AreStringsEqualCaseAware.areStringsEqualCaseAware,
     'stringContains': DoesStringContain.doesStringContain,
     'stringEndsWith': DoesStringEndWith.doesStringEndWith,
     'stringStartsWith': DoesStringStartWith.doesStringStartWith

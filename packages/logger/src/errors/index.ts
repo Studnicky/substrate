@@ -4,3 +4,4 @@ export { FileDestinationError } from './FileDestinationError.js';
 export { InvalidLogLevelError } from './InvalidLogLevelError.js';
 export { LogBuildError } from './LogBuildError.js';
 export { LoggerError } from './LoggerError.js';
+export { LogSerializationError } from './LogSerializationError.js';

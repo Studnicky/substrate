@@ -1,3 +1,5 @@
+import { CallerFault } from '@studnicky/types/browser';
+
 import { BrowserContextStorage } from './BrowserContextStorage.js';
 
 export class ContextAsyncRuntime {
@@ -12,7 +14,7 @@ export class ContextAsyncRuntime {
       },
       (error: unknown) => {
         BrowserContextStorage.restore(activeStores);
-        throw error;
+        CallerFault.propagate(error);
       }
     );
     return result;

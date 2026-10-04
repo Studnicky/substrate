@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/types/browser';
 
 /**
  * Base error class for all logger-related errors
@@ -13,6 +13,8 @@ import { BaseError } from '@studnicky/errors/node';
  * ```
  */
 export class LoggerError<TCause = unknown> extends BaseError {
+  public override readonly name: string = 'LoggerError';
+
   /**
    * Creates a new LoggerError
    *

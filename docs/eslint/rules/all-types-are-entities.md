@@ -5,14 +5,18 @@ description: "Requires canonical pure-data declarations to use the exact schema-
 
 # @studnicky/all-types-are-entities
 
-Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`, and the declaration must derive directly from `typeof Schema`.
+Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` or `InputType` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`/`Node`, and the declaration must derive directly from that value.
 
 The rule accepts both canonical spellings:
 
 - `export type Type = F<typeof Schema>`
 - `export interface Type extends F<typeof Schema> {}`
 
+`InputType` is held to the same ownership terms as `Type` — it must be the entity's own `InputType` member, deriving from that same namespace's own `Schema`/`Node`. The constraint-carrying entity engine (`packages/entity/src/types/`) derives two types from one `Node`: `Type` (`NodeStaticType<typeof Node>`, validated, brand-carrying) and `InputType` (`NodeInputType<typeof Node>`, the unvalidated shape a public factory accepts). Both are canonical schema-derived members of the same entity.
+
 `F` must have verified schema-derived provenance. A pure-data declaration that does not meet the exact entity ownership and derivation shape is reported. The rule does nothing when TypeScript parser services are unavailable.
+
+Since [`type-alias-invariants`](./type-alias-invariants.md) also retains a hand-written `Type` as canonical pure data when the namespace's own `Schema`/`Node` provably defeats structural derivation, this rule accepts that same hand-written form instead of reporting it as an ownership mismatch — a declaration classified canonical for that reason needs no `typeof Schema`/`typeof Node` reference to satisfy the entity form.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
@@ -59,4 +63,6 @@ export namespace UserEntity {
 
 ## Diagnostic ownership
 
-[`type-alias-invariants`](./type-alias-invariants.md) owns aliases that fail its own identity, declaration-shape, naming, provenance, or readonly checks. This rule reports only declarations the shared classifier identifies as canonical pure data but that are not in the canonical entity form.
+[`type-alias-invariants`](./type-alias-invariants.md) owns aliases that fail its own identity, declaration-shape, naming, provenance, or readonly checks. This rule reports only declarations the shared classifier identifies as canonical pure data but that are not in the canonical entity form. `type-alias-invariants` owns schema-derivation recognition itself — the four conditions a retained alias must satisfy, and the two interface forms (self-referential and heritage-clause) that are also canonical schema-derived data; this rule requires the exact entity declaration form once something already classifies as canonical.
+
+[`entity-file-shape`](./entity-file-shape.md) owns the paired concern: whether an `*Entity` namespace's members — `Schema`, `Type`, `validate`, `intake`, `create` — are present and correctly shaped, and whether declaration and constants files sit in their conventional folders. This rule governs the type-alias declaration itself; `entity-file-shape` governs the namespace and file that declaration lives in.

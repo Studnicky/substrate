@@ -51,7 +51,7 @@ class SimpleMachine extends StateMachine<SimpleStateEntity.Type, SimpleEventEnti
   reduce(state: SimpleStateEntity.Type): FsmStepInterface<SimpleStateEntity.Type> { return { 'effects': [], 'state': state }; }
 }
 
-const notStarted: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
+const notStarted: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create(SimpleMachine.make());
 
 // getState before start() throws InterpreterNotStartedError
 assert.throws(
@@ -63,7 +63,7 @@ console.log('InterpreterNotStartedError thrown and caught');
 
 // --- InterpreterNotRunningError ---
 
-const stopped: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create({ 'machine': SimpleMachine.make() });
+const stopped: EffectInterpreter<SimpleStateEntity.Type, SimpleEventEntity.Type> = EffectInterpreter.create(SimpleMachine.make());
 stopped.start();
 stopped.stop();
 

@@ -1,5 +1,5 @@
 ---
-title: '@studnicky/pipeline'
+title: "@studnicky/pipeline"
 description: Generic typed async pipeline for sequential context transforms.
 ---
 
@@ -27,6 +27,14 @@ through all of them with `run()`. Each stage receives the context and returns a
 composition is a different `Pipeline.create()` call with a different array:
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
+
+## Pipeline effects in an FSM
+
+<<< ../../packages/pipeline/examples/traffic-light.ts#usage
+
+A Northstar Books checkout endpoint prepares an accepted order before any fulfilment state changes. A fixed pipeline validates the submitted cart, calculates current prices, and selects warehouse routing from the transformed order context. Each stage receives the preceding result, so server code has one typed path for the request data rather than parallel validation, pricing, and routing branches.
+
+The pipeline resolves with the prepared order or rejects at the stage that cannot proceed. It does not decide whether an order is legally preparing, allocated, or shipped; an FSM reducer owns those state transitions. This is a web/server integration pattern, not a claim about output from the runnable demos below.
 
 ## Try it
 
@@ -60,16 +68,16 @@ The `stages` getter returns a readonly snapshot of all constructed transforms, u
 
 ## Observability hooks
 
-| Hook | When it fires | Args |
-|------|---------------|------|
-| `onRunStart(ctx)` | Before the first stage. | `ctx: Readonly<T>` |
-| `beforeStage(ctx, index)` | Before each stage; return value becomes the stage input. | `ctx: T`, `index: number` |
-| `onStageStart(index, ctx)` | After `beforeStage`, before the stage. | `index: number`, `ctx: Readonly<T>` |
-| `onStageSuccess(index, ctx)` | After a stage succeeds, before `afterStage`. | `index: number`, `ctx: Readonly<T>` |
-| `afterStage(ctx, index)` | After each stage; return value becomes the next context. | `ctx: T`, `index: number` |
-| `onStageError(index, error)` | When a stage throws, before the same value propagates. | `index: number`, `error: unknown` |
-| `onRunError(error)` | When a stage error propagates out of `run()`, after `onStageError`. | `error: unknown` |
-| `onRunComplete(ctx)` | After all stages complete. | `ctx: Readonly<T>` |
+| Hook                         | When it fires                                                       | Args                                |
+| ---------------------------- | ------------------------------------------------------------------- | ----------------------------------- |
+| `onRunStart(ctx)`            | Before the first stage.                                             | `ctx: Readonly<T>`                  |
+| `beforeStage(ctx, index)`    | Before each stage; return value becomes the stage input.            | `ctx: T`, `index: number`           |
+| `onStageStart(index, ctx)`   | After `beforeStage`, before the stage.                              | `index: number`, `ctx: Readonly<T>` |
+| `onStageSuccess(index, ctx)` | After a stage succeeds, before `afterStage`.                        | `index: number`, `ctx: Readonly<T>` |
+| `afterStage(ctx, index)`     | After each stage; return value becomes the next context.            | `ctx: T`, `index: number`           |
+| `onStageError(index, error)` | When a stage throws, before the same value propagates.              | `index: number`, `error: unknown`   |
+| `onRunError(error)`          | When a stage error propagates out of `run()`, after `onStageError`. | `error: unknown`                    |
+| `onRunComplete(ctx)`         | After all stages complete.                                          | `ctx: Readonly<T>`                  |
 
 <<< ../../packages/pipeline/examples/observedPipeline.ts#usage
 
@@ -78,21 +86,47 @@ The `stages` getter returns a readonly snapshot of all constructed transforms, u
 `@studnicky/pipeline/interfaces` exports pipeline stage, operation, interceptor, and injectable operation-pipeline contracts.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
+
 ```typescript
 import type {
   OperationFunctionInterface,
   OperationInterceptorInterface,
   OperationPipelineInterface,
-  PipelineFunctionInterface
-} from '@studnicky/pipeline/interfaces';
+  PipelineFunctionInterface,
+} from "@studnicky/pipeline/interfaces";
 ```
+
+## What it is
+
+`@studnicky/pipeline` is a typed asynchronous composition primitive for sequential context transforms and operation interceptors. It supplies the execution boundary and observation hooks; it does not prescribe an order workflow, state model, policy set, or application service.
+
+## What it is for
+
+Northstar Books uses a pipeline where a single request context must move through a known sequence, such as cart validation, price calculation, and warehouse selection. It uses operation interceptors where cross-cutting policies surround an operation. Node and browser are runtime-specific alternatives; the `fsm` subpaths compose a state-machine primitive with pipeline effects, and the interfaces subpaths define contracts for Northstar-owned stages and adapters.
+
+## Northstar Books examples
+
+- **Pipeline stages** solves the “prepare one checkout request consistently” problem. It carries the order context through fixed validation, pricing, and fulfilment transforms, proving that each step receives the previous step’s typed result.
+- **Pipeline lifecycle hooks** solves the “observe a failed catalogue-import preparation without changing its result” problem. It records stage and run events around a failing operation, proving that observability does not replace the original failure.
+- **Operation policies** solves the “apply Northstar’s authorization and audit policies around a stock-reservation operation” problem. It composes interceptors around a supplied operation, proving that policy order and operation ownership remain explicit.
+
+## Public entrypoints
+
+| Import path                          | Use it when                                                                                                                      |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `@studnicky/pipeline/node`           | Northstar runs typed transformation stages or operation interceptors in a Node service.                                          |
+| `@studnicky/pipeline/browser`        | Northstar runs the same browser-safe pipeline primitive in a reader or bookseller interface.                                     |
+| `@studnicky/pipeline/interfaces`     | Northstar defines stages, operations, interceptors, or injectable pipeline ports without tying them to a service implementation. |
+| `@studnicky/pipeline/fsm`            | Northstar composes pipeline effects with finite-state-machine transitions for a domain process it owns.                          |
+| `@studnicky/pipeline/fsm/interfaces` | Northstar types its own pipeline-aware state-machine contracts.                                                                  |
+| `@studnicky/pipeline/fsm/entities`   | Northstar validates pipeline-aware state-machine data at its application boundary.                                               |
 
 ## Exports
 
-| Symbol | Purpose | Import path |
-|---|---|---|
-| `OperationPipeline` | Runs a supplied operation through typed interceptors. | `@studnicky/pipeline/node` |
-| `OperationPipelineInterface` | Injectable operation-policy contract. | `@studnicky/pipeline/interfaces` |
-| `Pipeline` | Runs typed transformation stages in sequence. | `@studnicky/pipeline/node` |
+| Symbol                       | Purpose                                               | Import path                      |
+| ---------------------------- | ----------------------------------------------------- | -------------------------------- |
+| `OperationPipeline`          | Runs a supplied operation through typed interceptors. | `@studnicky/pipeline/node`       |
+| `OperationPipelineInterface` | Injectable operation-policy contract.                 | `@studnicky/pipeline/interfaces` |
+| `Pipeline`                   | Runs typed transformation stages in sequence.         | `@studnicky/pipeline/node`       |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/pipeline)

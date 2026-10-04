@@ -99,26 +99,6 @@ if (RuntimeValue.is(candidate)) {
 
 Use JsonValue for JSON-only data. RuntimeValue preserves native values for consumers that deliberately operate on them.
 
-### Assembling options objects (`PickDefined`)
-
-`PickDefined.from` strips `undefined`-valued keys from a record and narrows each remaining value's type away from `undefined`. It assembles an options object directly from a mix of required and optional values, replacing a manual spread-ternary chain with one call:
-
-```typescript
-import { PickDefined } from '@studnicky/types/node';
-
-interface RateLimiterOptionsInterface {
-  requestsPerSecond: number;
-  burstSize: number;
-  clock?: () => number;
-}
-
-const options: RateLimiterOptionsInterface = PickDefined.from({
-  requestsPerSecond: 10,
-  burstSize: 20,
-  clock: undefined, // omitted from the result
-});
-```
-
 ## Extending
 
 For `Predicates`, override the static `isObject` predicate in a subclass to customise record detection. Because `asRecordArray` delegates through `this.isObject`, overrides propagate automatically:

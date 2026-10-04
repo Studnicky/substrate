@@ -1,43 +1,31 @@
 /** Keyed async coalescing: concurrent calls for the same key share one in-flight promise. */
 
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { RaceTimeout } from '@studnicky/signal/node';
-import { Predicates } from '@studnicky/types/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { HookInvoker } from '@studnicky/errors/browser';
+import { RaceTimeout } from '@studnicky/signal/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
-import type { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
 
 import { CoalesceKeyMachine } from './CoalesceKeyMachine.js';
+import { CoalesceOptionsEntity } from './entities/CoalesceOptionsEntity.js';
+import { CoalesceConfigError } from './errors/CoalesceConfigError.js';
 import { CoalesceTimeoutError } from './errors/CoalesceTimeoutError.js';
-
-interface CoalesceSubclassInterface<TInstance> extends Function {
-  readonly 'prototype': TInstance;
-}
-
-// T only appears in Coalesce's covariant/contravariant members (run()'s factory
-// and return value), so a bound of `Coalesce<T>` would force `Coalesce<T>` (the
-// method's own general T) to satisfy `Coalesce<never>`/`Coalesce<any>`, which
-// either fails to typecheck or requires a banned `any`. `isInflight()` is the one
-// public member that doesn't mention T at all, so it constrains TInstance to
-// "is actually Coalesce-shaped" without hitting that wall.
-interface CoalesceShapeInterface {
-  isInflight(key: string): boolean;
-}
+import { CoalesceWaitCompletedError } from './errors/CoalesceWaitCompletedError.js';
 
 export class Coalesce<T> {
-  static create<
-    T,
-    TInstance extends CoalesceShapeInterface = Coalesce<T>
-  >(
-    this: CoalesceSubclassInterface<TInstance>,
-    options?: CoalesceOptionsEntity.Type
-  ): TInstance {
-    const result: unknown = Reflect.construct(this, [options]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
-      throw RuntimeError.create('Coalesce.create() did not construct the requested subclass.');
+  static create<T>(
+    this: typeof Coalesce,
+    options?: CoalesceOptionsEntity.InputType
+  ): Coalesce<T> {
+    let validated: CoalesceOptionsEntity.Type;
+    try {
+      validated = CoalesceOptionsEntity.intake(options ?? {});
+    } catch (error) {
+      throw new CoalesceConfigError(error instanceof SchemaIntakeError ? error.message : 'Coalesce options intake failed', error);
     }
-    const instance: TInstance = result;
-    return instance;
+
+    return new this(validated);
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
@@ -78,7 +66,7 @@ export class Coalesce<T> {
       await this.hooks.invokeAsync('onCoalesceStart', () => { const result = this.onCoalesceStart(key); return result; });
       completion.resolve(factory());
     } catch (error) {
-      completion.reject(error);
+      completion.resolve(CallerFault.rejection(error));
     }
 
     return await this.#awaitWithTimeout(key, started);
@@ -111,7 +99,7 @@ export class Coalesce<T> {
     try {
       return await Promise.race([inFlight, timeout]);
     } finally {
-      completionController.abort();
+      completionController.abort(new CoalesceWaitCompletedError(key));
     }
   }
 

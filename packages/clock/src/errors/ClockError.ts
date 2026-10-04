@@ -3,11 +3,13 @@
  *
  * @module
  */
-import { BaseError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/types/browser';
 
 /** Thrown when clock configuration is invalid (e.g. non-finite `offsetMs`). */
 export class ClockError extends BaseError {
-  public constructor(message: string, cause?: Error) {
+  public override readonly name: string = 'ClockError';
+
+  public constructor(message: string, cause?: unknown) {
     super({ 'cause': cause, 'code': 'clock.invalidConfig', 'message': message, 'retryable': false });
   }
 }

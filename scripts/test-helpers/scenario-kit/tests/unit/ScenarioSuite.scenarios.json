@@ -1,0 +1,8 @@
+{
+  "cases": [
+    { "name": "sync-first", "description": "a synchronous runner runs with its own case", "shape": "sync-record", "input": { "value": "a" } },
+    { "name": "async-second", "description": "an asynchronous runner is awaited before the next case starts", "shape": "async-record", "input": { "value": "b" } },
+    { "name": "sync-third", "description": "cases run in file order regardless of shape", "shape": "sync-record", "input": { "value": "c" } },
+    { "name": "async-fourth", "description": "a second asynchronous case is dispatched to the same runner", "shape": "async-record", "input": { "value": "d" } }
+  ]
+}

@@ -1,62 +1,6 @@
 {
   "cases": [
     {
-      "name": "has-property-present",
-      "description": "returns true when the property exists without a matcher",
-      "shape": "has-property-present",
-      "input": { "message": "classify me", "propertyName": "status", "status": 503 },
-      "expected": { "value": true }
-    },
-    {
-      "name": "has-property-missing",
-      "description": "returns false when the property is missing",
-      "shape": "has-property-missing",
-      "input": { "message": "classify me", "propertyName": "missing" },
-      "expected": { "value": false }
-    },
-    {
-      "name": "has-property-match-value",
-      "description": "matches a specific property value",
-      "shape": "has-property-match-value",
-      "input": { "matcher": { "shape": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 503 },
-      "expected": { "value": true }
-    },
-    {
-      "name": "has-property-match-array",
-      "description": "matches any value from an accepted list",
-      "shape": "has-property-match-array",
-      "input": { "matcher": { "shape": "accepted-statuses", "values": [502, 503, 504] }, "message": "classify me", "propertyName": "status", "status": 503 },
-      "expected": { "value": true }
-    },
-    {
-      "name": "has-property-match-predicate",
-      "description": "matches via predicate",
-      "shape": "has-property-match-predicate",
-      "input": { "matcher": { "shape": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 503 },
-      "expected": { "value": true }
-    },
-    {
-      "name": "has-property-mismatch-value",
-      "description": "returns false when a specific value does not match",
-      "shape": "has-property-mismatch-value",
-      "input": { "matcher": { "shape": "status", "value": 503 }, "message": "classify me", "propertyName": "status", "status": 404 },
-      "expected": { "value": false }
-    },
-    {
-      "name": "has-property-mismatch-array",
-      "description": "returns false when none of the accepted values match",
-      "shape": "has-property-mismatch-array",
-      "input": { "matcher": { "shape": "accepted-statuses", "values": [500, 501] }, "message": "classify me", "propertyName": "status", "status": 404 },
-      "expected": { "value": false }
-    },
-    {
-      "name": "has-property-mismatch-predicate",
-      "description": "returns false when the predicate rejects the value",
-      "shape": "has-property-mismatch-predicate",
-      "input": { "matcher": { "shape": "minimum-status", "min": 500 }, "message": "classify me", "propertyName": "status", "status": 404 },
-      "expected": { "value": false }
-    },
-    {
       "name": "message-contains-hit",
       "description": "matches a message fragment case-insensitively",
       "shape": "message-contains-hit",

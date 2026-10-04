@@ -9,6 +9,8 @@
 
 import assert from 'node:assert/strict';
 
+import type { GroupNodeInterface } from '../src/interfaces/GroupNodeInterface.js';
+
 import { DrillDown, DrilldownRulesEntity } from '../src/index.js';
 // #region usage
 import { OrdersFixture } from './fixtures/OrdersFixture.js';
@@ -29,20 +31,28 @@ class DrilldownDemo {
       'minimumGroupSize': 1,
       'propertyPriority': ['region', 'category', 'status']
     });
+    const firstRegion = DrilldownDemo.firstChild(tree);
+    const firstCategory = DrilldownDemo.firstChild(firstRegion);
 
-    console.log(`Root splits into ${tree.grouped?.length ?? 0} region groups`);
-
-    const firstRegion = tree.grouped?.[0];
-    console.log(`First region "${firstRegion?.value}" splits into ${firstRegion?.grouped?.length ?? 0} category groups`);
-
-    const firstCategory = firstRegion?.grouped?.[0];
-    console.log(`First category "${firstCategory?.value}" splits into ${firstCategory?.grouped?.length ?? 0} status groups`);
+    console.log(`Root splits into ${DrilldownDemo.childCount(tree)} region groups`);
+    console.log(`First region "${firstRegion?.value}" splits into ${DrilldownDemo.childCount(firstRegion)} category groups`);
+    console.log(`First category "${firstCategory?.value}" splits into ${DrilldownDemo.childCount(firstCategory)} status groups`);
 
     return {
-      'categoryGroupCount': firstRegion?.grouped?.length ?? 0,
-      'regionGroupCount': tree.grouped?.length ?? 0,
-      'statusGroupCount': firstCategory?.grouped?.length ?? 0
+      'categoryGroupCount': DrilldownDemo.childCount(firstRegion),
+      'regionGroupCount': DrilldownDemo.childCount(tree),
+      'statusGroupCount': DrilldownDemo.childCount(firstCategory)
     };
+  }
+
+  private static childCount(node: GroupNodeInterface | undefined): number {
+    const result = node?.grouped?.length ?? 0;
+    return result;
+  }
+
+  private static firstChild(node: GroupNodeInterface | undefined): GroupNodeInterface | undefined {
+    const result = node?.grouped?.[0] ?? undefined;
+    return result;
   }
 }
 

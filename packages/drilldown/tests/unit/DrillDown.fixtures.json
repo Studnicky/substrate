@@ -1,0 +1,87 @@
+{
+  "fixtures": {
+    "orders": [
+      {
+        "category": "alpha",
+        "region": "east"
+      },
+      {
+        "category": "alpha",
+        "region": "west"
+      },
+      {
+        "category": "beta",
+        "region": "east"
+      },
+      {
+        "category": "beta",
+        "region": "east"
+      },
+      {
+        "category": "gamma",
+        "region": "west"
+      }
+    ],
+    "empty": []
+  },
+  "configs": {
+    "explicitCategory": {
+      "minimumGroupSize": 1,
+      "rules": {
+        "group": [
+          {
+            "property": "category",
+            "values": [
+              {
+                "match": "alpha",
+                "type": "string"
+              },
+              {
+                "match": "beta",
+                "type": "string"
+              },
+              {
+                "match": "gamma",
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "excludeWest": {
+      "minimumGroupSize": 1,
+      "filter": [
+        {
+          "operator": "exclude",
+          "property": "region",
+          "type": "value",
+          "values": [
+            "west"
+          ]
+        }
+      ],
+      "rules": {
+        "group": [
+          {
+            "property": "category",
+            "values": [
+              {
+                "match": "alpha",
+                "type": "string"
+              },
+              {
+                "match": "beta",
+                "type": "string"
+              },
+              {
+                "match": "gamma",
+                "type": "string"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

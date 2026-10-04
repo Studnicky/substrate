@@ -9,9 +9,9 @@
  * - `timestamp`     — Unix millisecond construction time
  * - `correlationId` — optional distributed-tracing identifier
  *
- * `this.name` is set automatically to the concrete class name via `new.target.name`.
+ * Every concrete subclass declares its `name` explicitly as a literal class member.
  */
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/errors/node';
+import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 export abstract class FetchBaseError extends BaseError {
   protected constructor(argumentList: Readonly<BaseErrorArgumentsInterface>) {

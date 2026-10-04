@@ -3,31 +3,18 @@
  */
 
 import type { FetchRequestOptionsEntity } from '../entities/FetchRequestOptionsEntity.js';
+import type { RequestInitFieldNameEntity } from '../entities/RequestInitFieldNameEntity.js';
 
 /**
  * Request options accepted by Fetch client operations.
  */
 export interface FetchOptionsInterface
-  extends Omit<
-    RequestInit,
-    | 'body'
-    | 'cache'
-    | 'credentials'
-    | 'dispatcher'
-    | 'headers'
-    | 'integrity'
-    | 'keepalive'
-    | 'method'
-    | 'mode'
-    | 'redirect'
-    | 'referrer'
-    | 'referrerPolicy'
-  >,
-  FetchRequestOptionsEntity.Type {
+  extends FetchRequestOptionsEntity.InputType,
+  Omit<RequestInit, RequestInitFieldNameEntity.Type | 'dispatcher'> {
   /**
-   * Request body, using the native Fetch body contract.
+   * Request body. Native-opaque: `fetch()` itself validates the shape.
    */
-  'body'?: RequestInit['body'];
+  'body'?: unknown;
 
   /**
    * Custom undici dispatcher or agent for Node.js connection pooling.

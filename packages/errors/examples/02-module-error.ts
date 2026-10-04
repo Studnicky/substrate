@@ -1,9 +1,10 @@
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 /** 02-module-error — ModuleError with scenario defaults, context, and cause-chain helpers. Run: npx tsx packages/errors/examples/02-module-error.ts */
 
 import { RuntimeError } from '../src/errors/RuntimeError.js';
 // #region usage
-import { BaseError, ErrorDefaults, ModuleError } from '../src/index.js';
+import { ErrorDefaults, ModuleError } from '../src/index.js';
 
 // Create from scenario — defaults supply code, status, retryable
 const notFound = ModuleError.create('User not found', {

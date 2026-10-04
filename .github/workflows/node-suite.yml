@@ -6,7 +6,7 @@ on:
       preset:
         required: false
         type: string
-        default: ''
+        default: ""
       run-stamp-version-check:
         required: false
         type: boolean
@@ -36,6 +36,10 @@ on:
         type: boolean
         default: false
       run-test-all:
+        required: false
+        type: boolean
+        default: false
+      run-test-conformance:
         required: false
         type: boolean
         default: false
@@ -89,6 +93,7 @@ jobs:
           RUN_STAMP_VERSION_CHECK: ${{ inputs.run-stamp-version-check }}
           RUN_TEST: ${{ inputs.run-test }}
           RUN_TEST_ALL: ${{ inputs.run-test-all }}
+          RUN_TEST_CONFORMANCE: ${{ inputs.run-test-conformance }}
           RUN_TEST_INTEGRATION: ${{ inputs.run-test-integration }}
           RUN_TEST_SMOKE: ${{ inputs.run-test-smoke }}
           RUN_TEST_UNIT: ${{ inputs.run-test-unit }}
@@ -116,6 +121,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               ;;
             audit)
@@ -128,6 +134,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               append_entry "{\"name\":\"audit\",\"command\":\"CI_SUITE_BASE_REF=${AUDIT_BASE_REF} bash scripts/ci-suite.sh audit\"}"
               append_entry '{"name":"predocs-build","command":"bash scripts/ci-suite.sh predocs-build"}'
@@ -135,12 +142,12 @@ jobs:
             docs)
               append_entry '{"name":"generated-artifacts","command":"STAMP_VERSION_REQUIRE_RASTER=true bash scripts/ci-suite.sh generated-artifacts","install_rsvg":"true"}'
               append_entry '{"name":"docs-includes","command":"bash scripts/ci-suite.sh docs-includes"}'
-              append_entry '{"name":"docs-build","command":"bash scripts/ci-suite.sh docs-build","upload_docs":"false"}'
+              append_entry '{"name":"docs-build","command":"bash scripts/ci-suite.sh docs-build","install_browser":"true","upload_docs":"false"}'
               ;;
             docs-build)
               append_entry '{"name":"generated-artifacts","command":"STAMP_VERSION_REQUIRE_RASTER=true bash scripts/ci-suite.sh generated-artifacts","install_rsvg":"true"}'
               append_entry '{"name":"docs-includes","command":"bash scripts/ci-suite.sh docs-includes"}'
-              append_entry '{"name":"docs-build","command":"bash scripts/ci-suite.sh docs-build","upload_docs":"true"}'
+              append_entry '{"name":"docs-build","command":"bash scripts/ci-suite.sh docs-build","install_browser":"true","upload_docs":"true"}'
               ;;
             '')
               if [ "$RUN_STAMP_VERSION_CHECK" = 'true' ]; then
@@ -167,6 +174,9 @@ jobs:
               if [ "$RUN_TEST_ALL" = 'true' ]; then
                 append_entry '{"name":"test-all","command":"bash scripts/ci-suite.sh test-all"}'
               fi
+              if [ "$RUN_TEST_CONFORMANCE" = 'true' ]; then
+                append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
+              fi
               if [ "$RUN_BUILD" = 'true' ]; then
                 append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               fi
@@ -175,7 +185,7 @@ jobs:
                 if [ "$UPLOAD_DOCS_DIST" = 'true' ]; then
                   docs_upload=true
                 fi
-                append_entry "{\"name\":\"docs-build\",\"command\":\"bash scripts/ci-suite.sh docs-build\",\"upload_docs\":\"${docs_upload}\"}"
+                append_entry "{\"name\":\"docs-build\",\"command\":\"bash scripts/ci-suite.sh docs-build\",\"install_browser\":\"true\",\"upload_docs\":\"${docs_upload}\"}"
               fi
               if [ "$RUN_PREDOCS_BUILD" = 'true' ]; then
                 append_entry '{"name":"predocs-build","command":"bash scripts/ci-suite.sh predocs-build"}'
@@ -196,7 +206,7 @@ jobs:
           echo "matrix={\"include\":[${entries:-}]}" >> "$GITHUB_OUTPUT"
 
   suite:
-    needs: [ plan ]
+    needs: [plan]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -208,6 +218,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: ./.github/actions/pnpm-node-setup
+        with:
+          install-browser: ${{ matrix.install_browser == 'true' }}
       # `full`/`release-validate`/`publish-validate` fan typecheck/lint/test-*/build
       # out into separate parallel jobs, each independently satisfying its own
       # `prepare_dist` (tsc -b) if dist/ isn't already present — an exact-key
@@ -222,8 +234,10 @@ jobs:
             packages/*/dist
             packages/*/tsconfig.tsbuildinfo
             packages/*/tsconfig.tests.tsbuildinfo
+            scripts/test-helpers/scenario-kit/dist
           key: ${{ runner.os }}-dist-${{ hashFiles('packages/*/src/**', 'packages/*/package.json',
-            'packages/*/tsconfig*.json', 'tsconfig.json', 'pnpm-lock.yaml') }}
+            'packages/*/tsconfig*.json', 'scripts/test-helpers/scenario-kit/src/**',
+            'scripts/test-helpers/scenario-kit/tsconfig.json', 'tsconfig.json', 'pnpm-lock.yaml') }}
       - if: matrix.install_rsvg == 'true'
         name: Install raster tooling
         run: |

@@ -1,44 +1,4 @@
 {
-  "fixtures": {
-    "default": [
-      {
-        "category": "alpha",
-        "launchedEpochMs": 1704067200000,
-        "notes": "first",
-        "score": 10,
-        "verified": true
-      },
-      {
-        "category": "alpha",
-        "launchedEpochMs": 1706745600000,
-        "notes": null,
-        "score": 20,
-        "verified": false
-      },
-      {
-        "category": "beta",
-        "launchedEpochMs": 1709251200000,
-        "notes": null,
-        "score": 30,
-        "verified": true
-      },
-      {
-        "category": "beta",
-        "launchedEpochMs": null,
-        "notes": null,
-        "score": 40,
-        "verified": false
-      },
-      {
-        "category": "gamma",
-        "launchedEpochMs": 1711929600000,
-        "notes": "fifth",
-        "score": 50,
-        "verified": true
-      }
-    ],
-    "empty": []
-  },
   "cases": [
     {
       "name": "category-string",

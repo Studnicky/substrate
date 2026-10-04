@@ -1,9 +1,12 @@
 import type { ErrorConstructorOptionsInterface } from '@studnicky/errors/interfaces';
 
-import { BaseError, DomainErrorArgumentList } from '@studnicky/errors/node';
+import { DomainErrorArgumentList } from '@studnicky/errors/browser';
+import { BaseError } from '@studnicky/types/browser';
 
 /** Optional construction arguments for {@link VirtualFileSystemError}; the class supplies its own code and message. */
 export class VirtualFileSystemError extends BaseError {
+  public override readonly name: string = 'VirtualFileSystemError';
+
   public constructor(message: string, argumentList?: ErrorConstructorOptionsInterface) {
     const fields = { 'message': message };
     super(DomainErrorArgumentList.build(fields, {
@@ -16,5 +19,17 @@ export class VirtualFileSystemError extends BaseError {
       'metadata': argumentList?.metadata,
       'retryable': argumentList?.retryable ?? false
     }));
+  }
+
+  /**
+   * Returns `cause` unchanged when it is already a `VirtualFileSystemError`; wraps any other
+   * value (a Node `fs` error, a browser `DOMException`) in a `VirtualFileSystemError` carrying
+   * the platform message and the original as `cause`.
+   */
+  public static from(cause: unknown): VirtualFileSystemError {
+    const result = cause instanceof VirtualFileSystemError
+      ? cause
+      : new VirtualFileSystemError(BaseError.toMessage(cause), { 'cause': cause });
+    return result;
   }
 }

@@ -1,23 +1,25 @@
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { SchedulerTaskDataEntity } from '../../src/entities/index.js';
-import scenarioGroups from './SchedulerTaskDataEntity.scenarios.json' with { type: 'json' };
+import { SchedulerTaskDataScenarioCaseEntity } from './entities/SchedulerTaskDataScenarioCaseEntity.js';
+import scenarioGroups from './SchedulerTaskDataEntity.scenarios.json' with { 'type': 'json' };
 
-type ScenarioCase =
-  | { description: string; expected: { valid: boolean }; input: { taskData: { atMs: number; intervalMs: number; variant: 'interval' } }; shape: 'valid-task-data'; name: string }
-  | { description: string; expected: { valid: boolean }; input: { taskData: { atMs: number; intervalMs: number; variant: 'interval' } }; shape: 'invalid-interval'; name: string };
+class SchedulerTaskDataRunners {
+  static 'invalid-interval'(scenarioCase: ScenarioCaseOfType<SchedulerTaskDataScenarioCaseEntity.Type, 'invalid-interval'>): void {
+    assert.equal(SchedulerTaskDataEntity.validate(scenarioCase.input.taskData), scenarioCase.expected.valid);
+  }
 
-function runCase(scenarioCase: ScenarioCase): void {
-  assert.equal(SchedulerTaskDataEntity.validate(scenarioCase.input.taskData), scenarioCase.expected.valid);
+  static 'valid-task-data'(scenarioCase: ScenarioCaseOfType<SchedulerTaskDataScenarioCaseEntity.Type, 'valid-task-data'>): void {
+    assert.equal(SchedulerTaskDataEntity.validate(scenarioCase.input.taskData), scenarioCase.expected.valid);
+  }
 }
 
-void describe('SchedulerTaskDataEntity', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': SchedulerTaskDataScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'SchedulerTaskDataEntity',
+  'runners': SchedulerTaskDataRunners
 });

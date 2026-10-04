@@ -1,16 +1,15 @@
-import { describe, it } from 'node:test';
-import { resolve } from 'node:path';
-
-import { RuleTester } from 'eslint';
 import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
+import { resolve } from 'node:path';
+import { describe, it } from 'node:test';
 
 import { dynamicPropertyAccess } from '../../../src/rules/v8/dynamicPropertyAccess.js';
-import scenarioGroups from './dynamicPropertyAccess.scenarios.json' with { type: 'json' };
+import scenarioGroups from './dynamicPropertyAccess.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const repoRoot = resolve(import.meta.dirname, '../../../..');
+const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
 // TYPE SERVICES ARE MANDATORY. `dynamic-property-access` decides whether the receiver
 // is a plain object (report) or an indexed collection (exempt) by asking the
@@ -23,13 +22,18 @@ const repoRoot = resolve(import.meta.dirname, '../../../..');
 // untyped identifier resolves to `any`, and `any` is neither provably an array nor
 // provably a plain object, so the exemption logic cannot be exercised.
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts']
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': [
+          '*.ts',
+          'packages/eslint-config/*.ts',
+          'packages/types/src/guards/*.ts'
+        ],
+        'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 20
       },
-      tsconfigRootDir: repoRoot
+      'tsconfigRootDir': repositoryRoot
     }
   }
 });

@@ -19,6 +19,9 @@
     },
     {
       "path": "../errors"
+    },
+    {
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

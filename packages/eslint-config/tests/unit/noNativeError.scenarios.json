@@ -1,0 +1,3079 @@
+{
+  "valid": [
+    {
+      "code": "class Error { public readonly code = 'x'; } export const value = new Error();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a locally declared Error class is not reported"
+    },
+    {
+      "code": "class TypeError {} export class Local extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a locally declared TypeError superclass is not reported"
+    },
+    {
+      "code": "export function build(Error: new () => object): object { return new Error(); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a parameter shadowing Error is not reported"
+    },
+    {
+      "code": "import { Error } from './Error.js'; export const value = new Error();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an imported Error binding is not reported"
+    },
+    {
+      "code": "export class BaseError extends Object {} export class Local extends BaseError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a class extending BaseError is not reported"
+    },
+    {
+      "code": "declare class BaseError { constructor(message: string); } export class NotFoundError extends BaseError {} export const value = new NotFoundError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "constructing a BaseError subclass is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const controller = new AbortController(); controller.abort(new XError('reason'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort(reason) with a BaseError subclass on an AbortController is not reported"
+    },
+    {
+      "code": "declare const registry: { abort(): void }; registry.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort() on a non-AbortController receiver is not reported"
+    },
+    {
+      "code": "class Job { public abort(): void {} } export const job = new Job(); job.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort() on a class instance is not reported"
+    },
+    {
+      "code": "export type Failure = Error; export interface Shape { readonly error: TypeError; } export function fail(error: Error): Error { return error; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "native error names in type-only positions are not reported"
+    },
+    {
+      "code": "export class Local implements Error { public readonly name = 'Local'; public readonly message = 'x'; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "implementing the Error interface is not reported"
+    },
+    {
+      "code": "export const kind = Error.name; export const check = (value: unknown): boolean => value instanceof Error;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "referencing Error without constructing it is not reported"
+    },
+    {
+      "code": "export abstract class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an abstract BaseError declaration extending Error is not reported"
+    },
+    {
+      "code": "export abstract class OtherRoot extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "OtherRoot"
+          ]
+        }
+      ],
+      "name": "an abstract declaration named in baseClassNames is not reported"
+    },
+    {
+      "code": "export abstract class BaseError extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "BaseError",
+            "OtherRoot"
+          ]
+        }
+      ],
+      "name": "an abstract root extending any native constructor is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(): never { throw new XError('x'); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "throwing a BaseError subclass instance is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function rethrow(error: unknown): never { if (error instanceof BaseError) { throw error; } throw new XError('x'); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "throwing a value narrowed by instanceof BaseError is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class CallerFault { public static propagate(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "the CallerFault.propagate body is exempt"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class CallerFault { public static propagate(value: unknown): never { const raise = (): never => { throw value; }; return raise(); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a throw in a nested callback of CallerFault.propagate is exempt"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Relay { public static forward(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a listed passThroughMethods entry exempts its method body",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(): never { throw new XError('x'); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an empty passThroughMethods list with a BaseError throw is not reported",
+      "options": [
+        {
+          "passThroughMethods": []
+        }
+      ]
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export const pending = new Promise<void>((resolve, reject) => { reject(new XError('x')); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "reject with a BaseError subclass instance is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export const pending = Promise.reject(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Promise.reject with a BaseError subclass instance is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} function fail(reject: (reason: unknown) => void): void { reject(new XError('x')); } export const pending = new Promise<void>((resolve, reject) => { fail(reject); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a reject passed to a local helper that rejects with a BaseError is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Entry { reject: (reason: unknown) => void } export const pending = new Promise<void>((resolve, reject) => { const entry: Entry = { reject }; entry.reject(new XError('x')); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a reject stored on a property and called with a BaseError is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} let saved: ((reason: unknown) => void) | undefined; export const pending = new Promise<void>((resolve, reject) => { saved = reject; resolve(); }); saved?.(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a reject aliased to a variable and called with a BaseError is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function run(reject: (reason: unknown) => void): void { reject('x'); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a reject parameter of a non-Promise function is not tracked"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare const Promise: { reject(reason: unknown): void }; Promise.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a shadowed Promise.reject is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const controller = new AbortController(); controller.abort(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "abort with a BaseError subclass instance on an AbortController is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const resolvers = Promise.withResolvers<void>(); resolvers.reject(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "withResolvers reject with a BaseError subclass is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const { reject } = Promise.withResolvers<void>(); reject(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a destructured withResolvers reject with a BaseError subclass is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare const registry: { reject(reason: unknown): void }; registry.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a reject member of an unrelated object is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Waiter { reject: (reason: unknown) => void } const resolvers = Promise.withResolvers<void>(); const waiter: Waiter = { reject: resolvers.reject }; waiter.reject(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a withResolvers reject stored on a property and called with a BaseError is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Waiter { reject: (reason: unknown) => void } interface Node { reject: (reason: unknown) => void } const resolvers = Promise.withResolvers<void>(); const waiter: Waiter = { reject: resolvers.reject }; const node: Node = { reject: waiter.reject }; node.reject(new XError('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a withResolvers reject copied between stored properties and called with a BaseError is not reported"
+    },
+    {
+      "code": "declare const input: string; export function run(): void { try { const value: unknown = JSON.parse(input); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "JSON.parse inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const value = JSON.stringify({}); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "JSON.stringify inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const value = structuredClone({}); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "structuredClone inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const value = new URL('http://localhost'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new URL inside try with catch is not reported"
+    },
+    {
+      "code": "declare const pattern: string; export function run(): void { try { const value = new RegExp(pattern); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new RegExp with a non-literal pattern inside try with catch is not reported"
+    },
+    {
+      "code": "declare const pattern: string; export function run(): void { try { const value = RegExp(pattern); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "RegExp() with a non-literal pattern inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = BigInt(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "BigInt with an identifier inside try with catch is not reported"
+    },
+    {
+      "code": "declare const input: { readonly amount: number }; export function run(): void { try { const value = BigInt(input.amount); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "BigInt with a member expression inside try with catch is not reported"
+    },
+    {
+      "code": "declare const point: number; export function run(): void { try { const value = String.fromCodePoint(point); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String.fromCodePoint with a non-literal inside try with catch is not reported"
+    },
+    {
+      "code": "declare const point: number; export function run(): void { try { const value = String.fromCodePoint(65, point); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String.fromCodePoint with a mixed argument list inside try with catch is not reported"
+    },
+    {
+      "code": "declare const size: number; export function run(): void { try { const value = Array.from({ length: size }); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Array.from with a non-literal length inside try with catch is not reported"
+    },
+    {
+      "code": "declare const size: number; export function run(): void { try { const value = new Array(size); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new Array with a non-literal length inside try with catch is not reported"
+    },
+    {
+      "code": "declare const size: number; export function run(): void { try { const value = Array(size); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Array() with a non-literal length inside try with catch is not reported"
+    },
+    {
+      "code": "declare const count: number; export function run(): void { try { const value = 'x'.repeat(count); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String#repeat with a non-literal count inside try with catch is not reported"
+    },
+    {
+      "code": "declare const width: number; export function run(): void { try { const value = 'x'.padStart(width); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String#padStart with a non-literal length inside try with catch is not reported"
+    },
+    {
+      "code": "declare const width: number; export function run(): void { try { const value = 'x'.padEnd(width); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String#padEnd with a non-literal length inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = decodeURI(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "decodeURI inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = decodeURIComponent(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "decodeURIComponent inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = encodeURI(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "encodeURI inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = encodeURIComponent(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "encodeURIComponent inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = atob(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "atob inside try with catch is not reported"
+    },
+    {
+      "code": "declare const text: string; export function run(): void { try { const value = btoa(text); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "btoa inside try with catch is not reported"
+    },
+    {
+      "code": "declare const bytes: Uint8Array; export function run(): void { try { const value = new TextDecoder().decode(bytes); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "TextDecoder#decode inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const pending = fetch('http://localhost'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "fetch inside try with catch is not reported"
+    },
+    {
+      "code": "declare const response: Response; export function run(): void { try { const pending = response.json(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Response#json inside try with catch is not reported"
+    },
+    {
+      "code": "declare const response: Response; export function run(): void { try { const pending = response.text(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Response#text inside try with catch is not reported"
+    },
+    {
+      "code": "declare const response: Response; export function run(): void { try { const pending = response.arrayBuffer(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Response#arrayBuffer inside try with catch is not reported"
+    },
+    {
+      "code": "declare const response: Response; export function run(): void { try { const pending = response.blob(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Response#blob inside try with catch is not reported"
+    },
+    {
+      "code": "declare const response: Response; export function run(): void { try { const pending = response.formData(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Response#formData inside try with catch is not reported"
+    },
+    {
+      "code": "declare const factory: IDBFactory; export function run(): void { try { const request = factory.open('db'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBFactory#open inside try with catch is not reported"
+    },
+    {
+      "code": "declare const factory: IDBFactory; export function run(): void { try { const request = factory.deleteDatabase('db'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBFactory#deleteDatabase inside try with catch is not reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; export function run(): void { try { const transaction = database.transaction('store'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBDatabase#transaction inside try with catch is not reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; export function run(): void { try { const store = database.createObjectStore('store'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBDatabase#createObjectStore inside try with catch is not reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; export function run(): void { try { database.deleteObjectStore('store'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBDatabase#deleteObjectStore inside try with catch is not reported"
+    },
+    {
+      "code": "declare const transaction: IDBTransaction; export function run(): void { try { const store = transaction.objectStore('store'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBTransaction#objectStore inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.get('key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#get inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.put('value', 'key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#put inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.add('value', 'key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#add inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.delete('key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#delete inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.clear(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#clear inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.getAll(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#getAll inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.count(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#count inside try with catch is not reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export function run(): void { try { const request = store.openCursor(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "IDBObjectStore#openCursor inside try with catch is not reported"
+    },
+    {
+      "code": "declare const storage: Storage; export function run(): void { try { const value = storage.getItem('key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Storage#getItem inside try with catch is not reported"
+    },
+    {
+      "code": "declare const storage: Storage; export function run(): void { try { storage.setItem('key', 'value'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Storage#setItem inside try with catch is not reported"
+    },
+    {
+      "code": "declare const storage: Storage; export function run(): void { try { storage.removeItem('key'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Storage#removeItem inside try with catch is not reported"
+    },
+    {
+      "code": "declare const storage: Storage; export function run(): void { try { storage.clear(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Storage#clear inside try with catch is not reported"
+    },
+    {
+      "code": "declare const storage: Storage; export function run(): void { try { const value = storage.key(0); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Storage#key inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const storage = globalThis.localStorage; } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "globalThis.localStorage inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const storage = globalThis.sessionStorage; } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "globalThis.sessionStorage inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const storage = window.localStorage; } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "window.localStorage inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const storage = window.sessionStorage; } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "window.sessionStorage inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const worker = new Worker('worker.js'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Worker constructor inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const worker = new SharedWorker('worker.js'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "SharedWorker constructor inside try with catch is not reported"
+    },
+    {
+      "code": "declare const worker: Worker; export function run(): void { try { worker.postMessage(1); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Worker#postMessage inside try with catch is not reported"
+    },
+    {
+      "code": "declare const port: MessagePort; export function run(): void { try { port.postMessage(1); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "MessagePort#postMessage inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const pending = crypto.subtle.digest('SHA-256', new Uint8Array()); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "crypto.subtle.digest inside try with catch is not reported"
+    },
+    {
+      "code": "import { readFileSync } from 'node:fs'; export function run(): void { try { const value = readFileSync('file'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:fs readFileSync inside try with catch is not reported"
+    },
+    {
+      "code": "import * as fs from 'node:fs'; export function run(): void { try { const value = fs.readFileSync('file'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:fs namespace import inside try with catch is not reported"
+    },
+    {
+      "code": "import { readFile } from 'node:fs/promises'; export function run(): void { try { const pending = readFile('file'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:fs/promises readFile inside try with catch is not reported"
+    },
+    {
+      "code": "import { execSync } from 'node:child_process'; export function run(): void { try { const value = execSync('ls'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:child_process execSync inside try with catch is not reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; export function run(): void { try { const worker = new NodeWorker('worker.js'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:worker_threads Worker inside try with catch is not reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; declare const worker: NodeWorker; export function run(): void { try { worker.postMessage(1); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:worker_threads postMessage inside try with catch is not reported"
+    },
+    {
+      "code": "import { createServer } from 'node:net'; export function run(): void { try { const server = createServer(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:net createServer inside try with catch is not reported"
+    },
+    {
+      "code": "import { request } from 'node:http'; export function run(): void { try { const outgoing = request('http://localhost'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:http request inside try with catch is not reported"
+    },
+    {
+      "code": "import { request } from 'node:https'; export function run(): void { try { const outgoing = request('https://localhost'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:https request inside try with catch is not reported"
+    },
+    {
+      "code": "import { gzipSync } from 'node:zlib'; export function run(): void { try { const value = gzipSync('x'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:zlib gzipSync inside try with catch is not reported"
+    },
+    {
+      "code": "import { gzip } from 'node:zlib'; export function run(): void { try { gzip('x', () => undefined); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:zlib gzip inside try with catch is not reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost').catch(() => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a promise chain ending in catch is not reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost').then(() => 1, () => 2);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a promise chain ending in then with a rejection handler is not reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost').then(() => 1).finally(() => undefined).catch(() => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a multi-step promise chain ending in catch is not reported"
+    },
+    {
+      "code": "const JSON = { parse(): void {} }; JSON.parse();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a local object named JSON is not reported"
+    },
+    {
+      "code": "const registry = { fromCodePoint(point: number): number { return point; } }; export const value = registry.fromCodePoint(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a local function named fromCodePoint is not reported"
+    },
+    {
+      "code": "export const value = new RegExp('literal');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new RegExp with a literal pattern is not reported"
+    },
+    {
+      "code": "export const value = RegExp('literal', 'u');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "RegExp() with a literal pattern is not reported"
+    },
+    {
+      "code": "export const value = new RegExp(`literal`);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new RegExp with a template literal without expressions is not reported"
+    },
+    {
+      "code": "export const value = BigInt(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "BigInt with a literal is not reported"
+    },
+    {
+      "code": "export const value = String.fromCodePoint(65, 66);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String.fromCodePoint with literals is not reported"
+    },
+    {
+      "code": "export const value = Array.from({ length: 3 });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Array.from with a literal length is not reported"
+    },
+    {
+      "code": "declare const items: Iterable<number>; export const value = Array.from(items);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Array.from of an iterable is not reported"
+    },
+    {
+      "code": "export const value = new Array(3);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new Array with a literal length is not reported"
+    },
+    {
+      "code": "declare const first: number; declare const second: number; export const value = new Array(first, second);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "new Array with several non-literal elements is not reported"
+    },
+    {
+      "code": "export const value = 'x'.repeat(3);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String#repeat with a literal count is not reported"
+    },
+    {
+      "code": "export const value = 'x'.padStart(3);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "String#padStart with a literal length is not reported"
+    },
+    {
+      "code": "declare const size: number; export const value = [1].fill(0, 0, size);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Array#fill with a non-literal count is not reported"
+    },
+    {
+      "code": "declare const values: number[]; export const value = values.map((entry) => entry + 1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a platform call outside the default list is not reported"
+    },
+    {
+      "code": "export const value = JSON.stringify({});",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "JSON.stringify is not reported when the platformCalls override lists JSON.parse only",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "JSON",
+              "member": "parse"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "declare const input: string; export const value: unknown = JSON.parse(input);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an empty platformCalls list reports nothing",
+      "options": [
+        {
+          "platformCalls": []
+        }
+      ]
+    },
+    {
+      "code": "export const value = encodeURI('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a platformCalls entry with safeWhenLiteral everyArgument ignores literal arguments",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "",
+              "member": "encodeURI",
+              "safeWhenLiteral": "everyArgument"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export class CallerFault { public static rejection(value: unknown): Promise<never> { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "throw inside a default pass-through method is not reported"
+    },
+    {
+      "code": "export class Relay { public static forward(value: unknown): Promise<never> { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "throw inside a listed pass-through method is not reported",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export class CallerFault { public static rejection(value: unknown): Promise<never> { return Promise.reject(value); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Promise.reject inside a default pass-through method is not reported"
+    },
+    {
+      "code": "export class Relay { public static forward(value: unknown): Promise<never> { return Promise.reject(value); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Promise.reject inside a listed pass-through method is not reported",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export class CallerFault { public static rejection(value: unknown): Promise<never> { return new Promise<never>((resolve, reject) => { reject(value); }); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an executor reject inside a default pass-through method is not reported"
+    },
+    {
+      "code": "export class Relay { public static forward(value: unknown): Promise<never> { return new Promise<never>((resolve, reject) => { reject(value); }); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an executor reject inside a listed pass-through method is not reported",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export class CallerFault { public static rejection(value: unknown): Promise<never> { const resolvers = Promise.withResolvers<never>(); resolvers.reject(value); return resolvers.promise; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a withResolvers reject inside a default pass-through method is not reported"
+    },
+    {
+      "code": "export class Relay { public static forward(value: unknown): Promise<never> { const resolvers = Promise.withResolvers<never>(); resolvers.reject(value); return resolvers.promise; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a withResolvers reject inside a listed pass-through method is not reported",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare class CallerFault { public static propagate(value: unknown): never; } declare function work(): void; export function run(): void { try { work(); } catch (error: unknown) { CallerFault.propagate(error); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "CallerFault.propagate as a bare statement is not reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare class CallerFault { public static rejection(value: unknown): Promise<never>; } export function fail(error: unknown): Promise<never> { return CallerFault.rejection(error); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "CallerFault.rejection returned to the caller is not reported"
+    },
+    {
+      "code": "import { existsSync } from 'node:fs'; export const present = existsSync('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:fs existsSync never throws and is not reported"
+    },
+    {
+      "code": "import { isIP } from 'node:net'; export const family = isIP('127.0.0.1');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:net isIP never throws and is not reported"
+    },
+    {
+      "code": "declare const input: string; export const value: unknown = JSON.parse(input);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "JSON",
+              "member": "parse",
+              "safeWhenLiteral": "always"
+            }
+          ]
+        }
+      ],
+      "name": "a platformCalls entry with safeWhenLiteral always exempts the member"
+    },
+    {
+      "code": "const PATTERN = '^a+$'; export const value = new RegExp(PATTERN);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a const string identifier is a literal argument"
+    },
+    {
+      "code": "const PATTERNS = { 'word': '^\\\\w+$' } as const; export const value = new RegExp(PATTERNS.word);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "an as const object member is a literal argument"
+    },
+    {
+      "code": "interface Source { readonly 'document': '{\"a\":1}' } declare const source: Source; export const value: unknown = JSON.parse(source.document);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a readonly literal-typed property is a literal argument"
+    },
+    {
+      "code": "declare const flavor: 'a' | 'b'; export const value = new RegExp(flavor);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a union of literal types is a literal argument"
+    },
+    {
+      "code": "const SIZE = 3; export const value = new Array(SIZE);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a const numeric identifier is a literal argument"
+    },
+    {
+      "code": "const HEAD = 'a'; export const value = new RegExp(`${HEAD}b` as const);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "a template literal with literal-typed substitutions is a literal argument"
+    },
+    {
+      "code": "export const value: unknown = JSON.parse('{}');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "JSON.parse of a literal string is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const pending = handle.getDirectoryHandle('dir'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#getDirectoryHandle inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const pending = handle.getFileHandle('file'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#getFileHandle inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const pending = handle.removeEntry('file'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#removeEntry inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; declare const other: FileSystemHandle; export function run(): void { try { const pending = handle.resolve(other); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#resolve inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const iterator = handle.entries(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#entries inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const iterator = handle.keys(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#keys inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export function run(): void { try { const iterator = handle.values(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemDirectoryHandle#values inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export async function names(): Promise<void> { try { for await (const entry of handle) { void entry; } } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "for await over a FileSystemDirectoryHandle inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemFileHandle; export function run(): void { try { const pending = handle.getFile(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemFileHandle#getFile inside try with catch is not reported"
+    },
+    {
+      "code": "declare const handle: FileSystemFileHandle; export function run(): void { try { const pending = handle.createWritable(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemFileHandle#createWritable inside try with catch is not reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export function run(): void { try { const pending = stream.write('data'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemWritableFileStream#write inside try with catch is not reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export function run(): void { try { const pending = stream.seek(0); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemWritableFileStream#seek inside try with catch is not reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export function run(): void { try { const pending = stream.truncate(0); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemWritableFileStream#truncate inside try with catch is not reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export function run(): void { try { const pending = stream.close(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "FileSystemWritableFileStream#close inside try with catch is not reported"
+    },
+    {
+      "code": "declare const manager: StorageManager; export function run(): void { try { const pending = manager.getDirectory(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "StorageManager#getDirectory inside try with catch is not reported"
+    },
+    {
+      "code": "export function run(): void { try { const pending = navigator.storage.getDirectory(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "navigator.storage.getDirectory inside try with catch is not reported"
+    },
+    {
+      "code": "declare const worker: Worker; export function run(): void { try { worker.terminate(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "Worker#terminate inside try with catch is not reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; declare const worker: NodeWorker; export function run(): void { try { const pending = worker.terminate(); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:worker_threads Worker#terminate inside try with catch is not reported"
+    },
+    {
+      "code": "import { MessagePort as NodePort } from 'node:worker_threads'; declare const port: NodePort; export function run(): void { try { port.postMessage(1); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:worker_threads MessagePort#postMessage inside try with catch is not reported"
+    },
+    {
+      "code": "import { ok } from 'node:assert'; declare const value: unknown; export function run(): void { try { ok(value); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert ok inside try with catch is not reported"
+    },
+    {
+      "code": "import { equal } from 'node:assert'; export function run(): void { try { equal(1, 2); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert equal inside try with catch is not reported"
+    },
+    {
+      "code": "import { strictEqual } from 'node:assert'; export function run(): void { try { strictEqual(1, 2); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert strictEqual inside try with catch is not reported"
+    },
+    {
+      "code": "import { deepStrictEqual } from 'node:assert'; export function run(): void { try { deepStrictEqual({}, {}); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert deepStrictEqual inside try with catch is not reported"
+    },
+    {
+      "code": "import { throws } from 'node:assert'; export function run(): void { try { throws(() => undefined); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert throws inside try with catch is not reported"
+    },
+    {
+      "code": "import { rejects } from 'node:assert'; export function run(): void { try { const pending = rejects(Promise.resolve()); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert rejects inside try with catch is not reported"
+    },
+    {
+      "code": "import { doesNotThrow } from 'node:assert'; export function run(): void { try { doesNotThrow(() => undefined); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert doesNotThrow inside try with catch is not reported"
+    },
+    {
+      "code": "import { doesNotReject } from 'node:assert'; export function run(): void { try { const pending = doesNotReject(Promise.resolve()); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert doesNotReject inside try with catch is not reported"
+    },
+    {
+      "code": "import { match } from 'node:assert'; export function run(): void { try { match('a', /a/u); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert match inside try with catch is not reported"
+    },
+    {
+      "code": "import { fail } from 'node:assert'; export function run(): void { try { fail('message'); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert fail inside try with catch is not reported"
+    },
+    {
+      "code": "import assert from 'node:assert'; declare const value: unknown; export function run(): void { try { assert(value); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert default call inside try with catch is not reported"
+    },
+    {
+      "code": "import assert from 'node:assert/strict'; export function run(): void { try { assert.equal(1, 2); } catch { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "name": "node:assert/strict equal inside try with catch is not reported"
+    }
+  ],
+  "invalid": [
+    {
+      "code": "export const value = new Error('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "new Error is invalid"
+    },
+    {
+      "code": "export const value = Error('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "Error called without new is invalid"
+    },
+    {
+      "code": "export class Local extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "class declaration extending Error is invalid"
+    },
+    {
+      "code": "export const value = new TypeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "new TypeError is invalid"
+    },
+    {
+      "code": "export const value = TypeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "TypeError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends TypeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "class declaration extending TypeError is invalid"
+    },
+    {
+      "code": "export const value = new RangeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "new RangeError is invalid"
+    },
+    {
+      "code": "export const value = RangeError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "RangeError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends RangeError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "RangeError"
+          }
+        }
+      ],
+      "name": "class declaration extending RangeError is invalid"
+    },
+    {
+      "code": "export const value = new SyntaxError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "new SyntaxError is invalid"
+    },
+    {
+      "code": "export const value = SyntaxError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "SyntaxError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends SyntaxError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "SyntaxError"
+          }
+        }
+      ],
+      "name": "class declaration extending SyntaxError is invalid"
+    },
+    {
+      "code": "export const value = new ReferenceError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "new ReferenceError is invalid"
+    },
+    {
+      "code": "export const value = ReferenceError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "ReferenceError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends ReferenceError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "ReferenceError"
+          }
+        }
+      ],
+      "name": "class declaration extending ReferenceError is invalid"
+    },
+    {
+      "code": "export const value = new EvalError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "new EvalError is invalid"
+    },
+    {
+      "code": "export const value = EvalError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "EvalError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends EvalError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "EvalError"
+          }
+        }
+      ],
+      "name": "class declaration extending EvalError is invalid"
+    },
+    {
+      "code": "export const value = new URIError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "new URIError is invalid"
+    },
+    {
+      "code": "export const value = URIError('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "URIError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends URIError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "URIError"
+          }
+        }
+      ],
+      "name": "class declaration extending URIError is invalid"
+    },
+    {
+      "code": "export const value = new AggregateError([], 'x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "new AggregateError is invalid"
+    },
+    {
+      "code": "export const value = AggregateError([], 'x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "AggregateError called without new is invalid"
+    },
+    {
+      "code": "export class Local extends AggregateError {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "AggregateError"
+          }
+        }
+      ],
+      "name": "class declaration extending AggregateError is invalid"
+    },
+    {
+      "code": "export const value = new DOMException('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "new DOMException is invalid"
+    },
+    {
+      "code": "export const value = DOMException('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "DOMException called without new is invalid"
+    },
+    {
+      "code": "export class Local extends DOMException {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "DOMException"
+          }
+        }
+      ],
+      "name": "class declaration extending DOMException is invalid"
+    },
+    {
+      "code": "export const Local = class extends TypeError {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "TypeError"
+          }
+        }
+      ],
+      "name": "class expression extending TypeError is invalid"
+    },
+    {
+      "code": "export const rejected = Promise.reject(new Error('x'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "Promise.reject of a native error construction reports the construction once"
+    },
+    {
+      "code": "declare const controller: AbortController; controller.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "abortWithoutReason"
+        }
+      ],
+      "name": "abort() with no reason on an AbortController is invalid"
+    },
+    {
+      "code": "export const controller = new AbortController(); controller.abort();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "abortWithoutReason"
+        }
+      ],
+      "name": "abort() on a constructed AbortController is invalid"
+    },
+    {
+      "code": "export class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a non-abstract BaseError extending Error is reported"
+    },
+    {
+      "code": "export abstract class OtherRoot extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "an abstract class outside the default baseClassNames is reported"
+    },
+    {
+      "code": "export abstract class BaseError extends Error {}",
+      "filename": "packages/eslint-config/Probe.ts",
+      "options": [
+        {
+          "baseClassNames": [
+            "OtherRoot"
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "an abstract BaseError is reported when baseClassNames omits it"
+    },
+    {
+      "code": "export const BaseError = class extends Error {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a class expression named BaseError extending Error is reported"
+    },
+    {
+      "code": "export const Root = class BaseError extends Error {};",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeHeritage",
+          "data": {
+            "name": "Error"
+          }
+        }
+      ],
+      "name": "a class expression with a base class name extending Error is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare function work(): void; export function run(): void { try { work(); } catch (error: unknown) { throw error; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrowInCatch"
+        }
+      ],
+      "name": "throwing a caught unknown is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(error: Error): never { throw error; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "throwing an Error-typed value is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(error: XError | TypeError): never { throw error; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "throwing a BaseError | TypeError union is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(): never { throw 'x'; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "throwing a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(error: any): never { throw error; }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "throwing an any-typed value is reported"
+    },
+    {
+      "code": "export abstract class BaseError extends Error { public static rethrow(error: unknown): never { throw error; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "a throw in the abstract root's own file follows the same check"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Other { public static propagate(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "a method named propagate on another class is not exempt"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class CallerFault { public static forward(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "a CallerFault method named differently is not exempt"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class CallerFault { public static propagate(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "a listed method on the default entry is reported once passThroughMethods is overridden",
+      "options": [
+        {
+          "passThroughMethods": [
+            {
+              "class": "Relay",
+              "method": "forward"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Relay { public static forward(value: unknown): never { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "an unlisted class method is reported under the default passThroughMethods"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(): never { throw new TypeError('x'); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction"
+        }
+      ],
+      "name": "a throw of a native construction is reported once at the construction"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export const pending = new Promise<void>((resolve, reject) => { const fail = (error: unknown): void => { reject(error); }; fail(1); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "reject with an unknown reason is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export const pending = new Promise<void>((resolve, reject) => { reject(); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "reject without a reason is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(error: unknown): Promise<never> { return Promise.reject(error); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "Promise.reject with an unknown reason is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare function work(): Promise<void>; export const pending = new Promise<void>((resolve, reject) => { work().then(resolve).catch(reject); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject handed to catch is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} function fail(reject: (reason: unknown) => void): void { reject('x'); } export const pending = new Promise<void>((resolve, reject) => { fail(reject); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject passed to a local helper that rejects with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Entry { reject: (reason: unknown) => void } export const pending = new Promise<void>((resolve, reject) => { const entry: Entry = { reject }; entry.reject('x'); resolve(); });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject stored on a property and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} let saved: ((reason: unknown) => void) | undefined; export const pending = new Promise<void>((resolve, reject) => { saved = reject; resolve(); }); saved?.('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject aliased to a variable and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Holder { #reject: ((reason: unknown) => void) | undefined; public start(): Promise<void> { return new Promise<void>((resolve, reject) => { this.#reject = reject; resolve(); }); } public stop(): void { this.#reject?.('x'); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject assigned to a class field and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare const reason: unknown; const controller = new AbortController(); controller.abort(reason);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseAbortReason"
+        }
+      ],
+      "name": "abort with an unknown reason is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const controller = new AbortController(); controller.abort(new DOMException('x', 'AbortError'));",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nativeConstruction"
+        }
+      ],
+      "name": "abort with a DOMException is reported once at the construction"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const controller = new AbortController(); controller.abort('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseAbortReason"
+        }
+      ],
+      "name": "abort with a string reason is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const resolvers = Promise.withResolvers<void>(); resolvers.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "withResolvers reject with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export function fail(error: unknown): void { const resolvers = Promise.withResolvers<void>(); resolvers.reject(error); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "withResolvers reject with an unknown is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Holder { readonly #waiter = Promise.withResolvers<void>(); public stop(error: unknown): void { this.#waiter.reject(error); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject on a private field is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Holder { public waiter: PromiseWithResolvers<void> | undefined; public stop(): void { this.waiter ??= Promise.withResolvers<void>(); this.waiter.reject('x'); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject on a lazily assigned field is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare const waiter: PromiseWithResolvers<void> | undefined; waiter?.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "an optional-chained withResolvers reject is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const { reject } = Promise.withResolvers<void>(); reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a destructured withResolvers reject is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const { reject: fail } = Promise.withResolvers<void>(); fail('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a renamed destructured withResolvers reject is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare function work(): Promise<void>; const resolvers = Promise.withResolvers<void>(); work().catch(resolvers.reject);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject handed to catch is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} declare function work(): Promise<void>; const { reject } = Promise.withResolvers<void>(); work().catch(reject);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a destructured withResolvers reject handed to catch is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} function fail(reject: (reason: unknown) => void): void { reject('x'); } const resolvers = Promise.withResolvers<void>(); fail(resolvers.reject);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject passed to a local helper that rejects with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Waiter { reject: (reason: unknown) => void } const resolvers = Promise.withResolvers<void>(); const waiter: Waiter = { reject: resolvers.reject }; waiter.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject stored on a property and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} const resolvers = Promise.withResolvers<void>(); const fail = resolvers.reject; fail('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject aliased to a variable and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} export class Holder { #reject: ((reason: unknown) => void) | undefined; public start(): void { this.#reject = Promise.withResolvers<void>().reject; } public stop(): void { this.#reject?.('x'); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject assigned to a field and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Waiter { reject: (reason: unknown) => void } interface Node { reject: (reason: unknown) => void } const resolvers = Promise.withResolvers<void>(); const waiter: Waiter = { reject: resolvers.reject }; const node: Node = { reject: waiter.reject }; node.reject('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject copied between stored properties and called with a string is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Entry<T> { reject?: ((reason: unknown) => void) | undefined; event: T } export class Box<T> { readonly #queue: Entry<T>[] = []; public start(event: T): Promise<void> { return new Promise<void>((resolve, reject) => { this.#queue.push({ event, reject }); resolve(); }); } public fail(entry: Entry<T>, error: unknown): void { entry.reject?.(error); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject stored in a generic interface member and called with an unknown is reported"
+    },
+    {
+      "code": "declare abstract class BaseError extends Error { public constructor(message: string); } class XError extends BaseError {} interface Entry<T> { readonly 'event': T; readonly 'reject'?: ((reason: unknown) => void) | undefined } declare class Buffer<T> { push(item: T): void } class Mailbox<T> extends Buffer<Entry<T>> {} export class Box<T> { readonly #queue = new Mailbox<T>(); public start(event: T): Promise<void> { return new Promise<void>((resolve, reject) => { this.#queue.push({ 'event': event, 'reject': reject }); resolve(); }); } public fail(entry: Entry<T>, error: unknown): void { entry.reject?.(error); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a reject stored under a string-literal key through an inherited generic push is reported"
+    },
+    {
+      "code": "declare const input: string; export const value: unknown = JSON.parse(input);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "JSON.parse unguarded is reported"
+    },
+    {
+      "code": "export const value = JSON.stringify({});",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "JSON.stringify unguarded is reported"
+    },
+    {
+      "code": "export const value = structuredClone({});",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "structuredClone unguarded is reported"
+    },
+    {
+      "code": "export const value = new URL('http://localhost');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "new URL unguarded is reported"
+    },
+    {
+      "code": "declare const pattern: string; export const value = new RegExp(pattern);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "new RegExp with a non-literal pattern unguarded is reported"
+    },
+    {
+      "code": "declare const pattern: string; export const value = RegExp(pattern);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "RegExp() with a non-literal pattern unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = BigInt(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "BigInt with an identifier unguarded is reported"
+    },
+    {
+      "code": "declare const input: { readonly amount: number }; export const value = BigInt(input.amount);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "BigInt with a member expression unguarded is reported"
+    },
+    {
+      "code": "declare const point: number; export const value = String.fromCodePoint(point);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "String.fromCodePoint with a non-literal unguarded is reported"
+    },
+    {
+      "code": "declare const point: number; export const value = String.fromCodePoint(65, point);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "String.fromCodePoint with a mixed argument list unguarded is reported"
+    },
+    {
+      "code": "declare const size: number; export const value = Array.from({ length: size });",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Array.from with a non-literal length unguarded is reported"
+    },
+    {
+      "code": "declare const size: number; export const value = new Array(size);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "new Array with a non-literal length unguarded is reported"
+    },
+    {
+      "code": "declare const size: number; export const value = Array(size);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Array() with a non-literal length unguarded is reported"
+    },
+    {
+      "code": "declare const count: number; export const value = 'x'.repeat(count);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "String#repeat with a non-literal count unguarded is reported"
+    },
+    {
+      "code": "declare const width: number; export const value = 'x'.padStart(width);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "String#padStart with a non-literal length unguarded is reported"
+    },
+    {
+      "code": "declare const width: number; export const value = 'x'.padEnd(width);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "String#padEnd with a non-literal length unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = decodeURI(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "decodeURI unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = decodeURIComponent(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "decodeURIComponent unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = encodeURI(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "encodeURI unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = encodeURIComponent(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "encodeURIComponent unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = atob(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "atob unguarded is reported"
+    },
+    {
+      "code": "declare const text: string; export const value = btoa(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "btoa unguarded is reported"
+    },
+    {
+      "code": "declare const bytes: Uint8Array; export const value = new TextDecoder().decode(bytes);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "TextDecoder#decode unguarded is reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "fetch unguarded is reported"
+    },
+    {
+      "code": "declare const response: Response; export const pending = response.json();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Response#json unguarded is reported"
+    },
+    {
+      "code": "declare const response: Response; export const pending = response.text();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Response#text unguarded is reported"
+    },
+    {
+      "code": "declare const response: Response; export const pending = response.arrayBuffer();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Response#arrayBuffer unguarded is reported"
+    },
+    {
+      "code": "declare const response: Response; export const pending = response.blob();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Response#blob unguarded is reported"
+    },
+    {
+      "code": "declare const response: Response; export const pending = response.formData();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Response#formData unguarded is reported"
+    },
+    {
+      "code": "declare const factory: IDBFactory; export const request = factory.open('db');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBFactory#open unguarded is reported"
+    },
+    {
+      "code": "declare const factory: IDBFactory; export const request = factory.deleteDatabase('db');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBFactory#deleteDatabase unguarded is reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; export const transaction = database.transaction('store');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBDatabase#transaction unguarded is reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; export const store = database.createObjectStore('store');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBDatabase#createObjectStore unguarded is reported"
+    },
+    {
+      "code": "declare const database: IDBDatabase; database.deleteObjectStore('store');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBDatabase#deleteObjectStore unguarded is reported"
+    },
+    {
+      "code": "declare const transaction: IDBTransaction; export const store = transaction.objectStore('store');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBTransaction#objectStore unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.get('key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#get unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.put('value', 'key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#put unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.add('value', 'key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#add unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.delete('key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#delete unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.clear();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#clear unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.getAll();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#getAll unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.count();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#count unguarded is reported"
+    },
+    {
+      "code": "declare const store: IDBObjectStore; export const request = store.openCursor();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "IDBObjectStore#openCursor unguarded is reported"
+    },
+    {
+      "code": "declare const storage: Storage; export const value = storage.getItem('key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Storage#getItem unguarded is reported"
+    },
+    {
+      "code": "declare const storage: Storage; storage.setItem('key', 'value');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Storage#setItem unguarded is reported"
+    },
+    {
+      "code": "declare const storage: Storage; storage.removeItem('key');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Storage#removeItem unguarded is reported"
+    },
+    {
+      "code": "declare const storage: Storage; storage.clear();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Storage#clear unguarded is reported"
+    },
+    {
+      "code": "declare const storage: Storage; export const value = storage.key(0);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Storage#key unguarded is reported"
+    },
+    {
+      "code": "export const storage = globalThis.localStorage;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "globalThis.localStorage unguarded is reported"
+    },
+    {
+      "code": "export const storage = globalThis.sessionStorage;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "globalThis.sessionStorage unguarded is reported"
+    },
+    {
+      "code": "export const storage = window.localStorage;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "window.localStorage unguarded is reported"
+    },
+    {
+      "code": "export const storage = window.sessionStorage;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "window.sessionStorage unguarded is reported"
+    },
+    {
+      "code": "export const worker = new Worker('worker.js');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Worker constructor unguarded is reported"
+    },
+    {
+      "code": "export const worker = new SharedWorker('worker.js');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "SharedWorker constructor unguarded is reported"
+    },
+    {
+      "code": "declare const worker: Worker; worker.postMessage(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Worker#postMessage unguarded is reported"
+    },
+    {
+      "code": "declare const port: MessagePort; port.postMessage(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "MessagePort#postMessage unguarded is reported"
+    },
+    {
+      "code": "export const pending = crypto.subtle.digest('SHA-256', new Uint8Array());",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "crypto.subtle.digest unguarded is reported"
+    },
+    {
+      "code": "import { readFileSync } from 'node:fs'; export const value = readFileSync('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:fs readFileSync unguarded is reported"
+    },
+    {
+      "code": "import * as fs from 'node:fs'; export const value = fs.readFileSync('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:fs namespace import unguarded is reported"
+    },
+    {
+      "code": "import { readFile } from 'node:fs/promises'; export const pending = readFile('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:fs/promises readFile unguarded is reported"
+    },
+    {
+      "code": "import { execSync } from 'node:child_process'; export const value = execSync('ls');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:child_process execSync unguarded is reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; export const worker = new NodeWorker('worker.js');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:worker_threads Worker unguarded is reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; declare const worker: NodeWorker; worker.postMessage(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:worker_threads postMessage unguarded is reported"
+    },
+    {
+      "code": "import { createServer } from 'node:net'; export const server = createServer();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:net createServer unguarded is reported"
+    },
+    {
+      "code": "import { request } from 'node:http'; export const outgoing = request('http://localhost');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:http request unguarded is reported"
+    },
+    {
+      "code": "import { request } from 'node:https'; export const outgoing = request('https://localhost');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:https request unguarded is reported"
+    },
+    {
+      "code": "import { gzipSync } from 'node:zlib'; export const value = gzipSync('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:zlib gzipSync unguarded is reported"
+    },
+    {
+      "code": "import { gzip } from 'node:zlib'; gzip('x', () => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:zlib gzip unguarded is reported"
+    },
+    {
+      "code": "declare const input: string; export function run(): void { try { JSON.parse(input); } finally { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platform call in try/finally without catch is reported"
+    },
+    {
+      "code": "declare const input: string; export function run(): void { try { return; } catch { JSON.parse(input); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platform call inside the catch block is reported"
+    },
+    {
+      "code": "declare const input: string; export function run(): void { try { return; } catch { return; } finally { JSON.parse(input); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platform call inside the finally block of try/catch is reported"
+    },
+    {
+      "code": "declare const input: string; export function run(): void { try { return; } catch { return; } JSON.parse(input); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platform call after the try statement is reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost').then(() => 1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a promise chain without a rejection handler is reported"
+    },
+    {
+      "code": "export const pending = fetch('http://localhost').finally(() => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a promise chain ending in finally is reported"
+    },
+    {
+      "code": "declare const input: string; const parse = JSON.parse; export const value: unknown = parse(input);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "an aliased platform function is reported at its call"
+    },
+    {
+      "code": "export function run(items: string[]): void { try { items.map((item) => JSON.parse(item)); } finally { return; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platform call in a callback inside a try block without catch is reported"
+    },
+    {
+      "code": "declare const input: string; export const value = JSON.parse(input);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "JSON.stringify is reported when the platformCalls override lists JSON.parse only",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "JSON",
+              "member": "parse"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export const value = encodeURI('x');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platformCalls override extends to another platform API",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "",
+              "member": "encodeURI"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "declare const text: string; export const value = encodeURI(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a platformCalls entry with safeWhenLiteral everyArgument reports a non-literal argument",
+      "options": [
+        {
+          "platformCalls": [
+            {
+              "kind": "call",
+              "owner": "",
+              "member": "encodeURI",
+              "safeWhenLiteral": "everyArgument"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "code": "export class Other { public static rejection(value: unknown): Promise<never> { throw value; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseThrow"
+        }
+      ],
+      "name": "throw inside a method of another class is reported"
+    },
+    {
+      "code": "export class Other { public static rejection(value: unknown): Promise<never> { return Promise.reject(value); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "Promise.reject inside a method of another class is reported"
+    },
+    {
+      "code": "export class Other { public static rejection(value: unknown): Promise<never> { return new Promise<never>((resolve, reject) => { reject(value); }); } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "an executor reject inside a method of another class is reported"
+    },
+    {
+      "code": "export class Other { public static rejection(value: unknown): Promise<never> { const resolvers = Promise.withResolvers<never>(); resolvers.reject(value); return resolvers.promise; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "nonBaseReject"
+        }
+      ],
+      "name": "a withResolvers reject inside a method of another class is reported"
+    },
+    {
+      "code": "import { existsSync, readFileSync } from 'node:fs'; export const value = existsSync('file') ? readFileSync('file') : undefined;",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:fs readFileSync is still reported next to an exempt existsSync"
+    },
+    {
+      "code": "let pattern = '^a+$'; pattern += 'b'; export const value = new RegExp(pattern);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a let string identifier is not a literal argument"
+    },
+    {
+      "code": "export function build(pattern: string): RegExp { return new RegExp(pattern); }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a widened string parameter is not a literal argument"
+    },
+    {
+      "code": "const patterns = { 'word': '^\\\\w+$' }; export const value = new RegExp(patterns.word);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a mutable object member is not a literal argument"
+    },
+    {
+      "code": "declare const tail: string; export const value = new RegExp(`a${tail}`);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "a template literal with a string substitution is not a literal argument"
+    },
+    {
+      "code": "declare const text: string; export const value: unknown = JSON.parse(text);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "JSON.parse of a non-literal string is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const pending = handle.getDirectoryHandle('dir');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#getDirectoryHandle unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const pending = handle.getFileHandle('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#getFileHandle unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const pending = handle.removeEntry('file');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#removeEntry unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; declare const other: FileSystemHandle; export const pending = handle.resolve(other);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#resolve unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const iterator = handle.entries();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#entries unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const iterator = handle.keys();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#keys unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export const iterator = handle.values();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemDirectoryHandle#values unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemDirectoryHandle; export async function names(): Promise<void> { for await (const entry of handle) { void entry; } }",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "for await over a FileSystemDirectoryHandle unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemFileHandle; export const pending = handle.getFile();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemFileHandle#getFile unguarded is reported"
+    },
+    {
+      "code": "declare const handle: FileSystemFileHandle; export const pending = handle.createWritable();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemFileHandle#createWritable unguarded is reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export const pending = stream.write('data');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemWritableFileStream#write unguarded is reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export const pending = stream.seek(0);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemWritableFileStream#seek unguarded is reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export const pending = stream.truncate(0);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemWritableFileStream#truncate unguarded is reported"
+    },
+    {
+      "code": "declare const stream: FileSystemWritableFileStream; export const pending = stream.close();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "FileSystemWritableFileStream#close unguarded is reported"
+    },
+    {
+      "code": "declare const manager: StorageManager; export const pending = manager.getDirectory();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "StorageManager#getDirectory unguarded is reported"
+    },
+    {
+      "code": "export const pending = navigator.storage.getDirectory();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "navigator.storage.getDirectory unguarded is reported"
+    },
+    {
+      "code": "declare const worker: Worker; worker.terminate();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "Worker#terminate unguarded is reported"
+    },
+    {
+      "code": "import { Worker as NodeWorker } from 'node:worker_threads'; declare const worker: NodeWorker; export const pending = worker.terminate();",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:worker_threads Worker#terminate unguarded is reported"
+    },
+    {
+      "code": "import { MessagePort as NodePort } from 'node:worker_threads'; declare const port: NodePort; port.postMessage(1);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:worker_threads MessagePort#postMessage unguarded is reported"
+    },
+    {
+      "code": "import { ok } from 'node:assert'; declare const value: unknown; ok(value);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert ok unguarded is reported"
+    },
+    {
+      "code": "import { equal } from 'node:assert'; equal(1, 2);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert equal unguarded is reported"
+    },
+    {
+      "code": "import { strictEqual } from 'node:assert'; strictEqual(1, 2);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert strictEqual unguarded is reported"
+    },
+    {
+      "code": "import { deepStrictEqual } from 'node:assert'; deepStrictEqual({}, {});",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert deepStrictEqual unguarded is reported"
+    },
+    {
+      "code": "import { throws } from 'node:assert'; throws(() => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert throws unguarded is reported"
+    },
+    {
+      "code": "import { rejects } from 'node:assert'; export const pending = rejects(Promise.resolve());",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert rejects unguarded is reported"
+    },
+    {
+      "code": "import { doesNotThrow } from 'node:assert'; doesNotThrow(() => undefined);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert doesNotThrow unguarded is reported"
+    },
+    {
+      "code": "import { doesNotReject } from 'node:assert'; export const pending = doesNotReject(Promise.resolve());",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert doesNotReject unguarded is reported"
+    },
+    {
+      "code": "import { match } from 'node:assert'; match('a', /a/u);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert match unguarded is reported"
+    },
+    {
+      "code": "import { fail } from 'node:assert'; fail('message');",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert fail unguarded is reported"
+    },
+    {
+      "code": "import assert from 'node:assert'; declare const value: unknown; assert(value);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert default call unguarded is reported"
+    },
+    {
+      "code": "import assert from 'node:assert/strict'; assert.equal(1, 2);",
+      "filename": "packages/eslint-config/Probe.ts",
+      "errors": [
+        {
+          "messageId": "unguardedPlatformCall"
+        }
+      ],
+      "name": "node:assert/strict equal unguarded is reported"
+    }
+  ]
+}

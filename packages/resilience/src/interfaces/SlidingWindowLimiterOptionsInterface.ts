@@ -1,6 +1,7 @@
-import type { SlidingWindowLimiterOptionsEntity } from '../entities/SlidingWindowLimiterOptionsEntity.js';
-import type { RateLimiterClockInterface } from './RateLimiterClockInterface.js';
+import type { MonotonicNowInterface } from '@studnicky/clock/monotonic-now/interfaces';
 
-export interface SlidingWindowLimiterOptionsInterface extends SlidingWindowLimiterOptionsEntity.Type {
-  readonly 'clock'?: RateLimiterClockInterface;
+import type { SlidingWindowLimiterOptionsEntity } from '../entities/SlidingWindowLimiterOptionsEntity.js';
+
+export interface SlidingWindowLimiterOptionsInterface extends SlidingWindowLimiterOptionsEntity.InputType {
+  readonly 'clock'?: MonotonicNowInterface;
 }

@@ -1,216 +1,179 @@
+import type { JsonValueEntity } from '@studnicky/json/entities';
+
+import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import { after, before, describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { AbortError, FetchClient, TimeoutError } from '../../../src/node/index.js';
-import { startTestServer, stopTestServer } from '../../helpers/test-server/index.js';
-import scenarioGroups from './features.scenarios.json' with { type: 'json' };
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import { FeaturesScenarioCaseEntity } from './entities/FeaturesScenarioCaseEntity.js';
+import scenarioGroups from './features.scenarios.json' with { 'type': 'json' };
 
-type StatusScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { status: number };
-  input: { fetchClient: Record<string, unknown>; request: { options?: Record<string, unknown>; url: string } };
-  shape: Shape;
-  name: string;
-};
+class FeaturesRunners {
+  private static readonly testClient = FetchClient.create();
 
-type AbortScenarioCase<Shape extends string> = {
-  description: string;
-  expected: { abortErrorName: 'AbortError'; urlIncludes: string };
-  input: { fetchClient: Record<string, unknown> };
-  shape: Shape;
-  name: string;
-};
+  static async 'abort-details'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'abort-details'>): Promise<void> {
+    using server = TestServer.start();
+    const controller = new AbortController();
+    setTimeout(() => { controller.abort(new AbortError(`${server.url}/delay`)); }, 10);
+    const caught = await RejectionProbe.capture(async () => {
+      await FeaturesRunners.testClient.get(`${server.url}/delay`, { 'signal': controller.signal });
+    });
+    assert.ok(caught instanceof AbortError);
+    assert.ok(caught.url.includes(scenarioCase.expected.urlIncludes));
+  }
 
-type ScenarioCase =
-  | StatusScenarioCase<'baseURL-prepend-relative'>
-  | StatusScenarioCase<'baseURL-keep-absolute'>
-  | StatusScenarioCase<'baseURL-trailing-slash'>
-  | StatusScenarioCase<'baseURL-path-without-leading-slash'>
-  | StatusScenarioCase<'headers-apply-defaults'>
-  | StatusScenarioCase<'headers-merge-default-and-request'>
-  | StatusScenarioCase<'headers-override-defaults'>
-  | {
-      description: string;
-      expected: { itemsLengthAtMost: number };
-      input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      shape: 'params-apply-defaults-with-baseURL';
-      name: string;
+  static async 'abort-first'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'abort-first'>): Promise<void> {
+    using server = TestServer.start();
+    const controller = new AbortController();
+    setTimeout(() => { controller.abort(new AbortError(`${server.url}/delay`)); }, 50);
+    const caught = await RejectionProbe.capture(async () => {
+      await FeaturesRunners.testClient.get(`${server.url}/delay`, {
+        'signal': controller.signal,
+        'timeout': 5000
+      });
+    });
+    assert.ok(caught instanceof AbortError);
+    assert.equal(caught.name, scenarioCase.expected.abortErrorName);
+  }
+
+  static async 'abort-in-get'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'abort-in-get'>): Promise<void> {
+    using server = TestServer.start();
+    const controller = new AbortController();
+    setTimeout(() => { controller.abort(new AbortError(`${server.url}/delay`)); }, 50);
+    const caught = await RejectionProbe.capture(async () => {
+      await FeaturesRunners.testClient.get(`${server.url}/delay`, { 'signal': controller.signal });
+    });
+    assert.ok(caught instanceof AbortError);
+    assert.equal(caught.name, scenarioCase.expected.abortErrorName);
+  }
+
+  static async 'baseURL-keep-absolute'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'baseURL-keep-absolute'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'baseURL-path-without-leading-slash'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'baseURL-path-without-leading-slash'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'baseURL-prepend-relative'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'baseURL-prepend-relative'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'baseURL-trailing-slash'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'baseURL-trailing-slash'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'headers-apply-defaults'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'headers-apply-defaults'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'headers-merge-default-and-request'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'headers-merge-default-and-request'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'headers-override-defaults'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'headers-override-defaults'>): Promise<void> {
+    await FeaturesRunners.runStatusScenario(scenarioCase);
+  }
+
+  static async 'params-apply-defaults-with-baseURL'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'params-apply-defaults-with-baseURL'>): Promise<void> {
+    using server = TestServer.start();
+    const config = FeaturesRunners.materializeConfig(scenarioCase.input.fetchClient, server.url);
+    const client = FetchClient.create(config);
+    const request = FeaturesRunners.materializeRequest(scenarioCase.input.request, server.url);
+    const response = await client.get(request.url);
+    assert.strictEqual(response.status, 200);
+    const data: unknown = await response.json();
+    assert.ok(Array.isArray(data));
+    assert.ok(data.length <= scenarioCase.expected.itemsLengthAtMost);
+  }
+
+  static async 'params-apply-defaults-without-baseURL'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'params-apply-defaults-without-baseURL'>): Promise<void> {
+    using server = TestServer.start();
+    const config = FeaturesRunners.materializeConfig(scenarioCase.input.fetchClient, server.url);
+    const client = FetchClient.create(config);
+    const request = FeaturesRunners.materializeRequest(scenarioCase.input.request, server.url);
+    const response = await client.get(request.url);
+    assert.strictEqual(response.status, 200);
+    const data = ScenarioValues.requireRecord(await response.json(), 'response body');
+    assert.deepStrictEqual(data.query, scenarioCase.expected.query);
+  }
+
+  static async 'timeout-first'(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'timeout-first'>): Promise<void> {
+    using server = TestServer.start();
+    const controller = new AbortController();
+    const caught = await RejectionProbe.capture(async () => {
+      await FeaturesRunners.testClient.get(`${server.url}/delay`, {
+        'signal': controller.signal,
+        'timeout': 100
+      });
+    });
+    assert.ok(caught instanceof TimeoutError);
+    assert.equal(caught.name, scenarioCase.expected.timeoutErrorName);
+  }
+
+  private static materializeConfig(config: Record<string, JsonValueEntity.Type | undefined>, serverUrl: string): Record<string, unknown> {
+    const entries = new Map<string, unknown>();
+    const pairs = Object.entries(config);
+    for (let index = 0; index < pairs.length; index += 1) {
+      const pair = pairs[index] ?? ['', null];
+      entries.set(pair[0], FeaturesRunners.resolveValue(pair[1] ?? null, serverUrl));
     }
-  | {
-      description: string;
-      expected: { query: Record<string, string> };
-      input: { fetchClient: Record<string, unknown>; request: { url: string } };
-      shape: 'params-apply-defaults-without-baseURL';
-      name: string;
-    }
-  | AbortScenarioCase<'abort-details'>
-  | AbortScenarioCase<'abort-in-get'>
-  | AbortScenarioCase<'abort-first'>
-  | {
-      description: string;
-      expected: { timeoutErrorName: 'TimeoutError' };
-      input: { fetchClient: Record<string, unknown> };
-      shape: 'timeout-first';
-      name: string;
-    };
+    const record = JsonObject.fromEntries(entries);
+    return record;
+  }
 
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => Promise<void>;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-type StatusScenario = Extract<ScenarioCase, {
-  shape:
-    | 'baseURL-prepend-relative'
-    | 'baseURL-keep-absolute'
-    | 'baseURL-trailing-slash'
-    | 'baseURL-path-without-leading-slash'
-    | 'headers-apply-defaults'
-    | 'headers-merge-default-and-request'
-    | 'headers-override-defaults';
-}>;
-type ParamsWithBaseURLScenario = Extract<ScenarioCase, { shape: 'params-apply-defaults-with-baseURL' }>;
-type ParamsWithoutBaseURLScenario = Extract<ScenarioCase, { shape: 'params-apply-defaults-without-baseURL' }>;
-type AbortDetailsScenario = Extract<ScenarioCase, { shape: 'abort-details' }>;
-type TimeoutFirstScenario = Extract<ScenarioCase, { shape: 'timeout-first' }>;
-type AbortFirstScenario = Extract<ScenarioCase, { shape: 'abort-first' }>;
-type AbortInGetScenario = Extract<ScenarioCase, { shape: 'abort-in-get' }>;
+  private static materializeRequest(requestInput: Record<string, JsonValueEntity.Type | undefined>, serverUrl: string): { 'options'?: Record<string, unknown>; 'url': string } {
+    const request = FeaturesRunners.materializeConfig(requestInput, serverUrl);
+    const url = ScenarioValues.requireString(request.url, 'request.url');
+    const options = typeof request.options === 'object' && request.options !== null && !Array.isArray(request.options)
+      ? { 'options': ScenarioValues.requireRecord(request.options, 'request.options') }
+      : {};
+    const materialized = { ...options, 'url': url };
+    return materialized;
+  }
 
-const testClient = FetchClient.create();
-let testUrl: string;
-
-void before(async () => {
-  testUrl = await startTestServer();
-});
-
-void after(async () => {
-  await stopTestServer();
-});
-
-function materializeConfig(config: Record<string, unknown>): Record<string, unknown> {
-  const resolveValue = (value: boolean | null | number | object | string): unknown => {
+  private static resolveValue(value: JsonValueEntity.Type, serverUrl: string): JsonValueEntity.Type {
     if (typeof value === 'string') {
-      return value.split('__TEST_URL__').join(testUrl);
+      const resolvedText = value.split('__TEST_URL__').join(serverUrl);
+      return resolvedText;
     }
     if (Array.isArray(value)) {
-      return value.map(resolveValue);
+      const items: JsonValueEntity.Type[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        items.push(FeaturesRunners.resolveValue(value[index] ?? null, serverUrl));
+      }
+      return items;
     }
-    if (value !== null && typeof value === 'object') {
-      return Object.fromEntries(Object.entries(value).map(([key, nested]) => {
-        const resolved = nested === null
-          || typeof nested === 'boolean'
-          || typeof nested === 'number'
-          || typeof nested === 'object'
-          || typeof nested === 'string'
-          ? resolveValue(nested)
-          : nested;
-        return [key, resolved];
-      }));
+    if (typeof value === 'object' && value !== null) {
+      const entries = new Map<string, JsonValueEntity.Type>();
+      const pairs = Object.entries(value);
+      for (let index = 0; index < pairs.length; index += 1) {
+        const pair = pairs[index] ?? ['', null];
+        entries.set(pair[0], FeaturesRunners.resolveValue(pair[1], serverUrl));
+      }
+      const resolved = JsonObject.fromEntries(entries);
+      return resolved;
     }
     return value;
-  };
+  }
 
-  return resolveValue(config) as Record<string, unknown>;
-}
-
-function materializeRequest(input: { request: { options?: Record<string, unknown>; url: string } }): { options?: Record<string, unknown>; url: string } {
-  const request = materializeConfig(input.request) as { options?: Record<string, unknown>; url: string };
-  return request;
-}
-
-async function runStatusScenario(scenarioCase: StatusScenario): Promise<void> {
-  const config = materializeConfig(scenarioCase.input.fetchClient);
-  const client = FetchClient.create(config);
-  const request = materializeRequest(scenarioCase.input);
-  const response = await client.get(request.url, request.options);
-  assert.strictEqual(response.status, scenarioCase.expected.status);
-}
-
-async function runParamsWithBaseURLScenario(scenarioCase: ParamsWithBaseURLScenario): Promise<void> {
-  const config = materializeConfig(scenarioCase.input.fetchClient);
-  const client = FetchClient.create(config);
-  const request = materializeRequest(scenarioCase.input);
-  const response = await client.get(request.url);
-  assert.strictEqual(response.status, 200);
-  const data = await response.json();
-  assert.ok(Array.isArray(data));
-  assert.ok(data.length <= scenarioCase.expected.itemsLengthAtMost);
-}
-
-async function runParamsWithoutBaseURLScenario(scenarioCase: ParamsWithoutBaseURLScenario): Promise<void> {
-  const config = materializeConfig(scenarioCase.input.fetchClient);
-  const client = FetchClient.create(config);
-  const request = materializeRequest(scenarioCase.input);
-  const response = await client.get(request.url);
-  assert.strictEqual(response.status, 200);
-  const data = await response.json() as { query: Record<string, string> };
-  assert.deepStrictEqual(data.query, scenarioCase.expected.query);
-}
-
-async function runAbortDetailsScenario(scenarioCase: AbortDetailsScenario): Promise<void> {
-  const controller = new AbortController();
-  setTimeout(() => { controller.abort(); }, 10);
-  try {
-    await testClient.get(`${testUrl}/delay`, { signal: controller.signal });
-    assert.fail('Should have thrown AbortError');
-  } catch (error) {
-    assert.ok(error instanceof AbortError);
-    if (error instanceof AbortError) {
-      assert.ok(error.url.includes(scenarioCase.expected.urlIncludes));
-    }
+  private static async runStatusScenario(scenarioCase: ScenarioCaseOfType<FeaturesScenarioCaseEntity.Type, 'baseURL-keep-absolute' | 'baseURL-path-without-leading-slash' | 'baseURL-prepend-relative' | 'baseURL-trailing-slash' | 'headers-apply-defaults' | 'headers-merge-default-and-request' | 'headers-override-defaults'>): Promise<void> {
+    using server = TestServer.start();
+    const config = FeaturesRunners.materializeConfig(scenarioCase.input.fetchClient, server.url);
+    const client = FetchClient.create(config);
+    const request = FeaturesRunners.materializeRequest(scenarioCase.input.request, server.url);
+    const response = await client.get(request.url, request.options);
+    assert.strictEqual(response.status, scenarioCase.expected.status);
   }
 }
 
-async function runTimeoutFirstScenario(scenarioCase: TimeoutFirstScenario): Promise<void> {
-  const controller = new AbortController();
-  await assert.rejects(async () => {
-    await testClient.get(`${testUrl}/delay`, {
-      signal: controller.signal,
-      timeout: 100
-    });
-  }, (error) => error instanceof TimeoutError && error.name === scenarioCase.expected.timeoutErrorName);
-}
-
-async function runAbortFirstScenario(scenarioCase: AbortFirstScenario): Promise<void> {
-  const controller = new AbortController();
-  setTimeout(() => { controller.abort(); }, 50);
-  await assert.rejects(async () => {
-    await testClient.get(`${testUrl}/delay`, {
-      signal: controller.signal,
-      timeout: 5000
-    });
-  }, (error) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
-}
-
-async function runAbortInGetScenario(scenarioCase: AbortInGetScenario): Promise<void> {
-  const controller = new AbortController();
-  setTimeout(() => { controller.abort(); }, 50);
-  await assert.rejects(async () => {
-    await testClient.get(`${testUrl}/delay`, { signal: controller.signal });
-  }, (error) => error instanceof AbortError && error.name === scenarioCase.expected.abortErrorName);
-}
-
-const runnerMap: RunnerMap = {
-  'abort-details': runAbortDetailsScenario,
-  'abort-first': runAbortFirstScenario,
-  'abort-in-get': runAbortInGetScenario,
-  'baseURL-keep-absolute': runStatusScenario,
-  'baseURL-path-without-leading-slash': runStatusScenario,
-  'baseURL-prepend-relative': runStatusScenario,
-  'baseURL-trailing-slash': runStatusScenario,
-  'headers-apply-defaults': runStatusScenario,
-  'headers-merge-default-and-request': runStatusScenario,
-  'headers-override-defaults': runStatusScenario,
-  'params-apply-defaults-with-baseURL': runParamsWithBaseURLScenario,
-  'params-apply-defaults-without-baseURL': runParamsWithoutBaseURLScenario,
-  'timeout-first': runTimeoutFirstScenario
-};
-
-async function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): Promise<void> {
-  await runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('fetch integration features', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': FeaturesScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'fetch integration features',
+  'runners': FeaturesRunners
 });

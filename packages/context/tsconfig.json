@@ -26,6 +26,9 @@
       "path": "../json"
     },
     {
+      "path": "../store"
+    },
+    {
       "path": "../types"
     }
   ]

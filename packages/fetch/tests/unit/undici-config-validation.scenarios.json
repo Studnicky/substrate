@@ -3,53 +3,52 @@
     {
       "name": "dispatcher-undefined",
       "description": "validateDispatcher accepts undefined",
-      "expected": {
-        "shape": "ok"
-      },
+      "expected": {},
       "input": {
         "dispatcher": {
           "shape": "undefined"
         }
-      }
+      },
+      "outcome": "ok"
     },
     {
       "name": "dispatcher-null",
       "description": "FetchClient rejects null dispatcher through entity intake",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher"
         ]
       },
       "input": {
         "dispatcher": null
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "dispatcher-non-object",
       "description": "validateDispatcher rejects non-object values",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher must be an object"
         ]
       },
       "input": {
         "dispatcher": "invalid"
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "dispatcher-array",
       "description": "validateDispatcher rejects array values",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher must be an object"
         ]
       },
       "input": {
         "dispatcher": []
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "enabled-true",
@@ -59,9 +58,8 @@
           "enabled": true
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "enabled-false",
@@ -71,9 +69,8 @@
           "enabled": false
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "enabled-non-boolean",
@@ -84,11 +81,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connections-valid",
@@ -98,9 +95,8 @@
           "connections": 20
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "connections-null",
@@ -110,9 +106,8 @@
           "connections": null
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "connections-undefined",
@@ -124,9 +119,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "connections-zero",
@@ -137,11 +131,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connections-negative",
@@ -152,11 +146,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connections-too-large",
@@ -167,11 +161,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must not exceed 1000"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connections-non-integer",
@@ -182,11 +176,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connections-non-number",
@@ -197,11 +191,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "pipelining-disabled",
@@ -211,9 +205,8 @@
           "pipelining": 0
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "pipelining-valid",
@@ -223,9 +216,8 @@
           "pipelining": 5
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "pipelining-negative",
@@ -236,11 +228,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "pipelining-too-large",
@@ -251,11 +243,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must not exceed 10"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "pipelining-non-integer",
@@ -266,11 +258,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connect-timeout-valid",
@@ -280,9 +272,8 @@
           "connectTimeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "connect-timeout-negative",
@@ -293,11 +284,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connect-timeout-infinite",
@@ -310,11 +301,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "connect-timeout-non-number",
@@ -325,11 +316,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "body-timeout-valid",
@@ -339,9 +330,8 @@
           "bodyTimeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "body-timeout-negative",
@@ -352,11 +342,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "body-timeout-infinite",
@@ -369,11 +359,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "body-timeout-non-number",
@@ -384,11 +374,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-timeout-valid",
@@ -398,9 +388,8 @@
           "headersTimeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "headers-timeout-negative",
@@ -411,11 +400,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-timeout-infinite",
@@ -428,11 +417,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "headers-timeout-non-number",
@@ -443,11 +432,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-timeout-valid",
@@ -457,9 +446,8 @@
           "keepAliveTimeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "keep-alive-timeout-negative",
@@ -470,11 +458,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-timeout-infinite",
@@ -487,11 +475,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-timeout-non-number",
@@ -502,11 +490,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-max-timeout-valid",
@@ -516,9 +504,8 @@
           "keepAliveMaximumTimeout": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "keep-alive-max-timeout-negative",
@@ -529,11 +516,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-max-timeout-infinite",
@@ -546,11 +533,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-max-timeout-non-number",
@@ -561,11 +548,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-threshold-valid",
@@ -575,9 +562,8 @@
           "keepAliveTimeoutThreshold": 5000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "keep-alive-threshold-negative",
@@ -588,11 +574,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-threshold-infinite",
@@ -605,11 +591,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be finite"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "keep-alive-threshold-non-number",
@@ -620,11 +606,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "allow-h2-boolean",
@@ -634,9 +620,8 @@
           "allowH2": true
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "allow-h2-non-boolean",
@@ -647,11 +632,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-concurrent-streams-valid",
@@ -661,9 +646,8 @@
           "maximumConcurrentStreams": 50
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-concurrent-streams-zero",
@@ -674,11 +658,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-concurrent-streams-non-integer",
@@ -689,11 +673,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-concurrent-streams-non-number",
@@ -704,11 +688,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-response-size-unbounded",
@@ -718,9 +702,8 @@
           "maximumResponseSize": -1
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-response-size-positive",
@@ -730,9 +713,8 @@
           "maximumResponseSize": 1048576
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-response-size-invalid-negative",
@@ -743,11 +725,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be -1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-response-size-non-number",
@@ -758,11 +740,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a number"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-header-size-valid",
@@ -772,9 +754,8 @@
           "maximumHeaderSize": 32768
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-header-size-zero",
@@ -785,11 +766,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-requests-per-client-valid",
@@ -799,9 +780,8 @@
           "maximumRequestsPerClient": 100
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-requests-per-client-undefined",
@@ -813,9 +793,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-requests-per-client-null",
@@ -825,9 +804,8 @@
           "maximumRequestsPerClient": null
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-requests-per-client-zero",
@@ -838,11 +816,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "client-ttl-valid",
@@ -852,9 +830,8 @@
           "clientTtl": 60000
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "client-ttl-undefined",
@@ -866,9 +843,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "client-ttl-null",
@@ -878,9 +854,8 @@
           "clientTtl": null
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "client-ttl-negative",
@@ -891,11 +866,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "strict-content-length-boolean",
@@ -905,9 +880,8 @@
           "strictContentLength": false
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "strict-content-length-non-boolean",
@@ -918,11 +892,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "local-address-valid",
@@ -932,9 +906,8 @@
           "localAddress": "192.168.1.100"
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "local-address-undefined",
@@ -946,9 +919,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "local-address-null",
@@ -958,9 +930,8 @@
           "localAddress": null
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "local-address-empty",
@@ -971,11 +942,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must not be empty"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "local-address-non-string",
@@ -986,11 +957,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a string"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "auto-select-family-boolean",
@@ -1000,9 +971,8 @@
           "autoSelectFamily": true
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "auto-select-family-non-boolean",
@@ -1013,11 +983,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be a boolean"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "auto-select-family-attempt-timeout-valid",
@@ -1027,9 +997,8 @@
           "autoSelectFamilyAttemptTimeout": 500
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "auto-select-family-attempt-timeout-negative",
@@ -1040,11 +1009,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be non-negative"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-origins-valid",
@@ -1054,9 +1023,8 @@
           "maximumOrigins": 50
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-origins-undefined",
@@ -1068,9 +1036,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-origins-null",
@@ -1080,9 +1047,8 @@
           "maximumOrigins": null
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     },
     {
       "name": "max-origins-below-one",
@@ -1093,11 +1059,11 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be at least 1"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-origins-non-integer",
@@ -1108,17 +1074,16 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "must be an integer"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-header-size-non-number",
       "description": "validateDispatcher rejects non-number maximumHeaderSize",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maximumHeaderSize must be a number"
         ]
@@ -1127,13 +1092,13 @@
         "dispatcher": {
           "maximumHeaderSize": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-requests-per-client-non-number",
       "description": "validateDispatcher rejects non-number maximumRequestsPerClient",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maximumRequestsPerClient must be a number"
         ]
@@ -1142,13 +1107,13 @@
         "dispatcher": {
           "maximumRequestsPerClient": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "client-ttl-non-number",
       "description": "validateDispatcher rejects non-number clientTtl",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.clientTtl must be a number"
         ]
@@ -1157,13 +1122,13 @@
         "dispatcher": {
           "clientTtl": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "local-address-non-string",
       "description": "validateDispatcher rejects non-string localAddress",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.localAddress must be a string"
         ]
@@ -1172,13 +1137,13 @@
         "dispatcher": {
           "localAddress": 123
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "local-address-empty-string",
       "description": "validateDispatcher rejects empty localAddress",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.localAddress must not be empty"
         ]
@@ -1187,13 +1152,13 @@
         "dispatcher": {
           "localAddress": ""
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-origins-non-number",
       "description": "validateDispatcher rejects non-number maximumOrigins",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maximumOrigins must be a number"
         ]
@@ -1202,13 +1167,13 @@
         "dispatcher": {
           "maximumOrigins": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "max-response-size-non-integer",
       "description": "validateDispatcher rejects non-integer maximumResponseSize",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.maximumResponseSize must be an integer"
         ]
@@ -1217,13 +1182,13 @@
         "dispatcher": {
           "maximumResponseSize": 1.5
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "pipelining-non-number",
       "description": "validateDispatcher rejects non-number pipelining",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.pipelining must be a number"
         ]
@@ -1232,13 +1197,13 @@
         "dispatcher": {
           "pipelining": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "auto-select-family-attempt-timeout-non-number",
       "description": "validateDispatcher rejects non-number autoSelectFamilyAttemptTimeout",
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "dispatcher.autoSelectFamilyAttemptTimeout must be a number"
         ]
@@ -1247,7 +1212,8 @@
         "dispatcher": {
           "autoSelectFamilyAttemptTimeout": "bad"
         }
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "unknown-key",
@@ -1258,12 +1224,12 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "unknownKey",
           "not declared in the schema"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "typo-key",
@@ -1274,12 +1240,12 @@
         }
       },
       "expected": {
-        "shape": "throws",
         "messageIncludes": [
           "conections",
           "not declared in the schema"
         ]
-      }
+      },
+      "outcome": "throws"
     },
     {
       "name": "comprehensive-config",
@@ -1308,9 +1274,8 @@
           "strictContentLength": true
         }
       },
-      "expected": {
-        "shape": "ok"
-      }
+      "expected": {},
+      "outcome": "ok"
     }
   ]
 }

@@ -12,7 +12,7 @@ import { FilterError } from './FilterError.js';
  * Context for RegexError
  */
 export interface RegexErrorContextInterface extends ErrorDetailsInterface {
-  'cause'?: Error | undefined;
+  'cause'?: unknown;
   'errorCode'?: string;
 }
 
@@ -21,6 +21,7 @@ export interface RegexErrorContextInterface extends ErrorDetailsInterface {
  * @extends FilterError
  */
 export class RegexError extends FilterError {
+  public override readonly name: string = 'RegexError';
   public readonly context: RegexErrorContextInterface;
 
   /**
@@ -33,7 +34,6 @@ export class RegexError extends FilterError {
     const errorCode = context.errorCode !== undefined && context.errorCode !== '' ? context.errorCode : ErrorCodes.CORE.REGEX_ERROR;
 
     super(message, { 'cause': context.cause, 'code': errorCode });
-    this.name = 'RegexError';
     this.context = context;
   }
 

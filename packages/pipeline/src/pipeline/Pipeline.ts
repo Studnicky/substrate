@@ -20,6 +20,7 @@
 
 
 import { ImmutableSnapshot } from '@studnicky/json/browser';
+import { CallerFault } from '@studnicky/types/browser';
 
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';
@@ -150,7 +151,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
         const result = this.onStageError(index, error);
         return result;
       });
-      throw error;
+      const failure: never = CallerFault.propagate(error);
+      return failure;
     }
   }
 
@@ -163,7 +165,8 @@ export class Pipeline<T> implements PipelineInterface<T> {
         const result = this.onRunError(error);
         return result;
       });
-      throw error;
+      const failure: never = CallerFault.propagate(error);
+      return failure;
     }
   }
 

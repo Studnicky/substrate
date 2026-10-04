@@ -1,0 +1,85 @@
+{
+  "cases": [
+    {
+      "name": "sum-file-valid",
+      "description": "a well-formed single-shape file intakes to a typed case list",
+      "shape": "sum-file-valid",
+      "input": {
+        "file": {
+          "cases": [
+            { "description": "one plus two", "expected": { "sum": 3 }, "input": { "a": 1, "b": 2 }, "name": "one-plus-two" },
+            { "description": "two plus two", "expected": { "sum": 4 }, "input": { "a": 2, "b": 2 }, "name": "two-plus-two" }
+          ]
+        }
+      },
+      "expected": { "casesLength": 2, "totalSum": 7 }
+    },
+    {
+      "name": "arithmetic-file-valid",
+      "description": "a well-formed discriminated-union file intakes each branch to its own narrowed type",
+      "shape": "arithmetic-file-valid",
+      "input": {
+        "file": {
+          "cases": [
+            { "description": "add two and three", "expected": { "result": 5 }, "input": { "a": 2, "b": 3 }, "name": "add-two-three", "shape": "add" },
+            { "description": "multiply five by one", "expected": { "result": 5 }, "input": { "a": 5, "b": 1 }, "name": "multiply-five-one", "shape": "multiply" }
+          ]
+        }
+      },
+      "expected": { "casesLength": 2, "totalResult": 10 }
+    },
+    {
+      "name": "missing-cases-rejects",
+      "description": "a file missing the required cases array rejects at the envelope, naming the missing property",
+      "shape": "rejects",
+      "input": { "file": {}, "target": "sum" },
+      "expected": { "code": "entity.schemaIntakeFailed", "messageIncludes": "cases" }
+    },
+    {
+      "name": "unexpected-envelope-property-rejects",
+      "description": "an unexpected top-level property on the envelope rejects",
+      "shape": "rejects",
+      "input": { "file": { "cases": [], "extra": true }, "target": "sum" },
+      "expected": { "code": "entity.schemaIntakeFailed", "messageIncludes": "additional properties" }
+    },
+    {
+      "name": "wrong-typed-field-rejects",
+      "description": "a case with a wrong-typed field rejects, naming the case position, its name, and the offending path",
+      "shape": "rejects",
+      "input": {
+        "file": {
+          "cases": [
+            { "description": "good sum", "expected": { "sum": 3 }, "input": { "a": 1, "b": 2 }, "name": "good-sum" },
+            { "description": "bad sum", "expected": { "sum": "not-a-number" }, "input": { "a": 1, "b": 2 }, "name": "bad-sum" }
+          ]
+        },
+        "target": "sum"
+      },
+      "expected": { "code": "scenarioKit.caseInvalid", "messageIncludes": "cases[1] 'bad-sum' rejected" }
+    },
+    {
+      "name": "nameless-case-rejects-by-position",
+      "description": "a case without a name is reported by its position alone",
+      "shape": "rejects",
+      "input": {
+        "file": { "cases": [{ "description": "no name", "expected": { "sum": 3 }, "input": { "a": 1, "b": 2 } }] },
+        "target": "sum"
+      },
+      "expected": { "code": "scenarioKit.caseInvalid", "messageIncludes": "cases[0] rejected" }
+    },
+    {
+      "name": "unrecognized-discriminant-rejects",
+      "description": "a case with an unrecognized discriminant rejects the whole oneOf",
+      "shape": "rejects",
+      "input": {
+        "file": {
+          "cases": [
+            { "description": "not add or multiply", "expected": { "result": 1 }, "input": { "a": 1, "b": 1 }, "name": "subtract", "shape": "subtract" }
+          ]
+        },
+        "target": "arithmetic"
+      },
+      "expected": { "code": "scenarioKit.caseInvalid", "messageIncludes": "oneOf" }
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 
 Scoped key-value stores propagate through async boundaries without passing values down the call stack. `@studnicky/context/node` uses AsyncLocalStorage; `@studnicky/context/browser` uses the supplied transform for ordinary `await`. Without the transform, browser code uses `scope.await(value)` across an await boundary and `scope.bind(callback)` for opaque callbacks.
 
-Both runtime entrypoints expose the same Context API. Shared contracts remain available from `@studnicky/context/interfaces`, and schemas remain available from `@studnicky/context/entities`.
+The runtime entrypoints expose Context. `ContextStore<TState>` is available only from `@studnicky/context/store/node` and `@studnicky/context/store/browser`; it creates one backing `StoreInterface<TState>` per active scope and verifies the backing store's stable synchronization identity. Its options are available only from `@studnicky/context/store/interfaces`; schemas remain available from `@studnicky/context/entities`.
 
 ## Install
 
@@ -22,7 +22,7 @@ pnpm add @studnicky/context
 
 ## Node usage
 
-On Node, ordinary `await` preserves the active Context. Use `context.run(initial, operation)` for a one-shot scope that returns `{ value, snapshot }` after automatic cleanup.
+On Node, ordinary `await` preserves the active Context. Use `context.run(initial, operation)` for a synchronous one-shot scope, or `context.runAsync(initial, operation)` for an asynchronous one — both return `{ value, snapshot }` after automatic cleanup.
 
 ```typescript
 import { Context } from '@studnicky/context/node';
@@ -49,7 +49,7 @@ const result = await scope.execute(async () => {
 
 // Extract final state and close the scope
 const snapshot = scope.terminate();
-// { requestId: 'req-001', statusCode: 200 }
+// Map { 'requestId' => 'req-001', 'statusCode' => 200 }
 ```
 
 ## Browser usage

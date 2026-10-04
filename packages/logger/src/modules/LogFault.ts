@@ -1,33 +1,28 @@
-import { SchemaIntakeError } from '@studnicky/entity/node';
-import { ImmutableSnapshot } from '@studnicky/json/node';
+import { SchemaIntakeError } from '@studnicky/entity/browser';
+import { ImmutableSnapshot } from '@studnicky/json/browser';
 
 import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 
 import { LogFaultConfigEntity } from '../entities/LogFaultConfigEntity.js';
 import { LogBuildError } from '../errors/LogBuildError.js';
+import { LogBuildErrorMessage } from './LogBuildErrorMessage.js';
 
 /** Constructs immutable normalized fault entries from one configuration object. */
 export class LogFault {
   private constructor() {}
 
-  static create(config: Readonly<LogFaultConfigEntity.Type>): LogFaultDataEntity.Type {
+  static #throwBuildError(error: unknown): never {
+    const message = error instanceof SchemaIntakeError ? LogBuildErrorMessage.resolve('LogFault', error) : LogBuildError.toMessage(error);
+
+    throw new LogBuildError(message, error);
+  }
+
+  static create(input: Readonly<LogFaultConfigEntity.InputType>): LogFaultDataEntity.Type {
+    let config: LogFaultConfigEntity.Type;
     try {
-      LogFaultConfigEntity.create(config);
+      config = LogFaultConfigEntity.create(input);
     } catch (error) {
-      if (error instanceof SchemaIntakeError) {
-        const requiredError = error.errors.find((item) => {
-          const result = item.keyword === 'required';
-          return result;
-        });
-        const missingProperty: unknown = requiredError === undefined
-          ? undefined
-          : Reflect.get(requiredError.params, 'missingProperty');
-        const message = typeof missingProperty !== 'string'
-          ? error.message
-          : `LogFault: ${missingProperty} is required${missingProperty === 'context' ? ' (use empty object {} if no context needed)' : ''}`;
-        throw new LogBuildError(message);
-      }
-      throw error;
+      LogFault.#throwBuildError(error);
     }
     const result: LogFaultDataEntity.Type = {
       'context': config.context,

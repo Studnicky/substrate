@@ -1,5 +1,107 @@
 # Changelog
 
+## 15.0.0
+
+### Major Changes
+
+- 91ca066: Every source file reachable from a package's `./browser` export imports its workspace dependencies through their own `/browser` entrypoint rather than `/node`, so a package's browser build no longer pulls in a dependency's Node-only implementation. A package whose `/node` and `/browser` builds previously diverged only by accident of which entrypoint a transitive import happened to resolve to now gets the browser-safe implementation consistently through its whole reachable graph.
+- c91c4eb: `RequireOptionsObjectOptionsEntity.create` accepts `RequireOptionsObjectOptionsEntity.InputType` — a plain, unbranded literal — instead of demanding the branded `minimum`-constrained `Type`, which no caller outside the compiler could construct.
+- 5c6611a: `no-unchecked-overload-implementation` and `no-reflect-argument-laundering` are registered in `LayerBoundarySuite` and turned on at `error` in this repo's own `eslint.config.ts`. A consumer with an overload set the implementation does not provably satisfy, or a `Reflect.apply`/`Reflect.construct` call laundering mismatched arguments or an unguarded `any` result, now fails lint.
+- 928a736: Restructures the four flat rule suites (`entitySuite`, `hexagonalSuite`, `hygieneSuite`, `v8Suite`) into nine suites organized by concern: `entityModelSuite`, `moduleDesignSuite`, `diagnosticsSuite`, `VocabularySuite`, `classMechanicsSuite`, `LayerBoundarySuite`, `v8ObjectShapeSuite`, `v8CollectionTraversalSuite`, and `v8RepeatedWorkSuite`. `folder-content-shape` is renamed `entity-file-shape`; `interface-suffix` is absorbed into `interface-must-be-contract`; `whole-canonical-types` is absorbed into `type-alias-invariants`; `single-export` and `canonical-export-names` merge into `export-shape`. Every messageId these five ids reported remains reachable under its new rule id. Registered rule count is 53 (26 base + 27 v8), down from 56.
+
+### Minor Changes
+
+- 4d24d54: Every error a package emits is a named `BaseError` subclass with a stable `code`. Native errors the packages constructed are replaced by named classes in each package's error family; platform and runtime failures (JSON parsing and serialization, `structuredClone`, URL and RegExp construction, `BigInt`, code-point and array-length conversions, `node:fs`, `worker_threads`, fetch and undici, IndexedDB, Web Storage, OPFS, and `node:assert`) are caught at the package boundary and rethrown as named classes with the original as `cause`. Abort reasons created by the packages are named `BaseError` instances. Errors thrown by caller-supplied callbacks, hooks, and reducers propagate unchanged through `CallerFault.propagate` and `CallerFault.rejection` from `@studnicky/types`. `SchemaIntakeError` extends `BaseError`. `@studnicky/eslint-config` ships the opt-in `@studnicky/no-native-error` rule that enforces this contract: native error construction and heritage, non-`BaseError` throws, rejections, and abort reasons, and known-throwing platform calls outside a `try`/`catch`.
+- c437915: `packages/eslint-config` gains two type-aware rules that catch a cast expressed in other syntax. `no-unchecked-overload-implementation` reports an overloaded function or method whose implementation signature the checker cannot prove satisfies every declared overload — TypeScript relates an overload set to its implementation loosely, so an overload can promise a return or parameter type the implementation never actually produces or accepts, and the compiler stays silent. `no-reflect-argument-laundering` reports `Reflect.apply`/`Reflect.construct` called with an argument list the target's real signature does not accept, and reports the call's `any`-typed result flowing anywhere but an `unknown`-typed binding, parameter, or return. Neither rule is wired into the shared config yet.
+- 633c8e5: Adds `@studnicky/no-circular-imports`, an arch-suite rule that reports an import or re-export whose target module can reach back to the importing file — a circular import, `type`-only or not. It builds the linted file's `packages/*/src` module import graph directly from the TypeScript `Program` (`ModuleImportGraph`, partitioned into strongly-connected components with an iterative Tarjan's algorithm, cached per-`Program`), so it never shells out to `madge` or another external tool. `LayerBoundarySuite` enables it at `error` alongside the other five layer-boundary rules, and the root `eslint.config.ts` enables it directly since that config lists rules inline rather than importing the suites.
+
+  The repo-local `scripts/check-no-circular-imports.ts` (a `madge`-backed script wired into the root `lint` script) is removed — the rule is the one implementation of this check now, exported for every consumer of the package instead of enforced only inside this repository.
+
+- 5da9cab: New rule `@studnicky/no-double-assertion` disallows a TypeScript assertion chain routed through `unknown` or `any` — `value as unknown as Target`, its `as any as Target` variant, the legacy `<Target>(<unknown>value)` angle-bracket form, and parenthesized combinations of the two. A single-step `as` between types the checker agrees overlap is untouched; the rule only fires when an assertion's own source expression is a second assertion node whose target is the widening keyword.
+
+  The rule is registered in `plugin.ts`, documented at `docs/eslint/rules/no-double-assertion.md`, and enabled at `error` in `entityModelSuite`. `grep -rc 'as unknown as' packages/*/src` is 0 workspace-wide, and a full `npx eslint .` passes with the rule live.
+
+- ef3f152: `@studnicky/scenario-kit` adds the shared test harness that lets specs pass the full source ruleset: `ScenarioSuite.register` and `registerBy` run every case of a validated scenario file through a named runner class, `ScenarioValues` resolves the sentinel values scenario JSON cannot express, and `TestWorkspace` owns a temporary directory with named `TestWorkspaceError` failures. `ScenarioValueError` and `TestWorkspaceError` are `BaseError` subclasses.
+
+  `@studnicky/eslint-config` exports `PlatformCallDefaults`, whose `build()` returns the default `platformCalls` list of `@studnicky/no-native-error`, so a configuration extends or filters the defaults instead of restating them.
+
+- a664914: Rule evidence — the benchmarks, bytecode readings and selector surveys behind each rule — lives on the rule's page under `docs/eslint/rules` rather than in the rule source, which keeps a short pointer. `check-rule-docs` already fails on a rule without a page, so the pairing stays enforced.
+
+  `prototype-modification`'s documentation states what the rule matches and why. `Reflect.set` and `Reflect.setPrototypeOf` are matched by callee shape; `CallIdentity.ownerNameOf` resolves a namespace-declared member's owner, so that remains a migration the rule has not taken rather than a capability it lacks.
+
+- 3da660e: `JsonObject` gains two sanctioned runtime-keyed writes: `fromEntries(entries)` builds a plain object from a `Map`/pair-iterable once every key is known, and `write(target, key, value)` performs a single guarded `[[Set]]` onto an existing target, rejecting `__proto__`. The `dynamic-property-access` lint rule now also covers `Reflect.set` (previously unchecked) and exempts calls resolved to these two `JsonObject` members by declaration identity — class, member, and declaring source file — so a same-named class elsewhere still reports. Every call site across the workspace that mutated a fresh or existing object with a variable key now goes through one of these two primitives instead of raw `Reflect.set`.
+- 7f3bb60: The five `TypeContract*` classifier modules (`TypeContractAliasResolution`, `TypeContractCallabilityClassification`, `TypeContractDataNodeClassification`, `TypeContractInterfaceContractResolution`, `TypeContractInterfaceTypeResolution`) and `TypeContractContext` depend on new `*Interface` contract files (`TypeContractContextInterface`, `AliasResolutionInterface`, `CallabilityClassificationInterface`, `DataNodeClassificationInterface`, `InterfaceContractResolutionInterface`, `InterfaceTypeResolutionInterface`) instead of on each other's concrete classes. `TypeContractContext` and each classifier previously imported the other's class purely for a type annotation, forming five circular imports centred on `TypeContractContext`; each classifier now depends only on the interface describing what it actually calls, and `TypeContractContext` depends only on the interfaces describing the classifiers it wires together.
+
+### Patch Changes
+
+- 8e700fd: `ReceiverOrigin.isProvenLoopLocal` reads `declarationNode.range`/`loopNode.range` directly instead of through a cast asserting `readonly [number, number]` where `@types/estree`'s `BaseNode` actually declares `range?: [number, number] | undefined`. The cast's non-optional literal type let the code check its four derived `.at()` results for `undefined` three lines after already dereferencing a possibly-absent tuple, so a missing `range` (parser configured without `range: true`) would have thrown before that guard ever ran. Destructuring each tuple directly under a single `declRange !== undefined && loopRange !== undefined` guard collapses the four-way check to two and can no longer throw on the case it exists to guard against.
+- 6b86249: `AstHelpers` gains `isNode` and `getParent`. ESLint's traverser attaches `.parent` to every node it hands out regardless of access path — a `RuleListener` callback parameter, a `Scope.Reference.identifier`, or an arbitrary structural walk — but `@types/eslint` only types `.parent` on the `RuleListener` callback parameter via `NodeParentExtension`. `isNode` is a positive type-predicate guard (`Predicates.isRecord` plus a string `type`), and `getParent` reads `.parent` through that guard instead of asserting its presence, so a node this codebase doesn't already know carries a `NodeParentExtension` still gets a checked, not asserted, `Rule.Node | null`.
+- c8463c8: `preferCollectionTypes.ts`, `v8/tryCatchInLoops.ts`, `v8/inlineCallablePosition.ts`, and `shared/CallIdentity.ts` read a node's `.parent` through `AstHelpers.getParent` instead of an `as unknown as { readonly 'parent'?: unknown }` cast. Every one of these reads is off a `Scope.Reference.identifier` (`@types/eslint`'s `Scope.Reference.identifier: ESTree.Identifier` carries no `NodeParentExtension`, though ESLint's traverser always attaches `.parent` at runtime) except `CallIdentity.ownerNameOf`, whose `declaration.parent.parent` walks the TypeScript compiler AST's own `ts.Node.parent`, a non-optional, directly-typed property that never needed a cast at all.
+- db8c4a7: `v8/evalFunction.ts`'s two `RuleListener` callbacks already declared the precise listener-derived parameter type (`NonNullable<Rule.RuleListener['VariableDeclarator']>`, `...['CallExpression']>`) and then re-widened `node` to `Record<string, unknown>` inside the body before reading `.id`/`.init`/`.callee` — those fields are already directly typed and accessible on the declared parameter with no cast. `v8/computedClassProperties.ts` and `v8/computedObjectProperties.ts` match a custom esquery selector (`'ClassBody > MethodDefinition[computed=true]'`), not a single named `RuleListener` key, so their callbacks stay `(node: Rule.Node) => void`; reading `.key`/`.callee` off that genuinely-wide union now goes through `AstHelpers.getNodeProperty`, the same generic, non-casting property reader already used elsewhere in this package, instead of an anonymous single-property cast.
+- f3cd4bf: `v8/functionScope.ts`'s `isRebuiltInFunctionScope` already narrows `current` to `PropertyDefinition` via a `.type` discriminant check before reading `.static`, a real field on that variant TypeScript already exposes after the check — no cast needed. `v8/inlineArrowFunctions.ts`'s `RuleListener['ArrowFunctionExpression']` callback already carries `ArrowFunctionExpression`'s real `.body` field. `inlineTrivialLogic.ts`'s `#findContainingClass` walks two real `.parent` links (both directly typed, non-`unknown`, on every `Rule.Node`) instead of casting each hop to an anonymous `{ parent?: unknown }`; `#collectHeritageExpressions` reads `superClass`/`implements`/`.expression` — fields specific to a subset of node types, on a parameter typed for the full `Rule.Node` union — through `AstHelpers.getNodeProperty`/`isNode` instead of three single-field casts.
+- 20a257e: `v8/chainedArrayIteration.ts` no longer imports `AstNodeInterface`. `IterationCall.matches` narrows an `unknown` node through `AstHelpers.isNode` before checking `.type`, instead of a `Predicates.isRecord` check plus a cast into `Rule.Node`. `hasEarlierIterationCallInChain` takes `Rule.Node` directly and reads `.callee` through `AstHelpers.getNodeProperty`. `StatementIndex.locate` and the two `RuleListener` callbacks that call into it read `.parent` and narrow `.type` on already-real `Rule.Node` values with no cast at all; `StatementLocationInterface.block` is `Rule.Node`, not the anonymous `AstNodeInterface` bag, which is what let the `'block': parent` assignment compile without a cast in the first place — `AstNodeInterface`'s bare index signature rejects a real narrowed node type on assignment even though every property value it holds satisfies `unknown`.
+- 8ce0a78: `v8/maximumSwitchCases.ts`, `v8/memoizeArrayLength.ts` (`onAssignmentExpression`), and `v8/switchStatements.ts`'s `RuleListener` callbacks already carried the precise listener-derived parameter type and re-widened it to `Record<string, unknown>` before reading a field the parameter already exposes directly. `memoizeArrayLength.ts`'s `onLoop` matches every loop type through one shared callback, so it reads `.test` — present on `while`/`do-while`/`for` but not `for-in`/`for-of` — through `AstHelpers.getNodeProperty` instead of a cast. `v8/arraySpreadOutsideLoops.ts`'s `isBoundArrayLiteral` already narrows `parent` via a `.type` discriminant check before reading `.left`/`.right`/`.init`, fields TypeScript already exposes on the narrowed variant.
+
+  `v8/forOfArrays.ts` and `v8/arrayConcatOutsideLoops.ts` read a genuinely `Rule.Node`-shaped value from a type that doesn't carry `NodeParentExtension` — a child field (`ForOfStatement.right: Expression`, from `@types/estree` directly, not through the `RuleListener` callback parameter) and a `Scope.Reference.identifier`, respectively — and now narrow through `AstHelpers.isNode`/`getParent` instead of casting past the gap.
+
+- 8a9df3a: `arch/EntityIntake.ts`, `arch/intakeParseOnly.ts`, `arch/noUnparsedAssertion.ts`, `arch/domainPurity.ts`, and `arch/noThreadedVocabulary.ts` read node-type-specific fields (`.id`, `.key`, `.params`, `.expression`, `.typeAnnotation`, `.accessibility`) off a `Rule.Node`-typed parameter through `AstHelpers.getNodeProperty` instead of casting the whole node to `Record<string, unknown>` first; direct fields already exposed by `Rule.Node` itself (`.type`, `.parent`) are read directly.
+
+  `EntityIntake.ts`'s `#isUnexported`/`#isInEntityNamespace` compare `.type` against `'TSModuleBlock'`/`'TSModuleDeclaration'` — TypeScript-ESLint node types `@types/eslint`'s `Rule.Node` union doesn't include, so TypeScript rejected the direct comparison as having no possible overlap (`TS2367`) once the cast that was hiding it came off. These now read through `AstHelpers.getNodeType`, which already exists in this package for exactly this reason: it returns a plain `string`, not the narrow ESTree-only union, so a TypeScript-specific type name compares cleanly. `domainPurity.ts`'s `callee` and `noThreadedVocabulary.ts`'s parameter binding are genuinely `unknown`-shaped values (not sourced from a `RuleListener` callback parameter) narrowed through `AstHelpers.isNode` before being passed to a function requiring `Rule.Node`.
+
+- 76fca6a: `v8/prototypeModification.ts`'s two `RuleListener` callbacks already carried the precise listener-derived parameter type and re-widened it before reading `.left`/`.arguments`, fields already directly typed on the declared parameter. `v8/deleteProperty.ts`, `v8/dynamicPropertyAccess.ts`, and `v8/objectSpread.ts` read node-type-specific fields (`.key`, `.kind`, `.value`, `.computed`, `.left`, `.argument`, `.operator`) off a `Rule.Node`-typed parameter through `AstHelpers.getNodeProperty` instead of casting to `Record<string, unknown>` first, and narrow a genuinely `unknown`-sourced value (an array element, a member's `.object`, a call argument) through `AstHelpers.isNode` before treating it as `Rule.Node`. `objectSpread.ts`'s `findSiblingConstructor` reads `.body` directly off a `ClassBody`-narrowed `Rule.Node` — a real, directly-typed field once narrowed via a `.type` check — instead of casting the whole node first.
+- 74ce05a: `hashPrivateFields.ts`'s `ClassMemberCheck.onParameterProperty` narrows a genuinely `unknown`-sourced identifier (resolved through a chain of `Reflect.get` calls, not a `RuleListener` callback parameter) through `AstHelpers.isNode` before passing it to a function requiring `Rule.Node`. `v8/arrayScanOutsideLoops.ts`'s `findDeclarationNode` reads `.name` — specific to `Identifier`, not common to the full `Rule.Node` union its parameter is typed for — through `AstHelpers.getNodeProperty`, narrowed to a real `string` with an explicit type check immediately after, instead of asserting the field's presence and type together in one cast.
+- 1e2f57a: `exportShape.ts`'s `onImportDeclaration`, `onVariableDeclarator`, `onExportSpecifier`, and `onExportNamedDeclaration` callbacks now declare the precise listener-derived parameter type (`NonNullable<Rule.RuleListener['Key']>`) instead of the generic `(node: Rule.Node) => void`, exposing `.specifiers`, `.init`, `.id`, `.local`, `.exported` directly with no cast — `local`/`exported` are read through `AstHelpers.getIdentifierName`, which already returns `undefined` for the `Literal` half of their real `Identifier | Literal` type, matching the previous cast's assumption that they always carry `.name` without actually asserting it. `onTSExportAssignment` and the private `checkExportNamedDeclaration`/`checkReExportAliasing`/`checkExportsImportedBinding` helpers read `.expression`/`.source`/`.specifiers` through `AstHelpers.getNodeProperty` instead of casting the whole node, since `TSExportAssignment` has no named `RuleListener` key to retype against.
+- 1ac995b: `packages/eslint-config/src` no longer contains any `as unknown as` occurrence. `preferCollectionTypes.ts`, `shared/DeclaredFunctionVariable.ts`, `v8/conditionalPropertyAssignment.ts`, `v8/inlineCallablePosition.ts`, and `v8/regexpInLoops.ts` read node-type-specific fields through `AstHelpers.getNodeProperty`/`isNode` or direct field access on an already-narrowed `Rule.Node`, matching every earlier fix in this series.
+
+  `v8/conditionalPropertyAssignment.ts` converts between the loose `AstNodeInterface` bag its helpers already use throughout and real `Rule.Node` values via `Predicates.isRecord`'s type-predicate overlay (adds a real index signature to the narrowed type, since `AstNodeInterface`'s bare index signature otherwise rejects a real narrowed node on assignment) rather than retyping the file's pervasive `AstNodeInterface` usage wholesale. Its `IfStatement.alternate` read now handles the field's real `Statement | null | undefined` type — the removed cast asserted `Statement | null`, silently dropping the `undefined` case `@types/estree` actually declares.
+
+  `v8/regexpInLoops.ts`'s `#isDeclaredWithin` extracts its declaration-range comparison into `#isWithinBoundary` and its identifier-name resolution into `#identifierName`, keeping cyclomatic complexity within this package's own limit while adding the string-narrowing guard the removed cast was skipping.
+
+- ebc20cd: `inlineCallablePosition.ts` and `tryCatchInLoops.ts` compare a scope reference's identifier against a call expression's callee directly instead of through an `as unknown` cast on one side — the two sides already share a comparable type, or are already `unknown` from an upstream guard, and the cast added no safety.
+
+  Every test-only `as` assertion in `@studnicky/eslint-config` is gone. Fixture JSON arrays that fed a discriminated union now go through a validating `intake` function (matching the pattern `TypeContractClassification.loop.spec.ts` already used) instead of a direct cast; a membership list checked with `.includes()` against a widened array is a `Set` instead. `LayerResolver.loop.spec.ts`'s per-operation runners assert an optional scenario field is present before calling the resolver, rather than asserting the field away with `as string` — a scenario missing `input.from`/`input.to`/etc. now fails with a clear message instead of silently passing `undefined` through the cast.
+
+  Several `v8/*.loop.spec.ts` files replace a hand-built `Rule.RuleContext`/`Rule.Node` mock (cast to `never` to satisfy the type checker) with equivalent real source run through `RuleTester` or `Linter`, since every guarded branch they exercised was reachable through ordinary code. `forOfArrays.loop.spec.ts`'s one branch that genuinely needs a controlled `parserServices` shape now gets it through a real `Linter.NonESTreeParser` wrapping the real `@typescript-eslint/parser`, rather than a mock. Three guard branches (`max-switch-cases`' non-array `cases`, `eval-function`'s zero-expression `SequenceExpression`, `regexp-in-loops`' undefined-`regex` literal) defend against a malformed AST no real parser produces; their mocked tests are removed rather than kept alive through an unsound cast.
+
+- f9a15ee: `exportShape`'s `ListenerMerge.combine` merges two rule listener maps by making `dispatch`'s node parameter generic instead of hard-coding it to `Rule.Node`, so each of seven listener keys infers its own precise ESTree node type and needs no cast at all. `TSExportAssignment` has no named property on `@types/eslint`'s `Rule.RuleListener` — it resolves through the catch-all index signature, whose `.type` discriminant TypeScript cannot unify across that signature's ~75 unrelated handler shapes — and `@typescript-eslint/utils`'s own precisely-typed `RuleListener` fails the same assignment one key over, since its `AST_NODE_TYPES.Program` enum discriminant is a different type from `@types/eslint`'s plain `"Program"` string literal on every other key. That one key keeps two single-step `as` assertions, scoped to reading its two listener functions; every other cast in this merge is gone.
+- 9744540: `v8/functionScope.ts` and `v8/constants/FunctionScopeConstants.ts` are removed. `FunctionScope.isInsideLoop` stops at any function boundary with no exception, so a scan inside a `.forEach()` callback goes undetected; `LoopContext.isPerIteration` (already the loop-detection primitive every active rule uses) checks a function boundary against `CallIdentity.isBuiltinCall` for exactly that per-element-iteration-callback case before giving up, and correctly flags it. `FunctionScope.isRebuiltInFunctionScope`'s narrower concern — whether a value is constructed once per class versus once per instance — is superseded by `RecurringScope.isProvablyOneShot`, already used by `objectSpread.ts` and `prototypeModification.ts`. Neither `FunctionScope` method has a caller anywhere in the workspace; the deletion follows a confirmed supersession, not a guess.
+- cb43044: `SCHEMA_DERIVING_TYPE_MODULES` no longer recognizes `FromSchema`/`json-schema-to-ts` as valid provenance — `NodeStaticType` and `NodeInputType` from `@studnicky/entity/types` are the only accepted deriving types. `allTypesAreEntities`, `SchemaMemberGuards`, and `TypeContractClassification` now agree with `type-alias-invariants` on this.
+
+  `TypeContractInterfaceTypeResolution`'s entity-interface recognition (`export interface Type extends NodeStaticType<typeof Node> {}`) accepts a sibling `Node` const, not only `Schema`, matching `ACCEPTED_SCHEMA_VALUE_NAMES`.
+
+  A new `check:no-json-schema-to-ts` script, wired into `pnpm run lint`, fails when a package outside `@studnicky/entity` and `@studnicky/eslint-config` declares a `json-schema-to-ts` dependency.
+
+- 1917143: `@studnicky/no-redefined-external-types` no longer rebuilds `SemanticTypeCatalog`'s dependency and entity candidates on every linted file's `Program:exit`. Those candidates depend only on the linted file's package root, never on the file itself, so they are cached once per `(ts.Program, packageRoot)`. Platform candidates stay uncached — `checker.getSymbolsInScope` is genuinely file-scoped. Measured on a 150-file, one-process lint: the rule's share of total rule-execution time drops from 23287ms (81.4%) to roughly 2400ms, an ~89.6% reduction, with byte-identical findings before and after.
+- 35aa1fe: `@studnicky/explicit-return-binding` exempts a `return` that is a direct statement of a `SwitchCase`'s consequent. `@studnicky/v8/switch-statements` requires that exact position to stay a single unbraced statement, and wrapping it in a block to add a `const` binding is itself a violation of that rule — the two rules could not both be satisfied for a delegating switch case (`case 'start': return initialize();`, the documented `switch-statements` correct example) before this change. A `return` nested one level deeper inside the case — inside an `if`, a block, or any other statement — is still reported.
+- Updated dependencies [cf88dc6]
+- Updated dependencies [91ca066]
+- Updated dependencies [f66779c]
+- Updated dependencies [0efeecf]
+- Updated dependencies [a664914]
+- Updated dependencies [3998901]
+- Updated dependencies [91ca066]
+- Updated dependencies [6c5051a]
+- Updated dependencies [966e1a8]
+- Updated dependencies [ebd9f1c]
+- Updated dependencies [bb7bb62]
+- Updated dependencies [4d24d54]
+- Updated dependencies [c91c4eb]
+- Updated dependencies [b554549]
+- Updated dependencies
+- Updated dependencies [1402570]
+- Updated dependencies [f820efa]
+- Updated dependencies [8e6a261]
+- Updated dependencies [1eac93c]
+- Updated dependencies [2831589]
+- Updated dependencies [5681045]
+- Updated dependencies [3da660e]
+- Updated dependencies [543de66]
+- Updated dependencies [79e33e6]
+- Updated dependencies [5374a59]
+  - @studnicky/types@15.0.0
+  - @studnicky/errors@15.0.0
+  - @studnicky/entity@15.0.0
+
 ## 14.0.0
 
 ### Patch Changes
@@ -80,10 +182,10 @@
   schema-derived data-contract interfaces as satisfying `type-alias-invariants`, mirroring the
   existing callable-mix exemption, for cases where the constituents of a union aren't individually
   representable as one interface or one JSON Schema.
-  
+
   Found while folding `@studnicky/drilldown` into the monorepo: its recursive rule-tree type had
   no valid canonical form under the prior rule.
-  
+
   The union exemption above initially only required each member to classify as a readonly-evidenced
   contract, which an adversarial review found let a union of interfaces with bare, unconstrained
   primitive properties and no schema linkage anywhere pass unflagged — no other rule in this family
@@ -91,6 +193,7 @@
   property or heritage clause that traces back to a real `FromSchema<typeof Schema>` derivation,
   directly or through one level of named-type indirection (e.g. `SomeEntity.Type`); a member may
   still carry additional free-typed leaf properties alongside that anchor.
+
 - Updated dependencies [44865fd]
   - @studnicky/types@11.1.0
   - @studnicky/json@11.1.0
@@ -119,7 +222,7 @@
   `EntityIntake` no longer coerce a scalar's type at the boundary — a wrong-typed field is
   rejected, not silently converted, and the `coerce` option is removed entirely so every
   `@studnicky/*` package now shares one strict intake contract.
-  
+
   `@studnicky/eslint-config` rule behaviour is now derived from measurement rather than
   assumption, abbreviated exported identifiers are expanded across every rule, `hygieneSuite`
   and the `HexagonalSuite` factory are added alongside the existing `entitySuite`/`v8Suite`,
@@ -138,17 +241,17 @@
 
 - 3e5575a: Rule behaviour is now derived from measurement, and abbreviated exported identifiers are
   expanded across every package.
-  
+
   ## `@studnicky/eslint-config`
-  
+
   Every rule claim is now backed by evidence recorded in the rule source, and rule identity
   is resolved through the TypeScript checker rather than matched on spelling.
-  
+
   **Rules whose premise was disproven and retargeted.** Measured at 5,000,000 elements:
   `dynamic-property-access` now targets variable keys on plain objects only — literal keys
   compile to the same `GetNamedProperty` bytecode as dot access, and indexed access lands in
   the elements store without touching the hidden class. `memoize-array-length` keeps only its
-  reassignment check (memoizing measured 1.40x *slower*). `try-catch-in-loops` and
+  reassignment check (memoizing measured 1.40x _slower_). `try-catch-in-loops` and
   `switch-statements` keep their constraints but drop the `v8Optimization/` framing —
   try/catch in a loop measures 1.007x, and delegated versus inlined 20-case switches emit
   identical `SwitchOnSmiNoFeedback` bytecode. `define-property` targets redefinition and
@@ -156,40 +259,40 @@
   identical map. `array-from-iterators` is inverted: the manual drain it implied is 7.5x
   slower than `Array.from`. `max-switch-cases` splits by discriminant — dense integers get no
   cap, strings cap at 6.
-  
+
   **Rules that were enforcing nothing.** `computed-class-properties` selected `Property`
   nodes, which never occur in a class body. Four `arch/*` rules, `no-mixed-callable-shapes`,
   and `descriptive-identifiers` were defined but never enabled.
-  
+
   **Contradictions resolved.** Well-known symbols are exempt from the computed-property
   rules — `Symbol.iterator` has no non-computed spelling, so flagging it made an iterable
   unimplementable. `inline-trivial-logic` exempts a function passed as a call argument: such
   a callback is a deferred computation, and "inline it at the call site" would convert lazy
   evaluation to eager. `lexical-this-only` permits `this` as a constructor reference in
   static context while denying every escape from an instance method.
-  
+
   **All three autofixers are removed.** `clean-diagnostics` deleted code — its range ran from
   the comment start to end-of-line, so an inline block comment took the rest of the line with
   it. `type-alias-invariants` stripped `readonly`, which typechecks and therefore silently
   converts an immutability guarantee into permitted mutation. `explicit-return-binding` bound
   returned expressions to a `const`, stripping contextual typing. An autofixer is permitted
   only where it cannot break the build or change program meaning.
-  
+
   **New rule** `explicit-return-binding` requires a returned operation to be bound to a
   `const` first.
-  
+
   ### Breaking for `@studnicky/eslint-config` consumers
-  
+
   Rule behaviour changes throughout: code that passed may now report, and vice versa. The
   `require-options-object` option `minOptionals` is renamed `minimumOptionals`, and the rule
   module `maxSwitchCases` is renamed `maximumSwitchCases`.
-  
+
   ## Exported identifier expansion
-  
+
   Every exported symbol carrying an abbreviation is renamed, and its module filename follows,
   because `single-export` requires a file's basename to match the symbol it exports. No
   deprecated aliases are provided.
-  
+
   ```
   DEFAULT_BATCH_MAX_CONCURRENT   -> DEFAULT_BATCH_MAXIMUM_CONCURRENT
   DomainErrorArgs                -> DomainErrorArgumentList
@@ -217,72 +320,72 @@
   DEFAULT_MAX_EVENTS             -> DEFAULT_MAXIMUM_EVENTS
   MAX_PRECISION                  -> MAXIMUM_PRECISION
   ```
-  
+
   Consumers importing any of these must update both the imported name and, where they
   deep-import, the module path.
-  
+
   ## `@studnicky/predicates` removes `satisfiesConst`
-  
+
   `Predicates.satisfiesConst` is removed. It forwarded 1:1 to `DataType.deepEqual` and added no
   behaviour of its own — the JSON Schema `const` keyword IS deep equality.
-  
+
   Consumers call `DataType.deepEqual(value, constantValue)` from `@studnicky/json` directly, which
   requires declaring `@studnicky/json` as a dependency; `@studnicky/predicates` does not re-export
   it. The semantics are unchanged, and `@studnicky/json` already owns the tests for them.
-  
+
   The rest of the `satisfies*` family — `satisfiesEnum`, `satisfiesMinimum`, `satisfiesContains`
   and the others — is unaffected. Each of those applies logic of its own beyond a forward.
-  
+
   ## `@studnicky/errors` cause installation
-  
+
   `BaseError` installs an own `cause` property only when a cause is actually supplied. `Error`
   installs `cause` whenever the options object HAS the key, regardless of its value, so passing
   `{ 'cause': undefined }` created an own `cause` holding `undefined`. Both spellings leave
   `error.cause === undefined` and no consumer can read them apart, but the first forced any
   subclass wanting a cause-free instance to `delete` the property — which drops every instance of
   that subclass into dictionary mode.
-  
+
   Measured at 2,000,000 instances: the deletion costs 7.2x on property reads (300.6ms against
   41.8ms) and `%HasFastProperties` reports false. Constructing the options object conditionally
   splits the error family into two hidden classes, which measures free (13.8ms bimorphic against
   15.2ms monomorphic) because inline caches stay polymorphic well past two shapes.
-  
+
   `RetryError` consequently drops its `Reflect.deleteProperty(this, 'cause')`, keeping its
   detached-projection contract with no property to remove.
-  
+
   Consumers reading `error.cause` are unaffected. Code testing for the property's PRESENCE —
   `'cause' in error` or `Object.hasOwn(error, 'cause')` — now reports `false` on an error
   constructed without a cause, where it previously reported `true`.
-  
+
   ## `@studnicky/worker-pool` path resolution
-  
+
   Worker paths were built with `new URL(path, import.meta.url).pathname`, which returns the
   URL-ENCODED path. Any directory containing a space resolved to a `%20` filename that does
   not exist, so the worker never started and callers hung until they timed out. The package
   README and public API example taught consumers the same broken pattern. All call sites now
   use `fileURLToPath()`.
-  
+
   Consumers who copied the README example should switch to
   `fileURLToPath(new URL('./worker.mjs', import.meta.url))`. The old form silently fails on
   any path containing a space, which is routine on macOS.
-  
+
   ## Security
-  
+
   All 17 outstanding advisories are cleared. The one reaching consumers was `undici`
   8.8.0 to 8.10.0, a runtime dependency of `@studnicky/fetch` carrying one high and four
   moderate advisories.
-  
+
   `pnpm.overrides` carries one entry where it previously carried seven. An override applies to
   every resolution in the graph regardless of what a dependent declares, so it is kept only where
   no dependency bump reaches the fix. Six were removed after verifying, against GitHub's advisory
   database at the exact version natural resolution selects, that each resolves clean without the
   pin: `brace-expansion` 5.0.9, `dompurify` 3.4.14, `fast-uri` 3.1.6, `nanoid` 3.3.18, `postcss`
   8.5.26, and `esbuild`.
-  
+
   The `esbuild` pin was also incorrect. `tsx` declares `~0.28.0`, and the unconditional override
   served it 0.25.12 — three minors below its own declared floor, in the loader the whole test
   suite runs under. Both `tsx` and `vite` now resolve inside their declared ranges.
-  
+
   `vite: ^6.4.3` remains, and `SECURITY.md` records why: `vitepress` 1.6.4 is the latest stable
   release, it declares `vite: ^5.4.14`, and the vite 5.x line carries an unfixed HIGH
   (GHSA-fx2h-pf6j-xcff) whose fix ships only in 6.4.3. None of this affects published package
@@ -321,7 +424,6 @@
   - `no-mixed-callable-shapes` forbids a type position that mixes a callable constituent with a data constituent. A declaration is callable or it is data, never both, and the diagnostic instructs a split rather than an interface conversion. Detection resolves named references, sees through arbitrary nesting, and treats `undefined`, `null`, and `never` as neutral so an optional callable stays a single shape. An interface counts as callable only when it owns or inherits a call or construct signature, so `Promise<T> | T` and other method-bearing library interfaces are data. The rule joins `entitySuite`.
 
   ### Changed
-
   - A generic type alias is a type-level function when its body reaches a conditional, mapped, or indexed-access type through a parenthesized wrapper, a union or intersection member, an array or tuple element, a type-reference argument, or a reference that forwards its own type parameters to another generic type-level function. Such a declaration is exempt from `aliasMustBeInterface`, which no interface declaration can satisfy. A reference supplying concrete type arguments composes a contract portion as before.
   - `type-alias-invariants` reports `aliasMustBeInterface` only where an interface can express the shape. A type alias whose body is directly a mixed callable and data union or intersection is reported by `no-mixed-callable-shapes` alone.
   - `interfaces-compose-named-types` defers to `no-mixed-callable-shapes` on a mixed member, so a mixed interface member yields one actionable diagnostic instead of two contradictory ones.
@@ -334,7 +436,6 @@
   - `folder-content-shape` no longer exempts a file from the constants-placement or inline-regex checks by path (`constants/`, `fixtures/`, `tests/`, the `eslint-config` package, `eslint.config.mjs`, `entities/`, or an `index.ts` basename) or by declared name (`ajv`, `compiledValidator`, `Schema`, `validate`). A file is exempt only when it is structurally one of: a pure constants module (every top-level declaration is an import, a type declaration, or a data `const`), a module exporting an `*Entity`-named namespace, or a pure re-export barrel. Renaming a directory, moving a file into `constants/`, or naming a declaration `Schema`/`validate`/`ajv` no longer buys an escape on its own.
 
   ### Fixed
-
   - Thirteen domain error classes (`VisibleRangeError`, `VirtualFileSystemError`, `SampleBufferError`, `CircularBufferError`, `BatchError`, `QueueSizeExceededError`, `FileLockTimeoutError`, `ConnectTimeoutError`, `TimeoutError`, `BodyTimeoutError`, `HeadersTimeoutError`, `SocketError`, `CoalesceTimeoutError`) hoist their `DomainErrorArgs.build()` message builder to a `private static` class method instead of an inline arrow rebuilt on every construction call.
 
 ### Patch Changes
@@ -376,7 +477,6 @@
   - `packages/mutex/examples/keyedWorkGateComposition.ts`'s `mutex.runExclusive(key, fn)` call (no `acceptsResult` predicate) always types its result `unknown` by design; the example now supplies the `(value): value is string => ...` predicate the source's own JSDoc documents for this case.
 
   ### Left as-is (verified, not a defect)
-
   - `ErrorClassifier` is `abstract` with no static factory at all; subclasses are constructed directly.
 
 - 789da06: ### Fixed

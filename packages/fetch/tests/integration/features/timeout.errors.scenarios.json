@@ -11,9 +11,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "rejects",
         "timeoutMs": 1
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "moderate-timeout",
@@ -25,9 +25,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "large-timeout",
@@ -39,9 +39,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "negative-timeout",
@@ -52,11 +52,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "infinity-timeout",
@@ -69,11 +69,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "string-timeout",
@@ -84,11 +84,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "object-timeout",
@@ -99,11 +99,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "number"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "null-timeout",
@@ -114,11 +114,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "timeout"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "undefined-timeout",
@@ -130,9 +130,8 @@
           }
         }
       },
-      "expected": {
-        "shape": "create-ok"
-      }
+      "expected": {},
+      "shape": "create-ok"
     },
     {
       "name": "nan-timeout",
@@ -145,11 +144,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "finite"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "zero-timeout",
@@ -161,11 +160,11 @@
         }
       },
       "expected": {
-        "shape": "create-throws",
         "messageIncludes": [
           "positive"
         ]
-      }
+      },
+      "shape": "create-throws"
     },
     {
       "name": "timeout-during-slow-request",
@@ -178,9 +177,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "rejects",
         "timeoutMs": 100
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "timeout-does-not-fire-for-fast-request",
@@ -192,16 +191,15 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "subsequent-after-timeout",
       "description": "FetchClient continues working after a timeout",
       "input": {},
       "expected": {
-        "shape": "sequence",
         "steps": [
           {
             "expect": {
@@ -225,14 +223,14 @@
             }
           }
         ]
-      }
+      },
+      "shape": "sequence"
     },
     {
       "name": "concurrent-timeouts",
       "description": "FetchClient handles concurrent requests with mixed results",
       "input": {},
       "expected": {
-        "shape": "parallel",
         "steps": [
           {
             "expect": {
@@ -267,7 +265,8 @@
             }
           }
         ]
-      }
+      },
+      "shape": "parallel"
     },
     {
       "name": "different-timeouts",
@@ -278,7 +277,6 @@
         }
       },
       "expected": {
-        "shape": "sequence",
         "steps": [
           {
             "expect": {
@@ -302,7 +300,8 @@
             }
           }
         ]
-      }
+      },
+      "shape": "sequence"
     },
     {
       "name": "default-client-timeout",
@@ -318,9 +317,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "rejects",
         "timeoutMs": 50
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "request-overrides-client-timeout",
@@ -336,9 +335,9 @@
         }
       },
       "expected": {
-        "shape": "status",
         "status": 200
-      }
+      },
+      "shape": "status"
     },
     {
       "name": "includes-url",
@@ -351,9 +350,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "rejects",
         "urlIncludes": "/delay"
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "includes-timeout-value",
@@ -366,9 +365,9 @@
       },
       "expected": {
         "error": "TimeoutError",
-        "shape": "rejects",
         "timeoutMs": 123
-      }
+      },
+      "shape": "rejects"
     },
     {
       "name": "error-name",
@@ -380,9 +379,9 @@
         }
       },
       "expected": {
-        "error": "TimeoutError",
-        "shape": "rejects"
-      }
+        "error": "TimeoutError"
+      },
+      "shape": "rejects"
     },
     {
       "name": "implicit-abort-controller",
@@ -394,9 +393,9 @@
         }
       },
       "expected": {
-        "error": "TimeoutError",
-        "shape": "rejects"
-      }
+        "error": "TimeoutError"
+      },
+      "shape": "rejects"
     },
     {
       "name": "explicit-signal-overrides-timeout",
@@ -412,9 +411,9 @@
         }
       },
       "expected": {
-        "error": "AbortError",
-        "shape": "rejects"
-      }
+        "error": "AbortError"
+      },
+      "shape": "rejects"
     },
     {
       "name": "integer-timeout",
@@ -426,9 +425,9 @@
         }
       },
       "expected": {
-        "error": "TimeoutError",
-        "shape": "rejects"
-      }
+        "error": "TimeoutError"
+      },
+      "shape": "rejects"
     },
     {
       "name": "fractional-timeout",
@@ -443,9 +442,9 @@
         "error": "Error",
         "messageIncludes": [
           "integer"
-        ],
-        "shape": "rejects"
-      }
+        ]
+      },
+      "shape": "rejects"
     }
   ]
 }

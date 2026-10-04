@@ -1,7 +1,8 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 
 /**
  * Configuration options for ConsoleTransport.
@@ -23,9 +24,10 @@ export namespace ConsoleTransportOptionsEntity {
     },
     'title': 'ConsoleTransportOptions',
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/ConsoleTransportOptions', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Configuration options for ConsoleTransport.', 'title': 'ConsoleTransportOptions', 'type': 'object' } as const, { 'level': SchemaNode.defineOneOf({}, [SchemaNode.defineEnum({}, ['trace', 'debug', 'info', 'warn', 'error', 'silent'] as const), SchemaNode.defineEnum({}, [0, 1, 2, 3, 4, 5] as const)]) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

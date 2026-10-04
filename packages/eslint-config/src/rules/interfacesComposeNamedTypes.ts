@@ -1,8 +1,10 @@
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
-import { Predicates } from '@studnicky/types/node';
+import { SchemaNode } from '@studnicky/entity/types';
+import { Predicates } from '@studnicky/types/browser';
 import {
+  type IndexSignatureDeclaration,
   type InterfaceDeclaration,
   isIndexedAccessTypeNode,
   isIndexSignatureDeclaration,
@@ -12,6 +14,7 @@ import {
   isUnionTypeNode,
   type Node,
   type Program,
+  type PropertySignature,
   type TypeChecker,
   type TypeNode
 } from 'typescript';
@@ -101,10 +104,7 @@ class InlineDataPortion {
     let current = node.parent;
     while (current !== undefined && current !== boundary) {
       if (classification.isInlinePureDataPortion(current)) { return true; }
-      // An ancestor union or intersection that mixes a callable constituent with a data
-      // constituent has no interface remedy — `no-mixed-callable-shapes` owns that diagnostic.
-      // Reporting the data constituent here as well would tell the consumer to both split the
-      // shape and extract it to a named entity, two contradictory fixes for one declaration.
+      // Mixed callable/data ancestor: no-mixed-callable-shapes owns that diagnostic, not this rule.
       if ((isUnionTypeNode(current) || isIntersectionTypeNode(current)) && classification.mixesCallableAndData(current)) {
         return true;
       }
@@ -114,14 +114,7 @@ class InlineDataPortion {
   }
 }
 
-/**
- * Resolves an indexed-access member type (`Big['a']`) to the `TypeNode` that actually declares
- * the referenced property's shape, so it can be run through the same inline-data classification
- * that would apply if that shape were written directly at the member. Without this, `a:
- * Big['a']` escapes detection entirely — the shape lives in a separate declaration, and
- * `findInterfaceTypeContract` treats the indexed-access node itself as inert ("nonJson")
- * type-level computation.
- */
+/** Without this, `a: Big['a']` reads to the classifier as inert type-level computation. */
 class IndexedAccessResolution {
   public static resolveMemberTypeNode(node: TypeNode, checker: TypeChecker): TypeNode | undefined {
     if (!isIndexedAccessTypeNode(node)) { return undefined; }
@@ -148,9 +141,10 @@ namespace AncestorInfoEntity {
     },
     'required': ['hasTypeParameterConstraintAncestor', 'interfaceName'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'hasTypeParameterConstraintAncestor': SchemaNode.defineBoolean({ 'type': 'boolean' } as const), 'interfaceName': SchemaNode.defineString({ 'type': 'string' } as const) }, ['hasTypeParameterConstraintAncestor', 'interfaceName'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 interface AncestorInfoInterface {
@@ -160,40 +154,30 @@ interface AncestorInfoInterface {
   readonly 'owningMember': unknown;
 }
 
+interface AncestorWalkStateInterface {
+  'hasTypeParameterConstraintAncestor': boolean;
+  'interfaceName': string;
+  'interfaceNode': unknown;
+  'owningMember': unknown;
+}
+
 class AncestorInfo {
   public static collect(rawNode: unknown): AncestorInfoInterface {
     let child = rawNode;
     let current = Parent.get(child);
-    let hasTypeParameterConstraintAncestor = false;
-    let interfaceName = '<unnamed>';
-    let interfaceNode: unknown = null;
-    let owningMember: unknown = null;
+    const state: AncestorWalkStateInterface = {
+      'hasTypeParameterConstraintAncestor': false,
+      'interfaceName': '<unnamed>',
+      'interfaceNode': null,
+      'owningMember': null
+    };
 
     while (Predicates.isRecord(current)) {
       const nodeType = NodeType.get(current);
 
-      if (nodeType === 'TSTypeParameter' && current.constraint === child) {
-        hasTypeParameterConstraintAncestor = true;
-      }
-
-      if (
-        owningMember === null
-        && (
-          nodeType === 'TSPropertySignature'
-          || nodeType === 'TSMethodSignature'
-          || nodeType === 'TSIndexSignature'
-        )
-      ) {
-        owningMember = current;
-      }
+      AncestorInfo.#updateState(state, current, child, nodeType);
 
       if (nodeType === 'TSInterfaceDeclaration') {
-        interfaceNode = current;
-        const idNode = current.id;
-        if (Predicates.isRecord(idNode)) {
-          const name = idNode.name;
-          if (typeof name === 'string') { interfaceName = name; }
-        }
         break;
       }
 
@@ -201,12 +185,149 @@ class AncestorInfo {
       current = Parent.get(current);
     }
 
-    return {
-      'hasTypeParameterConstraintAncestor': hasTypeParameterConstraintAncestor,
-      'interfaceName': interfaceName,
-      'interfaceNode': interfaceNode,
-      'owningMember': owningMember
-    };
+    return state;
+  }
+
+  static #updateState(state: AncestorWalkStateInterface, current: Record<string, unknown>, child: unknown, nodeType: unknown): void {
+    if (nodeType === 'TSTypeParameter' && current.constraint === child) {
+      state.hasTypeParameterConstraintAncestor = true;
+    }
+
+    if (
+      state.owningMember === null
+      && (
+        nodeType === 'TSPropertySignature'
+        || nodeType === 'TSMethodSignature'
+        || nodeType === 'TSIndexSignature'
+      )
+    ) {
+      state.owningMember = current;
+    }
+
+    if (nodeType === 'TSInterfaceDeclaration') {
+      state.interfaceNode = current;
+      AncestorInfo.#setInterfaceName(state, current);
+    }
+  }
+
+  static #setInterfaceName(state: AncestorWalkStateInterface, current: Record<string, unknown>): void {
+    const idNode = current.id;
+
+    if (!Predicates.isRecord(idNode)) {
+      return;
+    }
+    const name = idNode.name;
+
+    if (typeof name === 'string') {
+      state.interfaceName = name;
+    }
+  }
+}
+
+interface DataMemberVisitContextInterface {
+  readonly 'checker': TypeChecker;
+  readonly 'classification': TypeContractClassification;
+  readonly 'context': Rule.RuleContext;
+  readonly 'services': ParserServicesInterface;
+}
+
+class DataMemberVisitor {
+  public static visit(node: Rule.Node, visitContext: DataMemberVisitContextInterface): void {
+    const ancestor = AncestorInfo.collect(node);
+
+    if (ancestor.hasTypeParameterConstraintAncestor) { return; }
+
+    const interfaceDeclaration = visitContext.services.esTreeNodeToTSNodeMap.get(ancestor.interfaceNode);
+
+    if (interfaceDeclaration === undefined || !isInterfaceDeclaration(interfaceDeclaration)) { return; }
+    if (visitContext.classification.analyzeInterface(interfaceDeclaration).classification === 'pureData') { return; }
+
+    const resolved = DataMemberVisitor.#resolveDataMember(node, visitContext.services);
+
+    if (resolved === undefined) { return; }
+    if (visitContext.classification.isBrandDeclarationMember(resolved.member)) { return; }
+    if (visitContext.classification.isInlineContractPortion(resolved.member.parent)) { return; }
+    if (InlineDataPortion.hasAncestor(resolved.member, interfaceDeclaration, visitContext.classification)) { return; }
+
+    DataMemberVisitor.#reportForMemberType(node, resolved.memberType, ancestor, visitContext);
+  }
+
+  static #resolveDataMember(
+    node: Rule.Node,
+    services: ParserServicesInterface
+  ): { 'member': IndexSignatureDeclaration | PropertySignature; 'memberType': TypeNode } | undefined {
+    const member = services.esTreeNodeToTSNodeMap.get(node);
+
+    if (
+      member === undefined
+      || (!isPropertySignature(member) && !isIndexSignatureDeclaration(member))
+      || member.type === undefined
+    ) {
+      return undefined;
+    }
+
+    return { 'member': member, 'memberType': member.type };
+  }
+
+  static #reportForMemberType(
+    node: Rule.Node,
+    memberType: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    // T or Big['a'] would otherwise launder an inline pure-data shape past the checks below.
+    const resolvedConstraint = visitContext.classification.resolveTypeParameterConstraint(memberType);
+    const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
+      ? IndexedAccessResolution.resolveMemberTypeNode(memberType, visitContext.checker)
+      : undefined;
+    const substituted = resolvedConstraint ?? resolvedIndexedAccess;
+
+    if (substituted !== undefined) {
+      DataMemberVisitor.#reportIfSubstitutedRequiresNaming(node, substituted, ancestor, visitContext);
+
+      return;
+    }
+
+    DataMemberVisitor.#reportIfMemberTypeRequiresNaming(node, memberType, ancestor, visitContext);
+  }
+
+  // visitInlineData exempts a type parameter's own constraint literal from self-flagging;
+  // deferring to InlineDataPortion.contains here would silently drop this diagnostic.
+  static #reportIfSubstitutedRequiresNaming(
+    node: Rule.Node,
+    substituted: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    if (visitContext.classification.isInlinePureDataPortion(substituted) || visitContext.classification.requiresNamedDataComposition(substituted)) {
+      visitContext.context.report({
+        'data': {
+          'interfaceName': ancestor.interfaceName,
+          'memberName': Member.getName(node)
+        },
+        'messageId': 'inlineObjectInInterface',
+        'node': node
+      });
+    }
+  }
+
+  static #reportIfMemberTypeRequiresNaming(
+    node: Rule.Node,
+    memberType: TypeNode,
+    ancestor: AncestorInfoInterface,
+    visitContext: DataMemberVisitContextInterface
+  ): void {
+    if (InlineDataPortion.contains(memberType, visitContext.classification)) { return; }
+    if (!visitContext.classification.requiresNamedDataComposition(memberType)) { return; }
+
+    visitContext.context.report({
+      'data': {
+        'interfaceName': ancestor.interfaceName,
+        'memberName': Member.getName(node)
+      },
+      'messageId': 'inlineObjectInInterface',
+      'node': node
+    });
   }
 }
 
@@ -241,69 +362,8 @@ export const interfacesComposeNamedTypes: Rule.RuleModule = {
     };
 
     const visitDataMember = (node: Rule.Node): void => {
-      const ancestor = AncestorInfo.collect(node);
-      if (ancestor.hasTypeParameterConstraintAncestor) { return; }
-
-      const interfaceDeclaration = servicesUnknown.esTreeNodeToTSNodeMap.get(ancestor.interfaceNode);
-      if (interfaceDeclaration === undefined || !isInterfaceDeclaration(interfaceDeclaration)) { return; }
-      if (classification.analyzeInterface(interfaceDeclaration).classification === 'pureData') { return; }
-
-      const member = servicesUnknown.esTreeNodeToTSNodeMap.get(node);
-      if (
-        member === undefined
-        || (!isPropertySignature(member) && !isIndexSignatureDeclaration(member))
-        || member.type === undefined
-      ) {
-        return;
-      }
-
-      const memberType: TypeNode = member.type;
-      if (classification.isBrandDeclarationMember(member)) { return; }
-      if (classification.isInlineContractPortion(member.parent)) { return; }
-      if (InlineDataPortion.hasAncestor(member, interfaceDeclaration, classification)) { return; }
-
-      // A bare type-parameter reference (`handler: T`) or an indexed-access reference into a
-      // separately-declared shape (`a: Big['a']`) each launder an inline pure-data shape away
-      // from the checks below — the parameter's own `extends { ... }` constraint, or the
-      // indexed property's own declared type, is the actual shape a consumer sees, even though
-      // neither is written inline at this member.
-      const resolvedConstraint = classification.resolveTypeParameterConstraint(memberType);
-      const resolvedIndexedAccess = isIndexedAccessTypeNode(memberType)
-        ? IndexedAccessResolution.resolveMemberTypeNode(memberType, checker)
-        : undefined;
-      const substituted = resolvedConstraint ?? resolvedIndexedAccess;
-
-      if (substituted !== undefined) {
-        // A substituted shape lives in a different declaration entirely (the type parameter's own
-        // heritage, or the indexed property's own interface) — no other listener independently
-        // classifies it from THIS member's position. `visitInlineData` deliberately exempts a
-        // type literal that is itself a type parameter's constraint (so the constraint
-        // declaration is never flagged on its own), so deferring to "some other listener already
-        // covers it" via `InlineDataPortion.contains` would silently drop the diagnostic. Apply
-        // the same inline-data check `visitInlineData` applies directly instead.
-        if (classification.isInlinePureDataPortion(substituted) || classification.requiresNamedDataComposition(substituted)) {
-          context.report({
-            'data': {
-              'interfaceName': ancestor.interfaceName,
-              'memberName': Member.getName(node)
-            },
-            'messageId': 'inlineObjectInInterface',
-            'node': node
-          });
-        }
-        return;
-      }
-
-      if (InlineDataPortion.contains(memberType, classification)) { return; }
-      if (!classification.requiresNamedDataComposition(memberType)) { return; }
-
-      context.report({
-        'data': {
-          'interfaceName': ancestor.interfaceName,
-          'memberName': Member.getName(node)
-        },
-        'messageId': 'inlineObjectInInterface',
-        'node': node
+      DataMemberVisitor.visit(node, {
+        'checker': checker, 'classification': classification, 'context': context, 'services': servicesUnknown
       });
     };
 

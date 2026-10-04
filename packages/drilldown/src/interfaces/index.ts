@@ -1,10 +1,12 @@
+import type { FacetAccessorMapType, FacetFilterStateType } from '@studnicky/filters/facets/types';
+
 import type { GroupingOptionsEntity } from '../entities/GroupingOptionsEntity.js';
 import type { GroupNodeValueEntity } from '../entities/GroupNodeValueEntity.js';
 import type { GroupValueDiscriminantEntity } from '../entities/GroupValueDiscriminantEntity.js';
+import type { GroupValueEntity } from '../entities/GroupValueEntity.js';
 import type { PathSegmentEntity } from '../entities/PathSegmentEntity.js';
 import type { DrillDownConfigEntity } from '../schema/DrillDownConfigEntity.js';
-import type { DrilldownRulesEntity } from '../schema/DrilldownRulesEntity.js';
-import type { FacetAccessorMapType, FacetFilterStateType, MatcherUnionType } from '../types/index.js';
+import type { MatcherUnionType } from '../types/index.js';
 import type { AnalysisResultInterface } from './AnalysisResultInterface.js';
 import type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
 import type { GroupNodeInterface } from './GroupNodeInterface.js';
@@ -12,6 +14,7 @@ import type { PartitionGroupInterface } from './PartitionGroupInterface.js';
 
 export type { AnalysisResultInterface } from './AnalysisResultInterface.js';
 export type { DrillDownAnalysisInterface } from './DrillDownAnalysisInterface.js';
+export type { DrilldownRulesStaticInterface } from './DrilldownRulesStaticInterface.js';
 export type { GroupNodeInterface } from './GroupNodeInterface.js';
 export type { AlphabeticMatcherInterface, CidrMatcherInterface, DateMatcherInterface, RangeMatcherInterface, SemverMatcherInterface, SequentialMatcherInterface, StringMatcherInterface } from './MatcherInterface.js';
 export type { PartitionGroupInterface } from './PartitionGroupInterface.js';
@@ -68,7 +71,7 @@ export interface DrillDownInterface {
  * Core extension point for the matching system.
  */
 export interface MatcherHandlerInterface<
-  TGroupValue extends DrilldownRulesEntity.GroupValueEntity.Type = DrilldownRulesEntity.GroupValueEntity.Type,
+  TGroupValue extends GroupValueEntity.Type = GroupValueEntity.Type,
   TMatcher extends MatcherUnionType = MatcherUnionType,
   TNodeValue extends GroupNodeValueEntity.Type = GroupNodeValueEntity.Type
 > {
@@ -76,7 +79,7 @@ export interface MatcherHandlerInterface<
   createMatcher(valueDef: TGroupValue, group: PartitionGroupInterface): null | TMatcher
   createNodeValue(valueDef: TGroupValue): TNodeValue
   getSortKey?(matcher: TMatcher): number
-  isGroupValue(value: DrilldownRulesEntity.GroupValueEntity.Type): value is TGroupValue
+  isGroupValue(value: GroupValueEntity.Type): value is TGroupValue
   isNodeValue(value: unknown): value is TNodeValue
   match(matcher: TMatcher, value: unknown, stringValue: string, context: MatchContextInterface): boolean
   mergeIfOverlapping?(first: TGroupValue, second: TGroupValue): null | TGroupValue

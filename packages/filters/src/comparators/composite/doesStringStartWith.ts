@@ -2,7 +2,7 @@
  * Checks if a string starts with a prefix with case sensitivity support
  */
 
-import { Predicates } from '@studnicky/types/node';
+import { Predicates } from '@studnicky/types/browser';
 
 import type {
   FilterConditionInterface

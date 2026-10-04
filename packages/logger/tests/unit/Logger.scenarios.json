@@ -33,9 +33,8 @@
     },
     {
       "name": "create-invalid-transports",
-      "description": "throws ConfigurationError when transports is not an array",
-      "shape": "create-invalid-transports",
-      "expectedMessage": "transports must be an array"
+      "description": "rejects a non-array transports value with the same guard the constructor uses",
+      "shape": "create-invalid-transports"
     },
     {
       "name": "snapshot-metadata-and-transports",

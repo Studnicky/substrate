@@ -1,14 +1,13 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
-import type {
-  FromSchema, JSONSchema
-} from 'json-schema-to-ts';
 import type {
   Program, Symbol
 } from 'typescript';
 import type * as ts from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
 import { Predicates } from '@studnicky/types/browser';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
@@ -32,12 +31,22 @@ namespace StaticMethodVerbsOptionsEntity {
       }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'mode': SchemaNode.defineEnum({ 'default': 'structural' } as const, [
+    'any',
+    'structural',
+    'typed'
+  ] as const) }, [] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
   export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);
+}
+
+interface FunctionPropertyEntryInterface {
+  readonly 'name': string;
+  readonly 'node': Rule.Node;
 }
 
 interface ParserServicesInterface {
@@ -91,18 +100,18 @@ class AstHelpers {
     }
 
     if (container.type === 'ExportNamedDeclaration' || container.type === 'ExportDefaultDeclaration') {
-      const result = AstHelpers.isModuleScopeContainer((container as { readonly 'parent'?: unknown }).parent);
+      const result = AstHelpers.isModuleScopeContainer(container.parent);
 
       return result;
     }
 
     if (container.type === 'TSModuleBlock') {
-      const moduleDeclaration = (container as { readonly 'parent'?: unknown }).parent;
+      const moduleDeclaration = container.parent;
 
       if (!Predicates.isRecord(moduleDeclaration) || moduleDeclaration.type !== 'TSModuleDeclaration') {
         return false;
       }
-      const result = AstHelpers.isModuleScopeContainer((moduleDeclaration as { readonly 'parent'?: unknown }).parent);
+      const result = AstHelpers.isModuleScopeContainer(moduleDeclaration.parent);
 
       return result;
     }
@@ -110,7 +119,7 @@ class AstHelpers {
     return false;
   }
 
-  public static isFunctionInit(init: unknown): boolean {
+  public static isFunctionInit(init: unknown): init is Rule.Node {
     if (!Predicates.isRecord(init)) {
       return false;
     }
@@ -125,7 +134,7 @@ class AstHelpers {
    * properties (`{ calculate(x) {...} }` and `{ calculate: (x) => {...} }` alike). Computed keys
    * and spreads are skipped — there is no static name to report against.
    */
-  public static objectExpressionFunctionProperties(objectExpression: unknown): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+  public static objectExpressionFunctionProperties(objectExpression: unknown): readonly FunctionPropertyEntryInterface[] {
     if (!Predicates.isRecord(objectExpression) || objectExpression.type !== 'ObjectExpression') {
       return [];
     }
@@ -135,7 +144,7 @@ class AstHelpers {
       return [];
     }
 
-    const result: { 'name': string; 'node': unknown }[] = [];
+    const result: FunctionPropertyEntryInterface[] = [];
 
     properties.forEach((property) => {
       if (!Predicates.isRecord(property) || property.type !== 'Property') {
@@ -169,76 +178,117 @@ class AstHelpers {
   public static destructuredFunctionEntries(
     id: unknown,
     init: unknown
-  ): readonly { readonly 'name': string; readonly 'node': unknown }[] {
+  ): readonly FunctionPropertyEntryInterface[] {
     if (!Predicates.isRecord(id)) {
       return [];
     }
 
     if (id.type === 'ObjectPattern' && Predicates.isRecord(init) && init.type === 'ObjectExpression') {
-      const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
-      const sourceEntriesByName = new Map(sourceEntries.map((entry) => {
-        return [
-          entry.name,
-          entry.node
-        ];
-      }));
-      const patternProperties = Predicates.isArray(id.properties) ? id.properties : [];
-      const result: { 'name': string; 'node': unknown }[] = [];
-
-      patternProperties.forEach((patternProperty) => {
-        if (!Predicates.isRecord(patternProperty) || patternProperty.type !== 'Property') {
-          return;
-        }
-        if (patternProperty.computed === true) {
-          return;
-        }
-        const key = patternProperty.key;
-        const value = patternProperty.value;
-
-        if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
-          return;
-        }
-        if (!Predicates.isRecord(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
-          return;
-        }
-        const sourceNode = sourceEntriesByName.get(key.name);
-
-        if (sourceNode !== undefined) {
-          result.push({
-            'name': value.name, 'node': sourceNode
-          });
-        }
-      });
+      const result = AstHelpers.#destructuredFunctionEntriesFromObjectPattern(id, init);
 
       return result;
     }
 
     if (id.type === 'ArrayPattern' && Predicates.isRecord(init) && init.type === 'ArrayExpression') {
-      const patternElements = Predicates.isArray(id.elements) ? id.elements : [];
-      const initElements = Predicates.isArray(init.elements) ? init.elements : [];
-      const result: { 'name': string; 'node': unknown }[] = [];
-
-      patternElements.forEach((patternElement, index) => {
-        if (!Predicates.isRecord(patternElement) || patternElement.type !== 'Identifier') {
-          return;
-        }
-        if (typeof patternElement.name !== 'string') {
-          return;
-        }
-        const initElement: unknown = initElements.at(index);
-
-        if (!AstHelpers.isFunctionInit(initElement)) {
-          return;
-        }
-        result.push({
-          'name': patternElement.name, 'node': initElement
-        });
-      });
+      const result = AstHelpers.#destructuredFunctionEntriesFromArrayPattern(id, init);
 
       return result;
     }
 
     return [];
+  }
+
+  static #destructuredFunctionEntriesFromObjectPattern(
+    id: Record<string, unknown>,
+    init: Record<string, unknown>
+  ): readonly FunctionPropertyEntryInterface[] {
+    const sourceEntries = AstHelpers.objectExpressionFunctionProperties(init);
+    const sourceEntriesByName = new Map(sourceEntries.map((entry) => {
+      return [
+        entry.name,
+        entry.node
+      ];
+    }));
+    const patternProperties = Predicates.isArray(id.properties) ? id.properties : [];
+    const result: FunctionPropertyEntryInterface[] = [];
+
+    patternProperties.forEach((patternProperty) => {
+      const entry = AstHelpers.#destructuredObjectPropertyEntry(patternProperty, sourceEntriesByName);
+
+      if (entry !== undefined) {
+        result.push(entry);
+      }
+    });
+
+    return result;
+  }
+
+  static #destructuredObjectPropertyEntry(
+    patternProperty: unknown,
+    sourceEntriesByName: ReadonlyMap<string, Rule.Node>
+  ): FunctionPropertyEntryInterface | undefined {
+    const names = AstHelpers.#destructuredObjectPropertyNames(patternProperty);
+
+    if (names === undefined) {
+      return undefined;
+    }
+    const sourceNode = sourceEntriesByName.get(names.keyName);
+
+    if (sourceNode === undefined) {
+      return undefined;
+    }
+
+    return { 'name': names.valueName, 'node': sourceNode };
+  }
+
+  static #destructuredObjectPropertyNames(
+    patternProperty: unknown
+  ): { readonly 'keyName': string; readonly 'valueName': string } | undefined {
+    if (!Predicates.isRecord(patternProperty) || patternProperty.type !== 'Property') {
+      return undefined;
+    }
+    if (patternProperty.computed === true) {
+      return undefined;
+    }
+    const key = patternProperty.key;
+    const value = patternProperty.value;
+
+    if (!Predicates.isRecord(key) || key.type !== 'Identifier' || typeof key.name !== 'string') {
+      return undefined;
+    }
+    if (!Predicates.isRecord(value) || value.type !== 'Identifier' || typeof value.name !== 'string') {
+      return undefined;
+    }
+
+    return { 'keyName': key.name, 'valueName': value.name };
+  }
+
+  static #destructuredFunctionEntriesFromArrayPattern(
+    id: Record<string, unknown>,
+    init: Record<string, unknown>
+  ): readonly FunctionPropertyEntryInterface[] {
+    const patternElements = Predicates.isArray(id.elements) ? id.elements : [];
+    const initElements = Predicates.isArray(init.elements) ? init.elements : [];
+    const result: FunctionPropertyEntryInterface[] = [];
+
+    patternElements.forEach((patternElement, index) => {
+      if (!Predicates.isRecord(patternElement) || patternElement.type !== 'Identifier') {
+        return;
+      }
+      if (typeof patternElement.name !== 'string') {
+        return;
+      }
+      const initElement: unknown = initElements.at(index);
+
+      if (!AstHelpers.isFunctionInit(initElement)) {
+        return;
+      }
+      result.push({
+        'name': patternElement.name, 'node': initElement
+      });
+    });
+
+    return result;
   }
 
   public static isNamedType(type: ts.Type): boolean {
@@ -297,7 +347,7 @@ class AstHelpers {
 
 // THE CANONICAL ENTITY `validate` TYPE GUARD IS EXEMPT. DO NOT REMOVE THIS.
 //
-// `folder-content-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
+// `entity-file-shape` REQUIRES every `*Entity.ts` namespace to expose a `validate`
 // type guard — its own message names the two accepted spellings:
 //
 //     export const validate = EntityCompiler.compile<Type>(Schema)        (preferred)
@@ -311,7 +361,7 @@ class AstHelpers {
 // The namespace transparency itself is CORRECT and stays — `namespace Utils { export
 // function f() {} }` really is a freestanding function in disguise, and closing that
 // bypass was the point. Only the entity type-guard shape is carved out, and it is
-// recognised by the SAME predicate `folder-content-shape` uses to require it
+// recognised by the SAME predicate `entity-file-shape` uses to require it
 // (`SchemaMemberGuards.isValidateTypeGuard`), imported rather than re-implemented, so the
 // two rules cannot drift back into disagreement.
 export const staticMethodVerbs: Rule.RuleModule = {
@@ -417,7 +467,7 @@ export const staticMethodVerbs: Rule.RuleModule = {
             context.report({
               'data': { 'name': `${name}.${entry.name}` },
               'messageId': 'freestandingFunction',
-              'node': entry.node as Rule.Node
+              'node': entry.node
             });
           }
 
@@ -437,7 +487,7 @@ export const staticMethodVerbs: Rule.RuleModule = {
           context.report({
             'data': { 'name': entry.name },
             'messageId': 'freestandingFunction',
-            'node': entry.node as Rule.Node
+            'node': entry.node
           });
         }
       });

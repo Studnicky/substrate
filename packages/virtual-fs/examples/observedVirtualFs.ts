@@ -11,6 +11,9 @@ import { VirtualFileSystem } from '../src/index.js';
 const recorder = new EventRecorder<HookEventEntity.Type>();
 
 class TracingVfs extends VirtualFileSystem {
+  static override create(): TracingVfs {
+    return new TracingVfs({});
+  }
   protected override onCreate(path: string): void {
     recorder.record({ 'hook': 'onCreate', 'path': path }, `[virtual-fs] onCreate path=${path}`);
   }

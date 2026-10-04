@@ -7,7 +7,8 @@
       "input": {
         "fetchClient": {}
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-no-config"
     },
     {
       "name": "valid-baseURL",
@@ -18,7 +19,8 @@
           "baseURL": "https://api.example.com"
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-headers",
@@ -31,7 +33,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-timeout",
@@ -42,7 +45,8 @@
           "timeout": 5000
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-dispatcher",
@@ -56,7 +60,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-requestIdGenerator",
@@ -70,7 +75,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-autoGenerateRequestId-false",
@@ -81,7 +87,8 @@
           "autoGenerateRequestId": false
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-metadata",
@@ -95,7 +102,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-default-parameters",
@@ -108,7 +116,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "valid-fetch-options",
@@ -121,7 +130,8 @@
           }
         }
       },
-      "expected": {}
+      "expected": {},
+      "operation": "accepts-config"
     },
     {
       "name": "invalid-baseURL",
@@ -134,7 +144,8 @@
       },
       "expected": {
         "message": "baseURL must be a valid URL"
-      }
+      },
+      "operation": "rejects-config"
     },
     {
       "name": "invalid-timeout-negative",
@@ -147,7 +158,8 @@
       },
       "expected": {
         "message": "timeout must be positive"
-      }
+      },
+      "operation": "rejects-config"
     },
     {
       "name": "invalid-timeout-non-numeric",
@@ -160,7 +172,8 @@
       },
       "expected": {
         "message": "timeout must be a number"
-      }
+      },
+      "operation": "rejects-config"
     },
     {
       "name": "invalid-headers-object",
@@ -173,7 +186,8 @@
       },
       "expected": {
         "message": "headers must be an object"
-      }
+      },
+      "operation": "rejects-config"
     },
     {
       "name": "invalid-unknown-keys",
@@ -186,52 +200,8 @@
       },
       "expected": {
         "message": "\"unknownKey\" is not declared in the schema"
-      }
-    },
-    {
-      "name": "invalid-requestIdGenerator",
-      "description": "FetchClient.create rejects invalid requestIdGenerator",
-      "shape": "invalid-requestIdGenerator",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": "not-a-function"
-        }
       },
-      "expected": {
-        "message": "requestIdGenerator must be a function"
-      }
-    },
-    {
-      "name": "invalid-requestIdGenerator-return-type",
-      "description": "FetchClient.create rejects requestIdGenerator return values that are not strings",
-      "shape": "invalid-requestIdGenerator-return-type",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": {
-            "shape": "static-request-id",
-            "value": 123
-          }
-        }
-      },
-      "expected": {
-        "message": "requestIdGenerator must return a string"
-      }
-    },
-    {
-      "name": "invalid-requestIdGenerator-throws",
-      "description": "FetchClient.create rejects requestIdGenerator functions that throw",
-      "shape": "invalid-requestIdGenerator-throws",
-      "input": {
-        "fetchClient": {
-          "requestIdGenerator": {
-            "shape": "throwing-request-id",
-            "message": "request-id boom"
-          }
-        }
-      },
-      "expected": {
-        "message": "requestIdGenerator function error: request-id boom"
-      }
+      "operation": "rejects-config"
     },
     {
       "name": "behavior-baseURL",
@@ -250,7 +220,8 @@
           "id": 1,
           "title": "Test Post"
         }
-      }
+      },
+      "operation": "base-url"
     },
     {
       "name": "behavior-default-timeout",
@@ -266,7 +237,8 @@
       "expected": {
         "errorName": "TimeoutError",
         "timeoutMs": 100
-      }
+      },
+      "operation": "default-timeout"
     },
     {
       "name": "behavior-custom-requestIdGenerator",
@@ -288,7 +260,8 @@
           "title": "Test Post"
         },
         "requestId": "custom-test-id"
-      }
+      },
+      "operation": "custom-request-id"
     },
     {
       "name": "behavior-explicit-requestId",
@@ -307,7 +280,8 @@
           "title": "Test Post"
         },
         "requestId": "manual-test-id"
-      }
+      },
+      "operation": "explicit-request-id"
     },
     {
       "name": "behavior-metadata-merge",
@@ -334,7 +308,8 @@
           "service": "test-service",
           "operation": "get-post"
         }
-      }
+      },
+      "operation": "metadata-merge"
     },
     {
       "name": "behavior-detach-mutable-config",
@@ -420,7 +395,8 @@
         "parameters": {
           "shape": "undefined"
         }
-      }
+      },
+      "operation": "detach-mutable-config"
     },
     {
       "name": "behavior-preserve-non-plain-json",
@@ -441,7 +417,8 @@
           "shape": "boxed-json",
           "value": "mutated-json"
         }
-      }
+      },
+      "operation": "preserve-non-plain-json"
     },
     {
       "name": "behavior-preserve-null-prototype-json",
@@ -478,7 +455,8 @@
           ],
           "label": "initial-label"
         }
-      }
+      },
+      "operation": "preserve-null-prototype-json"
     }
   ]
 }

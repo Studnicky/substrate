@@ -22,6 +22,8 @@
 import { FetchBaseError } from './FetchBaseError.js';
 
 export class AbortError extends FetchBaseError {
+  public override readonly name: string = 'AbortError';
+
   /**
    * The URL that was fetched
    */

@@ -5,27 +5,28 @@
  * measurement and feeds the results in via `setScrollOffset()` /
  * `setViewportSize()`.
  */
-import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { Predicates } from '@studnicky/types/node';
+import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
+import { Predicates } from '@studnicky/types/browser';
 
 import type { VisibleRangeEntity } from './entities/VisibleRangeEntity.js';
 import type { VisibleRangeResolvedConfigEntity } from './entities/VisibleRangeResolvedConfigEntity.js';
-import type { VisibleRangeConfigInterface } from './interfaces/VisibleRangeConfigInterface.js';
+import type { VisibleRangeCollaboratorsInterface } from './interfaces/VisibleRangeCollaboratorsInterface.js';
 
 import { DEFAULT_OVERSCAN, INITIAL_OFFSET } from './constants/index.js';
+import { VisibleRangeConfigDataEntity } from './entities/VisibleRangeConfigDataEntity.js';
 import { VisibleRangeError } from './errors/index.js';
 
+/** `count`/`itemSize`/`overscan` are resolved internally by manual arithmetic guards, never independently validated. `mode` is a stable enum, kept on the entity. */
 interface VisibleRangeResolvedConfigInterface {
-  readonly 'count': VisibleRangeResolvedConfigEntity.Type['count'];
+  readonly 'count': number;
   readonly 'estimateSize'?: (index: number) => number;
-  readonly 'itemSize'?: VisibleRangeResolvedConfigEntity.Type['itemSize'];
+  readonly 'itemSize'?: number;
   readonly 'mode': VisibleRangeResolvedConfigEntity.Type['mode'];
-  readonly 'overscan': VisibleRangeResolvedConfigEntity.Type['overscan'];
+  readonly 'overscan': number;
 }
 
-interface VisibleRangeFunctionInterface extends Function {}
 
-interface VisibleRangeConstructorInterface<TInstance> {
+interface VisibleRangeConstructorInterface<TInstance extends VisibleRange> extends Function {
   readonly 'prototype': TInstance;
 }
 
@@ -49,20 +50,31 @@ interface VisibleRangeConstructorInterface<TInstance> {
  */
 export class VisibleRange {
   static create<TInstance extends VisibleRange = VisibleRange>(
-    this: VisibleRangeConstructorInterface<TInstance> & VisibleRangeFunctionInterface,
-    config: VisibleRangeConfigInterface
+    this: VisibleRangeConstructorInterface<TInstance>,
+    config: unknown,
+    collaborators: VisibleRangeCollaboratorsInterface = {}
   ): TInstance {
-    const resolved = VisibleRange.#resolve(config);
+    const resolved = VisibleRange.#resolve(config, collaborators);
     const result: unknown = Reflect.construct(this, [resolved]);
-    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf<TInstance>(result, this)) {
+    if (!Predicates.isObjectLike(result) || !Predicates.isInstanceOf(result, this)) {
       throw RuntimeError.create('VisibleRange.create() must construct a VisibleRange instance');
     }
     return result;
   }
 
-  static #resolve(config: VisibleRangeConfigInterface): VisibleRangeResolvedConfigInterface {
-    const hasItemSize = config.itemSize !== undefined;
-    const hasEstimateSize = config.estimateSize !== undefined;
+  static #intakeConfigData(config: unknown): VisibleRangeConfigDataEntity.Type {
+    try {
+      const data = VisibleRangeConfigDataEntity.intake(config);
+      return data;
+    } catch (error) {
+      throw new VisibleRangeError(RuntimeError.toMessage(error), { 'cause': error });
+    }
+  }
+
+  static #resolve(config: unknown, collaborators: VisibleRangeCollaboratorsInterface): VisibleRangeResolvedConfigInterface {
+    const data = VisibleRange.#intakeConfigData(config);
+    const hasItemSize = data.itemSize !== undefined;
+    const hasEstimateSize = collaborators.estimateSize !== undefined;
 
     if (!hasItemSize && !hasEstimateSize) {
       throw new VisibleRangeError('one of `itemSize` or `estimateSize` must be supplied');
@@ -71,18 +83,15 @@ export class VisibleRange {
       throw new VisibleRangeError('`itemSize` and `estimateSize` are mutually exclusive — supply exactly one');
     }
 
-    const overscan = config.overscan ?? DEFAULT_OVERSCAN;
+    const overscan = data.overscan ?? DEFAULT_OVERSCAN;
 
-    if (hasItemSize) {
-      if (config.itemSize <= 0) {
-        throw new VisibleRangeError(`\`itemSize\` must be a positive number, received ${config.itemSize}`);
-      }
-      return { 'count': config.count, 'itemSize': config.itemSize, 'mode': 'fixed', 'overscan': overscan };
+    if (hasItemSize && data.itemSize !== undefined) {
+      return { 'count': data.count, 'itemSize': data.itemSize, 'mode': 'fixed', 'overscan': overscan };
     }
-    if (config.estimateSize === undefined) {
-      throw new VisibleRangeError('`estimateSize` is required in variable mode');
+    if (collaborators.estimateSize !== undefined) {
+      return { 'count': data.count, 'estimateSize': collaborators.estimateSize, 'mode': 'variable', 'overscan': overscan };
     }
-    return { 'count': config.count, 'estimateSize': config.estimateSize, 'mode': 'variable', 'overscan': overscan };
+    throw new VisibleRangeError('`estimateSize` is required in variable mode');
   }
 
   protected readonly hooks: HookInvoker = new HookInvoker();
@@ -192,9 +201,7 @@ export class VisibleRange {
    * offset depends only on the sizes of items `[0, i)`.
    */
   private ensureOffsets(): Float64Array {
-    if (this.config.mode !== 'variable') {
-      throw new VisibleRangeError('ensureOffsets() called outside variable mode');
-    }
+    this.#assertVariableMode();
     if (this.offsets !== null && this.dirtyFrom === null) {
       return this.offsets;
     }
@@ -209,14 +216,24 @@ export class VisibleRange {
     if (this.offsets === null) {
       offsets[0] = 0;
     }
-    for (let i = startIndex; i < count; i++) {
-      const size = this.measuredSizes.get(i) ?? estimateSize(i);
-      offsets[i + 1] = offsets[i]! + size;
-    }
+    this.#fillOffsets(offsets, startIndex, count, estimateSize);
 
     this.offsets = offsets;
     this.dirtyFrom = null;
     return offsets;
+  }
+
+  #assertVariableMode(): void {
+    if (this.config.mode !== 'variable') {
+      throw new VisibleRangeError('ensureOffsets() called outside variable mode');
+    }
+  }
+
+  #fillOffsets(offsets: Float64Array, startIndex: number, count: number, estimateSize: (index: number) => number): void {
+    for (let i = startIndex; i < count; i++) {
+      const size = this.measuredSizes.get(i) ?? estimateSize(i);
+      offsets[i + 1] = offsets[i]! + size;
+    }
   }
 
   /** Binary search for the item index whose `[offsets[i], offsets[i+1])` span contains `target`. */

@@ -9,9 +9,9 @@
   "exclude": ["dist", "node_modules"],
   "include": ["src/**/*"],
   "references": [
-    { "path": "../context" },
     { "path": "../json" },
-    { "path": "../mutex" },
-    { "path": "../entity" }
+    { "path": "../concurrency" },
+    { "path": "../entity" },
+    { "path": "../types" }
   ]
 }

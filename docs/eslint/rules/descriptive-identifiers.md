@@ -9,6 +9,10 @@ Disallows a configured shorthand token in an identifier. It splits camelCase and
 
 The rule checks declaration IDs, identifier references, enum members, method/property keys, and type parameters. It checks quoted object and class keys only when the quoted value is a valid JavaScript identifier. Object-property keys are checked only when their contextual declaration is proven to belong to the local package; keys with absent or external provenance are out of scope, preventing rename advice for externally dictated API vocabulary. When type information is unavailable, object-property keys are out of scope because the rule cannot safely prove their ownership. A rule ID, URL, path, or numeric key is also out of scope. Non-computed member properties and export specifiers are out of scope.
 
+A property key that is JSON Schema's own published vocabulary (`minLength`, `maxLength`, `minItems`, `maxItems`, `minProperties`, `maxProperties`, `minContains`, `maxContains`, `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`) is exempt by exact name, independent of the contextual-type provenance check above — the specification chose these names, not this codebase, and the exemption does not depend on any particular schema-authoring package being imported.
+
+Every literal object key supplied directly to a `SchemaNode.define*` call imported from `@studnicky/entity/types` is also out of scope. Such keys describe schema data and may be an external input field name rather than a project-owned local identifier. Calls through a local value named `SchemaNode` do not qualify.
+
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## ✗ Incorrect

@@ -5,7 +5,7 @@
       "description": "before and after each registered stage fire in order",
       "shape": "before-after-order",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "add", "value": 1 },
           { "shape": "mul", "value": 2 },
@@ -28,7 +28,7 @@
       "description": "before and after hooks do not fire when pipeline has no stages",
       "shape": "no-hooks-no-stages",
       "input": {
-        "ctx": "hello",
+        "context": "hello",
         "stages": []
       },
       "expected": {
@@ -40,7 +40,7 @@
       "description": "before and after fire once for a single stage",
       "shape": "single-stage-before-after",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -57,7 +57,7 @@
       "description": "base pipeline produces the correct result with tracing hooks active",
       "shape": "tracing-pipeline-result",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "add", "value": 1 },
           { "shape": "mul", "value": 2 },
@@ -70,32 +70,32 @@
     },
     {
       "name": "before-stage-gets-prior-output",
-      "description": "beforeStage receives ctx from prior stage output",
+      "description": "beforeStage receives context from prior stage output",
       "shape": "before-stage-gets-prior-output",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 10 },
           { "shape": "add", "value": 10 }
         ]
       },
       "expected": {
-        "receivedCtxAtBefore": [0, 10]
+        "receivedContextAtBefore": [0, 10]
       }
     },
     {
       "name": "after-stage-gets-stage-output",
-      "description": "afterStage receives ctx from stage output",
+      "description": "afterStage receives context from stage output",
       "shape": "after-stage-gets-stage-output",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 5 },
           { "shape": "mul", "value": 3 }
         ]
       },
       "expected": {
-        "receivedCtxAtAfter": [5, 15]
+        "receivedContextAtAfter": [5, 15]
       }
     },
     {
@@ -103,7 +103,7 @@
       "description": "onRunStart is called before any stage",
       "shape": "run-start-before-stages",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "identity" }
         ]
@@ -117,7 +117,7 @@
       "description": "onRunComplete is called after all stages",
       "shape": "run-complete-after-stages",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "identity" }
         ]
@@ -128,16 +128,16 @@
     },
     {
       "name": "run-start-original-value",
-      "description": "onRunStart receives the original ctx value",
+      "description": "onRunStart receives the original context value",
       "shape": "run-start-original-value",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "identity" }
         ]
       },
       "expected": {
-        "runStartCtx": 5
+        "runStartContext": 5
       }
     },
     {
@@ -145,7 +145,7 @@
       "description": "onRunStart observes the original stage input",
       "shape": "run-start-observer-leaves-first-stage-input",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "identity" }
         ]
@@ -159,7 +159,7 @@
       "description": "onRunComplete observes the final transformed context",
       "shape": "run-complete-observer-leaves-result-intact",
       "input": {
-        "ctx": 10,
+        "context": 10,
         "stages": [
           { "shape": "add", "value": 5 }
         ]
@@ -173,7 +173,7 @@
       "description": "both bracket hooks are called even when the pipeline has no stages",
       "shape": "hooks-called-with-no-stages",
       "input": {
-        "ctx": 7,
+        "context": 7,
         "stages": []
       },
       "expected": {
@@ -200,7 +200,7 @@
       "description": "onStageStart fires for each stage in index order",
       "shape": "stage-start-order",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 },
           { "shape": "add", "value": 2 },
@@ -213,10 +213,10 @@
     },
     {
       "name": "stage-success-output",
-      "description": "onStageSuccess fires after each successful stage with the output ctx",
+      "description": "onStageSuccess fires after each successful stage with the output context",
       "shape": "stage-success-output",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 10 },
           { "shape": "mul", "value": 3 }
@@ -228,16 +228,16 @@
     },
     {
       "name": "stage-start-after-before-stage",
-      "description": "onStageStart sees the ctx returned by beforeStage",
+      "description": "onStageStart sees the context returned by beforeStage",
       "shape": "stage-start-after-before-stage",
       "input": {
-        "ctx": 5,
+        "context": 5,
         "stages": [
           { "shape": "identity" }
         ]
       },
       "expected": {
-        "stageStartCtx": 105
+        "stageStartContext": 105
       }
     },
     {
@@ -245,7 +245,7 @@
       "description": "onStageSuccess fires before afterStage",
       "shape": "stage-success-before-after-stage",
       "input": {
-        "ctx": 1,
+        "context": 1,
         "stages": [
           { "shape": "identity" }
         ]
@@ -262,7 +262,7 @@
       "description": "onStageError fires when a stage throws",
       "shape": "stage-error-on-throw",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 },
           { "shape": "throw", "message": "stage 1 fails" },
@@ -279,7 +279,7 @@
       "description": "onStageError does not fire for successful stages",
       "shape": "stage-error-not-on-success",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 },
           { "shape": "add", "value": 2 }
@@ -294,7 +294,7 @@
       "description": "onRunError fires when any stage throws",
       "shape": "run-error-on-throw",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "throw", "message": "fail" }
         ]
@@ -308,7 +308,7 @@
       "description": "onRunError receives the original stage error",
       "shape": "run-error-receives-original-stage-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "throw", "message": "original" }
         ]
@@ -322,7 +322,7 @@
       "description": "onStageError fires before onRunError",
       "shape": "stage-error-before-run-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "throw", "message": "fail" }
         ]
@@ -339,7 +339,7 @@
       "description": "stage hooks do not fire when the pipeline has no stages",
       "shape": "no-stage-hooks-with-empty-pipeline",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": []
       },
       "expected": {
@@ -352,7 +352,7 @@
       "description": "a throwing onStageStart observer leaves the stage result intact",
       "shape": "throwing-on-stage-start",
       "input": {
-        "ctx": 1,
+        "context": 1,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -366,7 +366,7 @@
       "description": "a throwing onStageSuccess observer leaves the stage result intact",
       "shape": "throwing-on-stage-success",
       "input": {
-        "ctx": 1,
+        "context": 1,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -380,7 +380,7 @@
       "description": "a throwing onStageError observer leaves the stage failure intact",
       "shape": "throwing-on-stage-error",
       "input": {
-        "ctx": 1,
+        "context": 1,
         "stages": [
           { "shape": "throw", "message": "stage failed" }
         ]
@@ -394,7 +394,7 @@
       "description": "a throwing onRunError observer leaves the stage failure intact",
       "shape": "throwing-on-run-error",
       "input": {
-        "ctx": 1,
+        "context": 1,
         "stages": [
           { "shape": "throw", "message": "stage failed" }
         ]
@@ -408,7 +408,7 @@
       "description": "a throw from beforeStage does not trigger onRunError",
       "shape": "before-stage-throw-does-not-trigger-run-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -423,7 +423,7 @@
       "description": "a throw from afterStage does not trigger onRunError",
       "shape": "after-stage-throw-does-not-trigger-run-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -438,7 +438,7 @@
       "description": "a throwing onRunStart observer leaves the stage result intact",
       "shape": "on-run-start-throw-does-not-trigger-run-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 }
         ]
@@ -453,7 +453,7 @@
       "description": "a throwing onRunComplete observer leaves the stage result intact",
       "shape": "on-run-complete-throw-does-not-trigger-run-error",
       "input": {
-        "ctx": 0,
+        "context": 0,
         "stages": [
           { "shape": "add", "value": 1 }
         ]

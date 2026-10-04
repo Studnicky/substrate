@@ -1,4 +1,4 @@
-import type { MutexInterface } from '@studnicky/mutex/interfaces';
+import type { MutexInterface } from '@studnicky/concurrency/interfaces';
 
 import { Clone, ImmutableSnapshot } from '@studnicky/json/browser';
 
@@ -7,6 +7,8 @@ import type { StoreInterface } from '../interfaces/StoreInterface.js';
 import type { StoreListenerInterface } from '../interfaces/StoreListenerInterface.js';
 import type { StoreOptionsInterface } from '../interfaces/StoreOptionsInterface.js';
 import type { StoreSynchronizationIdentityInterface } from '../interfaces/StoreSynchronizationIdentityInterface.js';
+
+import { StoreListenerMutationError } from '../errors/StoreListenerMutationError.js';
 
 export class StoreCore<TState> implements StoreInterface<TState> {
   readonly #initialState: TState;
@@ -107,7 +109,7 @@ export class StoreCore<TState> implements StoreInterface<TState> {
 
   #throwIfNotifying(): void {
     if (this.#notifying) {
-      throw new Error('Store mutations are not allowed from a Store listener');
+      throw new StoreListenerMutationError();
     }
   }
 }

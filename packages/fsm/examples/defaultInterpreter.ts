@@ -1,7 +1,9 @@
 /** defaultInterpreter — construct and drive an EffectInterpreter without optional identity settings. Run: npx tsx examples/defaultInterpreter.ts */
 
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
 
+import type { NodeStaticType } from '@studnicky/entity/types';
+
+import { SchemaNode } from '@studnicky/entity/types';
 import assert from 'node:assert/strict';
 
 import type { FsmStepInterface } from '../src/index.js';
@@ -17,9 +19,10 @@ namespace DemoStateEntity {
     },
     'required': ['variant'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'variant': SchemaNode.defineEnum({}, ['active', 'idle'] as const) }, ['variant'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 namespace DemoEventEntity {
@@ -30,9 +33,10 @@ namespace DemoEventEntity {
     },
     'required': ['type'],
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export type Type = FromSchema<typeof Schema>;
+  export const Node = SchemaNode.defineObject({ 'type': 'object' } as const, { 'type': SchemaNode.defineEnum({}, ['activate', 'deactivate'] as const) }, ['type'] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
 }
 
 class DemoMachine extends StateMachine<DemoStateEntity.Type, DemoEventEntity.Type> {
@@ -57,7 +61,7 @@ const machine: DemoMachine = DemoMachine.make();
 const interpreter: EffectInterpreter<DemoStateEntity.Type, DemoEventEntity.Type> = EffectInterpreter.create<
   DemoStateEntity.Type,
   DemoEventEntity.Type
->({ 'machine': machine });
+>(machine);
 interpreter.start();
 await interpreter.send({ 'type': 'activate' });
 interpreter.stop();

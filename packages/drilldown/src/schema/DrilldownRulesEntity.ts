@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
-import type { FromSchema, JSONSchema } from 'json-schema-to-ts';
+import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/node';
+import { EntityCompiler } from '@studnicky/entity/browser';
 
+import { DRILLDOWN_DEFAULTS } from '../constants/index.js';
 import { AlphabeticRangeEntity } from '../entities/AlphabeticRangeEntity.js';
 import { CidrRangeEntity } from '../entities/CidrRangeEntity.js';
 import { DateRangeEntity } from '../entities/DateRangeEntity.js';
@@ -11,184 +12,95 @@ import { RangeEntity } from '../entities/RangeEntity.js';
 import { SemverRangeEntity } from '../entities/SemverRangeEntity.js';
 import { SequentialRangeEntity } from '../entities/SequentialRangeEntity.js';
 import { SortRuleEntity } from '../entities/SortRuleEntity.js';
+import { drilldownRulesNodes } from './DrilldownRulesNodes.js';
 
-namespace DrilldownRuleValueEntities {
-  const selfPointerKey = '$ref';
-  const nestedRules: { 'title': 'DrilldownNestedRules' } = { 'title': 'DrilldownNestedRules' };
+const alphabeticGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { ...AlphabeticRangeEntity.Schema.properties, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'alphabetic' } },
+  'required': [...AlphabeticRangeEntity.Schema.required, 'type'],
+  'type': 'object'
+} as const;
 
-  Object.defineProperty(nestedRules, selfPointerKey, { 'enumerable': true, 'value': '#' });
+const cidrGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { ...CidrRangeEntity.Schema.properties, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'cidr' } },
+  'required': [...CidrRangeEntity.Schema.required, 'type'],
+  'type': 'object'
+} as const;
 
-  export namespace AlphabeticGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': { ...AlphabeticRangeEntity.Schema.properties, 'rules': nestedRules, 'type': { 'const': 'alphabetic' } },
-      'required': [...AlphabeticRangeEntity.Schema.required, 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
+const dateGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { ...DateRangeEntity.Schema.properties, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'date' } },
+  'required': [...DateRangeEntity.Schema.required, 'type'],
+  'type': 'object'
+} as const;
 
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
+const rangeGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { ...RangeEntity.Schema.properties, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'range' } },
+  'required': [...RangeEntity.Schema.required, 'type'],
+  'type': 'object'
+} as const;
 
-  export namespace CidrGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': { ...CidrRangeEntity.Schema.properties, 'rules': nestedRules, 'type': { 'const': 'cidr' } },
-      'required': [...CidrRangeEntity.Schema.required, 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
+const semverGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { ...SemverRangeEntity.Schema.properties, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'semver' } },
+  'required': [...SemverRangeEntity.Schema.required, 'type'],
+  'type': 'object'
+} as const;
 
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
+const sequentialGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'sequential': SequentialRangeEntity.Schema, 'type': { 'const': 'sequential' } },
+  'required': ['sequential', 'type'],
+  'type': 'object'
+} as const;
 
-  export namespace DateGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': { ...DateRangeEntity.Schema.properties, 'rules': nestedRules, 'type': { 'const': 'date' } },
-      'required': [...DateRangeEntity.Schema.required, 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
+const stringGroupValueSchema = {
+  'additionalProperties': false,
+  'properties': { 'match': { 'type': 'string' }, 'rules': { '$ref': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId, 'title': 'DrilldownNestedRules' }, 'type': { 'const': 'string' } },
+  'required': ['match', 'type'],
+  'type': 'object'
+} as const;
 
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
+const groupValueSchema = {
+  'oneOf': [
+    alphabeticGroupValueSchema, cidrGroupValueSchema, dateGroupValueSchema, rangeGroupValueSchema,
+    semverGroupValueSchema, sequentialGroupValueSchema, stringGroupValueSchema
+  ]
+} as const;
 
-  export namespace RangeGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': { ...RangeEntity.Schema.properties, 'rules': nestedRules, 'type': { 'const': 'range' } },
-      'required': [...RangeEntity.Schema.required, 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
+const groupRuleSchema = {
+  'additionalProperties': false,
+  'properties': {
+    'groupOutliers': { 'type': 'boolean' },
+    'property': { 'type': 'string' },
+    'values': { 'items': groupValueSchema, 'type': 'array' }
+  },
+  'required': ['property'],
+  'type': 'object'
+} as const;
 
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
-
-  export namespace SemverGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': { ...SemverRangeEntity.Schema.properties, 'rules': nestedRules, 'type': { 'const': 'semver' } },
-      'required': [...SemverRangeEntity.Schema.required, 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
-
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
-
-  export namespace SequentialGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': {
-        'rules': nestedRules,
-        'sequential': SequentialRangeEntity.Schema,
-        'type': { 'const': 'sequential' }
-      },
-      'required': ['sequential', 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
-
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
-
-  export namespace StringGroupValueEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': {
-        'match': { 'type': 'string' },
-        'rules': nestedRules,
-        'type': { 'const': 'string' }
-      },
-      'required': ['match', 'type'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
-
-    export interface Type extends FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    > {}
-  }
-
-  export namespace GroupValueEntity {
-    export const Schema = {
-      'oneOf': [
-        AlphabeticGroupValueEntity.Schema,
-        CidrGroupValueEntity.Schema,
-        DateGroupValueEntity.Schema,
-        RangeGroupValueEntity.Schema,
-        SemverGroupValueEntity.Schema,
-        SequentialGroupValueEntity.Schema,
-        StringGroupValueEntity.Schema
-      ]
-    } as const satisfies JSONSchema;
-
-    export type Type = FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    >;
-  }
-
-  export namespace GroupRuleEntity {
-    export const Schema = {
-      'additionalProperties': false,
-      'properties': {
-        'groupOutliers': { 'type': 'boolean' },
-        'property': { 'type': 'string' },
-        'values': { 'items': GroupValueEntity.Schema, 'type': 'array' }
-      },
-      'required': ['property'],
-      'type': 'object'
-    } as const satisfies JSONSchema;
-
-    export type Type = FromSchema<
-      typeof Schema,
-      { 'deserialize': [{ 'output': DrilldownRulesEntity.Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-    >;
-  }
-
-}
-
-/** Self-referential schema-derived rules for a drilldown operation. */
+/** Self-referential schema-derived rules for a drilldown operation. Each group-value variant is its own flat entity in `entities/` — see `AlphabeticGroupValueEntity.ts` and siblings — sharing this file's `Node` through `drilldownRulesNodes` and this file's `$id` through `remoteSchemas`. */
+/** `group` can't compose `GroupRuleEntity.Schema`: a value cycle survives past the `$id` extraction — `GroupRuleEntity.ts` needs `DrilldownRulesRemoteSchemas.ts`, whose map needs this `.Schema` fully built (proven: `TypeError: Cannot read properties of undefined (reading 'Schema')` at `DrilldownRulesRemoteSchemas.ts:4`). Unbreakable by restructuring while `compile()` runs eagerly at import; resolves once entity compilation is lazy (queued post-v13). Seven local schema literals below are a deliberate second source until then. */
 export namespace DrilldownRulesEntity {
-  export import AlphabeticGroupValueEntity = DrilldownRuleValueEntities.AlphabeticGroupValueEntity;
-  export import CidrGroupValueEntity = DrilldownRuleValueEntities.CidrGroupValueEntity;
-  export import DateGroupValueEntity = DrilldownRuleValueEntities.DateGroupValueEntity;
-  export import RangeGroupValueEntity = DrilldownRuleValueEntities.RangeGroupValueEntity;
-  export import SemverGroupValueEntity = DrilldownRuleValueEntities.SemverGroupValueEntity;
-  export import SequentialGroupValueEntity = DrilldownRuleValueEntities.SequentialGroupValueEntity;
-  export import StringGroupValueEntity = DrilldownRuleValueEntities.StringGroupValueEntity;
-  export import GroupValueEntity = DrilldownRuleValueEntities.GroupValueEntity;
-  export import GroupRuleEntity = DrilldownRuleValueEntities.GroupRuleEntity;
   export const Schema = {
-    '$id': 'urn:studnicky:drilldown:rules',
+    '$id': DRILLDOWN_DEFAULTS.drilldownRulesSchemaId,
     'additionalProperties': false,
     'properties': {
       'filter': { 'items': FilterRuleEntity.Schema, 'type': 'array' },
-      'group': { 'items': GroupRuleEntity.Schema, 'type': 'array' },
+      'group': { 'items': groupRuleSchema, 'type': 'array' },
       'sort': { 'items': SortRuleEntity.Schema, 'type': 'array' }
     },
     'type': 'object'
-  } as const satisfies JSONSchema;
+  } as const;
 
-  export interface Type extends FromSchema<
-    typeof Schema,
-    { 'deserialize': [{ 'output': Type; 'pattern': { 'title': 'DrilldownNestedRules' } }] }
-  > {}
+  export const Node = drilldownRulesNodes.node;
+  export type Type = NodeStaticType<typeof Node>;
+
+  /** Shared with `DrillDownConfigEntity`'s own `filter` property — both compose the same three variants. */
+  export const FilterRuleNode = drilldownRulesNodes.filterSort.filterRuleNode;
+  export const SortRuleNode = drilldownRulesNodes.filterSort.sortRuleNode;
 
   export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
   export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);

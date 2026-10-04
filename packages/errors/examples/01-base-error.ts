@@ -1,11 +1,13 @@
+import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 /** 01-base-error — BaseError subclass with code, timestamp, retryable, toJSON(), toUserMessage(). Run: npx tsx packages/errors/examples/01-base-error.ts */
 
 import { RuntimeError } from '../src/errors/RuntimeError.js';
 // #region usage
-import { BaseError } from '../src/index.js';
 
 class AppError extends BaseError {
+  public override readonly name: string = 'AppError';
+
   public constructor(argumentList: { 'cause'?: Error; 'code': string; 'message': string; 'retryable': boolean }) {
     super(argumentList);
   }

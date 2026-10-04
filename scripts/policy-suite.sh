@@ -34,11 +34,15 @@ run_sync_ancestry_check() {
 }
 
 run_ci_secrets_check() {
-  node .github/scripts/check-ci-secrets.mjs
+  node .github/scripts/check-ci-secrets.ts
 }
 
 run_config_schema_check() {
-  node scripts/config-schema.mjs --check
+  node scripts/config-schema.ts --check
+}
+
+run_project_references_check() {
+  node scripts/check-project-references.ts
 }
 
 case "${1:-}" in
@@ -62,6 +66,9 @@ case "${1:-}" in
     ;;
   config-schema)
     run_config_schema_check
+    ;;
+  project-references)
+    run_project_references_check
     ;;
   *)
     echo "policy-suite: unknown check '${1:-}'" >&2

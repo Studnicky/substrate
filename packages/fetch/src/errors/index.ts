@@ -1,10 +1,16 @@
 export { AbortError } from './AbortError.js';
+export { BodySerializationError } from './BodySerializationError.js';
 export { BodyTimeoutError } from './BodyTimeoutError.js';
 export { ConfigurationError } from './ConfigurationError.js';
 export { ConnectTimeoutError } from './ConnectTimeoutError.js';
+export { ConstructionError } from './ConstructionError.js';
+export { DispatcherShutdownError } from './DispatcherShutdownError.js';
 export { FetchBaseError } from './FetchBaseError.js';
 export { HeadersTimeoutError } from './HeadersTimeoutError.js';
 export { HTTPError } from './HTTPError.js';
+export { InvalidUrlError } from './InvalidUrlError.js';
+export { QueryEncodingError } from './QueryEncodingError.js';
+export { RequestFailedError } from './RequestFailedError.js';
 export { SocketError } from './SocketError.js';
 export { SocketExhaustionError } from './SocketExhaustionError.js';
 export { TimeoutError } from './TimeoutError.js';

@@ -358,26 +358,57 @@
             },
             {
               "shape": "array",
-              "left": [1, 2, 3],
-              "right": [1, 2, 3],
+              "left": [
+                1,
+                2,
+                3
+              ],
+              "right": [
+                1,
+                2,
+                3
+              ],
               "equal": true
             },
             {
               "shape": "array",
-              "left": [1, 2],
-              "right": [1, 2, 3],
+              "left": [
+                1,
+                2
+              ],
+              "right": [
+                1,
+                2,
+                3
+              ],
               "equal": false
             },
             {
               "shape": "object",
-              "left": { "a": { "b": 1 } },
-              "right": { "a": { "b": 1 } },
+              "left": {
+                "a": {
+                  "b": 1
+                }
+              },
+              "right": {
+                "a": {
+                  "b": 1
+                }
+              },
               "equal": true
             },
             {
               "shape": "object",
-              "left": { "a": { "b": 1 } },
-              "right": { "a": { "b": 2 } },
+              "left": {
+                "a": {
+                  "b": 1
+                }
+              },
+              "right": {
+                "a": {
+                  "b": 2
+                }
+              },
               "equal": false
             },
             {
@@ -394,14 +425,32 @@
             },
             {
               "shape": "set",
-              "left": [1, 2, 3],
-              "right": [1, 2, 3],
+              "left": [
+                1,
+                2,
+                3
+              ],
+              "right": [
+                1,
+                2,
+                3
+              ],
               "equal": true
             },
             {
               "shape": "map",
-              "left": [["a", 1]],
-              "right": [["a", 1]],
+              "left": [
+                [
+                  "a",
+                  1
+                ]
+              ],
+              "right": [
+                [
+                  "a",
+                  1
+                ]
+              ],
               "equal": true
             },
             {
@@ -541,7 +590,7 @@
         }
       },
       "expected": {
-        "sameRef": true
+        "sameReference": true
       }
     },
     {
@@ -659,216 +708,6 @@
       "expected": {
         "childFrozen": true,
         "rootFrozen": false
-      }
-    },
-    {
-      "name": "json-hash-hex",
-      "description": "Hash.value returns an 8-char hex string",
-      "shape": "hash-hex",
-      "input": {
-        "json": {
-          "value": {
-            "a": 1
-          }
-        }
-      },
-      "expected": {
-        "hexLength": 8
-      }
-    },
-    {
-      "name": "json-hash-identical",
-      "description": "Hash.value produces the same hash for identical values",
-      "shape": "hash-identical",
-      "input": {
-        "json": {
-          "values": [
-            {
-              "a": 1
-            },
-            {
-              "a": 1
-            }
-          ]
-        }
-      },
-      "expected": {
-        "sameHash": true
-      }
-    },
-    {
-      "name": "json-hash-order",
-      "description": "Hash.value is insensitive to object and set/map insertion order",
-      "shape": "hash-order",
-      "input": {
-        "json": {
-          "values": [
-            {
-              "a": 1,
-              "b": 2
-            },
-            {
-              "b": 2,
-              "a": 1
-            }
-          ]
-        }
-      },
-      "expected": {
-        "sameHash": true
-      }
-    },
-    {
-      "name": "json-hash-different",
-      "description": "Hash.value produces different hashes for different values",
-      "shape": "hash-different",
-      "input": {
-        "json": {
-          "values": [
-            {
-              "a": 1
-            },
-            {
-              "a": 2
-            }
-          ]
-        }
-      },
-      "expected": {
-        "sameHash": false
-      }
-    },
-    {
-      "name": "json-hash-primitive",
-      "description": "Hash.value returns a string for primitive inputs",
-      "shape": "hash-primitive",
-      "input": {
-        "json": {
-          "value": 42
-        }
-      },
-      "expected": {
-        "stringHash": true
-      }
-    },
-    {
-      "name": "json-hash-nested",
-      "description": "Hash.value handles nested structures",
-      "shape": "hash-nested",
-      "input": {
-        "json": {
-          "value": {
-            "a": {
-              "b": [
-                1,
-                2,
-                3
-              ]
-            }
-          }
-        }
-      },
-      "expected": {
-        "hashable": true
-      }
-    },
-    {
-      "name": "json-hash-distinct-shapes",
-      "description": "Hash.value distinguishes JSON value shapes",
-      "shape": "hash-distinct-shapes",
-      "input": {
-        "json": {
-          "values": [
-            "array",
-            "false",
-            "null",
-            "number",
-            "object",
-            "string",
-            "true"
-          ]
-        }
-      },
-      "expected": {
-        "distinct": true
-      }
-    },
-    {
-      "name": "json-structural-hash-metadata",
-      "description": "StructuralHash ignores metadata-only schema differences",
-      "shape": "structural-hash-metadata",
-      "input": {
-        "json": {
-          "base": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "metadataVariant": {
-            "$id": "https://example.com/schema.json",
-            "description": "A schema with the same structure",
-            "title": "My Schema",
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              }
-            }
-          }
-        }
-      },
-      "expected": {
-        "sameHash": true
-      }
-    },
-    {
-      "name": "json-structural-hash-different",
-      "description": "StructuralHash distinguishes structurally different schemas",
-      "shape": "structural-hash-different",
-      "input": {
-        "json": {
-          "base": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "variant": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "number"
-              }
-            }
-          }
-        }
-      },
-      "expected": {
-        "sameHash": false
-      }
-    },
-    {
-      "name": "json-hash-edge-values",
-      "description": "Hash.value distinguishes JSON primitive value shapes",
-      "shape": "hash-edge-values",
-      "input": {
-        "json": {
-          "values": [
-            "true",
-            "false",
-            "null",
-            "string"
-          ]
-        }
-      },
-      "expected": {
-        "booleanDistinct": true,
-        "nullDistinctFromString": true
       }
     },
     {

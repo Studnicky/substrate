@@ -1,296 +1,211 @@
-import { RuntimeError } from '@studnicky/errors/node';
 import assert from 'node:assert/strict';
-import {
-  after, before, describe, it
-} from 'node:test';
 
-import {
-  FetchClient,
-  TimeoutError
-} from '../../../src/node/index.js';
-import {
-  startTestServer, stopTestServer
-} from '../../helpers/test-server/index.js';
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import type { ClientConfigInterface } from '../../../src/interfaces/ClientConfigInterface.js';
+import type { FetchOptionsInterface } from '../../../src/interfaces/FetchOptionsInterface.js';
+import type { BoundedJsonValueEntity } from '../../helpers/entities/BoundedJsonValueEntity.js';
 
-type RuntimeTag =
-  | { shape: 'infinity' }
-  | { shape: 'nan' }
-  | { shape: 'undefined' };
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { FetchClientConfiguration } from '../../../src/modules/FetchClientConfiguration.js';
+import { FetchClient, TimeoutError } from '../../../src/node/index.js';
+import { FetchTestError } from '../../helpers/FetchTestError.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { RuntimeValueMaterializer } from '../../helpers/RuntimeValueMaterializer.js';
+import { TestServer } from '../../helpers/test-server/TestServer.js';
+import { TimeoutErrorsScenarioCaseEntity } from './entities/TimeoutErrorsScenarioCaseEntity.js';
+import scenarioGroups from './timeout.errors.scenarios.json' with { 'type': 'json' };
 
-type RuntimeValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RuntimeTag
-  | RuntimeValue[]
-  | { [key: string]: RuntimeValue };
+class TimeoutErrorsRunners {
+  static 'create-ok'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'create-ok'>): void {
+    using server = TestServer.start();
+    const config = TimeoutErrorsRunners.createConfig(scenarioCase.input.clientConfig, server.url);
+    assert.doesNotThrow(() => {
+      FetchClientConfiguration.intake(config);
+    });
+  }
 
-type RequestSignal =
-  | { delayMs: number; shape: 'abort-after-ms' }
-  | { shape: 'already-aborted' };
+  static 'create-throws'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'create-throws'>): void {
+    using server = TestServer.start();
+    const config = TimeoutErrorsRunners.createConfig(scenarioCase.input.clientConfig, server.url);
+    const caught = RejectionProbe.captureSync(() => {
+      const result = FetchClientConfiguration.intake(config);
+      return result;
+    });
+    assert.ok(caught instanceof Error);
+    TimeoutErrorsRunners.assertMessageIncludes(caught, scenarioCase.expected.messageIncludes);
+  }
 
-type RequestDefinition = {
-  signal?: RequestSignal;
-  timeout?: RuntimeValue;
-  url: string;
-};
+  static async 'parallel'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'parallel'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = TimeoutErrorsRunners.createClient(scenarioCase.input.clientConfig, server.url);
+    const { steps } = scenarioCase.expected;
+    const pending: Promise<Response>[] = [];
+    for (let index = 0; index < steps.length; index += 1) {
+      const step = steps[index];
+      if (step !== undefined) {
+        pending.push(TimeoutErrorsRunners.invoke(clientInstance, step.request, server.url));
+      }
+    }
+    const settled = await Promise.allSettled(pending);
+    for (let index = 0; index < steps.length; index += 1) {
+      const step = steps[index];
+      const outcome = settled[index];
+      if (step !== undefined && outcome !== undefined) {
+        TimeoutErrorsRunners.assertOutcome(outcome, step.expect);
+      }
+    }
+  }
 
-type RequestExpectation =
-  | { shape: 'rejects'; error: 'AbortError' | 'Error' | 'TimeoutError'; messageIncludes?: readonly string[]; timeoutMs?: number; urlIncludes?: string }
-  | { shape: 'status'; status: number };
+  static async 'rejects'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'rejects'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = TimeoutErrorsRunners.createClient(scenarioCase.input.clientConfig, server.url);
+    const caught = await RejectionProbe.capture(async () => {
+      await TimeoutErrorsRunners.invoke(clientInstance, scenarioCase.input.request, server.url);
+    });
+    assert.ok(caught instanceof Error);
+    TimeoutErrorsRunners.assertRejected(caught, scenarioCase.expected);
+  }
 
-type SequencedStep = {
-  expect: RequestExpectation;
-  request: RequestDefinition;
-};
+  static async 'sequence'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'sequence'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = TimeoutErrorsRunners.createClient(scenarioCase.input.clientConfig, server.url);
+    const { steps } = scenarioCase.expected;
+    for (let index = 0; index < steps.length; index += 1) {
+      const step = steps[index];
+      if (step !== undefined) {
+        const settled = await Promise.allSettled([TimeoutErrorsRunners.invoke(clientInstance, step.request, server.url)]);
+        const outcome = settled[0];
+        assert.ok(outcome !== undefined, 'the request settles');
+        TimeoutErrorsRunners.assertOutcome(outcome, step.expect);
+      }
+    }
+  }
 
-type ScenarioCase = {
-  description: string;
-  expected:
-    | { shape: 'create-ok' }
-    | { shape: 'create-throws'; messageIncludes: readonly string[] }
-    | RequestExpectation
-    | { shape: 'parallel'; steps: readonly SequencedStep[] }
-    | { shape: 'sequence'; steps: readonly SequencedStep[] };
-  input: {
-    clientConfig?: {
-      baseURL?: string;
-      timeout?: RuntimeValue;
+  static async 'status'(scenarioCase: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'status'>): Promise<void> {
+    using server = TestServer.start();
+    const clientInstance = TimeoutErrorsRunners.createClient(scenarioCase.input.clientConfig, server.url);
+    const response = await TimeoutErrorsRunners.invoke(clientInstance, scenarioCase.input.request, server.url);
+    assert.strictEqual(response.status, scenarioCase.expected.status);
+  }
+
+  private static assertMessageIncludes(error: Error, fragments: readonly string[] | undefined): void {
+    const expectedFragments = fragments ?? [];
+    for (let index = 0; index < expectedFragments.length; index += 1) {
+      assert.ok(error.message.toLowerCase().includes((expectedFragments[index] ?? '').toLowerCase()));
+    }
+  }
+
+  private static assertOutcome(
+    settled: PromiseSettledResult<Response>,
+    expectation: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'sequence'>['expected']['steps'][number]['expect']
+  ): void {
+    if (expectation.shape === 'status') {
+      const detail = settled.status === 'rejected' ? String(settled.reason) : 'response';
+      assert.ok(settled.status === 'fulfilled', `expected successful response, received ${detail}`);
+      assert.strictEqual(settled.value.status, expectation.status);
+      return;
+    }
+
+    assert.ok(settled.status === 'rejected', 'expected request rejection');
+    const reason: unknown = settled.reason;
+    assert.ok(reason instanceof Error);
+    TimeoutErrorsRunners.assertRejected(reason, expectation);
+  }
+
+  private static assertRejected(error: Error, expectation: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'rejects'>['expected']): void {
+    if (expectation.error === 'TimeoutError') {
+      assert.ok(error instanceof TimeoutError);
+      assert.strictEqual(error.name, 'TimeoutError');
+      if (expectation.timeoutMs !== undefined) {
+        assert.strictEqual(error.timeoutMs, expectation.timeoutMs);
+      }
+    } else if (expectation.error === 'AbortError') {
+      assert.strictEqual(error.name, 'AbortError');
+    } else {
+      assert.ok(error.name.includes('Error'));
+    }
+
+    TimeoutErrorsRunners.assertMessageIncludes(error, expectation.messageIncludes);
+
+    if (expectation.urlIncludes !== undefined && 'url' in error && typeof error.url === 'string') {
+      assert.ok(error.url.includes(expectation.urlIncludes));
+    }
+  }
+
+  private static createClient(
+    clientConfig: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'status'>['input']['clientConfig'],
+    serverUrl: string
+  ): FetchClient {
+    const timeout = TimeoutErrorsRunners.materializeTimeout(clientConfig?.timeout, serverUrl);
+    const baseURL = clientConfig?.baseURL;
+    const config: ClientConfigInterface = {
+      ...(baseURL === undefined ? {} : { 'baseURL': baseURL.replaceAll('__TEST_URL__', serverUrl) }),
+      ...(timeout === undefined ? {} : { 'timeout': timeout })
     };
-    request?: RequestDefinition;
-  };
-  name: string;
-};
-
-import scenarioGroups from './timeout.errors.scenarios.json' with { type: 'json' };
-
-let testUrl: string;
-
-void before(async () => {
-  testUrl = await startTestServer();
-});
-
-void after(async () => {
-  await stopTestServer();
-});
-
-function isRuntimeTag(value: RuntimeValue): value is RuntimeTag {
-  return typeof value === 'object' && value !== null && 'shape' in value;
-}
-
-function materializeRuntimeValue(value: RuntimeValue): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => { return materializeRuntimeValue(item); });
+    const clientInstance = FetchClient.create(config);
+    return clientInstance;
   }
 
-  if (typeof value === 'string') {
-    return value.replaceAll('__TEST_URL__', testUrl);
+  private static createConfig(
+    clientConfig: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'create-ok'>['input']['clientConfig'],
+    serverUrl: string
+  ): { 'baseURL'?: string; 'timeout'?: unknown } {
+    const baseURL = clientConfig?.baseURL;
+    const timeout = clientConfig?.timeout;
+    const config = {
+      ...(baseURL === undefined ? {} : { 'baseURL': baseURL }),
+      ...(timeout === undefined ? {} : { 'timeout': RuntimeValueMaterializer.materializeWithServer(timeout, serverUrl) })
+    };
+    return config;
   }
 
-  if (value !== null && typeof value === 'object') {
-    if (isRuntimeTag(value)) {
-      if (value.shape === 'undefined') {
-        return undefined;
-      }
-      if (value.shape === 'infinity') {
-        return Number.POSITIVE_INFINITY;
-      }
-      if (value.shape === 'nan') {
-        return Number.NaN;
-      }
-      const exhaustiveCheck: never = value;
-      throw RuntimeError.create(`Unknown runtime tag: ${JSON.stringify(exhaustiveCheck)}`);
+  private static async invoke(
+    clientInstance: FetchClient,
+    request: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'status'>['input']['request'],
+    serverUrl: string
+  ): Promise<Response> {
+    const signal = TimeoutErrorsRunners.materializeSignal(request.signal);
+    const timeout = TimeoutErrorsRunners.materializeTimeout(request.timeout, serverUrl);
+    const options: FetchOptionsInterface = {
+      ...(timeout === undefined ? {} : { 'timeout': timeout }),
+      ...(signal === undefined ? {} : { 'signal': signal })
+    };
+    const response = await clientInstance.get(request.url.replaceAll('__TEST_URL__', serverUrl), options);
+    return response;
+  }
+
+  private static materializeSignal(
+    signal: ScenarioCaseOfType<TimeoutErrorsScenarioCaseEntity.Type, 'status'>['input']['request']['signal']
+  ): AbortSignal | undefined {
+    if (signal === undefined) {
+      return undefined;
     }
 
-    const materialized: Record<string, unknown> = {};
-    for (const [key, entry] of Object.entries(value)) {
-      materialized[key] = materializeRuntimeValue(entry as RuntimeValue);
-    }
-    return materialized;
-  }
-
-  return value;
-}
-
-function materializeSignal(signal: RequestSignal | undefined): AbortSignal | undefined {
-  if (signal === undefined) {
-    return undefined;
-  }
-
-  if (signal.shape === 'already-aborted') {
     const controller = new AbortController();
-    controller.abort();
+    if (signal.shape === 'already-aborted') {
+      controller.abort(new FetchTestError('the signal is aborted before the request starts'));
+      return controller.signal;
+    }
+
+    setTimeout(() => {
+      controller.abort(new FetchTestError('the signal aborts while the request is in flight'));
+    }, signal.delayMs);
     return controller.signal;
   }
 
-  const controller = new AbortController();
-  setTimeout(() => {
-    controller.abort();
-  }, signal.delayMs);
-  return controller.signal;
-}
-
-function materializeRequest(request: RequestDefinition): {
-  options: {
-    signal?: AbortSignal;
-    timeout?: unknown;
-  };
-  url: string;
-} {
-  const signal = materializeSignal(request.signal);
-  const options: {
-    signal?: AbortSignal;
-    timeout?: unknown;
-  } = {};
-
-  if (request.timeout !== undefined) {
-    options.timeout = materializeRuntimeValue(request.timeout);
-  }
-
-  if (signal !== undefined) {
-    options.signal = signal;
-  }
-
-  return {
-    options,
-    url: materializeRuntimeValue(request.url) as string
-  };
-}
-
-async function invokeRequest(clientInstance: ReturnType<typeof FetchClient.create>, request: RequestDefinition): Promise<Response> {
-  const materialized = materializeRequest(request);
-  return await clientInstance.get(materialized.url, materialized.options as never);
-}
-
-async function inspectRequest(clientInstance: ReturnType<typeof FetchClient.create>, request: RequestDefinition): Promise<
-  | { ok: true; response: Response }
-  | { error: unknown; ok: false }
-> {
-  try {
-    return {
-      ok: true,
-      response: await invokeRequest(clientInstance, request)
-    };
-  } catch (error) {
-    return {
-      error,
-      ok: false
-    };
-  }
-}
-
-function assertRejectedExpectation(error: Error, expectation: Extract<RequestExpectation, { shape: 'rejects' }>): void {
-  assert.ok(error instanceof Error);
-
-  if (expectation.error === 'TimeoutError') {
-    assert.ok(error instanceof TimeoutError);
-    assert.strictEqual(error.name, 'TimeoutError');
-    if (expectation.timeoutMs !== undefined && error instanceof TimeoutError) {
-      assert.strictEqual(error.timeoutMs, expectation.timeoutMs);
+  private static materializeTimeout(value: BoundedJsonValueEntity.Type | undefined, serverUrl: string): number | undefined {
+    if (value === undefined) {
+      return undefined;
     }
-  } else if (expectation.error === 'AbortError') {
-    assert.strictEqual(error.name, 'AbortError');
-  } else {
-    assert.ok(error.name.includes('Error'));
-  }
-
-  for (const fragment of expectation.messageIncludes ?? []) {
-    assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
-  }
-
-  if (expectation.urlIncludes !== undefined && 'url' in error && typeof error.url === 'string') {
-    assert.ok(error.url.includes(expectation.urlIncludes));
+    const materialized = RuntimeValueMaterializer.materializeWithServer(value, serverUrl);
+    assert.ok(typeof materialized === 'number', 'timeout materializes to a number for a live FetchClient');
+    return materialized;
   }
 }
 
-async function assertRequestExpectation(
-  result: Awaited<ReturnType<typeof inspectRequest>>,
-  expectation: RequestExpectation
-): Promise<void> {
-  if (expectation.shape === 'status') {
-    assert.ok(result.ok, `expected successful response, received ${result.ok ? 'response' : result.error}`);
-    assert.strictEqual(result.response.status, expectation.status);
-    return;
-  }
-
-  assert.ok(!result.ok, 'expected request rejection');
-  assert.ok(result.error instanceof Error);
-  assertRejectedExpectation(result.error, expectation);
-}
-
-async function runRequestGroup(
-  clientInstance: ReturnType<typeof FetchClient.create>,
-  steps: readonly SequencedStep[],
-  mode: 'parallel' | 'sequence'
-): Promise<void> {
-  if (mode === 'parallel') {
-    const results = await Promise.all(steps.map(async (step) => {
-      return {
-        expectation: step.expect,
-        outcome: await inspectRequest(clientInstance, step.request)
-      };
-    }));
-
-    for (const result of results) {
-      await assertRequestExpectation(result.outcome, result.expectation);
-    }
-    return;
-  }
-
-  for (const step of steps) {
-    await assertRequestExpectation(await inspectRequest(clientInstance, step.request), step.expect);
-  }
-}
-
-async function runCase(scenarioCase: ScenarioCase): Promise<void> {
-  const { expected } = scenarioCase;
-  const clientConfig = {
-    ...(scenarioCase.input.clientConfig?.baseURL === undefined ? {} : {
-      baseURL: materializeRuntimeValue(scenarioCase.input.clientConfig.baseURL) as never
-    }),
-    ...(scenarioCase.input.clientConfig?.timeout === undefined ? {} : {
-      timeout: materializeRuntimeValue(scenarioCase.input.clientConfig.timeout) as never
-    })
-  };
-
-  if (expected.shape === 'create-throws') {
-    assert.throws(() => {
-      FetchClient.create(clientConfig as never);
-    }, (error: Error) => {
-      for (const fragment of expected.messageIncludes) {
-        assert.ok(error.message.toLowerCase().includes(fragment.toLowerCase()));
-      }
-      return true;
-    });
-    return;
-  }
-
-  if (expected.shape === 'create-ok') {
-    assert.doesNotThrow(() => {
-      FetchClient.create(clientConfig as never);
-    });
-    return;
-  }
-
-  const clientInstance = FetchClient.create(clientConfig as never);
-
-  if (expected.shape === 'sequence' || expected.shape === 'parallel') {
-    await runRequestGroup(clientInstance, expected.steps, expected.shape);
-    return;
-  }
-
-  if (scenarioCase.input.request === undefined) {
-    assert.fail('scenario request is required for request expectations');
-  }
-
-  await assertRequestExpectation(await inspectRequest(clientInstance, scenarioCase.input.request), expected);
-}
-
-void describe('Timeout Error Scenarios', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': TimeoutErrorsScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Timeout Error Scenarios',
+  'runners': TimeoutErrorsRunners
 });

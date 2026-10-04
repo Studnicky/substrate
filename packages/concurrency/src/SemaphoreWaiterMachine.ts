@@ -1,6 +1,6 @@
-import type { FsmStepInterface } from '@studnicky/fsm/node';
+import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/node';
+import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
 
 import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
 import type { SemaphoreWaiterTransitionEventEntity } from './entities/SemaphoreWaiterTransitionEventEntity.js';
@@ -21,8 +21,8 @@ import type { SemaphoreWaiterTransitionEventEntity } from './entities/SemaphoreW
  * permit. `cancelled` is terminal; granted waiters leave the queue.
  *
  * Stateless and shared: `Semaphore` keeps the actual per-waiter state on the
- * waiter object itself and calls `transition()` once per change, mirroring
- * `@studnicky/mutex`'s `MutexKeyMachine`.
+ * waiter object itself and calls `transition()` once per change, using the
+ * same explicit lifecycle-machine pattern as the package's keyed mutex.
  */
 export class SemaphoreWaiterMachine extends StateMachine<SemaphoreWaiterStateEntity.Type, SemaphoreWaiterTransitionEventEntity.Type, never> {
   constructor() {

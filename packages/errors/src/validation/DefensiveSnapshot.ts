@@ -1,22 +1,23 @@
 import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
-import { Predicates } from '@studnicky/types/node';
+import { JsonObject, Predicates } from '@studnicky/types/browser';
 
 /** Builds detached projections of arrays and plain records without cloning collaborator instances. */
 export class DefensiveSnapshot {
   private constructor() {}
 
   static record(value: Readonly<Record<string, unknown>>): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
     const keys = Object.keys(value);
     const length = keys.length;
+    const entries = new Map<string, unknown>();
     for (let index = 0; index < length; index += 1) {
       const key = keys[index];
       if (key === undefined) {
         continue;
       }
-      Reflect.set(result, key, DefensiveSnapshot.value(Reflect.get(value, key)));
+      entries.set(key, DefensiveSnapshot.value(Reflect.get(value, key)));
     }
+    const result = JsonObject.fromEntries(entries);
     return result;
   }
 
@@ -38,16 +39,17 @@ export class DefensiveSnapshot {
       return value;
     }
 
-    const result: Record<string, unknown> = {};
     const keys = Object.keys(value);
     const length = keys.length;
+    const entries = new Map<string, unknown>();
     for (let index = 0; index < length; index += 1) {
       const key = keys[index];
       if (key === undefined) {
         continue;
       }
-      Reflect.set(result, key, DefensiveSnapshot.value(Reflect.get(value, key)));
+      entries.set(key, DefensiveSnapshot.value(Reflect.get(value, key)));
     }
+    const result = JsonObject.fromEntries(entries);
     return result;
   }
 }

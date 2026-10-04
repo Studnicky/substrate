@@ -1,38 +1,41 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-
 import ts from 'typescript';
 
 import type { ProjectHostInterface } from '../../../src/interfaces/ProjectHostInterface.js';
 
 import { PackageBoundary } from '../../../src/rules/shared/PackageBoundary.js';
 
-const browserFiles = new Map<string, string>([
-  ['/browser-project/package.json', JSON.stringify({
-    dependencies: { '@fixture/contracts': '1.0.0' },
-    name: 'browser-project'
-  })]
-]);
+class BrowserHost implements ProjectHostInterface {
+  private static readonly 'manifestSource': string = '{"dependencies":{"@fixture/contracts":"1.0.0"},"name":"browser-project"}';
 
-const browserHost: ProjectHostInterface = {
-  'findPackageRoot': (filename) => {
+  public findPackageRoot(filename: string): string | undefined {
     const result = filename.startsWith('/browser-project/') ? '/browser-project' : undefined;
 
     return result;
-  },
-  'isBuiltinSpecifier': () => false,
-  'readTextFile': (filename) => {
-    const result = browserFiles.get(filename);
+  }
+
+  public isBuiltinSpecifier(_moduleSpecifier: string): boolean {
+    return false;
+  }
+
+  public readTextFile(filename: string): string | undefined {
+    const result = filename === '/browser-project/package.json' ? BrowserHost.manifestSource : undefined;
 
     return result;
-  },
-  'realPath': (filename) => {
+  }
+
+  public realPath(filename: string): string | undefined {
     const result = filename.startsWith('/browser-project/') ? filename : undefined;
 
     return result;
-  },
-  'resolveModule': () => undefined,
-  'resolveRelativePath': (importerFilename, relativeSpecifier) => {
+  }
+
+  public resolveModule(_moduleSpecifier: string, _importerFilename: string): string | undefined {
+    return undefined;
+  }
+
+  public resolveRelativePath(importerFilename: string, relativeSpecifier: string): string {
     const directoryEnd = importerFilename.lastIndexOf('/');
     const directory = directoryEnd === -1 ? '' : importerFilename.slice(0, directoryEnd);
     const result = relativeSpecifier.startsWith('./')
@@ -41,7 +44,9 @@ const browserHost: ProjectHostInterface = {
 
     return result;
   }
-};
+}
+
+const browserHost = new BrowserHost();
 
 void describe('PackageBoundary', () => {
   void it('reads package boundaries through a browser project host and retains per-program caches', () => {

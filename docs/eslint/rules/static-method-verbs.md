@@ -13,7 +13,7 @@ Detection is gated by the `mode` option:
 - `"structural"` (the default) — exempts a function whose entire body is a trivial single-statement pass-through: a block body containing only a `return` of an identifier, call expression, awaited expression, or chain (the same shape [`inline-trivial-logic`](./inline-trivial-logic.md) already flags), or the expression-bodied arrow equivalent. Any other body — multiple statements, real control flow, or a `return` that constructs a new object/array — is still flagged.
 - `"typed"` — flags a function only when the type checker resolves its return type to a named type alias or interface, as opposed to a primitive, `void`, or an inline object-literal type with no name. Requires type-aware parser services (`parserOptions.project`); if they are unavailable the rule reports nothing at all.
 
-An entity namespace's `validate` type guard is exempt in every mode. [`folder-content-shape`](./folder-content-shape.md) requires that exact schema-validation member, so the shared predicate keeps the two rules compatible.
+An entity namespace's `validate` type guard is exempt in every mode. [`entity-file-shape`](./entity-file-shape.md) requires that exact schema-validation member, so the shared predicate keeps the two rules compatible.
 
 **Fixable:** No · **Options:** `mode` · **Suggested severity:** `error`
 

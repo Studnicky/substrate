@@ -1,46 +1,45 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClient } from '../../../src/node/index.js';
+import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';
+import { RejectionProbe } from '../../helpers/RejectionProbe.js';
+import { ValidateUrlScenarioCaseEntity } from './entities/ValidateUrlScenarioCaseEntity.js';
+import scenarioGroups from './validate-url.scenarios.json' with { 'type': 'json' };
 
-import scenarioGroups from './validate-url.scenarios.json' with { type: 'json' };
+class ValidateUrlRunners {
+  static 'empty'(scenarioCase: ScenarioCaseOfType<ValidateUrlScenarioCaseEntity.Type, 'empty'>): void {
+    ValidateUrlRunners.assertRejected(scenarioCase.input.value);
+  }
 
-type ScenarioCase =
-  | { description: string; expected: { shape: 'ok' }; input: { value: unknown }; shape: 'valid'; name: string }
-  | { description: string; expected: { message: string }; input: { value: unknown }; shape: 'empty' | 'invalid' | 'non-string'; name: string };
+  static 'invalid'(scenarioCase: ScenarioCaseOfType<ValidateUrlScenarioCaseEntity.Type, 'invalid'>): void {
+    ValidateUrlRunners.assertRejected(scenarioCase.input.value);
+  }
 
-type ScenarioRunner<Shape extends ScenarioCase['shape']> = (scenarioCase: Extract<ScenarioCase, { shape: Shape }>) => void;
-type RunnerMap = { [Shape in ScenarioCase['shape']]: ScenarioRunner<Shape> };
-type InvalidURLScenario = Extract<ScenarioCase, { shape: 'empty' | 'invalid' | 'non-string' }>;
+  static 'non-string'(scenarioCase: ScenarioCaseOfType<ValidateUrlScenarioCaseEntity.Type, 'non-string'>): void {
+    ValidateUrlRunners.assertRejected(scenarioCase.input.value);
+  }
 
-function runInvalidURLScenario(scenarioCase: InvalidURLScenario): void {
-  assert.throws(() => {
-    Reflect.apply(FetchClient.create, FetchClient, [{ 'baseURL': scenarioCase.input.value }]);
-  }, (error: Error) => {
-    assert.ok(error.message.length > 0);
-    return true;
-  });
+  static 'valid'(scenarioCase: ScenarioCaseOfType<ValidateUrlScenarioCaseEntity.Type, 'valid'>): void {
+    const created = InvalidClientFactory.create({ 'baseURL': scenarioCase.input.value });
+    assert.ok(created instanceof FetchClient);
+  }
+
+  private static assertRejected(baseURL: ValidateUrlScenarioCaseEntity.Type['input']['value']): void {
+    const caught = RejectionProbe.captureSync(() => {
+      const created = InvalidClientFactory.create({ 'baseURL': baseURL });
+      return created;
+    });
+    assert.ok(caught instanceof Error);
+    assert.ok(caught.message.length > 0);
+  }
 }
 
-const runnerMap: RunnerMap = {
-  'empty': runInvalidURLScenario,
-  'invalid': runInvalidURLScenario,
-  'non-string': runInvalidURLScenario,
-  'valid': (scenarioCase) => {
-    assert.doesNotThrow(() => {
-      Reflect.apply(FetchClient.create, FetchClient, [{ 'baseURL': scenarioCase.input.value }]);
-    });
-  }
-};
-
-function runCase<Shape extends ScenarioCase['shape']>(scenarioCase: Extract<ScenarioCase, { shape: Shape }>): void {
-  runnerMap[scenarioCase.shape](scenarioCase);
-}
-
-void describe('validate url schema', () => {
-  for (const scenario of scenarioGroups.cases as ScenarioCase[]) {
-    void it(scenario.name, () => {
-      runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ValidateUrlScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'validate url schema',
+  'runners': ValidateUrlRunners
 });

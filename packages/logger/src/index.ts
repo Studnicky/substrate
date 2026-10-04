@@ -60,6 +60,7 @@ export { FileDestinationError } from './errors/FileDestinationError.js';
 export { InvalidLogLevelError } from './errors/InvalidLogLevelError.js';
 export { LogBuildError } from './errors/LogBuildError.js';
 export { LoggerError } from './errors/LoggerError.js';
+export { LogSerializationError } from './errors/LogSerializationError.js';
 export { LogBody } from './modules/LogBody.js';
 export { LogFault } from './modules/LogFault.js';
 export { Logger } from './modules/Logger.js';

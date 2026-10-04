@@ -7,11 +7,11 @@ name: CodeQL
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
-    - cron: '0 0 * * 1'
+    - cron: "0 0 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
 
   analyze:
     name: Analyze (${{ matrix.language }})
-    needs: [ detect-changes ]
+    needs: [detect-changes]
     if: needs.detect-changes.outputs.analysis == 'true' || github.event_name ==
       'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -50,22 +50,22 @@ jobs:
           exit 0
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938
+        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938
+        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd
         with:
-          category: '/language:${{ matrix.language }}'
+          category: "/language:${{ matrix.language }}"
 
     timeout-minutes: 15
 
   required:
     name: CodeQL required
-    needs: [ detect-changes, analyze ]
+    needs: [detect-changes, analyze]
     if: always()
     runs-on: ubuntu-latest
     steps:

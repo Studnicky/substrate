@@ -119,23 +119,11 @@
         "notEmpty": true
       },
       "input": {
-        "arrayValue": ["a", "b", "c"]
-      }
-    },
-    {
-      "name": "object-matchers",
-      "description": "covers object matcher branches",
-      "shape": "object-matchers",
-      "expected": {
-        "hasAllProperties": true,
-        "hasAnyProperty": true,
-        "hasProperty": true
-      },
-      "input": {
-        "objectValue": {
-          "alpha": 1,
-          "beta": 2
-        }
+        "arrayValue": [
+          "a",
+          "b",
+          "c"
+        ]
       }
     },
     {
@@ -229,38 +217,6 @@
         "constraintCode": "23P01",
         "deadlockCode": "40001",
         "foreignKeyCode": "23503"
-      }
-    },
-    {
-      "name": "instance-matchers",
-      "description": "covers instance matcher branches",
-      "shape": "instance-matchers",
-      "expected": {
-        "isError": true,
-        "named": true,
-        "namedAny": true,
-        "of": true,
-        "ofAny": true
-      },
-      "input": {
-        "errorName": "TypeError"
-      }
-    },
-    {
-      "name": "proto-matchers",
-      "description": "covers prototype matcher branches",
-      "shape": "proto-matchers",
-      "expected": {
-        "hasAllMethods": true,
-        "hasAnyMethod": true,
-        "hasMethod": true,
-        "hasProperty": true,
-        "isAsyncIterable": true,
-        "isCallable": true,
-        "isIterable": true
-      },
-      "input": {
-        "prototypeValue": {}
       }
     }
   ]

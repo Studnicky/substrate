@@ -8,17 +8,19 @@
       "input": {
         "entrypoint": "../../examples/predicates-accessors.ts"
       },
-      "name": "predicates-accessors"
+      "name": "predicates-accessors",
+      "shape": "imports-example"
     },
     {
-      "description": "Runs the PickDefined example",
+      "description": "Runs the hash example",
       "expected": {
         "importsWithoutThrow": true
       },
       "input": {
-        "entrypoint": "../../examples/pickDefined.ts"
+        "entrypoint": "../../examples/hash.ts"
       },
-      "name": "pick-defined"
+      "name": "hash",
+      "shape": "imports-example"
     }
   ]
 }

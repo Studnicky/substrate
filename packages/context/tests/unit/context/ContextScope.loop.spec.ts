@@ -1,415 +1,164 @@
 import { RuntimeError } from '@studnicky/errors/node';
+import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 import { setTimeout } from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Context } from '../../../src/node/index.js';
-import type { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
-import scenarioGroups from './ContextScope.scenarios.json' with { type: 'json' };
+import scenarioGroups from './ContextScope.scenarios.json' with { 'type': 'json' };
+import { ContextScopeScenarioCaseEntity } from './entities/ContextScopeScenarioCaseEntity.js';
 
-type ScenarioShape =
-  | 'active-on-construction'
-  | 'async-accumulates-state'
-  | 'async-execute-errors-propagate'
-  | 'complex-object-values'
-  | 'delete-affects-later-executes'
-  | 'empty-string-key'
-  | 'execute-errors-propagate'
-  | 'function-values'
-  | 'immediate-terminate-empty'
-  | 'immediate-terminate-with-values'
-  | 'independent-key-sets'
-  | 'long-key-name'
-  | 'many-keys'
-  | 'middleware-chain-pattern'
-  | 'multi-execute-before-terminate'
-  | 'mutations-in-one-scope-not-others'
-  | 'mutations-visible-after-await'
-  | 'nested-async-functions'
-  | 'null-values'
-  | 'overwrite-later-values'
-  | 'parallel-operations-pattern'
-  | 'persist-values-across-executes'
-  | 'prevent-execute-after-terminate'
-  | 'promise-all-propagation'
-  | 'promise-resolve-propagation'
-  | 'request-handling-pattern'
-  | 'scope-reusable-after-error'
-  | 'separate-scopes-isolated'
-  | 'snapshot-clears-store'
-  | 'snapshot-complete'
-  | 'snapshot-independent-copy'
-  | 'symbol-key-string'
-  | 'terminate-after-error'
-  | 'terminate-once'
-  | 'terminated-scope-throws'
-  | 'timeout-propagation'
-  | 'undefined-values';
+class ContextScopeTestError extends BaseError {
+  public override readonly name: string = 'ContextScopeTestError';
 
-type ScenarioCase = {
-  description: string;
-  expected: Record<string, unknown>;
-  input: {
-    context: unknown;
-    scope?: Record<string, unknown>;
-  };
-  shape: string;
-  name: string;
-};
-
-type ScenarioRunner = (scenarioCase: ScenarioCase) => Promise<void> | void;
-type FunctionFixtureName = 'doubleNumber';
-type FunctionFixture = (num: number) => number;
-
-function isRecord<TValue>(value: TValue): value is TValue & Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+  public constructor(message: string, cause?: unknown) {
+    super({
+      'cause': cause,
+      'code': 'context.testScopeFixtureFailed',
+      'message': message,
+      'retryable': false
+    });
+  }
 }
 
-function requireRecord<TValue>(value: TValue, label: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw RuntimeError.create(`${label} must be an object`);
+interface DoubleFixtureInterface {
+  (value: number): number;
+}
+
+class FunctionFixtures {
+  static readonly fixtures: ReadonlyMap<string, DoubleFixtureInterface> = new Map<string, DoubleFixtureInterface>([
+    ['doubleNumber', FunctionFixtures.doubleNumber]
+  ]);
+
+  static doubleNumber(value: number): number {
+    const doubled = value * 2;
+    return doubled;
   }
 
-  return value;
-}
-
-function contextConfig(scenarioCase: ScenarioCase): ContextConfigEntity.Type {
-  const context = requireRecord(scenarioCase.input.context, 'input.context');
-  const name = context.name;
-  if (typeof name !== 'string') {
-    throw RuntimeError.create('input.context.name must be a string');
+  static isFixture(value: unknown): value is DoubleFixtureInterface {
+    const result = typeof value === 'function';
+    return result;
   }
-
-  return { name };
 }
 
-function scopeInput(scenarioCase: ScenarioCase): Record<string, unknown> {
-  return scenarioCase.input.scope === undefined
-    ? {}
-    : requireRecord(scenarioCase.input.scope, 'input.scope');
-}
-
-function scopeInitial(scenarioCase: ScenarioCase): Record<string, unknown> | undefined {
-  const initial = scopeInput(scenarioCase).initial;
-  return initial === undefined
-    ? undefined
-    : requireRecord(initial, 'input.scope.initial');
-}
-
-function scopeString(scenarioCase: ScenarioCase, key: string): string {
-  const value = scopeInput(scenarioCase)[key];
-  if (typeof value !== 'string') {
-    throw RuntimeError.create(`input.scope.${key} must be a string`);
-  }
-
-  return value;
-}
-
-function scopeNumber(scenarioCase: ScenarioCase, key: string): number {
-  const value = scopeInput(scenarioCase)[key];
-  if (typeof value !== 'number') {
-    throw RuntimeError.create(`input.scope.${key} must be a number`);
-  }
-
-  return value;
-}
-
-function scopeBoolean(scenarioCase: ScenarioCase, key: string): boolean {
-  const value = scopeInput(scenarioCase)[key];
-  if (typeof value !== 'boolean') {
-    throw RuntimeError.create(`input.scope.${key} must be a boolean`);
-  }
-
-  return value;
-}
-
-function scopeInitialArray(scenarioCase: ScenarioCase): Record<string, unknown>[] {
-  const value = scopeInput(scenarioCase).initial;
-  if (!Array.isArray(value)) {
-    throw RuntimeError.create('input.scope.initial must be an array');
-  }
-
-  return value.map((entry, index) => requireRecord(entry, `input.scope.initial[${index}]`));
-}
-
-function scopeNumberArray(scenarioCase: ScenarioCase, key: string): number[] {
-  const value = scopeInput(scenarioCase)[key];
-  if (!Array.isArray(value)) {
-    throw RuntimeError.create(`input.scope.${key} must be an array`);
-  }
-
-  const numbers: number[] = [];
-  for (const item of value) {
-    if (typeof item !== 'number') {
-      throw RuntimeError.create(`input.scope.${key} must contain only numbers`);
-    }
-    numbers.push(item);
-  }
-
-  return numbers;
-}
-
-function expectedStringArray(scenarioCase: ScenarioCase, key: string): string[] {
-  const value = scenarioCase.expected[key];
-  if (!Array.isArray(value)) {
-    throw RuntimeError.create(`expected.${key} must be an array`);
-  }
-
-  const strings: string[] = [];
-  for (const item of value) {
-    if (typeof item !== 'string') {
-      throw RuntimeError.create(`expected.${key} must contain only strings`);
-    }
-    strings.push(item);
-  }
-
-  return strings;
-}
-
-function createContext(scenarioCase: ScenarioCase): Context {
-  return Context.create(contextConfig(scenarioCase));
-}
-
-const functionFixtureMap = {
-  doubleNumber: (num: number): number => num * 2
-} satisfies Record<FunctionFixtureName, FunctionFixture>;
-
-function isFunctionFixtureName(value: string): value is FunctionFixtureName {
-  return Object.hasOwn(functionFixtureMap, value);
-}
-
-function scopeFunctionFixture(scenarioCase: ScenarioCase, key: string): FunctionFixture {
-  const initial = scopeInitial(scenarioCase);
-  if (initial === undefined) {
-    throw RuntimeError.create('input.scope.initial must be an object');
-  }
-  const value = initial[key];
-  if (typeof value !== 'string') {
-    throw RuntimeError.create(`input.scope.initial.${key} must be a string`);
-  }
-
-  if (!isFunctionFixtureName(value)) {
-    throw RuntimeError.create(`input.scope.initial.${key} must reference a known function fixture`);
-  }
-
-  return functionFixtureMap[value];
-}
-
-const runnerMap = {
-  'active-on-construction': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const result = scope.execute(() => context.get('key'));
+class ContextScopeRunners {
+  static 'active-on-construction'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'active-on-construction'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    const result = scope.execute(() => {
+      const value = context.get('key');
+      return value;
+    });
     assert.strictEqual(result, scenarioCase.expected.result);
-    return;
-  },
+  }
 
-  'multi-execute-before-terminate': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const executionInput = scopeInput(scenarioCase).executions;
-    if (!Array.isArray(executionInput)) {
-      throw RuntimeError.create('input.scope.executions must be an array');
-    }
-    const executions: unknown[] = [];
-    for (const execution of executionInput) {
-      scope.execute(() => { executions.push(execution); });
-    }
-    assert.deepStrictEqual(executions, scenarioCase.expected.executions);
-    return;
-  },
-
-  'terminated-scope-throws': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.terminate();
-    assert.strictEqual(scopeString(scenarioCase, 'message'), scenarioCase.expected.message);
-    assert.throws(() => scope.execute(() => {}), { message: scenarioCase.expected.message });
-    return;
-  },
-
-  'terminate-once': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.terminate();
-    assert.strictEqual(scopeString(scenarioCase, 'message'), scenarioCase.expected.message);
-    assert.throws(() => scope.terminate(), { message: scopeString(scenarioCase, 'message') });
-    return;
-  },
-
-  'persist-values-across-executes': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const fromFirst = scopeString(scenarioCase, 'fromFirst');
-    const fromSecond = scopeString(scenarioCase, 'fromSecond');
-    scope.execute(() => { context.set('fromFirst', fromFirst); });
-    scope.execute(() => {
-      assert.strictEqual(context.get('fromFirst'), fromFirst);
-      context.set('fromSecond', fromSecond);
-    });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
-
-  'overwrite-later-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.execute(() => { context.set('counter', 1); });
-    scope.execute(() => { context.set('counter', 2); });
-    scope.execute(() => { context.set('counter', scenarioCase.expected.counter); });
-    assert.strictEqual(scope.terminate().counter, scenarioCase.expected.counter);
-    return;
-  },
-
-  'delete-affects-later-executes': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.execute(() => { context.delete('remove'); });
-    scope.execute(() => {
-      assert.strictEqual(context.has('keep'), true);
-      assert.strictEqual(context.has('remove'), false);
-    });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
-
-  'async-accumulates-state': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    return scope.execute(async () => {
+  static async 'async-accumulates-state'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'async-accumulates-state'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    await scope.execute(async () => {
       await setTimeout(5);
       context.set('step', 1);
       context.set('async1', 'done');
-    }).then(() => scope.execute(async () => {
+    });
+    await scope.execute(async () => {
       await setTimeout(5);
       assert.strictEqual(context.get('step'), 1);
       context.set('step', 2);
       context.set('async2', 'done');
-    })).then(() => {
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
     });
-  },
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
 
-  'promise-resolve-propagation': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    return scope.execute(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
-    });
-  },
-
-  'timeout-propagation': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    return scope.execute(async () => {
-      await setTimeout(10);
-      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
-      await setTimeout(10);
-      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
-    });
-  },
-
-  'promise-all-propagation': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    return scope.execute(async () => {
-      const results = await Promise.all([
-        Promise.resolve().then(() => context.get('id')),
-        setTimeout(5).then(() => context.get('id')),
-        setTimeout(10).then(() => context.get('id'))
-      ]);
-      assert.deepStrictEqual(results, scenarioCase.expected.results);
-    });
-  },
-
-  'nested-async-functions': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    async function level3(): Promise<void> {
-      assert.strictEqual(context.get('depth'), 2);
-      context.set('depth', scenarioCase.expected.finalDepth);
-    }
-    async function level2(): Promise<void> {
-      assert.strictEqual(context.get('depth'), 1);
-      context.set('depth', 2);
+  static async 'async-execute-errors-propagate'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'async-execute-errors-propagate'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    const message = scenarioCase.input.scope.message;
+    assert.strictEqual(message, scenarioCase.expected.message);
+    await assert.rejects(scope.execute(async () => {
       await setTimeout(5);
-      await level3();
-    }
-    async function level1(): Promise<void> {
-      context.set('depth', 1);
-      await setTimeout(5);
-      await level2();
-    }
-    return scope.execute(async () => {
-      await level1();
-      assert.strictEqual(context.get('depth'), scenarioCase.expected.finalDepth);
-    });
-  },
+      throw RuntimeError.create(message);
+    }), { 'message': message });
+  }
 
-  'mutations-visible-after-await': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const before = scopeBoolean(scenarioCase, 'before');
-    const after = scopeBoolean(scenarioCase, 'after');
-    return scope.execute(async () => {
-      context.set('before', before);
-      await setTimeout(10);
-      assert.strictEqual(context.get('before'), before);
-      context.set('after', after);
-    }).then(() => {
-      assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
+  static 'complex-object-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'complex-object-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const initial = scenarioCase.input.scope.initial;
+    const complex = initial.complex;
+    const scope = context.initialize(initial);
+    scope.execute(() => {
+      const retrieved = context.get('complex');
+      assert.strictEqual(retrieved, complex);
     });
-  },
+    const final = scope.terminate();
+    assert.strictEqual(final.get('complex'), complex);
+  }
 
-  'separate-scopes-isolated': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const initial = scopeInitialArray(scenarioCase);
-    const scope1 = context.initialize(initial[0]);
-    const scope2 = context.initialize(initial[1]);
-    const scope3 = context.initialize(initial[2]);
-    const results: string[] = [];
-    return Promise.all([
-      scope1.execute(async () => { await setTimeout(15); results.push(`1:${context.get('id')}`); }),
-      scope2.execute(async () => { await setTimeout(10); results.push(`2:${context.get('id')}`); }),
-      scope3.execute(async () => { await setTimeout(5); results.push(`3:${context.get('id')}`); })
-      ]).then(() => {
-        for (const result of expectedStringArray(scenarioCase, 'contains')) {
-          assert.ok(results.includes(result));
-        }
+  static 'delete-affects-later-executes'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'delete-affects-later-executes'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      context.delete('remove');
+    });
+    scope.execute(() => {
+      assert.strictEqual(context.has('keep'), true);
+      assert.strictEqual(context.has('remove'), false);
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static 'empty-string-key'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'empty-string-key'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      assert.strictEqual(context.get(''), scenarioCase.expected.value);
+    });
+    scope.terminate();
+  }
+
+  static 'execute-errors-propagate'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'execute-errors-propagate'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    const message = scenarioCase.input.scope.message;
+    assert.strictEqual(message, scenarioCase.expected.message);
+    assert.throws(() => {
+      scope.execute(() => {
+        throw RuntimeError.create(message);
       });
-  },
+    }, { 'message': message });
+  }
 
-  'mutations-in-one-scope-not-others': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope1 = context.initialize(scopeInitial(scenarioCase));
-    const scope2 = context.initialize(scopeInitial(scenarioCase));
-    return Promise.all([
-      scope1.execute(async () => {
-        context.set('value', scenarioCase.expected.scope1);
-        await setTimeout(20);
-        assert.strictEqual(context.get('value'), scenarioCase.expected.scope1);
-      }),
-      scope2.execute(async () => {
-        await setTimeout(10);
-        assert.strictEqual(context.get('value'), scopeInitial(scenarioCase)?.value);
-        context.set('value', scenarioCase.expected.scope2);
-      })
-    ]).then(() => {
-      assert.strictEqual(scope1.terminate().value, scenarioCase.expected.scope1);
-      assert.strictEqual(scope2.terminate().value, scenarioCase.expected.scope2);
+  static 'function-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'function-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const fixture = FunctionFixtures.fixtures.get(scenarioCase.input.scope.initial.callable);
+    assert.ok(fixture !== undefined, 'input.scope.initial.callable must reference a known function fixture');
+    const scope = context.initialize({ 'callable': fixture });
+    scope.execute(() => {
+      const retrieved = context.get('callable');
+      assert.ok(FunctionFixtures.isFixture(retrieved), 'Expected callable context value');
+      assert.strictEqual(retrieved(5), scenarioCase.expected.result);
     });
-  },
+  }
 
-  'independent-key-sets': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope1 = context.initialize(scopeInitial(scenarioCase));
-    const scope2 = context.initialize(scopeInitial(scenarioCase));
-    return Promise.all([
+  static 'immediate-terminate-empty'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'immediate-terminate-empty'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    assert.deepStrictEqual(scenarioCase.input.scope.terminate, scenarioCase.expected.terminate);
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static 'immediate-terminate-with-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'immediate-terminate-with-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static async 'independent-key-sets'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'independent-key-sets'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope1 = context.initialize(scenarioCase.input.scope.initial);
+    const scope2 = context.initialize(scenarioCase.input.scope.initial);
+    await Promise.all([
       scope1.execute(async () => {
         context.set('only1', 'value1');
         await setTimeout(10);
@@ -418,102 +167,240 @@ const runnerMap = {
         context.set('only2', 'value2');
         await setTimeout(10);
       })
-    ]).then(() => {
-      const final1 = scope1.terminate();
-      const final2 = scope2.terminate();
-      assert.ok('only1' in final1);
-      assert.ok(!('only2' in final1));
-      assert.ok('only2' in final2);
-      assert.ok(!('only1' in final2));
-    });
-  },
+    ]);
+    const final1 = scope1.terminate();
+    const final2 = scope2.terminate();
+    assert.ok(final1.has('only1'));
+    assert.ok(!final1.has('only2'));
+    assert.ok(final2.has('only2'));
+    assert.ok(!final2.has('only1'));
+  }
 
-  'snapshot-complete': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const expectedSnapshot = requireRecord(scenarioCase.expected.snapshot, 'expected.snapshot');
+  static 'long-key-name'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'long-key-name'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const key = ContextScopeRunners.repeatLetter('a', scenarioCase.input.scope.keyLength);
+    const initial = ContextScopeRunners.parseRecord(`{${ContextScopeRunners.stringify(key)}:${ContextScopeRunners.stringify(scenarioCase.expected.value)}}`);
+    const scope = context.initialize(initial);
     scope.execute(() => {
-      context.set('added1', expectedSnapshot.added1);
-      context.set('added2', expectedSnapshot.added2);
+      assert.strictEqual(context.get(key), scenarioCase.expected.value);
     });
-    assert.deepStrictEqual(scope.terminate(), expectedSnapshot);
-    return;
-  },
-
-  'snapshot-clears-store': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.strictEqual(scope.terminate().key, scenarioCase.expected.first);
-    assert.throws(() => scope.terminate(), { message: `${context.name} scope has already been terminated` });
-    return;
-  },
-
-  'snapshot-independent-copy': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const initial = scopeInitial(scenarioCase);
-    if (initial === undefined) {
-      throw RuntimeError.create('input.scope.initial must be an object');
-    }
-    const obj = { ...requireRecord(initial.obj, 'input.scope.initial.obj') };
-    const scope = context.initialize({ obj });
-    const final = scope.terminate();
-    obj.nested = String(scenarioCase.expected.nested);
-    assert.strictEqual(requireRecord(final.obj, 'final.obj').nested, scenarioCase.expected.nested);
-    return;
-  },
-
-  'prevent-execute-after-terminate': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
     scope.terminate();
-    assert.strictEqual(scopeString(scenarioCase, 'message'), scenarioCase.expected.message);
-    assert.throws(() => scope.execute(() => {}), { message: scopeString(scenarioCase, 'message') });
-    return;
-  },
+  }
 
-  'immediate-terminate-with-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
-
-  'immediate-terminate-empty': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    assert.deepStrictEqual(scopeInput(scenarioCase).terminate, scenarioCase.expected.terminate);
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
-
-  'execute-errors-propagate': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const message = scopeString(scenarioCase, 'message');
-    assert.strictEqual(message, scenarioCase.expected.message);
-    assert.throws(() => scope.execute(() => { throw RuntimeError.create(message); }), { message });
-    return;
-  },
-
-  'async-execute-errors-propagate': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const message = scopeString(scenarioCase, 'message');
-    assert.strictEqual(message, scenarioCase.expected.message);
-    return scope.execute(async () => {
-      await setTimeout(5);
-      throw RuntimeError.create(message);
-    }).then(() => {
-      throw RuntimeError.create('Should have thrown');
-    }, (error: Error) => {
-      assert.ok(error instanceof Error);
-      assert.strictEqual(error.message, message);
+  static 'many-keys'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'many-keys'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const count = scenarioCase.input.scope.count;
+    const fragments: string[] = [];
+    for (let index = 0; index < count; index += 1) {
+      fragments.push(`"key${String(index)}":${String(index)}`);
+    }
+    const scope = context.initialize(ContextScopeRunners.parseRecord(`{${fragments.join(',')}}`));
+    scope.execute(() => {
+      assert.strictEqual(context.keys().length, scenarioCase.expected.size);
+      assert.strictEqual(context.get('key500'), scenarioCase.expected.key500);
     });
-  },
+    assert.strictEqual(scope.terminate().size, scenarioCase.expected.size);
+  }
 
-  'scope-reusable-after-error': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
+  static 'middleware-chain-pattern'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'middleware-chain-pattern'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const expectedUser = scenarioCase.expected.user;
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      context.set('authenticated', true);
+      context.set('user', expectedUser);
+    });
+    scope.execute(() => {
+      context.set('logged', true);
+    });
+    scope.execute(() => {
+      if (context.get('authenticated') === true) {
+        context.set('validated', true);
+      }
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected)));
+  }
+
+  static 'multi-execute-before-terminate'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'multi-execute-before-terminate'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    const executionInput = scenarioCase.input.scope.executions;
+    const executions: number[] = [];
+    for (let index = 0; index < executionInput.length; index += 1) {
+      scope.execute(() => {
+        executions.push(Number(executionInput[index]));
+      });
+    }
+    assert.deepStrictEqual(executions, scenarioCase.expected.executions);
+  }
+
+  static async 'mutations-in-one-scope-not-others'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'mutations-in-one-scope-not-others'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope1 = context.initialize(scenarioCase.input.scope.initial);
+    const scope2 = context.initialize(scenarioCase.input.scope.initial);
+    await Promise.all([
+      scope1.execute(async () => {
+        context.set('value', scenarioCase.expected.scope1);
+        await setTimeout(20);
+        assert.strictEqual(context.get('value'), scenarioCase.expected.scope1);
+      }),
+      scope2.execute(async () => {
+        await setTimeout(10);
+        assert.strictEqual(context.get('value'), scenarioCase.input.scope.initial.value);
+        context.set('value', scenarioCase.expected.scope2);
+      })
+    ]);
+    assert.strictEqual(scope1.terminate().get('value'), scenarioCase.expected.scope1);
+    assert.strictEqual(scope2.terminate().get('value'), scenarioCase.expected.scope2);
+  }
+
+  static async 'mutations-visible-after-await'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'mutations-visible-after-await'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    const before = scenarioCase.input.scope.before;
+    const after = scenarioCase.input.scope.after;
+    await scope.execute(async () => {
+      context.set('before', before);
+      await setTimeout(10);
+      assert.strictEqual(context.get('before'), before);
+      context.set('after', after);
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static async 'nested-async-functions'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'nested-async-functions'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    await scope.execute(async () => {
+      await ContextScopeRunners.descendFromLevelOne(context, scenarioCase.expected.finalDepth);
+      assert.strictEqual(context.get('depth'), scenarioCase.expected.finalDepth);
+    });
+  }
+
+  static 'null-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'null-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      assert.strictEqual(context.get('nul'), null);
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static 'overwrite-later-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'overwrite-later-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      context.set('counter', 1);
+    });
+    scope.execute(() => {
+      context.set('counter', 2);
+    });
+    scope.execute(() => {
+      context.set('counter', scenarioCase.expected.counter);
+    });
+    assert.strictEqual(scope.terminate().get('counter'), scenarioCase.expected.counter);
+  }
+
+  static async 'parallel-operations-pattern'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'parallel-operations-pattern'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    const delays = scenarioCase.input.scope.delays;
+    const expectedResults = scenarioCase.expected.results;
+    await scope.execute(async () => {
+      const operations: Promise<string>[] = [];
+      for (let index = 0; index < expectedResults.length; index += 1) {
+        operations.push(ContextScopeRunners.resolveAfter(ScenarioValues.requireDefined(delays[index], 'input.scope.delays[index]'), String(expectedResults[index])));
+      }
+      const operationResults = await Promise.all(operations);
+      context.set('results', operationResults);
+      context.set('completedAt', Date.now());
+    });
+    const final = scope.terminate();
+    assert.deepStrictEqual(final.get('results'), expectedResults);
+    assert.ok(typeof final.get('completedAt') === 'number');
+  }
+
+  static 'persist-values-across-executes'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'persist-values-across-executes'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    const fromFirst = scenarioCase.input.scope.fromFirst;
+    const fromSecond = scenarioCase.input.scope.fromSecond;
+    scope.execute(() => {
+      context.set('fromFirst', fromFirst);
+    });
+    scope.execute(() => {
+      assert.strictEqual(context.get('fromFirst'), fromFirst);
+      context.set('fromSecond', fromSecond);
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
+
+  static 'prevent-execute-after-terminate'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'prevent-execute-after-terminate'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    scope.terminate();
+    assert.strictEqual(scenarioCase.input.scope.message, scenarioCase.expected.message);
+    assert.throws(() => {
+      scope.execute(() => {});
+    }, { 'message': scenarioCase.input.scope.message });
+  }
+
+  static async 'promise-all-propagation'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'promise-all-propagation'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    await scope.execute(async () => {
+      const results = await Promise.all([
+        Promise.resolve().then(() => {
+          const identifier = context.get('id');
+          return identifier;
+        }),
+        setTimeout(5).then(() => {
+          const identifier = context.get('id');
+          return identifier;
+        }),
+        setTimeout(10).then(() => {
+          const identifier = context.get('id');
+          return identifier;
+        })
+      ]);
+      assert.deepStrictEqual(results, scenarioCase.expected.results);
+    });
+  }
+
+  static async 'promise-resolve-propagation'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'promise-resolve-propagation'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    await scope.execute(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
+    });
+  }
+
+  static async 'request-handling-pattern'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'request-handling-pattern'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const expectedResponse = scenarioCase.expected.response;
+    const expectedFinalState = scenarioCase.expected.finalState;
+    const scope = context.initialize({ 'requestId': scenarioCase.input.scope.requestId, 'startTime': Date.now() });
+    const response = await scope.execute(async () => {
+      await setTimeout(5);
+      context.set('userId', expectedFinalState.userId);
+      await setTimeout(5);
+      context.set('result', { 'data': 'processed' });
+      const body = ContextScopeRunners.stringify(context.get('result'));
+      return { 'body': body, 'status': expectedResponse.status };
+    });
+    const finalState = scope.terminate();
+    assert.strictEqual(response.status, expectedResponse.status);
+    assert.strictEqual(finalState.get('requestId'), expectedFinalState.requestId);
+    assert.strictEqual(finalState.get('userId'), expectedFinalState.userId);
+    assert.ok(typeof finalState.get('startTime') === 'number');
+  }
+
+  static 'scope-reusable-after-error'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'scope-reusable-after-error'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
     try {
       scope.execute(() => {
         context.set('beforeError', true);
@@ -526,208 +413,191 @@ const runnerMap = {
       assert.strictEqual(context.get('beforeError'), true);
       context.set('afterError', scenarioCase.expected.afterError);
     });
-    assert.strictEqual(scope.terminate().afterError, scenarioCase.expected.afterError);
-    return;
-  },
+    assert.strictEqual(scope.terminate().get('afterError'), scenarioCase.expected.afterError);
+  }
 
-  'terminate-after-error': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
+  static async 'separate-scopes-isolated'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'separate-scopes-isolated'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const initial = scenarioCase.input.scope.initial;
+    const scope1 = context.initialize(initial[0]);
+    const scope2 = context.initialize(initial[1]);
+    const scope3 = context.initialize(initial[2]);
+    const results: string[] = [];
+    await Promise.all([
+      scope1.execute(async () => {
+        await setTimeout(15);
+        results.push(`1:${String(context.get('id'))}`);
+      }),
+      scope2.execute(async () => {
+        await setTimeout(10);
+        results.push(`2:${String(context.get('id'))}`);
+      }),
+      scope3.execute(async () => {
+        await setTimeout(5);
+        results.push(`3:${String(context.get('id'))}`);
+      })
+    ]);
+    const expectedContains = scenarioCase.expected.contains;
+    const resultSet = new Set(results);
+    for (let index = 0; index < expectedContains.length; index += 1) {
+      assert.ok(resultSet.has(String(expectedContains[index])));
+    }
+  }
+
+  static 'snapshot-clears-store'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'snapshot-clears-store'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    assert.strictEqual(scope.terminate().get('key'), scenarioCase.expected.first);
+    assert.throws(() => {
+      scope.terminate();
+    }, { 'message': `${context.name} scope has already been terminated` });
+  }
+
+  static 'snapshot-complete'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'snapshot-complete'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    const expectedSnapshot = scenarioCase.expected.snapshot;
+    scope.execute(() => {
+      context.set('added1', expectedSnapshot.added1);
+      context.set('added2', expectedSnapshot.added2);
+    });
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(expectedSnapshot)));
+  }
+
+  static 'snapshot-independent-copy'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'snapshot-independent-copy'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const copy = { ...scenarioCase.input.scope.initial.payload };
+    const scope = context.initialize({ 'payload': copy });
+    const final = scope.terminate();
+    copy.nested = scenarioCase.expected.nested;
+    assert.strictEqual(ScenarioValues.requireRecord(final.get('payload'), 'final.payload').nested, scenarioCase.expected.nested);
+  }
+
+  static 'symbol-key-string'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'symbol-key-string'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    scope.execute(() => {
+      assert.strictEqual(context.get('Symbol(test)'), scenarioCase.expected.value);
+    });
+    scope.terminate();
+  }
+
+  static 'terminate-after-error'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'terminate-after-error'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
     try {
-      scope.execute(() => { throw RuntimeError.create('error'); });
+      scope.execute(() => {
+        throw RuntimeError.create('error');
+      });
     } catch {
       // ignore
     }
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
+    assert.deepStrictEqual(scope.terminate(), new Map(Object.entries(scenarioCase.expected.terminate)));
+  }
 
-  'undefined-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize({ undef: undefined });
+  static 'terminate-once'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'terminate-once'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    scope.terminate();
+    assert.strictEqual(scenarioCase.input.scope.message, scenarioCase.expected.message);
+    assert.throws(() => {
+      scope.terminate();
+    }, { 'message': scenarioCase.input.scope.message });
+  }
+
+  static 'terminated-scope-throws'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'terminated-scope-throws'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize();
+    scope.terminate();
+    assert.strictEqual(scenarioCase.input.scope.message, scenarioCase.expected.message);
+    assert.throws(() => {
+      scope.execute(() => {});
+    }, { 'message': scenarioCase.expected.message });
+  }
+
+  static async 'timeout-propagation'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'timeout-propagation'>): Promise<void> {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize(scenarioCase.input.scope.initial);
+    await scope.execute(async () => {
+      await setTimeout(10);
+      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
+      await setTimeout(10);
+      assert.strictEqual(context.get('id'), scenarioCase.expected.id);
+    });
+  }
+
+  static 'undefined-values'(scenarioCase: ScenarioCaseOfType<ContextScopeScenarioCaseEntity.Type, 'undefined-values'>): void {
+    const context = Context.create(scenarioCase.input.context);
+    const scope = context.initialize({ 'undef': undefined });
     scope.execute(() => {
       assert.strictEqual(context.get('undef'), undefined);
       assert.strictEqual(context.has('undef'), scenarioCase.expected.has);
     });
     const final = scope.terminate();
-    assert.strictEqual(final.undef, undefined);
-    assert.strictEqual('undef' in final, scenarioCase.expected.finalHas);
-    return;
-  },
-
-  'null-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.execute(() => {
-      assert.strictEqual(context.get('nul'), null);
-    });
-    assert.deepStrictEqual(scope.terminate(), scenarioCase.expected.terminate);
-    return;
-  },
-
-  'symbol-key-string': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.execute(() => {
-      assert.strictEqual(context.get('Symbol(test)'), scenarioCase.expected.value);
-    });
-    scope.terminate();
-    return;
-  },
-
-  'empty-string-key': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    scope.execute(() => {
-      assert.strictEqual(context.get(''), scenarioCase.expected.value);
-    });
-    scope.terminate();
-    return;
-  },
-
-  'long-key-name': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const key = 'a'.repeat(scopeNumber(scenarioCase, 'keyLength'));
-    const scope = context.initialize({ [key]: scenarioCase.expected.value });
-    scope.execute(() => {
-      assert.strictEqual(context.get(key), scenarioCase.expected.value);
-    });
-    scope.terminate();
-    return;
-  },
-
-  'complex-object-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const initial = scopeInitial(scenarioCase);
-    if (initial === undefined) {
-      throw RuntimeError.create('input.scope.initial must be an object');
-    }
-    const complex = requireRecord(initial.complex, 'input.scope.initial.complex');
-    const scope = context.initialize(initial);
-    scope.execute(() => {
-      const retrieved = context.get('complex');
-      assert.strictEqual(retrieved, complex);
-    });
-    const final = scope.terminate();
-    assert.strictEqual(final.complex, complex);
-    return;
-  },
-
-  'function-values': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize({ fn: scopeFunctionFixture(scenarioCase, 'fn') });
-    scope.execute(() => {
-      const retrieved = context.get('fn');
-      if (typeof retrieved !== 'function') {
-        throw RuntimeError.create('Expected callable context value');
-      }
-      assert.strictEqual(Reflect.apply(retrieved, undefined, [5]), scenarioCase.expected.result);
-    });
-    return;
-  },
-
-  'many-keys': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const count = scopeNumber(scenarioCase, 'count');
-    const initial: Record<string, number> = {};
-    for (let i = 0; i < count; i += 1) {
-      initial[`key${i}`] = i;
-    }
-    const scope = context.initialize(initial);
-    scope.execute(() => {
-      assert.strictEqual(context.keys().length, scenarioCase.expected.size);
-      assert.strictEqual(context.get('key500'), scenarioCase.expected.key500);
-    });
-    assert.strictEqual(Object.keys(scope.terminate()).length, scenarioCase.expected.size);
-    return;
-  },
-
-  'request-handling-pattern': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const expectedResponse = requireRecord(scenarioCase.expected.response, 'expected.response');
-    const expectedFinalState = requireRecord(scenarioCase.expected.finalState, 'expected.finalState');
-    const handleRequest = async (requestId: string): Promise<{ finalState: Record<string, unknown>; response: { body: string; status: number } }> => {
-      const scope = context.initialize({ requestId, startTime: Date.now() });
-      const response = await scope.execute(async () => {
-        await setTimeout(5);
-        context.set('userId', expectedFinalState.userId);
-        await setTimeout(5);
-        context.set('result', { data: 'processed' });
-        return { body: JSON.stringify(context.get('result')), status: Number(expectedResponse.status) };
-      });
-      return { finalState: scope.terminate(), response };
-    };
-    return handleRequest(scopeString(scenarioCase, 'requestId')).then((result) => {
-      assert.strictEqual(result.response.status, expectedResponse.status);
-      assert.strictEqual(result.finalState.requestId, expectedFinalState.requestId);
-      assert.strictEqual(result.finalState.userId, expectedFinalState.userId);
-      assert.ok(typeof result.finalState.startTime === 'number');
-    });
-  },
-
-  'middleware-chain-pattern': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const expectedUser = requireRecord(scenarioCase.expected.user, 'expected.user');
-    type Middleware = () => void;
-    const runMiddlewareChain = (middlewares: Middleware[], initial: Record<string, unknown>): Record<string, unknown> => {
-      const scope = context.initialize(initial);
-      for (const middleware of middlewares) {
-        scope.execute(middleware);
-      }
-      return scope.terminate();
-    };
-    const authMiddleware: Middleware = () => { context.set('authenticated', true); context.set('user', expectedUser); };
-    const loggingMiddleware: Middleware = () => { context.set('logged', true); };
-    const validationMiddleware: Middleware = () => { if (context.get('authenticated') === true) { context.set('validated', true); } };
-    assert.deepStrictEqual(runMiddlewareChain(
-      [authMiddleware, loggingMiddleware, validationMiddleware],
-      scopeInitial(scenarioCase) ?? {}
-    ), scenarioCase.expected);
-    return;
-  },
-
-  'parallel-operations-pattern': (scenarioCase) => {
-    const context = createContext(scenarioCase);
-    const scope = context.initialize(scopeInitial(scenarioCase));
-    const delays = scopeNumberArray(scenarioCase, 'delays');
-    const expectedResults = expectedStringArray(scenarioCase, 'results');
-    return scope.execute(async () => {
-      const operations = expectedResults.map((result, index) => {
-        const delay = delays[index];
-        if (delay === undefined) {
-          throw RuntimeError.create('input.scope.delays must match expected.results length');
-        }
-
-        return setTimeout(delay).then(() => result);
-      });
-      const operationResults = await Promise.all(operations);
-      context.set('results', operationResults);
-      context.set('completedAt', Date.now());
-    }).then(() => {
-      const final = scope.terminate();
-      assert.deepStrictEqual(final.results, expectedResults);
-      assert.ok(typeof final.completedAt === 'number');
-    });
-  },
-} satisfies Record<ScenarioShape, ScenarioRunner>;
-
-function isScenarioShape(shape: string): shape is ScenarioShape {
-  return Object.hasOwn(runnerMap, shape);
-}
-
-function runCase(scenarioCase: ScenarioCase): Promise<void> | void {
-  const { shape } = scenarioCase;
-  if (!isScenarioShape(shape)) {
-    throw RuntimeError.create(`Unsupported scenario shape: ${shape}`);
+    assert.strictEqual(final.get('undef'), undefined);
+    assert.strictEqual(final.has('undef'), scenarioCase.expected.finalHas);
   }
 
-  return runnerMap[shape](scenarioCase);
+  private static async descendFromLevelOne(context: Context, finalDepth: number): Promise<void> {
+    context.set('depth', 1);
+    await setTimeout(5);
+    await ContextScopeRunners.descendFromLevelTwo(context, finalDepth);
+  }
+
+  private static async descendFromLevelTwo(context: Context, finalDepth: number): Promise<void> {
+    assert.strictEqual(context.get('depth'), 1);
+    context.set('depth', 2);
+    await setTimeout(5);
+    await ContextScopeRunners.descendFromLevelThree(context, finalDepth);
+  }
+
+  private static descendFromLevelThree(context: Context, finalDepth: number): Promise<void> {
+    assert.strictEqual(context.get('depth'), 2);
+    context.set('depth', finalDepth);
+    const completed = Promise.resolve();
+    return completed;
+  }
+
+  private static parseRecord(text: string): ReturnType<typeof ScenarioValues.requireRecord> {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch (cause) {
+      throw new ContextScopeTestError('Fixture record text is not valid JSON', cause);
+    }
+    const record = ScenarioValues.requireRecord(parsed, 'fixture record');
+    return record;
+  }
+
+  private static repeatLetter(letter: string, count: number): string {
+    let repeated = '';
+    try {
+      repeated = letter.repeat(count);
+    } catch (cause) {
+      throw new ContextScopeTestError('Fixture key length is not repeatable', cause);
+    }
+    return repeated;
+  }
+
+  private static async resolveAfter(delay: number, result: string): Promise<string> {
+    await setTimeout(delay);
+    return result;
+  }
+
+  private static stringify(value: unknown): string {
+    let text = '';
+    try {
+      text = JSON.stringify(value);
+    } catch (cause) {
+      throw new ContextScopeTestError('Fixture value is not serializable', cause);
+    }
+    return text;
+  }
 }
 
-void describe('Context.initialize() scope lifecycle', () => {
-  for (const scenario of scenarioGroups.cases) {
-    void it(scenario.name, async () => {
-      await runCase(scenario);
-    });
-  }
+ScenarioSuite.register({
+  'entity': ContextScopeScenarioCaseEntity,
+  'file': scenarioGroups,
+  'name': 'Context.initialize() scope lifecycle',
+  'runners': ContextScopeRunners
 });

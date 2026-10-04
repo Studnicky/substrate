@@ -1,0 +1,10 @@
+export { BrowserStorageError } from './BrowserStorageError.js';
+export { IndexedDbEntryError } from './IndexedDbEntryError.js';
+export { IndexedDbError } from './IndexedDbError.js';
+export { IndexedDbUnavailableError } from './IndexedDbUnavailableError.js';
+export { StateDecodeError } from './StateDecodeError.js';
+export { StateEncodeError } from './StateEncodeError.js';
+export { StoreError } from './StoreError.js';
+export { StoreListenerMutationError } from './StoreListenerMutationError.js';
+export { StrataLayerUnavailableError } from './StrataLayerUnavailableError.js';
+export { StrataStoreOptionsError } from './StrataStoreOptionsError.js';

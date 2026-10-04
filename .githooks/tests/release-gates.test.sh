@@ -157,7 +157,7 @@ repo=$(make_repo)
 
   git switch -q develop
   base_commit=$(git rev-parse origin/develop)
-  node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$valid_ref"
+  node "$REPO_ROOT/scripts/validate-changeset-ref.ts" "$base_commit" "$valid_ref"
   [ ! -e "$marker" ] || fail "release gates data-only validation" "candidate package metadata executed"
 
   git switch -q -c feature/invalid-changeset
@@ -168,7 +168,7 @@ repo=$(make_repo)
   invalid_ref=$(git rev-parse HEAD)
 
   git switch -q develop
-  if node "$REPO_ROOT/scripts/validate-changeset-ref.mjs" "$base_commit" "$invalid_ref" >changeset-validation.out 2>&1; then
+  if node "$REPO_ROOT/scripts/validate-changeset-ref.ts" "$base_commit" "$invalid_ref" >changeset-validation.out 2>&1; then
     fail "release gates validate supplied ref" "expected semantic validation of the non-checked-out ref to fail"
   fi
 

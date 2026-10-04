@@ -3,7 +3,7 @@
  *
  * @module
  */
-import { Predicates } from '@studnicky/types/node';
+import { CallerFault, JsonObject, Predicates } from '@studnicky/types/browser';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';
@@ -26,82 +26,94 @@ namespace HookDiagnosticSnapshotEntity {
       }
 
       if (Predicates.isError(value)) {
-        let snapshot: Error;
-        if (value instanceof HookInvocationError) {
-          snapshot = new HookInvocationError(value.hookName, undefined);
-        } else if (value instanceof HookTimeoutError) {
-          snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
-        } else if (value instanceof ReentrantHookInvocationError) {
-          snapshot = new ReentrantHookInvocationError(value.hookName);
-        } else {
-          snapshot = RuntimeError.create(value.message);
-        }
-        seen.set(value, snapshot);
-        const keys = Reflect.ownKeys(value);
-        const length = keys.length;
-        for (let index = 0; index < length; index += 1) {
-          const key = keys[index];
-          if (key === undefined) {
-            continue;
-          }
-          const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
-        }
-        return snapshot;
+        const result = Intake.intakeError(value, seen);
+        return result;
       }
 
       if (Predicates.isArray(value)) {
-        const snapshot: unknown[] = [];
-        seen.set(value, snapshot);
-        const keys = Reflect.ownKeys(value);
-        const length = keys.length;
-        for (let index = 0; index < length; index += 1) {
-          const key = keys[index];
-          if (key === undefined) {
-            continue;
-          }
-          if (key === 'length') {
-            continue;
-          }
-          const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
-        }
-        return snapshot;
+        const result = Intake.intakeArray(value, seen);
+        return result;
       }
 
       if (Predicates.isPlainObject(value)) {
-        const snapshot: Record<string, unknown> = {};
-        seen.set(value, snapshot);
-        const keys = Reflect.ownKeys(value);
-        const length = keys.length;
-        for (let index = 0; index < length; index += 1) {
-          const key = keys[index];
-          if (key === undefined) {
-            continue;
-          }
-          const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
-        }
-        return snapshot;
+        const result = Intake.intakePlainObject(value, seen);
+        return result;
       }
 
+      const result = Intake.intakeFallback(value, seen);
+      return result;
+    }
+
+    /** Preserves the canonical hook-error subclass (or a RuntimeError) while detaching own properties. */
+    private static intakeError(value: Error, seen: WeakMap<object, unknown>): Error {
+      let snapshot: Error;
+      if (value instanceof HookInvocationError) {
+        snapshot = new HookInvocationError(value.hookName, undefined);
+      } else if (value instanceof HookTimeoutError) {
+        snapshot = new HookTimeoutError(value.hookName, value.timeoutMs);
+      } else if (value instanceof ReentrantHookInvocationError) {
+        snapshot = new ReentrantHookInvocationError(value.hookName);
+      } else {
+        snapshot = RuntimeError.create(value.message);
+      }
+      seen.set(value, snapshot);
+      Intake.copyOwnKeysJson(value, snapshot, seen);
+      return snapshot;
+    }
+
+    private static intakeArray(value: readonly unknown[], seen: WeakMap<object, unknown>): unknown[] {
+      const snapshot: unknown[] = [];
+      seen.set(value, snapshot);
+      Intake.copyArrayKeys(value, snapshot, seen);
+      return snapshot;
+    }
+
+    private static intakePlainObject(value: object, seen: WeakMap<object, unknown>): Record<string, unknown> {
+      const snapshot: Record<string, unknown> = {};
+      seen.set(value, snapshot);
+      Intake.copyOwnKeysJson(value, snapshot, seen);
+      return snapshot;
+    }
+
+    /** Detached-clones a non-error, non-array, non-plain-object value; falls back to key-by-key intake if uncloneable. */
+    private static intakeFallback(value: object, seen: WeakMap<object, unknown>): unknown {
       try {
         const snapshot: object = structuredClone(value);
         return snapshot;
       } catch {
         const snapshot: Record<string, unknown> = {};
         seen.set(value, snapshot);
-        const keys = Reflect.ownKeys(value);
-        const length = keys.length;
-        for (let index = 0; index < length; index += 1) {
-          const key = keys[index];
-          if (key === undefined) {
-            continue;
-          }
-          const propertyValue: unknown = Reflect.get(value, key);
-          Reflect.set(snapshot, key, Intake.intake(propertyValue, seen));
-        }
+        Intake.copyOwnKeysJson(value, snapshot, seen);
         return snapshot;
+      }
+    }
+
+    private static copyOwnKeysJson(source: object, target: object, seen: WeakMap<object, unknown>): void {
+      const keys = Reflect.ownKeys(source);
+      const length = keys.length;
+      for (let index = 0; index < length; index += 1) {
+        const key = keys[index];
+        if (key === undefined) {
+          continue;
+        }
+        const propertyValue: unknown = Reflect.get(source, key);
+        JsonObject.write(target, key, Intake.intake(propertyValue, seen));
+      }
+    }
+
+    private static copyArrayKeys(source: readonly unknown[], target: unknown[], seen: WeakMap<object, unknown>): void {
+      const keys = Reflect.ownKeys(source);
+      const length = keys.length;
+      for (let index = 0; index < length; index += 1) {
+        const key = keys[index];
+        if (key === undefined) {
+          continue;
+        }
+        if (key === 'length') {
+          continue;
+        }
+        const propertyValue: unknown = Reflect.get(source, key);
+        Reflect.set(target, key, Intake.intake(propertyValue, seen));
       }
     }
   }
@@ -180,7 +192,7 @@ export class HookInvoker {
   readonly #timeoutMs: number | undefined;
   #invoking = false;
 
-  constructor(options?: HookInvokerOptionsEntity.Type) {
+  constructor(options?: HookInvokerOptionsEntity.InputType) {
     if (options !== undefined && !HookInvokerOptionsEntity.validate(options)) {
       throw ValidationError.create({
         'message': 'Must match HookInvokerOptionsEntity.Schema',
@@ -280,7 +292,7 @@ export class HookInvoker {
       await pending;
     } catch (cause) {
       if (isFailureHandlerResult) {
-        if (propagateTerminalFailure) { throw cause; }
+        if (propagateTerminalFailure) { CallerFault.propagate(cause); }
         return;
       }
 
@@ -309,7 +321,7 @@ export class HookInvoker {
       failureHandlerResult = this.onHookError(hookName, cause);
     } catch (terminalCause) {
       if (!asynchronousFailure || propagateTerminalFailure) {
-        throw terminalCause;
+        CallerFault.propagate(terminalCause);
       }
       return undefined;
     }

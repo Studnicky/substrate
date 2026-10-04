@@ -4,7 +4,9 @@ import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
   type CompilerOptions,
+  createModuleResolutionCache,
   ModuleKind,
+  type ModuleResolutionCache,
   ModuleResolutionKind,
   resolveModuleName,
   ScriptTarget,
@@ -21,6 +23,23 @@ const NODE_MODULE_RESOLUTION_OPTIONS: CompilerOptions = {
 
 /** Provides Node filesystem and TypeScript module-resolution services to lint rules. */
 export class NodeProjectHost implements ProjectHostInterface {
+  private readonly moduleResolutionCache: ModuleResolutionCache = createModuleResolutionCache(
+    process.cwd(),
+    NodeProjectHost.canonicalizeFilename,
+    NODE_MODULE_RESOLUTION_OPTIONS
+  );
+
+  private static canonicalizeFilename(filename: string): string {
+    if (sys.useCaseSensitiveFileNames) {
+      const result = filename;
+
+      return result;
+    }
+
+    const result = filename.toLowerCase();
+
+    return result;
+  }
   public findPackageRoot(filename: string): string | undefined {
     const canonicalFilename = this.realPath(filename);
 
@@ -76,7 +95,7 @@ export class NodeProjectHost implements ProjectHostInterface {
   }
 
   public resolveModule(moduleSpecifier: string, importerFilename: string): string | undefined {
-    const resolution = resolveModuleName(moduleSpecifier, importerFilename, NODE_MODULE_RESOLUTION_OPTIONS, sys).resolvedModule;
+    const resolution = resolveModuleName(moduleSpecifier, importerFilename, NODE_MODULE_RESOLUTION_OPTIONS, sys, this.moduleResolutionCache).resolvedModule;
     const result = resolution?.resolvedFileName;
 
     return result;

@@ -1,0 +1,37 @@
+{
+  "cases": [
+    {
+      "description": "the basicVirtualFs example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/basicVirtualFs.ts"
+      },
+      "name": "basicVirtualFs",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the browserOpfs example is browser-only; correctly refuses to run outside a browser, so it is asserted registered in the docs playground",
+      "expected": {
+        "registeredInDocsPlayground": true
+      },
+      "input": {
+        "file": "../../examples/browserOpfs.ts"
+      },
+      "name": "browserOpfs",
+      "shape": "browser-example"
+    },
+    {
+      "description": "the observedVirtualFs example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedVirtualFs.ts"
+      },
+      "name": "observedVirtualFs",
+      "shape": "imports-example"
+    }
+  ]
+}

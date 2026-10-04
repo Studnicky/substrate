@@ -50,12 +50,65 @@
       {
         "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nconst VariantKindSchema = { enum: ['alpha', 'beta'], type: 'string' } as const satisfies JSONSchema;\ntype VariantKindType = FromSchema<typeof VariantKindSchema>;\nexport interface AlphaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'alpha'>;\n  readonly 'value': string;\n}\nexport interface BetaVariantInterface {\n  readonly 'kind': Extract<VariantKindType, 'beta'>;\n  readonly 'value': number;\n}\nexport type VariantUnionType = AlphaVariantInterface | BetaVariantInterface;",
         "filename": "packages/eslint-config/Canonical.ts",
-        "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface) — each member is schema-anchored via its discriminant"
+        "name": "a union of independently-declared, readonly-evidenced data-contract interfaces has no interface remedy (TypeScript cannot express a union as one interface) \u2014 each member is schema-anchored via its discriminant"
       },
       {
         "code": "import type { FromSchema, JSONSchema } from \"json-schema-to-ts\";\nexport namespace AccountEntity {\n  export const Schema = { type: \"string\" } as const satisfies JSONSchema;\n  export type Type = FromSchema<typeof Schema>;\n}",
         "filename": "packages/eslint-config/CanonicalEntity.ts",
         "name": "an entity namespace Type resolves the canonical json-schema-to-ts FromSchema import against its own Schema"
+      },
+      {
+        "code": "function accept<T>(value: Partial<T>): void {}",
+        "name": "'Partial<T>' on a generic type parameter - not flagged, T is not a canonical owned shape"
+      },
+      {
+        "code": "interface HolderInterface { value: Partial<{ a: number; b: string }>; }",
+        "name": "'Partial<{...}>' on an inline object-literal type - not flagged, no named canonical type referenced"
+      },
+      {
+        "code": "interface FooInterface { a: number; }\nfunction accept(value: Required<FooInterface>): void {}",
+        "name": "'Required<X>' - not flagged, not a subsetting utility (does not hide properties)"
+      },
+      {
+        "code": "import type { Rule } from 'eslint';\nfunction accept(value: Partial<Rule.RuleModule>): void {}",
+        "name": "'Partial<X>' on a type declared in node_modules - not flagged, not a domain shape this codebase owns"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { [K in keyof FooInterface]: FooInterface[K] }): void {}",
+        "name": "a full keyof remap is not a subset - not flagged, every property is retained"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { a: FooInterface['a']; b: FooInterface['b'] }): void {}",
+        "name": "inline indexed-access reproducing every canonical property is not a subset - not flagged"
+      },
+      {
+        "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] };",
+        "name": "a reusable generic Pick-shaped utility definition itself is not flagged - its own object type is a type parameter, not a canonical owned type"
+      },
+      {
+        "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nconst ValueNode = defineNode<string>({ type: 'string' } as const);\nexport type ValueType = NodeStaticType<typeof ValueNode>;",
+        "filename": "packages/eslint-config/CanonicalNode.ts",
+        "name": "direct NodeStaticType-derived data is canonical (constraint-carrying engine)"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ContextLookupEntity {\n  export const Schema = {\n    additionalProperties: false,\n    properties: { found: { type: 'boolean' }, value: {} },\n    required: ['found', 'value'],\n    type: 'object'\n  } as const;\n  export type Type = { found: boolean; value: unknown };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).found === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/ContextLookupEntity.ts",
+        "name": "an entity Type composing an empty schema (`{}`, matches any value) is accepted as canonical pure data"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace ValidatedAdaptiveConfigEntity {\n  export const Schema = {\n    anyOf: [\n      { properties: { enabled: { const: false } } },\n      { properties: { enabled: { const: true }, targetLatencyMs: { exclusiveMinimum: 0, type: 'number' } } }\n    ],\n    properties: { targetLatencyMs: { minimum: 0, type: 'number' } },\n    required: ['enabled', 'targetLatencyMs']\n  } as const;\n  export type Type = { targetLatencyMs: number } & ({ enabled: false } | { enabled: true });\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).enabled === 'boolean';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/ValidatedAdaptiveConfigEntity.ts",
+        "name": "an entity Type composing an anyOf value discriminant (co-occurring with properties/required) is accepted as canonical pure data"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nimport { PatchOperationEntity } from './PatchOperationEntity.js';\nexport namespace PatchOperationsEntity {\n  export const Schema = {\n    items: PatchOperationEntity.Schema,\n    title: 'PatchOperations',\n    type: 'array'\n  } as const;\n  export type Type = readonly PatchOperationEntity.Type[];\n  export function validate(candidate: unknown): candidate is Type {\n    return Array.isArray(candidate);\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n}",
+        "filename": "packages/eslint-config/PatchOperationsEntity.ts",
+        "name": "regression: a schema composing an external reference permits a Type composing that entity's .Type \u2014 entity-file-shape and type-alias-invariants agree on this file"
+      },
+      {
+        "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nnamespace GroupValueEntities {\n  export namespace AlphabeticGroupValueEntity {\n    export const Node = defineNode<{ type: 'alphabetic' }>({ type: 'object' } as const);\n    export type Type = NodeStaticType<typeof Node>;\n  }\n  export namespace CidrGroupValueEntity {\n    export const Node = defineNode<{ type: 'cidr' }>({ type: 'object' } as const);\n    export type Type = NodeStaticType<typeof Node>;\n  }\n}\nexport type DrilldownGroupValueStaticType =\n  | GroupValueEntities.AlphabeticGroupValueEntity.Type\n  | GroupValueEntities.CidrGroupValueEntity.Type;",
+        "filename": "packages/eslint-config/DrilldownGroupValueUnion.ts",
+        "name": "a top-level union of named, schema-derived Type-alias references has no interface remedy and is retained"
       }
     ],
     "invalid": [
@@ -76,7 +129,7 @@
           }
         ],
         "filename": "packages/eslint-config/UnanchoredUnion.ts",
-        "name": "a union of readonly-evidenced interfaces with no property or heritage tracing back to any schema-derived type is not a legitimate data-contract union — bare unconstrained primitives alone are not proof of canonical data"
+        "name": "a union of readonly-evidenced interfaces with no property or heritage tracing back to any schema-derived type is not a legitimate data-contract union \u2014 bare unconstrained primitives alone are not proof of canonical data"
       },
       {
         "code": "type ConstructorType = new (value: string) => object;",
@@ -297,14 +350,107 @@
         "filename": "packages/eslint-config/RenamedReexportName.ts"
       },
       {
-        "code": "type FromSchema<T> = T extends { type: string } ? { value: string } : never;\nexport namespace ImitationEntity {\n  export const Schema = { type: \"string\" } as const;\n  export type Type = FromSchema<typeof Schema>;\n}",
+        "code": "type NodeStaticType<T> = T extends { type: string } ? { value: string } : never;\nexport namespace ImitationEntity {\n  export const Schema = { type: \"string\" } as const;\n  export type Type = NodeStaticType<typeof Schema>;\n}",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "filename": "packages/eslint-config/ImitationEntity.ts",
+        "name": "a local type named NodeStaticType cannot validate a canonical entity alias"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Partial<FooInterface>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Partial<X>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Pick<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Pick<X, K>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; method(): void; }\nfunction accept(value: Omit<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Omit<X, K>' on a local canonical interface - flagged"
+      },
+      {
+        "code": "interface FooInterface { a: number; }\nlet holder: Partial<FooInterface>;",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "'Partial<X>' used as a variable type annotation - flagged"
+      },
+      {
+        "code": "type MyPickType<T, K extends keyof T> = { [P in K]: T[P] };\ninterface FooInterface { a: number; b: string; }\nfunction accept(value: MyPickType<FooInterface, 'a'>): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "a custom-named alias structurally reimplementing Pick is flagged the same as the literal utility name"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: { [K in 'a']: FooInterface[K] }): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "a manual mapped type with zero Omit/Partial/Pick reference is flagged the same as the utility"
+      },
+      {
+        "code": "interface FooInterface { a: number; b: string; c: boolean; }\nfunction accept(value: { a: FooInterface['a']; b: FooInterface['b'] }): void {}",
+        "errors": [
+          {
+            "messageId": "noPartialCanonicalType"
+          }
+        ],
+        "name": "plain inline indexed-access subsetting into fewer than every canonical property is flagged"
+      },
+      {
+        "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeStaticType } from '@studnicky/entity/types';\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nlet MutableOwnerNode = defineNode<string>({ type: 'string' } as const);\ntype MutableOwnerType = NodeStaticType<typeof MutableOwnerNode>;",
+        "errors": [
+          {
+            "messageId": "aliasMustBeInterface"
+          }
+        ],
+        "filename": "packages/eslint-config/MutableOwnerNodeBinding.ts",
+        "name": "a let binding is not value-first authored even for an owner-direct Node (rejected via the interface-contract path, not derivedFromSchema \u2014 NodeStaticType structural fallback resolves differently than FromSchema does)"
+      },
+      {
+        "code": "import { EntityCompiler } from '@studnicky/entity/node';\nexport namespace FooEntity {\n  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;\n  export type Type = { id: string };\n  export function validate(candidate: unknown): candidate is Type {\n    return typeof (candidate as Record<string, unknown>).id === 'string';\n  }\n  export const intake = EntityCompiler.compileIntake<Type>(Schema);\n  export const create = EntityCompiler.compileCreate<Type>(Schema);\n}",
         "errors": [
           {
             "messageId": "derivedFromSchema"
           }
         ],
-        "filename": "packages/eslint-config/ImitationEntity.ts",
-        "name": "a local type named FromSchema cannot validate a canonical entity alias"
+        "filename": "packages/eslint-config/FooEntity.ts",
+        "name": "an entity Type hand-written for a schema that derives structurally on its own is still rejected"
+      },
+      {
+        "code": "import type { EntityCreateFunctionInterface } from '@studnicky/entity/interfaces';\nimport type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nnamespace GroupValueEntities {\n  export namespace AlphabeticGroupValueEntity {\n    export const Schema = { additionalProperties: false, properties: { type: { const: 'alphabetic' } }, required: ['type'], type: 'object' } as const satisfies JSONSchema;\n    export interface Type extends FromSchema<typeof Schema> {}\n  }\n}\nexport type DrilldownGroupValueStaticType =\n  | GroupValueEntities.AlphabeticGroupValueEntity.Type\n  | { 'type': 'inline'; 'value': string };",
+        "errors": [
+          {
+            "messageId": "derivedFromSchema"
+          }
+        ],
+        "filename": "packages/eslint-config/DrilldownGroupValueUnionInline.ts",
+        "name": "a union with an inline object-literal constituent is still rejected even alongside a named schema-derived member"
       }
     ]
   },

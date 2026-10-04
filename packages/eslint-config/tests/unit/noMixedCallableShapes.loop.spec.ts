@@ -1,23 +1,22 @@
+import parser from '@typescript-eslint/parser';
+import { RuleTester } from 'eslint';
 import { describe, it } from 'node:test';
 
-import { RuleTester } from 'eslint';
-import parser from '@typescript-eslint/parser';
-
 import { noMixedCallableShapes } from '../../src/rules/noMixedCallableShapes.js';
-import scenarioGroups from './noMixedCallableShapes.scenarios.json' with { type: 'json' };
+import scenarioGroups from './noMixedCallableShapes.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parser,
-    parserOptions: {
-      projectService: {
-        allowDefaultProject: ['*.ts'],
-        maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 30
+  'languageOptions': {
+    'parser': parser,
+    'parserOptions': {
+      'projectService': {
+        'allowDefaultProject': ['*.ts'],
+        'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 30
       },
-      tsconfigRootDir: import.meta.dirname
+      'tsconfigRootDir': import.meta.dirname
     }
   }
 });

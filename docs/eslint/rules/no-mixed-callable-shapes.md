@@ -25,6 +25,8 @@ The rule inspects every union and intersection type node in the file, at any nes
 
 A purely callable union (`(() => void) | (() => number)`) or a purely data union (`{ a: 1 } | { b: 2 }`) is not reported. `type-alias-invariants` continues to own the purely callable case with its `aliasMustBeInterface` advice, since converting that shape to an interface is possible.
 
+`Function & { readonly 'prototype': TInstance }` is not a mixed shape. `prototype` is an intrinsic member every function value already carries (alongside `name` and `length`), so intersecting `Function` with a literal naming only intrinsic members narrows which function it is rather than bolting data onto a callable — the canonical spelling for a polymorphic static-factory `this` parameter (`static create<TInstance extends X>(this: Function & { readonly 'prototype': TInstance }): TInstance`). [`lexical-this-only`](./lexical-this-only.md) recognizes the same factory idiom in static context, so the two rules agree on it. A literal naming any other member — `retries`, `options`, anything not already on every function value — is still data riding along with a callable and stays reported.
+
 ## ✗ Incorrect
 
 ### Union of callable and data

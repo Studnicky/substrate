@@ -3,6 +3,8 @@
  * @description Process numeric range values for comparison
  */
 
+import { Predicates } from '@studnicky/types/browser';
+
 import type { FilterConditionInterface } from '../interfaces.js';
 
 import { NumberConverter } from './numberConverter.js';
@@ -36,7 +38,7 @@ export class NumericRangeProcessor {
     const [
       rangeStart,
       rangeEnd
-    ]: unknown[] = Array.isArray(filterValue) ? filterValue as unknown[] : [
+    ]: readonly unknown[] = Predicates.isArray(filterValue) ? filterValue : [
       undefined,
       undefined
     ];
