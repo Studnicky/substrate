@@ -204,12 +204,21 @@ run_semgrep_sarif_check() {
     return 0
   fi
 
-  if xargs -0 semgrep scan --quiet --config=auto --error --disable-version-check --sarif --output="$output" < "$targets_file"; then
+  if ! xargs -0 semgrep scan --quiet --config=auto --no-error --disable-version-check --sarif --output="$output" < "$targets_file"; then
     rm -f "$targets_file"
-    return 0
+    echo "security-suite: semgrep scan failed for $range" >&2
+    return 1
   fi
 
   rm -f "$targets_file"
+  if node -e '
+    const report = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"));
+    const findings = report.runs.flatMap((run) => run.results ?? []);
+    process.exitCode = findings.length === 0 ? 0 : 1;
+  ' "$output"; then
+    return 0
+  fi
+
   echo "security-suite: findings detected in $range" >&2
   return 1
 }
