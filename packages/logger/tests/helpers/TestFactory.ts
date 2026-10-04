@@ -18,14 +18,14 @@ export class TestFactory {
    * Creates a test log body with minimal required fields.
    */
   static body(message: string, context?: Record<string, unknown>): LogBodyDataEntity.Type {
-    const body = LogBody.create({
+    const result = LogBody.create({
       'component': 'TestFactory',
       'context': context ?? {},
       'message': message,
       'operation': 'body',
       'status': LOG_STATUS.SUCCESS
     });
-    return body;
+    return result;
   }
 
   /**
@@ -37,14 +37,14 @@ export class TestFactory {
     message: string,
     context?: Record<string, unknown>
   ): LogBodyDataEntity.Type {
-    const body = LogBody.create({
+    const result = LogBody.create({
       'component': component,
       'context': context ?? {},
       'message': message,
       'operation': operation,
       'status': LOG_STATUS.SUCCESS
     });
-    return body;
+    return result;
   }
 
   /**
@@ -58,7 +58,7 @@ export class TestFactory {
     } else if (errorCause !== undefined) {
       cause = String(errorCause);
     }
-    const fault = LogFault.create({
+    const result = LogFault.create({
       ...(cause !== undefined && { 'cause': cause }),
       'component': 'TestFactory',
       'context': context ?? {},
@@ -68,6 +68,6 @@ export class TestFactory {
       ...(error.stack !== undefined && { 'stack': error.stack }),
       'status': LOG_STATUS.FAILED
     });
-    return fault;
+    return result;
   }
 }

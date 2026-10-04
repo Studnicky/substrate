@@ -17,7 +17,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Runtime imports
 
-Import `EventBus` and `BusQueue` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import event contracts from `@studnicky/event-bus/interfaces` and schema declarations from `@studnicky/event-bus/entities`.
+Import `EventBus` from `@studnicky/event-bus/node` in Node or `@studnicky/event-bus/browser` in browsers. Import event contracts from `@studnicky/event-bus/interfaces`. Subscriber queue configuration uses `@studnicky/concurrency/queue/entities`.
 
 ## Northstar Books fulfilment events
 
@@ -40,6 +40,12 @@ All subscribers on the same topic receive each published payload independently. 
 Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument; it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
 
 <<< ../../packages/event-bus/examples/abortSignal.ts#usage
+
+## Topic routing
+
+`TopicRouter` is the event-bus router primitive. It stores dynamic subscriptions, invokes selected handlers, and carries caller-owned selection evidence. Supply a matcher or candidate source from application composition; selection policy is not part of the router.
+
+<RunnableExample src="packages/event-bus/examples/router-routeTopics" title="Route selected topic subscriptions" />
 
 ## Publish through a minimal sink
 
@@ -65,7 +71,7 @@ async function recordFailure(
 
 ## Observability hooks
 
-Subclass `EventBus` or `BusQueue` and override any of the protected hook methods to instrument lifecycle events without modifying the base class.
+Subclass `EventBus` and override its protected hook methods to instrument pub/sub lifecycle events without modifying the base class. Use `BusQueue` from `@studnicky/concurrency/queue/node` when an application needs standalone FIFO admission.
 
 ### EventBus hooks
 
@@ -82,21 +88,9 @@ Subclass `EventBus` or `BusQueue` and override any of the protected hook methods
 | `onHandlerError(topic, error)` | When a subscriber handler throws | `topic: K`, `error: unknown` |
 | `onDispose()` | When `bus.close()` is called | — |
 
-### BusQueue hooks
-
-| Hook | When it fires | Args |
-|------|--------------|------|
-| `onEnqueue(depth)` | Admission gate after the item is added; completes before handler delivery | `depth: number` |
-| `onDequeue(depth)` | Item removed from queue for processing | `depth: number` |
-| `onDrop()` | Enqueue called on aborted queue | — |
-| `onOverflow(depth)` | Admission gate when queue depth reaches highWaterMark; completes before handler delivery | `depth: number` |
-| `onHandlerError(error)` | Handler threw | `error: unknown` |
-
 <<< ../../packages/event-bus/examples/observedEventBus.ts#usage
 
 The base class never calls any logger or metrics library. All hooks are no-ops by default.
-
-For standalone `BusQueue` subclasses, a rejection from `onEnqueue` or `onOverflow` cancels only that item. The queue skips the cancelled entry and continues later enqueues in FIFO order.
 
 ## Try it
 
@@ -113,12 +107,11 @@ The hooks demo subclasses `EventBus` and overrides seven protected lifecycle met
 | Export | Type | Description |
 |--------|------|-------------|
 | `EventBus<TTopicMap>` | class | Multi-topic pub/sub; created via `EventBus.create<T>(config?)` |
-| `BusQueue<T>` | class | Bounded FIFO queue with backpressure; created via `BusQueue.create(options)` |
 | `EventHandlerInterface<T>` | interface | Callable handler contract: `(payload: T, signal: AbortSignal) => Promise<void> \| void` |
 | `EventSinkInterface<TTopicMap>` | interface | Minimal typed publishing contract: `publish(topic, payload) => Promise<void>` |
 | `UnsubscribeInterface` | interface | Callable unsubscribe contract returned by `subscribe`: `() => void` |
-| `BusQueueCreateOptionsInterface<T>` | interface | Queue construction contract: `{ handler, highWaterMark?, onError?, signal? }` |
-| `BusQueueOptionsEntity` | entity | Schema-backed bus and subscriber queue options |
+| `TopicRouter` | Registers topic subscriptions and publishes structural or caller-selected deliveries. | `@studnicky/event-bus/router` |
+| `TopicSelectionInterface` | Defines `{ id, origin, scores? }` selection data. | `@studnicky/event-bus/router/interfaces` |
 
 ### `EventBus<TTopicMap>`
 
@@ -130,33 +123,12 @@ The hooks demo subclasses `EventBus` and overrides seven protected lifecycle met
 | `drain` | `() => Promise<void>` | Waits for all subscriber queues to empty |
 | `close` | `() => Promise<void>` | Aborts all subscribers and drains |
 
-### `BusQueue<T>`
-
-| Member | Signature | Description |
-|--------|-----------|-------------|
-| `create` | `static create<T>(options: BusQueueCreateOptionsInterface<T>) => BusQueue<T>` | Factory; constructor is protected |
-| `enqueue` | `(item: T) => Promise<void>` | Adds item; awaits admission hooks and blocks caller when at `highWaterMark` |
-| `drain` | `() => Promise<void>` | Resolves when queue is empty or aborted |
-| `size` | `number` | Current queue depth |
-
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/event-bus)
-
-## Entities
-
-`@studnicky/event-bus/entities` exports every schema namespace in `src/entities`.
-
-<!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
-```typescript
-import { BusQueueOptionsEntity } from '@studnicky/event-bus/entities';
-```
 
 ## Exports
 
 | Symbol | Purpose | Import path |
 |---|---|---|
-| `BusQueue` | Provides bus queue functionality. | `@studnicky/event-bus/node` |
-| `BusQueueCreateOptionsInterface` | Defines the bus queue create options contract. | `@studnicky/event-bus/interfaces` |
-| `BusQueueConfigError` | Represents bus queue config failures. | `@studnicky/event-bus/node` |
 | `EventBus` | Provides event bus functionality. | `@studnicky/event-bus/node` |
 | `EventBusClosedError` | Abort reason for every subscriber queue when the bus closes. | `@studnicky/event-bus/node` |
 | `EventBusError` | Represents event bus failures. | `@studnicky/event-bus/node` |

@@ -10,7 +10,9 @@ import * as nodeExports from '../../../src/node/index.js';
 import { Context } from '../../../src/node/index.js';
 
 class OverrideStorage implements ContextStorageInterface {
-  readonly #storage: AsyncLocalStorage<Map<string, unknown>> = new AsyncLocalStorage<Map<string, unknown>>();
+  readonly #storage: AsyncLocalStorage<Map<string, unknown>> = new AsyncLocalStorage<
+    Map<string, unknown>
+  >();
 
   getStore(): Map<string, unknown> | undefined {
     const store = this.#storage.getStore();
@@ -69,8 +71,17 @@ class OverrideStorage implements ContextStorageInterface {
 
 void describe('Context runtime entrypoints', () => {
   void it('exports the same runtime symbols from node and browser', () => {
-    assert.deepStrictEqual(Object.keys(nodeExports).toSorted(), ['Context', 'ContextAsyncRuntime', 'ContextConfigError', 'ContextError', 'UnsupportedSourceExtensionError']);
-    assert.deepStrictEqual(Object.keys(browserExports).toSorted(), Object.keys(nodeExports).toSorted());
+    assert.deepStrictEqual(Object.keys(nodeExports).toSorted(), [
+      'Context',
+      'ContextAsyncRuntime',
+      'ContextConfigError',
+      'ContextError',
+      'UnsupportedSourceExtensionError'
+    ]);
+    assert.deepStrictEqual(
+      Object.keys(browserExports).toSorted(),
+      Object.keys(nodeExports).toSorted()
+    );
   });
 
   void it('keeps browser contexts explicit after the Node entrypoint loads', async () => {

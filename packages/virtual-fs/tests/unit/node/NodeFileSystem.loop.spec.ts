@@ -1,4 +1,3 @@
-import { TestWorkspace } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
@@ -6,6 +5,7 @@ import { describe, it } from 'node:test';
 
 import type { AsyncFileSystemInterface } from '../../../src/interfaces/AsyncFileSystemInterface.js';
 
+import { TestWorkspace } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { VirtualFileSystemError } from '../../../src/errors/VirtualFileSystemError.js';
 import { NodeFileSystem } from '../../../src/node/NodeFileSystem.js';
 

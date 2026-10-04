@@ -43,6 +43,17 @@
       },
       "name": "subclass-hooks",
       "shape": "imports-example"
+    },
+    {
+      "description": "Runs the traffic-light Pipeline FSM example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "entrypoint": "../../examples/traffic-light.ts"
+      },
+      "name": "traffic-light",
+      "shape": "imports-example"
     }
   ]
 }

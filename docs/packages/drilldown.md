@@ -37,7 +37,7 @@ Import `DrilldownRulesEntity` from `@studnicky/drilldown/entities` when applicat
 
 ## Live demo
 
-A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`, drilled down four levels deep (`region → category → status → brand`) to demonstrate the module's core promise: recursion bounded only by how many properties are discoverable in the data, not by a fixed depth. Click a node to expand or collapse its children.
+A deterministic fixture dataset, regenerated for each demo initialization, is drilled down four levels (`region → category → status → brand`) to demonstrate the module's core promise: recursion bounded only by how many properties are discoverable in the data, not by a fixed depth. Click a node to expand or collapse its children.
 
 <DrilldownTreeDemo />
 
@@ -47,7 +47,7 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 |---|---|---|
 | `DrillDown` | Builds a hierarchical grouping tree from records, via explicit rules or auto-discovered properties. | `@studnicky/drilldown/node` |
 | `DataAnalyzer` | Discovers groupable properties across a dataset and recommends a grouping order. | `@studnicky/drilldown/node` |
-| `FacetedDiscovery` | Narrows a record set by concurrently-selectable, mutually-consistent facet dimensions. | `@studnicky/drilldown/node` |
+| `FacetedDiscovery` | Narrows a record set by concurrently-selectable, mutually-consistent facet dimensions. | `@studnicky/filters/facets` |
 | `DrilldownRulesBuildError` | Reports failure to assemble the recursive rules schema node. | `@studnicky/drilldown/node` |
 | `ruleValidator` | Validates a `DrilldownRulesEntity.Type` tree, reporting structural errors by path. | `@studnicky/drilldown/node` |
 | `DrillDownConfigEntity` | Top-level schema-derived entity binding filter, group, and sort rules for one `DrillDown.group` call. | `@studnicky/drilldown/entities` |
@@ -102,6 +102,6 @@ A synthetic dataset of orders, generated fresh each time with `@faker-js/faker`,
 | `SemverMatcherInterface` | Matcher for semantic version constraint satisfaction. | `@studnicky/drilldown/interfaces` |
 | `SequentialMatcherInterface` | Matcher for sequential string patterns. | `@studnicky/drilldown/interfaces` |
 | `StringMatcherInterface` | Matcher for exact string equality. | `@studnicky/drilldown/interfaces` |
-| `FacetAccessorMapType` | Accessor map reading one filterable string value per facet dimension from an arbitrary row shape. | `@studnicky/drilldown/types` |
-| `FacetFilterStateType` | Current faceted-drilldown selection per dimension. | `@studnicky/drilldown/types` |
+| `FacetAccessorMapType` | Accessor map reading one filterable string value per facet dimension from an arbitrary row shape. | `@studnicky/filters/facets/types` |
+| `FacetFilterStateType` | Current faceted-drilldown selection per dimension. | `@studnicky/filters/facets/types` |
 | `MatcherUnionType` | Union of all matcher shapes produced by `matcherRegistry`. | `@studnicky/drilldown/types` |

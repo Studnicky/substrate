@@ -5,7 +5,7 @@ description: In-memory synchronous filesystem primitive with injectable clock an
 
 # @studnicky/virtual-fs
 
-> In-memory synchronous filesystem primitive. Gives file-lock (and any other fs-dependent code) a browser-compatible backend. Subclass to observe every filesystem event.
+> In-memory synchronous filesystem primitive. Gives filesystem-dependent code a browser-compatible backend. Subclass to observe every filesystem event.
 
 ## Install
 

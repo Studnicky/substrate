@@ -1,7 +1,7 @@
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import { CircularBufferScenarioCaseEntity } from '../entities/CircularBufferScenarioCaseEntity.js';
 import scenarioGroups from './CircularBuffer.scenarios.json' with { 'type': 'json' };

@@ -27,6 +27,12 @@ Import Node APIs from `@studnicky/fetch/node` and browser APIs from `@studnicky/
 
 <RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET with browser fetch" />
 
+## Compose a resilient Node request
+
+Compose `FetchClient`, `Retry`, and `Signal` directly when a Node request needs retries and a deadline. This recipe starts a local Node HTTP server, so it remains a Node-only source example rather than a browser runnable demo.
+
+<<< ../../packages/fetch/examples/resilientRequestComposition.ts#usage
+
 ## Customize requests
 
 Subclass `FetchClient` and override `onRequest` to update the outgoing request context or `onResponse` to inspect or replace the response context.

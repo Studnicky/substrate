@@ -3,7 +3,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "lib": [
+      "ESNext",
+      "DOM"
+    ]
   },
   "include": [
     "src/**/*"
@@ -14,6 +18,12 @@
   ],
   "references": [
     {
+      "path": "../clock"
+    },
+    {
+      "path": "../config"
+    },
+    {
       "path": "../circular-buffer"
     },
     {
@@ -21,9 +31,6 @@
     },
     {
       "path": "../entity"
-    },
-    {
-      "path": "../event-bus"
     },
     {
       "path": "../fsm"
@@ -36,6 +43,9 @@
     },
     {
       "path": "../types"
+    },
+    {
+      "path": "../virtual-fs"
     }
   ]
 }

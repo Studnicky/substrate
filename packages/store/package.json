@@ -44,6 +44,10 @@
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
     },
+    "./entity": {
+      "types": "./dist/entity/index.d.ts",
+      "import": "./dist/entity/index.js"
+    },
     "./strata": {
       "types": "./dist/strata/index.d.ts",
       "import": "./dist/strata/index.js"
@@ -69,14 +73,12 @@
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
-    "@studnicky/context": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/json": "workspace:*",
-    "@studnicky/mutex": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
     "fake-indexeddb": "^6.2.5"
   },
   "engines": {

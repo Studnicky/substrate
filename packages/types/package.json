@@ -56,10 +56,6 @@
   "dependencies": {
     "@types/json-schema": "^7.0.15"
   },
-  "devDependencies": {
-    "@studnicky/entity": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
-  },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"

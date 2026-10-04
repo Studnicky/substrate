@@ -1,9 +1,9 @@
 import type { JsonValueEntity } from '@studnicky/json/entities';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioValues } from '@studnicky/scenario-kit/node';
 import { JsonObject } from '@studnicky/types/node';
 
+import { ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { PlatformCalls } from './PlatformCalls.js';
 import { StaticRequestIdGenerator } from './StaticRequestIdGenerator.js';
 

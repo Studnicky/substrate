@@ -58,10 +58,7 @@
   },
   "devDependencies": {
     "@studnicky/clock": "workspace:*",
-    "@studnicky/entity": "workspace:*",
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*",
-    "@studnicky/scheduler": "workspace:*"
+    "@studnicky/entity": "workspace:*"
   },
   "engines": {
     "node": ">=24.0.0"

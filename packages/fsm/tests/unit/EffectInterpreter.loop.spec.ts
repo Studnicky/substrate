@@ -1,38 +1,39 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { Pipeline } from '@studnicky/pipeline/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import {
-  describe, it
-} from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { EffectInterpreterConstructorOptionsInterface } from '../../src/interfaces/EffectInterpreterConstructorOptionsInterface.js';
 import type { FsmStepInterface } from '../../src/interfaces/FsmStepInterface.js';
-import type { PipelineEffectInterface } from '../../src/interfaces/PipelineEffectInterface.js';
 import type { MachineActivateEventEntity } from './entities/MachineActivateEventEntity.js';
 import type { MachineActivationEventEntity } from './entities/MachineActivationEventEntity.js';
 import type { MachineCountingStateEntity } from './entities/MachineCountingStateEntity.js';
 import type { MachineIdleActiveStateEntity } from './entities/MachineIdleActiveStateEntity.js';
 import type { MachineLogEffectEntity } from './entities/MachineLogEffectEntity.js';
-import type { MachinePipelineEventEntity } from './entities/MachinePipelineEventEntity.js';
-import type { MachinePipelineStateEntity } from './entities/MachinePipelineStateEntity.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { EffectInterpreter } from '../../src/EffectInterpreter.js';
 import { MailboxCapacityExceededError } from '../../src/errors/MailboxCapacityExceededError.js';
-import { MachineTerminatedError } from '../../src/MachineTerminatedError.js';
-import { PipelineEffectHandler } from '../../src/PipelineEffectHandler.js';
 import { StateMachine } from '../../src/StateMachine.js';
 import scenarioGroups from './EffectInterpreter.scenarios.json' with { 'type': 'json' };
 import { EffectInterpreterScenarioCaseEntity } from './entities/EffectInterpreterScenarioCaseEntity.js';
 
-class DemoMachine extends StateMachine<MachineIdleActiveStateEntity.Type, MachineActivationEventEntity.Type, MachineLogEffectEntity.Type> {
-  public constructor() { super(); }
+class DemoMachine extends StateMachine<
+  MachineIdleActiveStateEntity.Type,
+  MachineActivationEventEntity.Type,
+  MachineLogEffectEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineIdleActiveStateEntity.Type { return { 'variant': 'idle' }; }
+  override getInitialState(): MachineIdleActiveStateEntity.Type {
+    return { 'variant': 'idle' };
+  }
 
-  override reduce(state: MachineIdleActiveStateEntity.Type, event: MachineActivationEventEntity.Type): FsmStepInterface<MachineIdleActiveStateEntity.Type, MachineLogEffectEntity.Type> {
+  override reduce(
+    state: MachineIdleActiveStateEntity.Type,
+    event: MachineActivationEventEntity.Type
+  ): FsmStepInterface<MachineIdleActiveStateEntity.Type, MachineLogEffectEntity.Type> {
     if (state.variant === 'idle' && event.type === 'activate') {
       return { 'effects': [{ 'message': 'activated', 'variant': 'log' }], 'state': { 'variant': 'active' } };
     }
@@ -43,11 +44,22 @@ class DemoMachine extends StateMachine<MachineIdleActiveStateEntity.Type, Machin
   }
 }
 
-class RejectingMachine extends StateMachine<MachineIdleActiveStateEntity.Type, MachineActivationEventEntity.Type, MachineLogEffectEntity.Type> {
-  public constructor() { super(); }
+class RejectingMachine extends StateMachine<
+  MachineIdleActiveStateEntity.Type,
+  MachineActivationEventEntity.Type,
+  MachineLogEffectEntity.Type
+> {
+  public constructor() {
+    super();
+  }
 
-  override getInitialState(): MachineIdleActiveStateEntity.Type { return { 'variant': 'idle' }; }
-  override reduce(state: MachineIdleActiveStateEntity.Type, event: MachineActivationEventEntity.Type): FsmStepInterface<MachineIdleActiveStateEntity.Type, MachineLogEffectEntity.Type> {
+  override getInitialState(): MachineIdleActiveStateEntity.Type {
+    return { 'variant': 'idle' };
+  }
+  override reduce(
+    state: MachineIdleActiveStateEntity.Type,
+    event: MachineActivationEventEntity.Type
+  ): FsmStepInterface<MachineIdleActiveStateEntity.Type, MachineLogEffectEntity.Type> {
     if (event.type === 'deactivate') {
       throw RuntimeError.create('deliberately rejected');
     }
@@ -58,7 +70,10 @@ class RejectingMachine extends StateMachine<MachineIdleActiveStateEntity.Type, M
   }
 }
 
-class CountingMachine extends StateMachine<MachineCountingStateEntity.Type, MachineActivateEventEntity.Type> {
+class CountingMachine extends StateMachine<
+  MachineCountingStateEntity.Type,
+  MachineActivateEventEntity.Type
+> {
   readonly #activeCount: number;
   readonly #initialCount: number;
 
@@ -68,23 +83,43 @@ class CountingMachine extends StateMachine<MachineCountingStateEntity.Type, Mach
     this.#activeCount = activeCount;
   }
 
-  override getInitialState(): MachineCountingStateEntity.Type { return { 'details': { 'count': this.#initialCount }, 'variant': 'idle' }; }
-  override reduce(_state: MachineCountingStateEntity.Type): FsmStepInterface<MachineCountingStateEntity.Type> {
+  override getInitialState(): MachineCountingStateEntity.Type {
+    return { 'details': { 'count': this.#initialCount }, 'variant': 'idle' };
+  }
+  override reduce(
+    _state: MachineCountingStateEntity.Type
+  ): FsmStepInterface<MachineCountingStateEntity.Type> {
     return { 'effects': [], 'state': { 'details': { 'count': this.#activeCount }, 'variant': 'active' } };
   }
 }
 
-class RecordingStopInterpreter extends EffectInterpreter<MachineIdleActiveStateEntity.Type, MachineActivationEventEntity.Type, MachineLogEffectEntity.Type> {
+class RecordingStopInterpreter extends EffectInterpreter<
+  MachineIdleActiveStateEntity.Type,
+  MachineActivationEventEntity.Type,
+  MachineLogEffectEntity.Type
+> {
   readonly stoppedStates: (MachineIdleActiveStateEntity.Type | undefined)[] = [];
 
-  public constructor(options: EffectInterpreterConstructorOptionsInterface<MachineIdleActiveStateEntity.Type, MachineActivationEventEntity.Type, MachineLogEffectEntity.Type>) { super(options); }
+  public constructor(
+    options: EffectInterpreterConstructorOptionsInterface<
+      MachineIdleActiveStateEntity.Type,
+      MachineActivationEventEntity.Type,
+      MachineLogEffectEntity.Type
+    >
+  ) {
+    super(options);
+  }
 
   protected override onStop(state: MachineIdleActiveStateEntity.Type | undefined): void {
     this.stoppedStates.push(state);
   }
 }
 
-class ThrowingStopInterpreter extends EffectInterpreter<MachineIdleActiveStateEntity.Type, MachineActivationEventEntity.Type, MachineLogEffectEntity.Type> {
+class ThrowingStopInterpreter extends EffectInterpreter<
+  MachineIdleActiveStateEntity.Type,
+  MachineActivationEventEntity.Type,
+  MachineLogEffectEntity.Type
+> {
   static readonly failure = RuntimeError.create('stop boom');
 
   protected override onStop(): void {
@@ -119,14 +154,24 @@ class ErrorCapture {
 }
 
 class EffectInterpreterRunners {
-  static async 'create-default-identity'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'create-default-identity'>): Promise<void> {
+  static async 'create-default-identity'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'create-default-identity'
+    >
+  ): Promise<void> {
     const interpreter = EffectInterpreter.create(new DemoMachine());
     interpreter.start();
     await interpreter.send(scenarioCase.input.event);
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static 'create-empty-machine-id'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'create-empty-machine-id'>): void {
+  static 'create-empty-machine-id'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'create-empty-machine-id'
+    >
+  ): void {
     assert.throws(
       () => {
         EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
@@ -135,28 +180,51 @@ class EffectInterpreterRunners {
     );
   }
 
-  static 'create-non-integer-mailbox-capacity'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'create-non-integer-mailbox-capacity'>): void {
+  static 'create-non-integer-mailbox-capacity'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'create-non-integer-mailbox-capacity'
+    >
+  ): void {
     assert.throws(
       () => {
-        EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId, 'mailboxCapacity': scenarioCase.input.mailboxCapacity });
+        EffectInterpreter.create(new DemoMachine(), {
+          'machineId': scenarioCase.input.machineId,
+          'mailboxCapacity': scenarioCase.input.mailboxCapacity
+        });
       },
       { 'message': scenarioCase.expected.message }
     );
   }
 
-  static 'create-non-positive-mailbox-capacity'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'create-non-positive-mailbox-capacity'>): void {
+  static 'create-non-positive-mailbox-capacity'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'create-non-positive-mailbox-capacity'
+    >
+  ): void {
     assert.throws(
       () => {
-        EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId, 'mailboxCapacity': scenarioCase.input.mailboxCapacity });
+        EffectInterpreter.create(new DemoMachine(), {
+          'machineId': scenarioCase.input.machineId,
+          'mailboxCapacity': scenarioCase.input.mailboxCapacity
+        });
       },
       { 'message': scenarioCase.expected.message }
     );
   }
 
-  static async 'effect-handler-called-after-transition'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'effect-handler-called-after-transition'>): Promise<void> {
+  static async 'effect-handler-called-after-transition'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'effect-handler-called-after-transition'
+    >
+  ): Promise<void> {
     const logged: string[] = [];
     const interpreter = EffectInterpreter.create(new DemoMachine(), {
-      'handler': (effect) => { logged.push(effect.message); },
+      'handler': (effect) => {
+        logged.push(effect.message);
+      },
       'machineId': scenarioCase.input.machineId
     });
     interpreter.start();
@@ -164,10 +232,19 @@ class EffectInterpreterRunners {
     assert.deepEqual(logged, scenarioCase.expected.logged);
   }
 
-  static async 'effect-handler-omitted'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'effect-handler-omitted'>): Promise<void> {
+  static async 'effect-handler-omitted'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'effect-handler-omitted'
+    >
+  ): Promise<void> {
     const states: MachineIdleActiveStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
-    interpreter.subscribe((state) => { states.push(state); });
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
+    interpreter.subscribe((state) => {
+      states.push(state);
+    });
     interpreter.start();
     await interpreter.send(scenarioCase.input.event);
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
@@ -175,17 +252,31 @@ class EffectInterpreterRunners {
     assert.deepEqual(states[1], scenarioCase.expected.state);
   }
 
-  static 'get-state-before-start'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'get-state-before-start'>): void {
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
+  static 'get-state-before-start'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'get-state-before-start'
+    >
+  ): void {
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     const error = ErrorCapture.thrown(() => {
       interpreter.getState();
     });
     assert.ok(error.message.includes('not started'));
   }
 
-  static async 'handler-dispatches-within-send'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'handler-dispatches-within-send'>): Promise<void> {
+  static async 'handler-dispatches-within-send'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'handler-dispatches-within-send'
+    >
+  ): Promise<void> {
     const interpreter = EffectInterpreter.create(new DemoMachine(), {
-      'handler': (_effect, dispatch) => { dispatch({ 'type': 'deactivate' }); },
+      'handler': (_effect, dispatch) => {
+        dispatch({ 'type': 'deactivate' });
+      },
       'machineId': scenarioCase.input.machineId
     });
     interpreter.start();
@@ -193,7 +284,12 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'mailbox-capacity-bounds-mailbox'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'mailbox-capacity-bounds-mailbox'>): Promise<void> {
+  static async 'mailbox-capacity-bounds-mailbox'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'mailbox-capacity-bounds-mailbox'
+    >
+  ): Promise<void> {
     const interpreter = EffectInterpreter.create(new DemoMachine(), {
       'machineId': scenarioCase.input.machineId,
       'mailboxCapacity': scenarioCase.input.mailboxCapacity
@@ -214,8 +310,15 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'processes-events-fifo'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'processes-events-fifo'>): Promise<void> {
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
+  static async 'processes-events-fifo'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'processes-events-fifo'
+    >
+  ): Promise<void> {
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.start();
     const [firstEvent, secondEvent] = scenarioCase.input.events;
     assert.ok(firstEvent !== undefined && secondEvent !== undefined, 'Expected two queued events');
@@ -225,8 +328,15 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'queued-send-resolves-after-own-transition'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'queued-send-resolves-after-own-transition'>): Promise<void> {
-    const interpreter = EffectInterpreter.create(new RejectingMachine(), { 'machineId': scenarioCase.input.machineId });
+  static async 'queued-send-resolves-after-own-transition'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'queued-send-resolves-after-own-transition'
+    >
+  ): Promise<void> {
+    const interpreter = EffectInterpreter.create(new RejectingMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.start();
     const rejectingSend = interpreter.send(scenarioCase.input.rejectedEvent);
     const queuedSend = interpreter.send(scenarioCase.input.recoveryEvent);
@@ -235,24 +345,44 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'rejected-transition-does-not-wedge'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'rejected-transition-does-not-wedge'>): Promise<void> {
-    const interpreter = EffectInterpreter.create(new RejectingMachine(), { 'machineId': scenarioCase.input.machineId });
+  static async 'rejected-transition-does-not-wedge'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'rejected-transition-does-not-wedge'
+    >
+  ): Promise<void> {
+    const interpreter = EffectInterpreter.create(new RejectingMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.start();
     await ErrorCapture.rejection(interpreter.send(scenarioCase.input.rejectedEvent));
     await interpreter.send(scenarioCase.input.recoveryEvent);
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'send-before-start'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'send-before-start'>): Promise<void> {
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
+  static async 'send-before-start'(
+    scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'send-before-start'>
+  ): Promise<void> {
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     const error = await ErrorCapture.rejection(interpreter.send(scenarioCase.input.event));
     assert.ok(error.message.includes('not running'));
   }
 
-  static async 'send-transitions-state'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'send-transitions-state'>): Promise<void> {
+  static async 'send-transitions-state'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'send-transitions-state'
+    >
+  ): Promise<void> {
     const states: MachineIdleActiveStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
-    interpreter.subscribe((state) => { states.push(state); });
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
+    interpreter.subscribe((state) => {
+      states.push(state);
+    });
     interpreter.start();
     await interpreter.send(scenarioCase.input.event);
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
@@ -260,9 +390,17 @@ class EffectInterpreterRunners {
     assert.deepEqual(states[1], scenarioCase.expected.state);
   }
 
-  static async 'snapshot-isolation'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'snapshot-isolation'>): Promise<void> {
+  static async 'snapshot-isolation'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'snapshot-isolation'
+    >
+  ): Promise<void> {
     const observed: MachineCountingStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new CountingMachine(scenarioCase.input.initialCount, scenarioCase.input.activeCount), { 'machineId': scenarioCase.input.machineId });
+    const interpreter = EffectInterpreter.create(
+      new CountingMachine(scenarioCase.input.initialCount, scenarioCase.input.activeCount),
+      { 'machineId': scenarioCase.input.machineId }
+    );
     interpreter.subscribe((state) => {
       observed.push(state);
       state.details.count = scenarioCase.input.mutatedCount;
@@ -278,58 +416,100 @@ class EffectInterpreterRunners {
     active.details.count = scenarioCase.input.postTransitionMutationCount;
 
     assert.equal(interpreter.getState().details.count, scenarioCase.input.activeCount);
-    assert.deepEqual(observed.map((state) => {
-      const count = state.details.count;
-      return count;
-    }), scenarioCase.expected.observedCounts);
+    assert.deepEqual(
+      observed.map((state) => {
+        const count = state.details.count;
+        return count;
+      }),
+      scenarioCase.expected.observedCounts
+    );
   }
 
-  static 'start-is-idempotent'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'start-is-idempotent'>): void {
+  static 'start-is-idempotent'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'start-is-idempotent'
+    >
+  ): void {
     const states: MachineIdleActiveStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
-    interpreter.subscribe((state) => { states.push(state); });
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
+    interpreter.subscribe((state) => {
+      states.push(state);
+    });
     interpreter.start();
     interpreter.start();
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
     assert.equal(states.length, scenarioCase.expected.notificationCount);
   }
 
-  static 'start-sets-initial-state'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'start-sets-initial-state'>): void {
+  static 'start-sets-initial-state'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'start-sets-initial-state'
+    >
+  ): void {
     const states: MachineIdleActiveStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
-    interpreter.subscribe((state) => { states.push(state); });
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
+    interpreter.subscribe((state) => {
+      states.push(state);
+    });
     interpreter.start();
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
     assert.equal(states.length, scenarioCase.expected.notificationCount);
     assert.deepEqual(states[0], scenarioCase.expected.state);
   }
 
-  static 'stop-after-start'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-after-start'>): void {
-    const interpreter = new RecordingStopInterpreter({ 'machine': new DemoMachine(), 'machineId': scenarioCase.input.machineId });
+  static 'stop-after-start'(
+    scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-after-start'>
+  ): void {
+    const interpreter = new RecordingStopInterpreter({
+      'machine': new DemoMachine(),
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.start();
     interpreter.stop();
     assert.deepEqual(interpreter.stoppedStates, [scenarioCase.expected.state]);
   }
 
-  static 'stop-before-start'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-before-start'>): void {
-    const interpreter = new RecordingStopInterpreter({ 'machine': new DemoMachine(), 'machineId': scenarioCase.input.machineId });
+  static 'stop-before-start'(
+    scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-before-start'>
+  ): void {
+    const interpreter = new RecordingStopInterpreter({
+      'machine': new DemoMachine(),
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.stop();
     assert.deepEqual(interpreter.stoppedStates, [undefined]);
   }
 
-  static 'stop-hook-throws'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-hook-throws'>): void {
-    const interpreter = ThrowingStopInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
+  static 'stop-hook-throws'(
+    scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-hook-throws'>
+  ): void {
+    const interpreter = ThrowingStopInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.start();
     interpreter.stop();
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
     assert.strictEqual(ThrowingStopInterpreter.failure.message, 'stop boom');
   }
 
-  static async 'stop-while-handler-in-flight'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'stop-while-handler-in-flight'>): Promise<void> {
+  static async 'stop-while-handler-in-flight'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'stop-while-handler-in-flight'
+    >
+  ): Promise<void> {
     const handlerGate = Promise.withResolvers<void>();
 
     const interpreter = EffectInterpreter.create(new DemoMachine(), {
-      'handler': async () => { await handlerGate.promise; },
+      'handler': async () => {
+        await handlerGate.promise;
+      },
       'machineId': scenarioCase.input.machineId
     });
     interpreter.start();
@@ -348,8 +528,15 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'throwing-observer-does-not-block-send'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'throwing-observer-does-not-block-send'>): Promise<void> {
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
+  static async 'throwing-observer-does-not-block-send'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'throwing-observer-does-not-block-send'
+    >
+  ): Promise<void> {
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
     interpreter.subscribe(() => {
       throw RuntimeError.create('observer boom');
     });
@@ -358,10 +545,19 @@ class EffectInterpreterRunners {
     assert.deepEqual(interpreter.getState(), scenarioCase.expected.state);
   }
 
-  static async 'unsubscribe-stops-notifications'(scenarioCase: ScenarioCaseOfType<EffectInterpreterScenarioCaseEntity.Type, 'unsubscribe-stops-notifications'>): Promise<void> {
+  static async 'unsubscribe-stops-notifications'(
+    scenarioCase: ScenarioCaseOfType<
+      EffectInterpreterScenarioCaseEntity.Type,
+      'unsubscribe-stops-notifications'
+    >
+  ): Promise<void> {
     const states: MachineIdleActiveStateEntity.Type[] = [];
-    const interpreter = EffectInterpreter.create(new DemoMachine(), { 'machineId': scenarioCase.input.machineId });
-    const unsubscribe = interpreter.subscribe((state) => { states.push(state); });
+    const interpreter = EffectInterpreter.create(new DemoMachine(), {
+      'machineId': scenarioCase.input.machineId
+    });
+    const unsubscribe = interpreter.subscribe((state) => {
+      states.push(state);
+    });
     interpreter.start();
     unsubscribe();
     await interpreter.send(scenarioCase.input.event);
@@ -374,120 +570,4 @@ ScenarioSuite.register({
   'file': scenarioGroups,
   'name': 'EffectInterpreter',
   'runners': EffectInterpreterRunners
-});
-
-class PipelineWorkflowMachine extends StateMachine<MachinePipelineStateEntity.Type, MachinePipelineEventEntity.Type, PipelineEffectInterface<MachinePipelineEventEntity.Type>> {
-  readonly rejectedEvents: MachinePipelineEventEntity.Type[] = [];
-
-  public constructor() { super(); }
-
-  override getInitialState(): MachinePipelineStateEntity.Type { return { 'variant': 'idle' }; }
-
-  override reduce(state: MachinePipelineStateEntity.Type, event: MachinePipelineEventEntity.Type): FsmStepInterface<MachinePipelineStateEntity.Type, PipelineEffectInterface<MachinePipelineEventEntity.Type>> {
-    if (state.variant === 'idle' && event.type === 'begin') {
-      return {
-        'effects': [{ 'event': { 'sequence': [], 'type': 'complete' }, 'variant': 'pipeline' }],
-        'state': { 'variant': 'processing' }
-      };
-    }
-    if (state.variant === 'processing' && event.type === 'complete') {
-      if (event.sequence.join(',') !== 'normalise,authorise') {
-        throw RuntimeError.create('pipeline stages did not preserve the declared order');
-      }
-      return { 'effects': [], 'state': { 'variant': 'completed' } };
-    }
-    if (state.variant === 'processing' && event.type === 'invalid') {
-      this.rejectedEvents.push(event);
-      throw RuntimeError.create('pipeline mapped an event that is invalid while processing');
-    }
-    return { 'effects': [], 'state': state };
-  }
-
-  protected override isTerminated(state: MachinePipelineStateEntity.Type): boolean {
-    const terminated = state.variant === 'completed';
-    return terminated;
-  }
-}
-
-void describe('EffectInterpreter pipeline effects', () => {
-  void it('runs ordered pipeline stages before its mapped event reaches the reducer', async () => {
-    const stages: string[] = [];
-    const pipeline = Pipeline.create<MachinePipelineEventEntity.Type>([
-      (event) => {
-        stages.push('normalise');
-        if (event.type !== 'complete') { return event; }
-        return { 'sequence': [...event.sequence, 'normalise'], 'type': 'complete' };
-      },
-      (event) => {
-        stages.push('authorise');
-        if (event.type !== 'complete') { return event; }
-        return { 'sequence': [...event.sequence, 'authorise'], 'type': 'complete' };
-      }
-    ]);
-    const interpreter = EffectInterpreter.create(new PipelineWorkflowMachine(), {
-      'handler': PipelineEffectHandler.create(pipeline),
-      'machineId': 'pipeline-ordered'
-    });
-
-    interpreter.start();
-    await interpreter.send({ 'type': 'begin' });
-
-    assert.deepEqual(stages, ['normalise', 'authorise']);
-    assert.deepEqual(interpreter.getState(), { 'variant': 'completed' });
-  });
-
-  void it('keeps the intermediate state when the reducer rejects the pipeline-mapped event', async () => {
-    const pipeline = Pipeline.create<MachinePipelineEventEntity.Type>([
-      () => {return { 'sequence': [], 'type': 'invalid' };}
-    ]);
-    const machine = new PipelineWorkflowMachine();
-    const interpreter = EffectInterpreter.create(machine, {
-      'handler': PipelineEffectHandler.create(pipeline),
-      'machineId': 'pipeline-invalid-event'
-    });
-
-    interpreter.start();
-    await interpreter.send({ 'type': 'begin' });
-
-    assert.deepEqual(machine.rejectedEvents, [{ 'sequence': [], 'type': 'invalid' }]);
-    assert.deepEqual(interpreter.getState(), { 'variant': 'processing' });
-  });
-
-  void it('rejects new events after a pipeline-mapped event reaches a terminal state', async () => {
-    const pipeline = Pipeline.create<MachinePipelineEventEntity.Type>([
-      (event) => {return event;},
-      (event) => {
-        const completed: MachinePipelineEventEntity.Type = { 'sequence': ['normalise', 'authorise'], 'type': 'complete' };
-        const mapped = event.type === 'complete' ? completed : event;
-        return mapped;
-      }
-    ]);
-    const interpreter = EffectInterpreter.create(new PipelineWorkflowMachine(), {
-      'handler': PipelineEffectHandler.create(pipeline),
-      'machineId': 'pipeline-terminal'
-    });
-
-    interpreter.start();
-    await interpreter.send({ 'type': 'begin' });
-
-    assert.deepEqual(interpreter.getState(), { 'variant': 'completed' });
-    const error = await ErrorCapture.rejection(interpreter.send({ 'type': 'begin' }));
-    assert.ok(error instanceof MachineTerminatedError);
-  });
-
-  void it('propagates pipeline rejection after committing the intermediate state', async () => {
-    const pipeline = Pipeline.create<MachinePipelineEventEntity.Type>([
-      () => { throw RuntimeError.create('pipeline failed'); }
-    ]);
-    const interpreter = EffectInterpreter.create(new PipelineWorkflowMachine(), {
-      'handler': PipelineEffectHandler.create(pipeline),
-      'machineId': 'pipeline-rejection'
-    });
-
-    interpreter.start();
-
-    const error = await ErrorCapture.rejection(interpreter.send({ 'type': 'begin' }));
-    assert.ok(error.message.includes('pipeline failed'));
-    assert.deepEqual(interpreter.getState(), { 'variant': 'processing' });
-  });
 });

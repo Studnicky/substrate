@@ -39,6 +39,14 @@
         "entrypoint": "../../examples/observedFetch.ts"
       },
       "shape": "imports-example"
+    },
+    {
+      "name": "resilientRequestComposition.ts",
+      "description": "Resilient request composition example runs without throwing",
+      "input": {
+        "entrypoint": "../../examples/resilientRequestComposition.ts"
+      },
+      "shape": "imports-example"
     }
   ]
 }

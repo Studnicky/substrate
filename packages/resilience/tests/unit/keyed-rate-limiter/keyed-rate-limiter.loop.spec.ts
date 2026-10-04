@@ -1,10 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
+import { ClockError } from '@studnicky/clock/node';
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RateLimitConsumptionEntity } from '../../../src/entities/RateLimitConsumptionEntity.js';
 import type { RateLimitConsumptionInterface } from '../../../src/interfaces/RateLimitConsumptionInterface.js';
 import type {
@@ -13,7 +12,7 @@ import type {
   RateLimiterStrategyInterface
 } from '../../../src/keyed/interfaces/index.js';
 
-import { ResilienceConfigError } from '../../../src/errors/ResilienceConfigError.js';
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import {
   KeyedRateLimiterDefaultOptionsEntity,
   KeyedRateLimiterRegistryOptionsEntity,
@@ -447,9 +446,19 @@ void describe('KeyedRateLimiter unknown-property boundaries', () => {
 
 
 void describe('KeyedRateLimiter clock boundaries', () => {
-  void it('validates a default clock before forwarding it to token buckets', () => {
-    const invalidConfiguration = { 'burstSize': 1, 'clock': 0, 'requestsPerSecond': 1 };
-    assert.strictEqual(KeyedRateLimiterDefaultOptionsEntity.validate(invalidConfiguration), false);
+  void it('wraps invalid clock configuration in the keyed boundary error', () => {
+    const configuration: KeyedRateLimiterCreateConfigInterface = {
+      'burstSize': 1,
+      'clock': (): number => {return 0;},
+      'requestsPerSecond': 1
+    };
+    Reflect.set(configuration, 'clock', 0);
+    assert.throws(() => {
+      KeyedRateLimiter.create(configuration);
+    }, (error: Error): boolean => {
+      const result = error instanceof KeyedRateLimiterConfigError && error.cause instanceof ClockError;
+      return result;
+    });
   });
 
   void it('preserves the shared clock guard when a key creates its token bucket', () => {
@@ -458,7 +467,10 @@ void describe('KeyedRateLimiter clock boundaries', () => {
       'clock': (): number => {return Number.NaN;},
       'requestsPerSecond': 1
     });
-    assert.throws(() => { limiter.consume('account'); }, ResilienceConfigError);
+    assert.throws(() => { limiter.consume('account'); }, (error: Error): boolean => {
+      const result = error instanceof ClockError && error.cause instanceof ClockError;
+      return result;
+    });
   });
 });
 

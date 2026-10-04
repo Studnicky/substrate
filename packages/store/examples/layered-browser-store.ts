@@ -1,6 +1,6 @@
 /** layered-browser-store — keep a Northstar Books cart in memory and durable browser checkout storage. */
 
-import { Mutex } from '@studnicky/mutex/browser';
+import { Mutex } from '@studnicky/concurrency/mutex';
 import {
   BrowserPersistence, JsonStateCodec, MemoryPersistence, StorageTarget, Store
 } from '@studnicky/store/browser';

@@ -75,14 +75,18 @@ function tsconfigFromDir(dir: string): string | null {
   return existsSync(candidate) ? candidate : null;
 }
 
-function madgeGraph(entryPath: string, tsconfigPath: string): Record<string, string[]> {
-  const output = execFileSync(
-    'pnpm',
-    ['exec', 'madge', '--json', '--extensions', 'ts,tsx,js,mjs,cjs', '--ts-config', tsconfigPath, entryPath],
-    { 'cwd': repoRoot, 'encoding': 'utf8' }
-  );
+function compilerOptionsFromTsconfig(tsconfigPath: string): ts.CompilerOptions {
+  const configResult = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
+  if (configResult.error !== undefined) {
+    throw new Error(ts.flattenDiagnosticMessageText(configResult.error.messageText, '\n'));
+  }
 
-  return JSON.parse(output) as Record<string, string[]>;
+  const parsedConfig = ts.parseJsonConfigFileContent(configResult.config, ts.sys, path.dirname(tsconfigPath));
+  if (parsedConfig.errors.length > 0) {
+    throw new Error(ts.flattenDiagnosticMessageText(parsedConfig.errors[0]?.messageText ?? 'Unable to parse tsconfig.', '\n'));
+  }
+
+  return parsedConfig.options;
 }
 
 function resolvePackage(filePath: string, packageDirs: string[], packageByDir: Map<string, string>, baseDir: string): string | null {
@@ -107,17 +111,11 @@ function entrypointsFromDir(dir: string): string[] {
   return entrypoints.length > 0 ? entrypoints : [sourceDir];
 }
 
-function sourceFilesFromGraph(graph: Record<string, string[]>, sourceDir: string, entrypoints: string[]): string[] {
-  const sourceFiles = new Set<string>();
-  for (const entrypoint of entrypoints) {
-    if (existsSync(entrypoint) && path.extname(entrypoint) !== '') {
-      sourceFiles.add(entrypoint);
-    }
-  }
+function sourceFilesFromGraph(graph: Record<string, string[]>, entrypoints: string[]): string[] {
+  const sourceFiles = new Set<string>(entrypoints.filter((entrypoint) => {return existsSync(entrypoint) && path.extname(entrypoint) !== ''; }));
   for (const file of Object.keys(graph)) {
-    const sourcePath = path.resolve(sourceDir, file);
-    if (existsSync(sourcePath)) {
-      sourceFiles.add(sourcePath);
+    if (existsSync(file)) {
+      sourceFiles.add(file);
     }
   }
   return [...sourceFiles].toSorted();
@@ -176,13 +174,36 @@ function staticModuleSpecifiers(sourcePath: string): Set<string> {
   return specifiers;
 }
 
-function workspacePackageFromSpecifier(specifier: string, workspacePackages: Set<string>): string | null {
-  const [scope, name] = specifier.split('/');
-  if (scope !== '@studnicky' || name === undefined || name === '') {
-    return null;
+function isWithinDirectory(filePath: string, directory: string): boolean {
+  const relativePath = path.relative(directory, filePath);
+  return relativePath !== '' && !relativePath.startsWith(`..${path.sep}`) && relativePath !== '..' && !path.isAbsolute(relativePath);
+}
+
+function nativeGraph(entrypoints: string[], sourceDir: string, compilerOptions: ts.CompilerOptions): Record<string, string[]> {
+  const graph: Record<string, string[]> = {};
+  const pending = [...entrypoints];
+
+  while (pending.length > 0) {
+    const sourcePath = pending.pop();
+    if (sourcePath === undefined || graph[sourcePath] !== undefined || !existsSync(sourcePath)) {
+      continue;
+    }
+
+    const dependencies = new Set<string>();
+    for (const specifier of staticModuleSpecifiers(sourcePath)) {
+      const resolvedModule = ts.resolveModuleName(specifier, sourcePath, compilerOptions, ts.sys).resolvedModule;
+      if (resolvedModule === undefined) {
+        continue;
+      }
+      dependencies.add(resolvedModule.resolvedFileName);
+      if (isWithinDirectory(resolvedModule.resolvedFileName, sourceDir)) {
+        pending.push(resolvedModule.resolvedFileName);
+      }
+    }
+    graph[sourcePath] = [...dependencies].toSorted();
   }
-  const packageName = `${scope}/${name}`;
-  return workspacePackages.has(packageName) ? packageName : null;
+
+  return graph;
 }
 
 function buildPackageToFiles(packageDirs: string[], packageByDir: Map<string, string>): Map<string, PackagePayloadInterface> {
@@ -196,10 +217,7 @@ function buildPackageToFiles(packageDirs: string[], packageByDir: Map<string, st
       continue;
     }
 
-    const graph: Record<string, string[]> = {};
-    for (const entrypoint of entrypoints) {
-      Object.assign(graph, madgeGraph(entrypoint, tsconfigPath));
-    }
+    const graph = nativeGraph(entrypoints, path.join(dir, 'src'), compilerOptionsFromTsconfig(tsconfigPath));
 
     const packageName = packageByDir.get(dir);
     if (packageName === undefined) {
@@ -209,7 +227,7 @@ function buildPackageToFiles(packageDirs: string[], packageByDir: Map<string, st
     packageToFiles.set(packageName, {
       'graph': graph,
       'rootDir': path.join(dir, 'src'),
-      'sourceFiles': sourceFilesFromGraph(graph, path.join(dir, 'src'), entrypoints)
+      'sourceFiles': sourceFilesFromGraph(graph, entrypoints)
     });
   }
 
@@ -242,44 +260,20 @@ function collectGraphEdges(
   }
 }
 
-function collectStaticImportEdges(
-  packageName: string,
-  payload: PackagePayloadInterface,
-  resolutionContext: PackageResolutionContextInterface,
-  workspacePackages: Set<string>,
-  edges: Set<string>
-): void {
-  for (const sourcePath of payload.sourceFiles) {
-    const fromPackage = resolvePackage(sourcePath, resolutionContext.packageDirs, resolutionContext.packageByDir, payload.rootDir);
-    if (fromPackage !== packageName) {
-      continue;
-    }
-
-    for (const specifier of staticModuleSpecifiers(sourcePath)) {
-      const toPackage = workspacePackageFromSpecifier(specifier, workspacePackages);
-      if (toPackage !== null && toPackage !== fromPackage) {
-        edges.add([fromPackage, toPackage].join(' -> '));
-      }
-    }
-  }
-}
-
 function buildGraph(): DependencyGraphInterface {
   const packageDirs = listPackageDirs();
   const packageByDir = new Map(packageDirs.map((dir) => {return [dir, packageNameFromDir(dir)];}));
-  const workspacePackages = new Set(packageByDir.values());
   const packageToFiles = buildPackageToFiles(packageDirs, packageByDir);
   const resolutionContext: PackageResolutionContextInterface = { 'packageByDir': packageByDir, 'packageDirs': packageDirs };
 
   const edges = new Set<string>();
   for (const [packageName, payload] of packageToFiles.entries()) {
     collectGraphEdges(packageName, payload, resolutionContext, edges);
-    collectStaticImportEdges(packageName, payload, resolutionContext, workspacePackages, edges);
   }
 
   return {
     'edges': [...edges].toSorted(),
-    'packages': [...workspacePackages].toSorted()
+    'packages': [...packageByDir.values()].toSorted()
   };
 }
 
@@ -476,7 +470,7 @@ function buildMarkdown(packages: string[], edges: string[]): string {
   return [
     '# Workspace Dependency Graph',
     '',
-    'Generated from `madge` local traversal and TypeScript static workspace imports over each package entrypoint.',
+    'Generated from TypeScript module resolution over static imports reachable from each package entrypoint.',
     '',
     '```mermaid',
     mermaid,

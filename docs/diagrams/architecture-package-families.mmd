@@ -1,0 +1,14 @@
+flowchart TD
+    Data["Data & state primitives"]
+    Control["Control-flow primitives"]
+    Time["Time & scheduling primitives"]
+    Boundary["I/O, matching & integration primitives"]
+    Tooling["Contract verification tooling"]
+    Consumer["Consumer code"] -->|"composes"| Data
+    Consumer -->|"coordinates"| Control
+    Consumer -->|"schedules"| Time
+    Consumer -->|"adapts"| Boundary
+    Tooling -->|"verifies"| Data
+    Tooling -->|"verifies"| Control
+    Tooling -->|"verifies"| Time
+    Tooling -->|"verifies"| Boundary

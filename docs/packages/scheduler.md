@@ -35,6 +35,12 @@ With a `VirtualScheduler` and `VirtualClockProvider` sharing one counter, comple
 
 <<< ../../packages/scheduler/examples/delay.ts#usage
 
+### Reducer-with-effects process composition
+
+Compose a `StateMachine`, `EffectInterpreter`, `VirtualScheduler`, and `Signal` directly when a local process needs effects and scheduled transitions. The example distinguishes same-drain handler dispatch from post-drain `interpreter.send()`, cancels scheduled work through an `AbortSignal`, and exercises rejected and terminal transitions. It is node-only because it uses `node:assert`.
+
+<<< ../../packages/scheduler/examples/processKitComposition.ts
+
 ## Public API
 
 Import `Delay`, `RealTimeScheduler`, `VirtualScheduler`, and `SchedulerError` from `@studnicky/scheduler/node`; import `PendingTaskInterface`, `ScheduledTaskInterface`, and `SchedulerProviderInterface` from `@studnicky/scheduler/interfaces`. Construct schedulers through `RealTimeScheduler.create()` or `VirtualScheduler.create({ counter })`.

@@ -1,9 +1,4 @@
-export { ContextStore } from '../ContextStore.js';
 export { BrowserStorageError } from '../errors/BrowserStorageError.js';
-export { ContextScopeInactiveError } from '../errors/ContextScopeInactiveError.js';
-export { ContextStoreFactoryError } from '../errors/ContextStoreFactoryError.js';
-export { ContextStoreKeyConflictError } from '../errors/ContextStoreKeyConflictError.js';
-export { ContextStoreOptionsError } from '../errors/ContextStoreOptionsError.js';
 export { IndexedDbEntryError } from '../errors/IndexedDbEntryError.js';
 export { IndexedDbError } from '../errors/IndexedDbError.js';
 export { IndexedDbUnavailableError } from '../errors/IndexedDbUnavailableError.js';
@@ -11,7 +6,6 @@ export { StateDecodeError } from '../errors/StateDecodeError.js';
 export { StateEncodeError } from '../errors/StateEncodeError.js';
 export { StoreError } from '../errors/StoreError.js';
 export { StoreListenerMutationError } from '../errors/StoreListenerMutationError.js';
-export { SynchronizationIdentityMismatchError } from '../errors/SynchronizationIdentityMismatchError.js';
 export { JsonStateCodec } from '../JsonStateCodec.js';
 export { MemoryPersistence } from '../MemoryPersistence.js';
 export { BrowserPersistence } from './BrowserPersistence.js';

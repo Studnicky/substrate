@@ -1,17 +1,17 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
+import type { BusQueueOptionsEntity } from '@studnicky/concurrency/queue/entities';
 
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { getEventListeners } from 'node:events';
 import { it } from 'node:test';
 
-import type { BusQueueOptionsEntity } from '../../src/entities/BusQueueOptionsEntity.js';
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { EventSinkInterface } from '../../src/interfaces/index.js';
 import type { HookTopicsEntity } from './entities/HookTopicsEntity.js';
 import type { RetryEventTopicsEntity } from './entities/RetryEventTopicsEntity.js';
 import type { TestTopicsEntity } from './entities/TestTopicsEntity.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { EventBus } from '../../src/EventBus.js';
 import { EventBusScenarioCaseEntity } from './entities/EventBusScenarioCaseEntity.js';
 import scenarioGroups from './EventBus.scenarios.json' with { 'type': 'json' };

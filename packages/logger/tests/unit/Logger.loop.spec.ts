@@ -1,15 +1,10 @@
-import {
-  VirtualClockProvider,
-  VirtualTimeCounter
-} from '@studnicky/clock/node';
 import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioFileCompiler } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
 
 import type { LogLevelEntity } from '../../src/entities/LogLevelEntity.js';
 import type { LogRecordEntity } from '../../src/entities/LogRecordEntity.js';
 import type { TransportInterface } from '../../src/transports/TransportInterface.js';
+import type { LoggerScenarioCaseEntity } from './entities/LoggerScenarioCaseEntity.js';
 
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import { Logger } from '../../src/modules/Logger.js';
@@ -18,13 +13,11 @@ import { FunctionTransport } from '../../src/transports/FunctionTransport.js';
 import { MemoryTransport } from '../../src/transports/MemoryTransport.js';
 import { NoOpTransport } from '../../src/transports/NoOpTransport.js';
 import { TestFactory } from '../helpers/TestFactory.js';
-import { LoggerScenarioCaseEntity } from './entities/LoggerScenarioCaseEntity.js';
-import scenarioGroups from './Logger.scenarios.json' with { 'type': 'json' };
-
-const fileIntake = ScenarioFileCompiler.compileIntake(LoggerScenarioCaseEntity);
 
 class LoggerScenarioDispatcher {
-  static async runAsyncOnLogUnhandled(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'async-onLog-unhandled' }>): Promise<void> {
+  static async runAsyncOnLogUnhandled(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'async-onLog-unhandled' }>
+  ): Promise<void> {
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => {
       rejectionEvents.push(reason);
@@ -50,10 +43,11 @@ class LoggerScenarioDispatcher {
       process.off('unhandledRejection', onUnhandledRejection);
     }
     return;
-
   }
 
-  static async runAsyncOnTransportError(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'async-onTransportError' }>): Promise<void> {
+  static async runAsyncOnTransportError(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'async-onTransportError' }>
+  ): Promise<void> {
     const deliveries: string[] = [];
     const hookFailure = RuntimeError.create('async onTransportError boom');
     const rejectionEvents: unknown[] = [];
@@ -98,10 +92,11 @@ class LoggerScenarioDispatcher {
       process.off('unhandledRejection', onUnhandledRejection);
     }
     return;
-
   }
 
-  static runChildCreateHook(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-create-hook' }>): void {
+  static runChildCreateHook(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-create-hook' }>
+  ): void {
     class ThrowingChildLogger extends Logger {
       protected override onChildCreate(): void {
         throw RuntimeError.create('onChildCreate boom');
@@ -112,10 +107,11 @@ class LoggerScenarioDispatcher {
       parent.child({ 'requestId': 'req-1' });
     }, HookInvocationError);
     return;
-
   }
 
-  static runChildInheritsMetadata(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-inherits-metadata' }>): void {
+  static runChildInheritsMetadata(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-inherits-metadata' }>
+  ): void {
     const memory = MemoryTransport.create();
     const parent = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -131,10 +127,11 @@ class LoggerScenarioDispatcher {
       'service': 'api'
     });
     return;
-
   }
 
-  static runChildOverridesMetadata(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-overrides-metadata' }>): void {
+  static runChildOverridesMetadata(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-overrides-metadata' }>
+  ): void {
     const memory = MemoryTransport.create();
     const parent = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -147,10 +144,11 @@ class LoggerScenarioDispatcher {
     assert.ok(record !== undefined);
     assert.strictEqual(record.metadata.service, 'v2');
     return;
-
   }
 
-  static runChildSharesTransports(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-shares-transports' }>): void {
+  static runChildSharesTransports(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-shares-transports' }>
+  ): void {
     const memory = MemoryTransport.create();
     const parent = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -161,10 +159,11 @@ class LoggerScenarioDispatcher {
     child.info(TestFactory.body('child-msg'));
     assert.strictEqual(memory.records().length, 2);
     return;
-
   }
 
-  static runChildSnapshotsMetadata(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-snapshots-metadata' }>): void {
+  static runChildSnapshotsMetadata(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'child-snapshots-metadata' }>
+  ): void {
     const memory = MemoryTransport.create();
     const parent = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -183,10 +182,11 @@ class LoggerScenarioDispatcher {
       'service': 'api'
     });
     return;
-
   }
 
-  static runCreateDefault(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-default' }>): void {
+  static runCreateDefault(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-default' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     const loggedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
@@ -204,28 +204,25 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(droppedLevels, [LOG_LEVEL.DEBUG]);
     assert.deepStrictEqual(loggedLevels, [LOG_LEVEL.INFO]);
     return;
-
   }
 
-  static runCreateInvalidMetadata(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-invalid-metadata' }>): void {
-    assert.strictEqual(
-      LoggerOptionGuards.isValidMetadata('not-an-object'),
-      false
-    );
+  static runCreateInvalidMetadata(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-invalid-metadata' }>
+  ): void {
+    assert.strictEqual(LoggerOptionGuards.isValidMetadata('not-an-object'), false);
     return;
-
   }
 
-  static runCreateInvalidTransports(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-invalid-transports' }>): void {
-    assert.strictEqual(
-      LoggerOptionGuards.isValidTransports('not-an-array'),
-      false
-    );
+  static runCreateInvalidTransports(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-invalid-transports' }>
+  ): void {
+    assert.strictEqual(LoggerOptionGuards.isValidTransports('not-an-array'), false);
     return;
-
   }
 
-  static runCreateNumericLevel(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-numeric-level' }>): void {
+  static runCreateNumericLevel(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-numeric-level' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     const loggedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
@@ -243,10 +240,11 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(droppedLevels, [LOG_LEVEL.TRACE]);
     assert.deepStrictEqual(loggedLevels, [LOG_LEVEL.DEBUG]);
     return;
-
   }
 
-  static runCreateStringLevel(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-string-level' }>): void {
+  static runCreateStringLevel(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-string-level' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     const loggedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
@@ -264,10 +262,11 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(droppedLevels, [LOG_LEVEL.TRACE]);
     assert.deepStrictEqual(loggedLevels, [LOG_LEVEL.DEBUG]);
     return;
-
   }
 
-  static runCreateWithMetadata(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-with-metadata' }>): void {
+  static runCreateWithMetadata(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'create-with-metadata' }>
+  ): void {
     const logger = Logger.create({ 'metadata': scenarioCase.metadata });
     const memory = MemoryTransport.create();
     const childLogger = logger.child({});
@@ -282,10 +281,11 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(records[0]?.metadata, scenarioCase.metadata);
     assert.ok(typeof childLogger.info === 'function');
     return;
-
   }
 
-  static runFanoutMultipleTransports(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'fanout-multiple-transports' }>): void {
+  static runFanoutMultipleTransports(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'fanout-multiple-transports' }>
+  ): void {
     const memory1 = MemoryTransport.create();
     const memory2 = MemoryTransport.create();
     const logger = Logger.create({
@@ -296,10 +296,14 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(memory1.records().length, 1);
     assert.strictEqual(memory2.records().length, 1);
     return;
-
   }
 
-  static runFanoutOnTransportErrorThrows(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'fanout-onTransportError-throws' }>): void {
+  static runFanoutOnTransportErrorThrows(
+    _scenarioCase: Extract<
+      LoggerScenarioCaseEntity.Type,
+      { 'shape': 'fanout-onTransportError-throws' }
+    >
+  ): void {
     const received: number[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
@@ -323,10 +327,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(logger.hookErrorCount, 1);
     assert.strictEqual(logger.getHookErrors()[0]?.hookName, 'onTransportError');
     return;
-
   }
 
-  static runFanoutTransportThrows(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'fanout-transport-throws' }>): void {
+  static runFanoutTransportThrows(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'fanout-transport-throws' }>
+  ): void {
     const received: number[] = [];
     const throwingTransport = FunctionTransport.create(() => {
       throw RuntimeError.create('transport failure');
@@ -341,10 +346,11 @@ class LoggerScenarioDispatcher {
     logger.info(TestFactory.body('msg'));
     assert.strictEqual(received.length, 1);
     return;
-
   }
 
-  static runFunctionTransportBridge(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'function-transport-bridge' }>): void {
+  static runFunctionTransportBridge(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'function-transport-bridge' }>
+  ): void {
     const captured: LogRecordEntity.Type[] = [];
     const transport = FunctionTransport.create((record) => {
       captured.push(record);
@@ -358,10 +364,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(captured.length, 1);
     assert.strictEqual(captured[0]?.data, body);
     return;
-
   }
 
-  static runGlobalFloor(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'global-floor' }>): void {
+  static runGlobalFloor(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'global-floor' }>
+  ): void {
     const memory = MemoryTransport.create();
     const logger = Logger.create({
       'level': scenarioCase.level,
@@ -381,10 +388,11 @@ class LoggerScenarioDispatcher {
       scenarioCase.expectedLevels
     );
     return;
-
   }
 
-  static runGrandchildMergesMetadata(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'grandchild-merges-metadata' }>): void {
+  static runGrandchildMergesMetadata(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'grandchild-merges-metadata' }>
+  ): void {
     const memory = MemoryTransport.create();
     const parent = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -402,10 +410,11 @@ class LoggerScenarioDispatcher {
       'service': 'api'
     });
     return;
-
   }
 
-  static runHookInvocationErrorCause(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'hook-invocation-error-cause' }>): void {
+  static runHookInvocationErrorCause(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'hook-invocation-error-cause' }>
+  ): void {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
         throw RuntimeError.create('onLog boom');
@@ -423,10 +432,11 @@ class LoggerScenarioDispatcher {
       assert.strictEqual(cause.message, 'onLog boom');
     }
     return;
-
   }
 
-  static runNoTransportsSilent(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'no-transports-silent' }>): void {
+  static runNoTransportsSilent(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'no-transports-silent' }>
+  ): void {
     const logger = Logger.create({ 'level': 'trace' });
     assert.doesNotThrow(() => {
       logger.trace(TestFactory.body('t'));
@@ -436,10 +446,11 @@ class LoggerScenarioDispatcher {
       logger.error(TestFactory.body('e'));
     });
     return;
-
   }
 
-  static runNoopTransportSilence(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'noop-transport-silence' }>): void {
+  static runNoopTransportSilence(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'noop-transport-silence' }>
+  ): void {
     const noop = NoOpTransport.create();
     const logger = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -453,18 +464,17 @@ class LoggerScenarioDispatcher {
       logger.error(TestFactory.body('e'));
     });
     return;
-
   }
 
-  static runOnChildCreateBindings(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onChildCreate-bindings' }>): void {
+  static runOnChildCreateBindings(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onChildCreate-bindings' }>
+  ): void {
     const capturedBindings: LogRecordEntity.Type['metadata'][] = [];
     class ObservedLogger extends Logger {
       constructor() {
         super({ 'metadata': { 'service': 'api' } });
       }
-      protected override onChildCreate(
-        bindings: LogRecordEntity.Type['metadata']
-      ): void {
+      protected override onChildCreate(bindings: LogRecordEntity.Type['metadata']): void {
         capturedBindings.push(bindings);
       }
     }
@@ -472,18 +482,17 @@ class LoggerScenarioDispatcher {
     logger.child({ 'requestId': 'xyz' });
     assert.deepStrictEqual(capturedBindings[0], { 'requestId': 'xyz' });
     return;
-
   }
 
-  static runOnChildCreateHooks(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onChildCreate-hooks' }>): void {
+  static runOnChildCreateHooks(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onChildCreate-hooks' }>
+  ): void {
     const capturedBindings: LogRecordEntity.Type['metadata'][] = [];
     class ObservedLogger extends Logger {
       constructor() {
         super({});
       }
-      protected override onChildCreate(
-        bindings: LogRecordEntity.Type['metadata']
-      ): void {
+      protected override onChildCreate(bindings: LogRecordEntity.Type['metadata']): void {
         capturedBindings.push(bindings);
       }
     }
@@ -492,10 +501,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(capturedBindings.length, 1);
     assert.deepStrictEqual(capturedBindings[0], { 'requestId': 'abc' });
     return;
-
   }
 
-  static runOnDroppedAtFloor(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-at-floor' }>): void {
+  static runOnDroppedAtFloor(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-at-floor' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -510,10 +520,11 @@ class LoggerScenarioDispatcher {
     logger.warn(TestFactory.body('passes'));
     assert.strictEqual(droppedLevels.length, 0);
     return;
-
   }
 
-  static runOnDroppedBelowFloor(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-below-floor' }>): void {
+  static runOnDroppedBelowFloor(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-below-floor' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -528,10 +539,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(droppedLevels.length, 1);
     assert.strictEqual(droppedLevels[0], LOG_LEVEL.DEBUG);
     return;
-
   }
 
-  static runOnDroppedHookError(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-hook-error' }>): void {
+  static runOnDroppedHookError(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-hook-error' }>
+  ): void {
     class ThrowingDroppedLogger extends Logger {
       constructor() {
         super({ 'level': LOG_LEVEL.ERROR });
@@ -550,10 +562,11 @@ class LoggerScenarioDispatcher {
     }, HookInvocationError);
     assert.strictEqual(memory.records().length, 0);
     return;
-
   }
 
-  static runOnDroppedTraceDebug(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-trace-debug' }>): void {
+  static runOnDroppedTraceDebug(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onDropped-trace-debug' }>
+  ): void {
     const droppedLevels: LogLevelEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -571,19 +584,17 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(droppedLevels[0], LOG_LEVEL.TRACE);
     assert.strictEqual(droppedLevels[1], LOG_LEVEL.DEBUG);
     return;
-
   }
 
-  static runOnLogAssembledRecord(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onLog-assembled-record' }>): void {
+  static runOnLogAssembledRecord(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onLog-assembled-record' }>
+  ): void {
     const captured: LogRecordEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() {
         super({ 'level': LOG_LEVEL.TRACE, 'metadata': { 'service': 'test' } });
       }
-      protected override onLog(
-        _level: LogLevelEntity.Type,
-        record: LogRecordEntity.Type
-      ): void {
+      protected override onLog(_level: LogLevelEntity.Type, record: LogRecordEntity.Type): void {
         captured.push(record);
       }
     }
@@ -595,20 +606,18 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(captured[0]?.data, body);
     assert.deepStrictEqual(captured[0]?.metadata, { 'service': 'test' });
     return;
-
   }
 
-  static runOnLogBeforeTransport(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onLog-before-transport' }>): void {
+  static runOnLogBeforeTransport(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onLog-before-transport' }>
+  ): void {
     const loggedLevels: LogLevelEntity.Type[] = [];
     const loggedRecords: LogRecordEntity.Type[] = [];
     class ObservedLogger extends Logger {
       constructor() {
         super({ 'level': LOG_LEVEL.TRACE });
       }
-      protected override onLog(
-        level: LogLevelEntity.Type,
-        record: LogRecordEntity.Type
-      ): void {
+      protected override onLog(level: LogLevelEntity.Type, record: LogRecordEntity.Type): void {
         loggedLevels.push(level);
         loggedRecords.push(record);
       }
@@ -620,10 +629,14 @@ class LoggerScenarioDispatcher {
     assert.ok(loggedRecords[0] !== undefined);
     assert.strictEqual(loggedRecords[0].level, LOG_LEVEL.INFO);
     return;
-
   }
 
-  static runOnTransportErrorDetachedCause(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-detached-cause' }>): void {
+  static runOnTransportErrorDetachedCause(
+    _scenarioCase: Extract<
+      LoggerScenarioCaseEntity.Type,
+      { 'shape': 'onTransportError-detached-cause' }
+    >
+  ): void {
     const hookFailure = RuntimeError.create('onTransportError boom', {
       'cause': { 'transports': ['primary'] }
     });
@@ -655,10 +668,14 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(secondCause.cause, { 'transports': ['primary'] });
     assert.strictEqual(logger.hookErrorCount, 1);
     return;
-
   }
 
-  static runOnTransportErrorEachFailure(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-each-failure' }>): void {
+  static runOnTransportErrorEachFailure(
+    _scenarioCase: Extract<
+      LoggerScenarioCaseEntity.Type,
+      { 'shape': 'onTransportError-each-failure' }
+    >
+  ): void {
     const errors: Error[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -682,10 +699,14 @@ class LoggerScenarioDispatcher {
     logger.info(TestFactory.body('multi-error'));
     assert.strictEqual(errors.length, 2);
     return;
-
   }
 
-  static runOnTransportErrorFanoutContinues(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-fanout-continues' }>): void {
+  static runOnTransportErrorFanoutContinues(
+    _scenarioCase: Extract<
+      LoggerScenarioCaseEntity.Type,
+      { 'shape': 'onTransportError-fanout-continues' }
+    >
+  ): void {
     const deliveries: string[] = [];
     class ThrowingTransportErrorLogger extends Logger {
       protected override onTransportError(): void {
@@ -712,10 +733,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(logger.hookErrorCount, 1);
     assert.strictEqual(logger.getHookErrors()[0]?.hookName, 'onTransportError');
     return;
-
   }
 
-  static runOnTransportErrorFires(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-fires' }>): void {
+  static runOnTransportErrorFires(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-fires' }>
+  ): void {
     const errors: Error[] = [];
     const capturedTransports: TransportInterface[] = [];
     class ObservedLogger extends Logger {
@@ -742,10 +764,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(firstError.message, 'transport boom');
     assert.strictEqual(capturedTransports.length, 1);
     return;
-
   }
 
-  static runOnTransportErrorIsolation(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-isolation' }>): void {
+  static runOnTransportErrorIsolation(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-isolation' }>
+  ): void {
     class ThrowingTransportErrorLogger extends Logger {
       readonly hookFailure = RuntimeError.create('onTransportError boom');
       constructor() {
@@ -770,10 +793,7 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(firstSnapshot[0]?.hookName, 'onTransportError');
     assert.ok(firstSnapshot[0]?.cause instanceof Error);
     assert.notStrictEqual(firstSnapshot[0].cause, first.hookFailure);
-    assert.strictEqual(
-      firstSnapshot[0].cause.message,
-      first.hookFailure.message
-    );
+    assert.strictEqual(firstSnapshot[0].cause.message, first.hookFailure.message);
     assert.doesNotThrow(() => {
       second.info(TestFactory.body('second'));
     });
@@ -785,15 +805,13 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(secondSnapshot[0]?.hookName, 'onTransportError');
     assert.ok(secondSnapshot[0]?.cause instanceof Error);
     assert.notStrictEqual(secondSnapshot[0].cause, second.hookFailure);
-    assert.strictEqual(
-      secondSnapshot[0].cause.message,
-      second.hookFailure.message
-    );
+    assert.strictEqual(secondSnapshot[0].cause.message, second.hookFailure.message);
     return;
-
   }
 
-  static runOnTransportErrorSucceeds(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-succeeds' }>): void {
+  static runOnTransportErrorSucceeds(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'onTransportError-succeeds' }>
+  ): void {
     const errors: Error[] = [];
     class ObservedLogger extends Logger {
       constructor() {
@@ -812,10 +830,11 @@ class LoggerScenarioDispatcher {
     logger.info(TestFactory.body('ok'));
     assert.strictEqual(errors.length, 0);
     return;
-
   }
 
-  static runRecordLevelMapping(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-level-mapping' }>): void {
+  static runRecordLevelMapping(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-level-mapping' }>
+  ): void {
     const memory = MemoryTransport.create();
     const logger = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -833,10 +852,11 @@ class LoggerScenarioDispatcher {
     assert.strictEqual(records[3]?.level, LOG_LEVEL.WARN);
     assert.strictEqual(records[4]?.level, LOG_LEVEL.ERROR);
     return;
-
   }
 
-  static runRecordOnLogThrows(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-onLog-throws' }>): void {
+  static runRecordOnLogThrows(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-onLog-throws' }>
+  ): void {
     class ThrowingLogLogger extends Logger {
       protected override onLog(): void {
         throw RuntimeError.create('onLog boom');
@@ -852,10 +872,11 @@ class LoggerScenarioDispatcher {
     }, HookInvocationError);
     assert.strictEqual(memory.records().length, 0);
     return;
-
   }
 
-  static runRecordShape(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-shape' }>): void {
+  static runRecordShape(
+    _scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'record-shape' }>
+  ): void {
     const memory = MemoryTransport.create();
     const logger = Logger.create({
       'level': LOG_LEVEL.TRACE,
@@ -875,10 +896,14 @@ class LoggerScenarioDispatcher {
     assert.deepStrictEqual(record.data, body);
     assert.notStrictEqual(record.data, body);
     return;
-
   }
 
-  static runSnapshotMetadataAndTransports(_scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'snapshot-metadata-and-transports' }>): void {
+  static runSnapshotMetadataAndTransports(
+    _scenarioCase: Extract<
+      LoggerScenarioCaseEntity.Type,
+      { 'shape': 'snapshot-metadata-and-transports' }
+    >
+  ): void {
     const configuredTransport = MemoryTransport.create();
     const addedTransport = MemoryTransport.create();
     const transports: TransportInterface[] = [configuredTransport];
@@ -899,10 +924,11 @@ class LoggerScenarioDispatcher {
     });
     assert.strictEqual(addedTransport.records().length, 0);
     return;
-
   }
 
-  static runTransportFloorMixed(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'transport-floor-mixed' }>): void {
+  static runTransportFloorMixed(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'transport-floor-mixed' }>
+  ): void {
     const debugMemory = MemoryTransport.create({
       'level': scenarioCase.transportLevels.debug
     });
@@ -917,23 +943,15 @@ class LoggerScenarioDispatcher {
     logger.info(TestFactory.body('i'));
     logger.warn(TestFactory.body('w'));
     logger.error(TestFactory.body('e'));
-    assert.strictEqual(
-      debugMemory.records().length,
-      scenarioCase.expectedCounts.debug
-    );
-    assert.strictEqual(
-      errorMemory.records().length,
-      scenarioCase.expectedCounts.error
-    );
-    assert.strictEqual(
-      errorMemory.records()[0]?.level,
-      scenarioCase.transportLevels.error
-    );
+    assert.strictEqual(debugMemory.records().length, scenarioCase.expectedCounts.debug);
+    assert.strictEqual(errorMemory.records().length, scenarioCase.expectedCounts.error);
+    assert.strictEqual(errorMemory.records()[0]?.level, scenarioCase.transportLevels.error);
     return;
-
   }
 
-  static runTransportFloorWarn(scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'transport-floor-warn' }>): void {
+  static runTransportFloorWarn(
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': 'transport-floor-warn' }>
+  ): void {
     const allMemory = MemoryTransport.create({
       'level': scenarioCase.transportLevels.all
     });
@@ -948,14 +966,8 @@ class LoggerScenarioDispatcher {
     logger.info(TestFactory.body('info'));
     logger.warn(TestFactory.body('warn'));
     logger.error(TestFactory.body('error'));
-    assert.strictEqual(
-      allMemory.records().length,
-      scenarioCase.expectedCounts.all
-    );
-    assert.strictEqual(
-      warnMemory.records().length,
-      scenarioCase.expectedCounts.warn
-    );
+    assert.strictEqual(allMemory.records().length, scenarioCase.expectedCounts.all);
+    assert.strictEqual(warnMemory.records().length, scenarioCase.expectedCounts.warn);
     assert.deepStrictEqual(
       allMemory.records().map((record) => {
         return record.level;
@@ -969,7 +981,6 @@ class LoggerScenarioDispatcher {
       scenarioCase.expectedLevels.warn
     );
     return;
-
   }
 
   static async runCase<Shape extends LoggerScenarioCaseEntity.Type['shape']>(
@@ -978,11 +989,12 @@ class LoggerScenarioDispatcher {
   ): Promise<void> {
     await runnerMap[shape](scenarioCase);
   }
-
 }
 
 const runnerMap: {
-  [Shape in LoggerScenarioCaseEntity.Type['shape']]: (scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': Shape }>) => Promise<void> | void;
+  [Shape in LoggerScenarioCaseEntity.Type['shape']]: (
+    scenarioCase: Extract<LoggerScenarioCaseEntity.Type, { 'shape': Shape }>
+  ) => Promise<void> | void;
 } = {
   'async-onLog-unhandled': LoggerScenarioDispatcher.runAsyncOnLogUnhandled,
   'async-onTransportError': LoggerScenarioDispatcher.runAsyncOnTransportError,
@@ -1027,29 +1039,3 @@ const runnerMap: {
   'transport-floor-mixed': LoggerScenarioDispatcher.runTransportFloorMixed,
   'transport-floor-warn': LoggerScenarioDispatcher.runTransportFloorWarn
 };
-
-
-void describe('Logger', () => {
-  const scenarios = fileIntake(scenarioGroups).cases;
-  for (let index = 0; index < scenarios.length; index += 1) {
-    const scenario = scenarios[index];
-    if (scenario !== undefined) {
-      void it(scenario.name, async () => {
-        await LoggerScenarioDispatcher.runCase(scenario.shape, scenario);
-      });
-    }
-  }
-
-  void it('timestamps records with an injected clock', () => {
-    const counter = VirtualTimeCounter.create({ 'startMs': 42 });
-    const transport = MemoryTransport.create();
-    const logger = Logger.create({
-      'clock': VirtualClockProvider.create(counter),
-      'transports': [transport]
-    });
-
-    logger.info(TestFactory.body('deterministic time'));
-
-    assert.equal(transport.records()[0]?.time, 42);
-  });
-});

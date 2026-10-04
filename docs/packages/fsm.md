@@ -19,7 +19,6 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 Define a `StateMachine` subclass with `getInitialState` and `reduce`, then drive it with `EffectInterpreter`. The interpreter manages the mailbox, dispatches effects, and notifies subscribers on every state change:
 
-<<< ../../packages/fsm/examples/traffic-light.ts#usage
 
 
 ## Pipeline effects
@@ -102,8 +101,8 @@ Import FSM classes and package errors from `@studnicky/fsm/node`; import type co
 | `FsmStepInterface<TState, TEffect>` | interface | Readonly `{ state, effects }` contract returned by `reduce` |
 | `FsmTransitionInterface<TState, TEvent, TEffect>` | interface | Callable contract for standalone transition functions |
 | `EffectHandlerInterface<TEffect, TEvent>` | interface | Singular callable effect handler with an in-drain `dispatch(event)` capability |
-| `PipelineEffectHandler` | value | Creates an effect handler that runs an injected typed pipeline and dispatches its resulting event |
-| `PipelineEffectInterface<TEvent>` | interface | Data-only `pipeline` effect descriptor containing the event supplied to its pipeline |
+| `PipelineEffectHandler` | value | Creates an effect handler that runs an injected typed pipeline and dispatches its resulting event | `@studnicky/pipeline/fsm` |
+| `PipelineEffectInterface<TEvent>` | interface | Data-only `pipeline` effect descriptor containing the event supplied to its pipeline | `@studnicky/pipeline/fsm/interfaces` |
 | `EffectInterpreterConstructorOptionsInterface<TState, TEvent, TEffect>` | interface | Parameter contract for `EffectInterpreter`'s protected constructor; annotate a subclass constructor's parameter with it |
 | `InterpreterHistoryRecordInterface<TState, TEvent>` | interface | Readonly transition-history record contract |
 | `RegisteredInterpreterInterface<TState, TEvent>` | interface | Interpreter contract accepted by `MachineRegistry` |
@@ -151,7 +150,7 @@ Every variant-changing state transition fires hooks on both the machine and inte
 
 ## Entities
 
-`@studnicky/fsm/entities` exports interpreter history, registry metrics, and the pipeline-effect variant schema.
+`@studnicky/fsm/entities` exports interpreter history and registry metrics.
 
 <!-- inline-ts-ok: This canonical published import path cannot be transcluded from a relative-path example and is verified by check-docs-exports. -->
 ```typescript
@@ -163,9 +162,9 @@ import { InterpreterHistoryRecordMetadataEntity } from '@studnicky/fsm/entities'
 | Symbol | Purpose | Import path |
 |---|---|---|
 | `EffectHandlerInterface` | Defines effect execution callbacks. | `@studnicky/fsm/interfaces` |
-| `PipelineEffectHandler` | Creates an effect handler that runs a pipeline result through the interpreter mailbox. | `@studnicky/fsm/node` |
-| `PipelineEffectInterface` | Defines a data-only pipeline effect descriptor. | `@studnicky/fsm/interfaces` |
-| `PipelineEffectVariantEntity` | Defines the `pipeline` effect variant schema. | `@studnicky/fsm/entities` |
+| `PipelineEffectHandler` | Creates an effect handler that runs a pipeline result through the interpreter mailbox. | `@studnicky/pipeline/fsm` |
+| `PipelineEffectInterface` | Defines a data-only pipeline effect descriptor. | `@studnicky/pipeline/fsm/interfaces` |
+| `PipelineEffectVariantEntity` | Defines the `pipeline` effect variant schema. | `@studnicky/pipeline/fsm/entities` |
 | `EffectInterpreter` | Executes state-machine effects. | `@studnicky/fsm/node` |
 | `EffectInterpreterConstructorOptionsInterface` | Defines interpreter construction options. | `@studnicky/fsm/interfaces` |
 | `FsmConfigError` | Represents invalid FSM configuration. | `@studnicky/fsm/node` |

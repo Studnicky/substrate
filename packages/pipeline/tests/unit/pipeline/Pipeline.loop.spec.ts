@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
 import { FrozenMutationError } from '@studnicky/json/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { PipelineFunctionInterface } from '../../../src/interfaces/PipelineFunctionInterface.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Pipeline } from '../../../src/pipeline/Pipeline.js';
 import { ValueContextObjectEntity } from './entities/common/ValueContextObjectEntity.js';
 import { PipelineScenarioCaseEntity } from './entities/PipelineScenarioCaseEntity.js';

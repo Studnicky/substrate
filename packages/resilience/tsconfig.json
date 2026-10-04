@@ -14,13 +14,22 @@
   ],
   "references": [
     {
-      "path": "../circular-buffer"
-    },
-    {
       "path": "../cache"
     },
     {
+      "path": "../circular-buffer"
+    },
+    {
+      "path": "../clock"
+    },
+    {
+      "path": "../config"
+    },
+    {
       "path": "../entity"
+    },
+    {
+      "path": "../event-bus"
     },
     {
       "path": "../errors"

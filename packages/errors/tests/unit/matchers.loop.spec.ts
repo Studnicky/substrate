@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ErrorClassifier, matchers } from '../../src/index.js';
 import { REFUSED_SUFFIX_PATTERN } from '../fixtures/REFUSED_SUFFIX_PATTERN.js';
 import { MatchersScenarioCaseEntity } from './entities/MatchersScenarioCaseEntity.js';

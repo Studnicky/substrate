@@ -1,7 +1,7 @@
-import { ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { SameKindError } from '../../../src/errors/SameKindError.js';
 import { SameKind } from '../../../src/json/SameKind.js';
 
@@ -23,17 +23,20 @@ void describe('SameKind', () => {
   for (let index = 0; index < mismatches.length; index += 1) {
     const mismatch = ScenarioValues.requireDefined(mismatches[index], 'mismatches[index]');
     void it(`rejects ${mismatch.name} with SameKindError`, () => {
-      assert.throws(() => {
-        const result = SameKind.assert(mismatch.candidate, mismatch.original);
-        return result;
-      }, (error) => {
-        const caught: unknown = error;
-        assert.ok(caught instanceof SameKindError);
-        assert.equal(caught.name, 'SameKindError');
-        assert.equal(caught.code, 'json.kindMismatch');
+      assert.throws(
+        () => {
+          const result = SameKind.assert(mismatch.candidate, mismatch.original);
+          return result;
+        },
+        (error) => {
+          const caught: unknown = error;
+          assert.ok(caught instanceof SameKindError);
+          assert.equal(caught.name, 'SameKindError');
+          assert.equal(caught.code, 'json.kindMismatch');
 
-        return true;
-      });
+          return true;
+        }
+      );
     });
   }
 

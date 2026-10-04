@@ -1,4 +1,3 @@
-
 import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 
 import * as ContextModule from '../context/Context.js';

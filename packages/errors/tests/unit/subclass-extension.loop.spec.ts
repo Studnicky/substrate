@@ -1,11 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ModuleErrorOptionsInterface } from '../../src/interfaces/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ErrorDefaults } from '../../src/constants/index.js';
 import { ModuleError } from '../../src/errors/ModuleError.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';

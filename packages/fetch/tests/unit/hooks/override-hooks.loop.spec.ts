@@ -1,12 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RequestContextInterface } from '../../../src/interfaces/RequestContextInterface.js';
 import type { ResponseContextInterface } from '../../../src/interfaces/ResponseContextInterface.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClient } from '../../../src/node/index.js';
 import { RejectionProbe } from '../../helpers/RejectionProbe.js';
 import { RoutedFakeFetch } from '../../helpers/RoutedFakeFetch.js';

@@ -1,13 +1,13 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import { CallerFaultScenarioCaseEntity } from '../../../../scripts/test-helpers/scenario-kit/dist/types-fixtures/CallerFaultScenarioCaseEntity.js';
 import { BaseError } from '../../src/errors/BaseError.js';
 import { CallerFault } from '../../src/errors/CallerFault.js';
 import scenarioGroups from './caller-fault.scenarios.json' with { 'type': 'json' };
-import { CallerFaultScenarioCaseEntity } from './entities/CallerFaultScenarioCaseEntity.js';
 
 class CallerFaultFixtureError extends BaseError {
   public override readonly name: string = 'CallerFaultFixtureError';
@@ -27,7 +27,10 @@ interface ValueFactoryInterface {
 
 /** Caller-supplied failure values; the native error instances come from genuine platform failures. */
 class CallerFaultValues {
-  static readonly factories: ReadonlyMap<string, ValueFactoryInterface> = new Map<string, ValueFactoryInterface>([
+  static readonly factories: ReadonlyMap<string, ValueFactoryInterface> = new Map<
+    string,
+    ValueFactoryInterface
+  >([
     ['error', CallerFaultValues.platformError],
     ['null', CallerFaultValues.nullValue],
     ['object', CallerFaultValues.plainObject],
@@ -77,13 +80,17 @@ class CallerFaultValues {
 }
 
 class CallerFaultRunners {
-  static 'propagate-rethrows'(scenarioCase: ScenarioCaseOfType<CallerFaultScenarioCaseEntity.Type, 'propagate-rethrows'>): void {
+  static 'propagate-rethrows'(
+    scenarioCase: ScenarioCaseOfType<CallerFaultScenarioCaseEntity.Type, 'propagate-rethrows'>
+  ): void {
     const value = CallerFaultValues.create(scenarioCase.input.valueKind);
 
     assert.equal(CallerFaultRunners.thrownBy(value), value);
   }
 
-  static async 'rejection-rejects'(scenarioCase: ScenarioCaseOfType<CallerFaultScenarioCaseEntity.Type, 'rejection-rejects'>): Promise<void> {
+  static async 'rejection-rejects'(
+    scenarioCase: ScenarioCaseOfType<CallerFaultScenarioCaseEntity.Type, 'rejection-rejects'>
+  ): Promise<void> {
     const value = CallerFaultValues.create(scenarioCase.input.valueKind);
 
     assert.equal(await CallerFaultRunners.rejectedWith(value), value);

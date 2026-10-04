@@ -24,7 +24,10 @@
       "path": "../json"
     },
     {
-      "path": "../scenario-kit"
+      "path": "../../scripts/test-helpers/scenario-kit"
+    },
+    {
+      "path": "../fsm"
     }
   ]
 }

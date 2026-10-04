@@ -56,6 +56,22 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./semantic/node": {
+      "types": "./dist/semantic/node/index.d.ts",
+      "import": "./dist/semantic/node/index.js"
+    },
+    "./semantic/browser": {
+      "types": "./dist/semantic/browser/index.d.ts",
+      "import": "./dist/semantic/browser/index.js"
+    },
+    "./semantic/entities": {
+      "types": "./dist/semantic/entities/index.d.ts",
+      "import": "./dist/semantic/entities/index.js"
+    },
+    "./semantic/interfaces": {
+      "types": "./dist/semantic/interfaces/index.d.ts",
+      "import": "./dist/semantic/interfaces/index.js"
     }
   },
   "publishConfig": {
@@ -70,15 +86,13 @@
   },
   "dependencies": {
     "@studnicky/cache": "workspace:*",
+    "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/types": "workspace:*",
     "double-metaphone": "2.0.1",
     "picomatch": "4.0.7"
   },
   "devDependencies": {
-    "@studnicky/entity": "workspace:*",
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*",
     "@types/picomatch": "4.0.3"
   },
   "engines": {

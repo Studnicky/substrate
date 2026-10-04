@@ -1,13 +1,13 @@
 import type { HookInvocationError } from '@studnicky/errors/node';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { SlidingWindowLimiterOptionsInterface } from '../../../src/interfaces/SlidingWindowLimiterOptionsInterface.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { SlidingWindowLimiterOptionsEntity } from '../../../src/entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiterConfigError } from '../../../src/errors/SlidingWindowLimiterConfigError.js';
 import { SlidingWindowExhaustedError } from '../../../src/SlidingWindowExhaustedError.js';

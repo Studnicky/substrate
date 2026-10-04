@@ -1,10 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ConfigurationError } from '../../../src/errors/ConfigurationError.js';
 import { ConfigurationErrorConstructionScenarioCaseEntity } from '../entities/ConfigurationErrorConstructionScenarioCaseEntity.js';
 import { ConfigurationErrorDirectScenarioCaseEntity } from '../entities/ConfigurationErrorDirectScenarioCaseEntity.js';

@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { VirtualFileSystemError } from '../../../src/errors/VirtualFileSystemError.js';
 import { VirtualFileSystemErrorScenarioCaseEntity } from './entities/VirtualFileSystemErrorScenarioCaseEntity.js';
 import scenarioGroups from './virtual-file-system-error.scenarios.json' with { 'type': 'json' };

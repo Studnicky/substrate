@@ -1,11 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { FetchClient } from '../../../src/node/index.js';
 import type { BoundedJsonValueEntity } from '../../helpers/entities/BoundedJsonValueEntity.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { RequestFailedError } from '../../../src/node/index.js';
 import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';
 import { RejectionProbe } from '../../helpers/RejectionProbe.js';

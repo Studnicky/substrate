@@ -15,16 +15,19 @@
   ],
   "references": [
     {
+      "path": "../../scripts/test-helpers/scenario-kit"
+    },
+    {
       "path": "./tsconfig.json"
     },
     {
       "path": "../errors"
     },
     {
-      "path": "../example-smoke-kit"
+      "path": "../concurrency"
     },
     {
-      "path": "../scenario-kit"
+      "path": "../store"
     }
   ]
 }

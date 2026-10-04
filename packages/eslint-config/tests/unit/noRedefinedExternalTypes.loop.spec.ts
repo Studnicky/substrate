@@ -1,4 +1,3 @@
-import { TestWorkspace } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import parser from '@typescript-eslint/parser';
 import { Linter } from 'eslint';
@@ -11,6 +10,7 @@ import tseslint from 'typescript-eslint';
 
 import type { ProjectHostInterface } from '../../src/interfaces/ProjectHostInterface.js';
 
+import { TestWorkspace } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { noRedefinedExternalTypes } from '../../src/rules/noRedefinedExternalTypes.js';
 
@@ -618,8 +618,8 @@ class NoRedefinedExternalTypesScenarios {
   }
 
   static keepsWorkspaceConsumersConcrete(): void {
-    const mutexEntityMessages = NoRedefinedExternalTypesHarness.lintWorkspaceSource(join(workspaceRoot, 'packages/mutex/src/entities/MutexKeyTransitionEventEntity.ts'));
-    const mutexMachineMessages = NoRedefinedExternalTypesHarness.lintWorkspaceSource(join(workspaceRoot, 'packages/mutex/src/mutex/MutexKeyMachine.ts'));
+    const mutexEntityMessages = NoRedefinedExternalTypesHarness.lintWorkspaceSource(join(workspaceRoot, 'packages/concurrency/src/entities/MutexKeyTransitionEventEntity.ts'));
+    const mutexMachineMessages = NoRedefinedExternalTypesHarness.lintWorkspaceSource(join(workspaceRoot, 'packages/concurrency/src/mutex/MutexKeyMachine.ts'));
     const circuitBreakerMessages = NoRedefinedExternalTypesHarness.lintWorkspaceSource(join(workspaceRoot, 'packages/resilience/src/CircuitBreaker.ts'));
 
     assert.deepEqual(mutexEntityMessages, []);

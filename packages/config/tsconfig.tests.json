@@ -15,6 +15,9 @@
   ],
   "references": [
     {
+      "path": "../../scripts/test-helpers/scenario-kit"
+    },
+    {
       "path": "./tsconfig.json"
     },
     {
@@ -24,10 +27,6 @@
       "path": "../types"
     },
     {
-      "path": "../example-smoke-kit"
-    },
-    {
-      "path": "../scenario-kit"
     }
   ]
 }

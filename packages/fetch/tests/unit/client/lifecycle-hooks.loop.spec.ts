@@ -1,10 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { HookInvocationError, HookTimeoutError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { CallerFault } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { FetchClient, RequestFailedError } from '../../../src/node/index.js';
 import { PlatformCalls } from '../../helpers/PlatformCalls.js';
 import { RejectionProbe } from '../../helpers/RejectionProbe.js';

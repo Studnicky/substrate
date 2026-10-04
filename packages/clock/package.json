@@ -45,6 +45,26 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./monotonic-now": {
+      "types": "./dist/monotonic-now/index.d.ts",
+      "import": "./dist/monotonic-now/index.js"
+    },
+    "./monotonic-now/interfaces": {
+      "types": "./dist/monotonic-now/interfaces/index.d.ts",
+      "import": "./dist/monotonic-now/interfaces/index.js"
+    },
+    "./timing": {
+      "types": "./dist/timing/index.d.ts",
+      "import": "./dist/timing/index.js"
+    },
+    "./timing/entities": {
+      "types": "./dist/timing/entities/index.d.ts",
+      "import": "./dist/timing/entities/index.js"
+    },
+    "./timing/interfaces": {
+      "types": "./dist/timing/interfaces/index.d.ts",
+      "import": "./dist/timing/interfaces/index.js"
     }
   },
   "publishConfig": {
@@ -59,15 +79,13 @@
     "test": "tsx ../../scripts/test-suite.ts all --package ."
   },
   "dependencies": {
+    "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"

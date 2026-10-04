@@ -64,10 +64,6 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
   },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
-  },
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"

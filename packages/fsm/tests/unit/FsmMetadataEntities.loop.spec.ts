@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import {
   InterpreterHistoryRecordMetadataEntity,
   RegisteredInterpreterMetricsEntity
@@ -11,12 +11,28 @@ import { FsmMetadataEntitiesScenarioCaseEntity } from './entities/FsmMetadataEnt
 import scenarioGroups from './FsmMetadataEntities.scenarios.json' with { 'type': 'json' };
 
 class FsmMetadataEntitiesRunners {
-  static 'history-timestamp-validation'(scenarioCase: ScenarioCaseOfType<FsmMetadataEntitiesScenarioCaseEntity.Type, 'history-timestamp-validation'>): void {
-    FsmMetadataEntitiesRunners.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  static 'history-timestamp-validation'(
+    scenarioCase: ScenarioCaseOfType<
+      FsmMetadataEntitiesScenarioCaseEntity.Type,
+      'history-timestamp-validation'
+    >
+  ): void {
+    FsmMetadataEntitiesRunners.validateAll(
+      scenarioCase.input.validations,
+      scenarioCase.expected.validationResults
+    );
   }
 
-  static 'hook-error-count-validation'(scenarioCase: ScenarioCaseOfType<FsmMetadataEntitiesScenarioCaseEntity.Type, 'hook-error-count-validation'>): void {
-    FsmMetadataEntitiesRunners.validateAll(scenarioCase.input.validations, scenarioCase.expected.validationResults);
+  static 'hook-error-count-validation'(
+    scenarioCase: ScenarioCaseOfType<
+      FsmMetadataEntitiesScenarioCaseEntity.Type,
+      'hook-error-count-validation'
+    >
+  ): void {
+    FsmMetadataEntitiesRunners.validateAll(
+      scenarioCase.input.validations,
+      scenarioCase.expected.validationResults
+    );
   }
 
   private static validateAll(
@@ -27,9 +43,10 @@ class FsmMetadataEntitiesRunners {
     for (let index = 0; index < validations.length; index += 1) {
       const validation = validations[index];
       assert.ok(validation !== undefined);
-      const result = validation.entity === 'InterpreterHistoryRecordMetadataEntity'
-        ? InterpreterHistoryRecordMetadataEntity.validate(validation.value)
-        : RegisteredInterpreterMetricsEntity.validate(validation.value);
+      const result =
+        validation.entity === 'InterpreterHistoryRecordMetadataEntity'
+          ? InterpreterHistoryRecordMetadataEntity.validate(validation.value)
+          : RegisteredInterpreterMetricsEntity.validate(validation.value);
       assert.equal(result, validation.expected);
       results.push(result);
     }

@@ -1,12 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { GroupNodeInterface } from '../../src/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DrillDown, DrillDownConfigEntity } from '../../src/index.js';
 import { valueDiscoveryEngine } from '../../src/modules/rules/valueDiscoveryEngine.js';
 import fixtureGroups from './DrillDown.fixtures.json' with { 'type': 'json' };

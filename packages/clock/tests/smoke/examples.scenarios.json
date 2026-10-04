@@ -43,6 +43,50 @@
       },
       "name": "virtual-time",
       "shape": "imports-example"
+    },
+    {
+      "description": "Runs the basic timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/timing-basic-usage.ts"
+      },
+      "name": "timing-basic-usage",
+      "shape": "imports-example"
+    },
+    {
+      "description": "Runs the instrumented timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/timing-instrumented-timing.ts"
+      },
+      "name": "timing-instrumented-timing",
+      "shape": "imports-example"
+    },
+    {
+      "description": "Runs the noop timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/timing-noop-timing.ts"
+      },
+      "name": "timing-noop-timing",
+      "shape": "imports-example"
+    },
+    {
+      "description": "Runs the observed timing example",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/timing-observedTiming.ts"
+      },
+      "name": "timing-observed-timing",
+      "shape": "imports-example"
     }
   ]
 }

@@ -5,11 +5,11 @@
     "rootDir": ".",
     "outDir": "./dist"
   },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "test-helpers/scenario-kit/**/*"],
+  "references": [
+    { "path": "../packages/entity" },
+    { "path": "../packages/errors" },
+    { "path": "../packages/types" }
   ]
 }

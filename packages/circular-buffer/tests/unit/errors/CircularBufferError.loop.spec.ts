@@ -1,6 +1,6 @@
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircularBufferError } from '../../../src/errors/CircularBufferError.js';
 import { CircularBufferErrorScenarioCaseEntity } from '../entities/CircularBufferErrorScenarioCaseEntity.js';
 import scenarioGroups from './CircularBufferError.scenarios.json' with { 'type': 'json' };

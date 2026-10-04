@@ -1,11 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { HookInvoker, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { mock } from 'node:test';
 import * as timersPromises from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { RealTimeScheduler } from '../../src/scheduler/RealTimeScheduler.js';
 import { RealTimeSchedulerScenarioCaseEntity } from './entities/RealTimeSchedulerScenarioCaseEntity.js';
 import scenarioGroups from './RealTimeScheduler.scenarios.json' with { 'type': 'json' };

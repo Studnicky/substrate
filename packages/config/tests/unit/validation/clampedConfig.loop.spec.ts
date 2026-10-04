@@ -1,13 +1,12 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import timersPromises from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ClampEventEntity } from '../../../src/entities/ClampEventEntity.js';
 import type { ClampRuleEntity } from '../../../src/entities/ClampRuleEntity.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ClampedConfig } from '../../../src/validation/clampedConfig.js';
 import { ClampedConfigScenarioCaseEntity } from '../entities/ClampedConfigScenarioCaseEntity.js';
 import scenarioGroups from './clampedConfig.scenarios.json' with { 'type': 'json' };

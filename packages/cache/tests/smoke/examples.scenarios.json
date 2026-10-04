@@ -34,6 +34,17 @@
       "shape": "imports-example"
     },
     {
+      "description": "the observedMemoize example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedMemoize.ts"
+      },
+      "name": "observedMemoize",
+      "shape": "imports-example"
+    },
+    {
       "description": "the ttlExpiry example runs without throwing",
       "expected": {
         "importsWithoutThrow": true
@@ -42,6 +53,17 @@
         "file": "../../examples/ttlExpiry.ts"
       },
       "name": "ttlExpiry",
+      "shape": "imports-example"
+    },
+    {
+      "description": "the idempotencyReplayComposition node-only example runs without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/idempotencyReplayComposition.ts"
+      },
+      "name": "idempotencyReplayComposition",
       "shape": "imports-example"
     }
   ]

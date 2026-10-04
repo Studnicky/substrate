@@ -1,6 +1,6 @@
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import { CircularBufferUnshiftScenarioCaseEntity } from '../entities/CircularBufferUnshiftScenarioCaseEntity.js';
 import { GrowLogBuffer } from '../helpers/GrowLogBuffer.js';

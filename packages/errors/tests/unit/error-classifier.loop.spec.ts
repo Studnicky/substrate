@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ErrorClassifier } from '../../src/classifiers/ErrorClassifier.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ErrorClassifierScenarioCaseEntity } from './entities/ErrorClassifierScenarioCaseEntity.js';

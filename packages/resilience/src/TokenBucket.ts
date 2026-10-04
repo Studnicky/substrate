@@ -1,4 +1,5 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
+import { MonotonicNow } from '@studnicky/clock/monotonic-now';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout } from '@studnicky/signal/browser';
@@ -10,7 +11,6 @@ import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOption
 import { TokenBucketOptionsEntity } from './entities/TokenBucketOptionsEntity.js';
 import { TokenCountEntity } from './entities/TokenCountEntity.js';
 import { ResilienceConfigError } from './errors/ResilienceConfigError.js';
-import { RateLimiterClock } from './RateLimiterClock.js';
 import { TokenBucketExhaustedError } from './TokenBucketExhaustedError.js';
 
 interface TokenBucketSubclassInterface<TInstance> extends Function {
@@ -57,7 +57,7 @@ export class TokenBucket {
     }
     this.#requestsPerSecond = schemaOptions.requestsPerSecond;
     this.#burstSize = schemaOptions.burstSize;
-    this.#clock = RateLimiterClock.create(clock);
+    this.#clock = MonotonicNow.create(clock);
     this.#tokens = schemaOptions.burstSize;
     this.#lastRefill = this.#clock();
   }

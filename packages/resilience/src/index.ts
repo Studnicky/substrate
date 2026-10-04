@@ -12,10 +12,8 @@ export { SlidingWindowLimiterError } from './errors/SlidingWindowLimiterError.js
 export type { CircuitBreakerCollaboratorsInterface } from './interfaces/CircuitBreakerCollaboratorsInterface.js';
 export type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';
 export type { DeadLetterQueueRetryGeneratorOptionsInterface } from './interfaces/DeadLetterQueueRetryGeneratorOptionsInterface.js';
-export type { RateLimiterClockInterface } from './interfaces/RateLimiterClockInterface.js';
 export type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';
 export type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';
-export { RateLimiterClock } from './RateLimiterClock.js';
 export { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
 export { SlidingWindowLimiter } from './SlidingWindowLimiter.js';
 export { TokenBucket } from './TokenBucket.js';

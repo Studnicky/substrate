@@ -1,11 +1,10 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { FetchClientInterface } from '../../../src/interfaces/FetchClientInterface.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { BrowserFetchClient, FetchTransport } from '../../../src/browser/index.js';
 import { ConfigurationError } from '../../../src/errors/index.js';
 import { InvalidClientFactory } from '../../helpers/InvalidClientFactory.js';

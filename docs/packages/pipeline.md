@@ -28,7 +28,10 @@ composition is a different `Pipeline.create()` call with a different array:
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
-## Northstar Books order preparation
+## Pipeline effects in an FSM
+
+<<< ../../packages/pipeline/examples/traffic-light.ts#usage
+
 
 A Northstar Books checkout endpoint prepares an accepted order before any fulfilment state changes. A fixed pipeline validates the submitted cart, calculates current prices, and selects warehouse routing from the transformed order context. Each stage receives the preceding result, so server code has one typed path for the request data rather than parallel validation, pricing, and routing branches.
 

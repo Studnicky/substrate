@@ -37,6 +37,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./samples": {
+      "types": "./dist/samples/index.d.ts",
+      "import": "./dist/samples/index.js"
+    },
     "./entities": {
       "types": "./dist/entities/index.d.ts",
       "import": "./dist/entities/index.js"
@@ -63,10 +67,7 @@
     "@studnicky/types": "workspace:*",
     "@types/json-schema": "^7.0.15"
   },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=24.0.0",
     "npm": ">=11.0.0"

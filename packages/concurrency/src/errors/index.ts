@@ -1,8 +1,13 @@
+export { BatchError } from './BatchError.js';
 export { ChannelConfigError } from './ChannelConfigError.js';
 export { ChannelError } from './ChannelError.js';
 export { CoalesceConfigError } from './CoalesceConfigError.js';
 export { CoalesceTimeoutError } from './CoalesceTimeoutError.js';
 export { CoalesceWaitCompletedError } from './CoalesceWaitCompletedError.js';
 export { ConcurrencyError } from './ConcurrencyError.js';
+export { LockTimeoutError } from './LockTimeoutError.js';
+export { MutexAcquisitionSettledError } from './MutexAcquisitionSettledError.js';
+export { MutexError } from './MutexError.js';
+export { QueueSizeExceededError } from './QueueSizeExceededError.js';
 export { SemaphoreError } from './SemaphoreError.js';
 export { SemaphoreQueueFullError } from './SemaphoreQueueFullError.js';

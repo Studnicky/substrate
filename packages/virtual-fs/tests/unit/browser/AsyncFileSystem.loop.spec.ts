@@ -1,4 +1,3 @@
-import { TestWorkspace } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { describe, it, mock } from 'node:test';
@@ -6,6 +5,7 @@ import { describe, it, mock } from 'node:test';
 import type { OpfsStorageInterface } from '../../../src/browser/index.js';
 import type { AsyncFileSystemInterface } from '../../../src/interfaces/AsyncFileSystemInterface.js';
 
+import { TestWorkspace } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { OpfsFileSystem } from '../../../src/browser/index.js';
 import { VirtualFileSystemError } from '../../../src/errors/VirtualFileSystemError.js';
 import { NodeFileSystem } from '../../../src/node/index.js';

@@ -40,6 +40,18 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./fsm": {
+      "types": "./dist/fsm/index.d.ts",
+      "import": "./dist/fsm/index.js"
+    },
+    "./fsm/interfaces": {
+      "types": "./dist/fsm/interfaces/index.d.ts",
+      "import": "./dist/fsm/interfaces/index.js"
+    },
+    "./fsm/entities": {
+      "types": "./dist/fsm/entities/index.d.ts",
+      "import": "./dist/fsm/entities/index.js"
     }
   },
   "publishConfig": {
@@ -56,11 +68,9 @@
   "dependencies": {
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/fsm": "workspace:*",
     "@studnicky/json": "workspace:*",
     "@studnicky/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/scenario-kit": "workspace:*"
   },
   "engines": {
     "node": ">=24.0.0",

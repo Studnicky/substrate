@@ -1,9 +1,13 @@
-import { ScenarioValues } from '@studnicky/scenario-kit/node';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { JsonObjectEntity, JsonValueEntity, PatchOperationEntity } from '../../src/entities/index.js';
+import { ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import {
+  JsonObjectEntity,
+  JsonValueEntity,
+  PatchOperationEntity
+} from '../../src/entities/index.js';
 
 void describe('standard JSON schemas', () => {
   void it('compiles JSON value, object, and patch operation schemas without project keywords', () => {

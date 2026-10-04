@@ -1,10 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { GroupValueDiscriminantEntity, MatchContextInterface, MatcherHandlerInterface, MatcherUnionType, PartitionGroupInterface } from '../../src/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { matcherRegistry } from '../../src/modules/matchers/index.js';
 import { MatchersScenarioCaseEntity } from './entities/MatchersScenarioCaseEntity.js';
 import scenarioCases from './matchers.scenarios.json' with { 'type': 'json' };

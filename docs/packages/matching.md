@@ -9,6 +9,8 @@ description: Deterministic matching, scoring, encoding, extraction, and candidat
 
 `GlobMatcher` supports standard `*`, `**`, `?`, character-class, and brace-alternative glob syntax through a browser-compatible implementation. `TrieMatcher` compiles one segment pattern for repeated evaluation, while `TreeMatcher` and the candidate-index classes own mutable registration and candidate materialization.
 
+The `semantic` subpaths define provider-neutral vectorization, vector-index, reranking, classification, and adjudication contracts. They own JSON intake models and asynchronous boundary contracts only; callers supply their own provider, model, index, ranking policy, and orchestration.
+
 ## Northstar Books catalogue matching
 
 A reader who searches for a title by a misspelled name, partial ISBN, or alternate spelling still needs a catalogue result that the server can explain and reproduce. Northstar normalizes the query, materializes candidates, then chooses its scoring policy with these primitives. The package guarantees deterministic normalization, candidate materialization, matching, and score evidence; the application retains control of thresholds, ranking policy, and the surrounding search workflow.
@@ -24,6 +26,10 @@ pnpm add @studnicky/matching
 Normalize a user query, retrieve likely candidates from an n-gram index, and rank them with deterministic edit-distance scoring.
 
 <RunnableExample src="packages/matching/examples/findSimilarText" title="Normalize, retrieve candidates, and score similar text" />
+
+<RunnableExample src="packages/matching/examples/validateClassification" title="Validate a provider classification at the boundary" />
+
+<RunnableExample src="packages/matching/examples/vectorSearchContract" title="Compose a vectorizer with a local vector index" />
 
 ## Exports
 
@@ -61,6 +67,22 @@ Normalize a user query, retrieve likely candidates from an n-gram index, and ran
 | `MatchingAllocationError` | Thrown when a scorer cannot allocate working memory for an input pair; the platform error is the `cause` (`matching.allocationFailed`). | `@studnicky/matching/node` |
 | `ScoreEvidenceInterface` | Defines a score and its deterministic evidence. | `@studnicky/matching/interfaces` |
 | `SelectionInterface` | Defines a selected candidate and score. | `@studnicky/matching/interfaces` |
+| `AdjudicationEntity` | Validates an adjudication confidence result. | `@studnicky/matching/semantic/entities` |
+| `AdjudicationInputEntity` | Validates content and candidate identifiers for adjudication. | `@studnicky/matching/semantic/entities` |
+| `ClassificationEntity` | Validates a classification label and confidence. | `@studnicky/matching/semantic/entities` |
+| `ClassificationInputEntity` | Validates classification content and optional labels. | `@studnicky/matching/semantic/entities` |
+| `RerankInputEntity` | Validates content and candidate identifiers for reranking. | `@studnicky/matching/semantic/entities` |
+| `RerankMatchEntity` | Validates a reranked identifier and score. | `@studnicky/matching/semantic/entities` |
+| `VectorEntryDataEntity` | Validates a vector entry identifier and namespace. | `@studnicky/matching/semantic/entities` |
+| `VectorMatchEntity` | Validates a vector-search identifier and score. | `@studnicky/matching/semantic/entities` |
+| `VectorSearchOptionsEntity` | Validates vector-search namespace and limit. | `@studnicky/matching/semantic/entities` |
+| `VectorizationInputEntity` | Validates content and metadata before embedding. | `@studnicky/matching/semantic/entities` |
+| `AdjudicatorInterface` | Defines asynchronous provider-neutral adjudication. | `@studnicky/matching/semantic/interfaces` |
+| `ClassifierInterface` | Defines asynchronous provider-neutral classification. | `@studnicky/matching/semantic/interfaces` |
+| `RerankerInterface` | Defines asynchronous provider-neutral reranking. | `@studnicky/matching/semantic/interfaces` |
+| `VectorEntryInterface` | Defines a vector payload with canonical entry data. | `@studnicky/matching/semantic/interfaces` |
+| `VectorIndexInterface` | Defines asynchronous vector index storage and search. | `@studnicky/matching/semantic/interfaces` |
+| `VectorizerInterface` | Defines asynchronous embedding production. | `@studnicky/matching/semantic/interfaces` |
 
 Each category is also available from its named subpath: `candidate-sources`, `encoders`, `extractors`, `matchers`, `normalizers`, and `scorers`.
 

@@ -1,10 +1,11 @@
 import type { HookInvocationError } from '@studnicky/errors/node';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DeadLetterQueue, DeadLetterQueueRetryGenerator, ResilienceConfigError } from '../../../src/index.js';
 import { DeadLetterQueueRetryGeneratorScenarioCaseEntity } from '../entities/DeadLetterQueueRetryGeneratorScenarioCaseEntity.js';
 import scenarioGroups from './dead-letter-queue-retry-generator.scenarios.json' with { 'type': 'json' };

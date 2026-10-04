@@ -1,7 +1,7 @@
 import { HookInvocationError, ReentrantHookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircularBuffer } from '../../../src/circular-buffer/CircularBuffer.js';
 import { CircularBufferSubclassScenarioCaseEntity } from '../entities/CircularBufferSubclassScenarioCaseEntity.js';
 import { GrowLogBuffer } from '../helpers/GrowLogBuffer.js';

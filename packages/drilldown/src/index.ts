@@ -78,7 +78,6 @@ export { DataAnalyzer } from './modules/DataAnalyzer.js';
 
 export { DrillDown } from './modules/DrillDown.js';
 
-export { FacetedDiscovery } from './modules/FacetedDiscovery.js';
 export { ruleValidator } from './modules/rules/index.js';
 
 export { DrillDownConfigEntity } from './schema/DrillDownConfigEntity.js';
@@ -86,7 +85,5 @@ export { DrillDownConfigEntity } from './schema/DrillDownConfigEntity.js';
 export { DrilldownRulesEntity } from './schema/DrilldownRulesEntity.js';
 
 export type {
-  FacetAccessorMapType,
-  FacetFilterStateType,
   MatcherUnionType
 } from './types/index.js';

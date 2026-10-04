@@ -78,7 +78,7 @@ The rule asks one binary question of a file — may it resolve a token? — so i
 
 ```js
 { sourceRoot: 'src', resolutionSites: [{ unit: 'folder', pattern: 'adapters' }] }
-{ sourceRoot: 'packages', resolutionSites: [{ unit: 'package', pattern: 'boundary-kit' }] }
+{ sourceRoot: 'packages', resolutionSites: [{ unit: 'package', pattern: 'adapter-host' }] }
 ```
 
 Binding the exemption to a layer *name* out of a project's `layers` list would couple this rule to whatever that list encodes. A project whose bands measure dependency depth has no layer name meaning "resolves external input", and no string would make one. A resolution site is a property of a file, declared directly.

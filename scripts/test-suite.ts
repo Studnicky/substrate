@@ -21,10 +21,12 @@ const COVERAGE_EXCLUDE_PATTERNS: readonly string[] = Object.freeze([
 
 const TIER_NAMES = ['integration', 'smoke', 'unit'] as const;
 const MODE_NAMES = ['all', 'changed', 'integration', 'smoke', 'unit'] as const;
+const EXAMPLE_SMOKE_PACKAGE_ENVIRONMENT_KEY = 'EXAMPLE_SMOKE_PACKAGE';
+const CENTRAL_EXAMPLE_SMOKE_SPEC = 'scripts/test-helpers/example-smoke/examples.loop.spec.ts';
 
 const TIER_PATTERNS: Readonly<Record<(typeof TIER_NAMES)[number], readonly string[]>> = Object.freeze({
   'integration': ['packages/*/tests/integration/**/*.loop.spec.ts'],
-  'smoke': ['packages/*/tests/smoke/**/*.loop.spec.ts'],
+  'smoke': ['packages/*/tests/smoke/**/*.loop.spec.ts', CENTRAL_EXAMPLE_SMOKE_SPEC],
   'unit': ['packages/*/tests/unit/**/*.loop.spec.ts']
 });
 
@@ -223,7 +225,7 @@ function filterFilesByPackage(files: readonly string[], workspacePackages: reado
     }
     const posixFile = file.split('\\').join('/');
     const filePackageDir = posixFile.split('/').slice(0, 2).join('/');
-    if (matchDirs.has(filePackageDir) || matchDirs.has(posixFile)) {
+    if (posixFile === CENTRAL_EXAMPLE_SMOKE_SPEC || matchDirs.has(filePackageDir) || matchDirs.has(posixFile)) {
       filtered.push(file);
     }
   }
@@ -441,7 +443,27 @@ function renderCommand(files: readonly string[], watch: boolean, coverage: boole
   return command;
 }
 
-async function runNodeTests(files: readonly string[], watch: boolean, coverage: boolean): Promise<void> {
+function resolveExampleSmokePackageName(files: readonly string[], workspacePackages: readonly WorkspacePackageInterface[], packageFilter: string): string {
+  if (packageFilter === '' || files.includes(CENTRAL_EXAMPLE_SMOKE_SPEC) === false) {
+    return '';
+  }
+  const matches = workspacePackages.filter((workspacePackage) => {
+    return packageMatchesFilter(workspacePackage, packageFilter);
+  });
+  if (matches.length !== 1) {
+    throw new Error(`Example smoke package selector must resolve exactly one package: ${packageFilter}`);
+  }
+  const packageName = basename(matches[0]!.dir);
+  return packageName;
+}
+
+async function runNodeTests(
+  files: readonly string[],
+  watch: boolean,
+  coverage: boolean,
+  workspacePackages: readonly WorkspacePackageInterface[],
+  packageFilter: string
+): Promise<void> {
   const args: string[] = [];
 
   if (coverage) {
@@ -457,10 +479,11 @@ async function runNodeTests(files: readonly string[], watch: boolean, coverage: 
   args.push(...files);
   logSuite(`spawn ${NODE_BIN} ${args.map(shellQuote).join(' ')} (${files.length} files)`);
 
+  const exampleSmokePackageName = resolveExampleSmokePackageName(files, workspacePackages, packageFilter);
   await new Promise<void>((settle, fail) => {
     const child = spawn(NODE_BIN, args, {
       'cwd': ROOT_DIR,
-      'env': process.env,
+      'env': { ...process.env, [EXAMPLE_SMOKE_PACKAGE_ENVIRONMENT_KEY]: exampleSmokePackageName },
       'stdio': 'inherit'
     });
 
@@ -482,7 +505,12 @@ async function runNodeTests(files: readonly string[], watch: boolean, coverage: 
   });
 }
 
-async function runTiersMode(mode: string, selection: { readonly 'kind': 'tiers'; readonly 'tiers': AllModeSelectionsInterface }, options: CliOptionsInterface): Promise<void> {
+async function runTiersMode(
+  mode: string,
+  selection: { readonly 'kind': 'tiers'; readonly 'tiers': AllModeSelectionsInterface },
+  options: CliOptionsInterface,
+  workspacePackages: readonly WorkspacePackageInterface[]
+): Promise<void> {
   const allSelections = selection.tiers;
   const tiers: readonly (readonly [(typeof TIER_NAMES)[number], readonly string[]])[] = [
     ['unit', allSelections.unit],
@@ -522,7 +550,7 @@ async function runTiersMode(mode: string, selection: { readonly 'kind': 'tiers';
       continue;
     }
     const [, files] = entry;
-    await runNodeTests(files, options.watch, options.coverage);
+    await runNodeTests(files, options.watch, options.coverage, workspacePackages, options.packageFilter);
   }
 }
 
@@ -530,7 +558,7 @@ async function runMode(mode: string, options: CliOptionsInterface, workspacePack
   const selection = resolveModeFiles(mode, workspacePackages, options.packageFilter, options.base);
 
   if (selection.kind === 'tiers') {
-    await runTiersMode(mode, selection, options);
+    await runTiersMode(mode, selection, options, workspacePackages);
     return;
   }
 
@@ -551,7 +579,7 @@ async function runMode(mode: string, options: CliOptionsInterface, workspacePack
     return;
   }
 
-  await runNodeTests(files, options.watch, options.coverage);
+  await runNodeTests(files, options.watch, options.coverage, workspacePackages, options.packageFilter);
 }
 
 class OrphanedSpecCheck {

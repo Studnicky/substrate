@@ -1,17 +1,13 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { SchemaIntakeError } from '@studnicky/entity/node';
 import { RuntimeError } from '@studnicky/errors/node';
 import { FrozenMutationError, ImmutableSnapshot } from '@studnicky/json/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type {
-  LogLevelEntity,
-  LogStatusEntity
-} from '../../src/entities/index.js';
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+import type { LogLevelEntity, LogStatusEntity } from '../../src/entities/index.js';
 
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { LOG_LEVEL_MAP } from '../../src/constants/LOG_LEVEL_MAP.js';
 import { LOG_LEVEL } from '../../src/constants/LOG_LEVEL.js';
 import {
@@ -82,7 +78,9 @@ class LoggerPrimitiveFixtures {
     return capture;
   }
 
-  static withConsoleCapture(action: (captures: ConsoleCaptureInterface) => void): ConsoleCaptureInterface {
+  static withConsoleCapture(
+    action: (captures: ConsoleCaptureInterface) => void
+  ): ConsoleCaptureInterface {
     const captures = LoggerPrimitiveFixtures.createConsoleCapture();
     const descriptors: ConsoleDescriptorInterface = {
       'debug': LoggerPrimitiveFixtures.getConsoleDescriptor('debug'),
@@ -139,7 +137,7 @@ class LoggerPrimitiveFixtures {
     return record;
   }
 
-  private static getConsoleDescriptor(method: typeof consoleMethods[number]): PropertyDescriptor {
+  private static getConsoleDescriptor(method: (typeof consoleMethods)[number]): PropertyDescriptor {
     const descriptor = Object.getOwnPropertyDescriptor(console, method);
     assert.ok(descriptor !== undefined);
     return descriptor;
@@ -147,38 +145,68 @@ class LoggerPrimitiveFixtures {
 }
 
 class LoggerPrimitiveContractRunners {
-  static 'console-transport-dispatch'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'console-transport-dispatch'>): void {
+  static 'console-transport-dispatch'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'console-transport-dispatch'
+    >
+  ): void {
     const captures = LoggerPrimitiveFixtures.withConsoleCapture(() => {
       const transport = ConsoleTransport.create({ 'level': scenarioCase.input.transport.level });
       for (let index = 0; index < scenarioCase.input.records.length; index += 1) {
         const record = scenarioCase.input.records[index];
         if (record !== undefined) {
-          transport.write(LoggerPrimitiveFixtures.createConsoleRecord(record.level, record.message, record.metadata, scenarioCase.input.body));
+          transport.write(
+            LoggerPrimitiveFixtures.createConsoleRecord(
+              record.level,
+              record.message,
+              record.metadata,
+              scenarioCase.input.body
+            )
+          );
         }
       }
 
-      const filteredTransport = ConsoleTransport.create({ 'level': scenarioCase.input.transport.filtered.minLevel });
-      filteredTransport.write(LoggerPrimitiveFixtures.createConsoleRecord(
-        scenarioCase.input.transport.filtered.level,
-        scenarioCase.input.transport.filtered.message,
-        {},
-        scenarioCase.input.body
-      ));
-      filteredTransport.write(LoggerPrimitiveFixtures.createConsoleRecord(LOG_LEVEL.WARN, 'warn-after-filter', {}, scenarioCase.input.body));
+      const filteredTransport = ConsoleTransport.create({
+        'level': scenarioCase.input.transport.filtered.minLevel
+      });
+      filteredTransport.write(
+        LoggerPrimitiveFixtures.createConsoleRecord(
+          scenarioCase.input.transport.filtered.level,
+          scenarioCase.input.transport.filtered.message,
+          {},
+          scenarioCase.input.body
+        )
+      );
+      filteredTransport.write(
+        LoggerPrimitiveFixtures.createConsoleRecord(
+          LOG_LEVEL.WARN,
+          'warn-after-filter',
+          {},
+          scenarioCase.input.body
+        )
+      );
     });
 
     for (let index = 0; index < consoleMethods.length; index += 1) {
       const method = consoleMethods[index];
       if (method !== undefined) {
         assert.deepStrictEqual(
-          captures[method].map((call) => { return call.message; }),
+          captures[method].map((call) => {
+            return call.message;
+          }),
           scenarioCase.expected.calls[method]
         );
       }
     }
   }
 
-  static 'console-transport-invalid-level'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'console-transport-invalid-level'>): void {
+  static 'console-transport-invalid-level'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'console-transport-invalid-level'
+    >
+  ): void {
     assert.throws(
       () => {
         ResolveMinimumLevel.from({ 'level': scenarioCase.input.transport.level });
@@ -190,7 +218,12 @@ class LoggerPrimitiveContractRunners {
     );
   }
 
-  static 'entity-composition'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'entity-composition'>): void {
+  static 'entity-composition'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'entity-composition'
+    >
+  ): void {
     const body = LogBody.create({
       'component': 'worker',
       'context': {},
@@ -200,18 +233,35 @@ class LoggerPrimitiveContractRunners {
     });
 
     assert.equal(LogDataEntity.validate(body), scenarioCase.expected.logDataValid);
-    assert.equal(CloudWatchLogSchemaFieldsEntity.validate({
-      'level': 2,
-      'message': 'complete',
-      'service': 'api',
-      'time': '2026-07-19T00:00:00.000Z'
-    }), scenarioCase.expected.cloudwatchValid);
-    assert.equal(LoggerHookEventShapeEntity.validate('transportError'), scenarioCase.expected.hookShapeValid);
-    assert.equal(LogDataEntity.validate({ 'message': 'missing fields' }), scenarioCase.expected.logDataInvalid);
-    assert.equal(LoggerHookEventShapeEntity.validate('unknown'), scenarioCase.expected.hookShapeInvalid);
+    assert.equal(
+      CloudWatchLogSchemaFieldsEntity.validate({
+        'level': 2,
+        'message': 'complete',
+        'service': 'api',
+        'time': '2026-07-19T00:00:00.000Z'
+      }),
+      scenarioCase.expected.cloudwatchValid
+    );
+    assert.equal(
+      LoggerHookEventShapeEntity.validate('transportError'),
+      scenarioCase.expected.hookShapeValid
+    );
+    assert.equal(
+      LogDataEntity.validate({ 'message': 'missing fields' }),
+      scenarioCase.expected.logDataInvalid
+    );
+    assert.equal(
+      LoggerHookEventShapeEntity.validate('unknown'),
+      scenarioCase.expected.hookShapeInvalid
+    );
   }
 
-  static 'error-constructors'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'error-constructors'>): void {
+  static 'error-constructors'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'error-constructors'
+    >
+  ): void {
     const cause = RuntimeError.create('root cause');
     const constructed = [
       new LoggerError('base logger failure', cause),
@@ -234,18 +284,28 @@ class LoggerPrimitiveContractRunners {
     }
   }
 
-  static 'level-map'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'level-map'>): void {
-    assert.deepStrictEqual({
-      'debug': LOG_LEVEL_MAP.debug,
-      'error': LOG_LEVEL_MAP.error,
-      'info': LOG_LEVEL_MAP.info,
-      'silent': LOG_LEVEL_MAP.silent,
-      'trace': LOG_LEVEL_MAP.trace,
-      'warn': LOG_LEVEL_MAP.warn
-    }, scenarioCase.expected.resolved);
+  static 'level-map'(
+    scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'level-map'>
+  ): void {
+    assert.deepStrictEqual(
+      {
+        'debug': LOG_LEVEL_MAP.debug,
+        'error': LOG_LEVEL_MAP.error,
+        'info': LOG_LEVEL_MAP.info,
+        'silent': LOG_LEVEL_MAP.silent,
+        'trace': LOG_LEVEL_MAP.trace,
+        'warn': LOG_LEVEL_MAP.warn
+      },
+      scenarioCase.expected.resolved
+    );
   }
 
-  static 'level-order'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'level-order'>): void {
+  static 'level-order'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'level-order'
+    >
+  ): void {
     assert.ok(LOG_LEVEL.TRACE < LOG_LEVEL.DEBUG);
     assert.ok(LOG_LEVEL.DEBUG < LOG_LEVEL.INFO);
     assert.ok(LOG_LEVEL.INFO < LOG_LEVEL.WARN);
@@ -254,7 +314,12 @@ class LoggerPrimitiveContractRunners {
     assert.equal(scenarioCase.expected.ordered, true);
   }
 
-  static 'level-values'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'level-values'>): void {
+  static 'level-values'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'level-values'
+    >
+  ): void {
     assert.strictEqual(LOG_LEVEL.TRACE, scenarioCase.expected.values.TRACE);
     assert.strictEqual(LOG_LEVEL.DEBUG, scenarioCase.expected.values.DEBUG);
     assert.strictEqual(LOG_LEVEL.INFO, scenarioCase.expected.values.INFO);
@@ -263,12 +328,18 @@ class LoggerPrimitiveContractRunners {
     assert.strictEqual(LOG_LEVEL.SILENT, scenarioCase.expected.values.SILENT);
   }
 
-  static 'log-fault-basic'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'log-fault-basic'>): void {
+  static 'log-fault-basic'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'log-fault-basic'
+    >
+  ): void {
     const sourceContext = scenarioCase.input.fault.context ?? {};
     const sourceDetails = sourceContext.details;
-    const copiedDetails = sourceDetails !== null && typeof sourceDetails === 'object'
-      ? { ...sourceDetails }
-      : sourceDetails;
+    const copiedDetails =
+      sourceDetails !== null && typeof sourceDetails === 'object'
+        ? { ...sourceDetails }
+        : sourceDetails;
     const context = { ...sourceContext, 'details': copiedDetails };
     const fault = LogFault.create({
       ...scenarioCase.input.fault,
@@ -289,9 +360,16 @@ class LoggerPrimitiveContractRunners {
     assert.strictEqual(Reflect.get(faultDetails, 'attempt'), scenarioCase.expected.nestedAttempt);
   }
 
-  static 'log-fault-from-error-fields'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'log-fault-from-error-fields'>): void {
+  static 'log-fault-from-error-fields'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'log-fault-from-error-fields'
+    >
+  ): void {
     const sourceCause = RuntimeError.create(scenarioCase.input.error.cause);
-    const sourceError = RuntimeError.create(scenarioCase.input.error.message, { 'cause': sourceCause });
+    const sourceError = RuntimeError.create(scenarioCase.input.error.message, {
+      'cause': sourceCause
+    });
     Object.defineProperty(sourceError, 'name', { 'value': scenarioCase.input.error.name });
     const cause = sourceCause.message;
     const fault = LogFault.create({
@@ -306,7 +384,12 @@ class LoggerPrimitiveContractRunners {
     assert.strictEqual(fault.cause, scenarioCase.expected.cause);
   }
 
-  static 'log-fault-missing-field'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'log-fault-missing-field'>): void {
+  static 'log-fault-missing-field'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'log-fault-missing-field'
+    >
+  ): void {
     try {
       LogFaultConfigEntity.intake(scenarioCase.input.fault);
       assert.fail('expected LogFaultConfigEntity.intake to throw');
@@ -318,7 +401,12 @@ class LoggerPrimitiveContractRunners {
     }
   }
 
-  static 'log-fault-optional-fields'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'log-fault-optional-fields'>): void {
+  static 'log-fault-optional-fields'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'log-fault-optional-fields'
+    >
+  ): void {
     const fault = LogFault.create({
       ...scenarioCase.input.fault,
       'context': scenarioCase.input.fault.context ?? {}
@@ -328,19 +416,32 @@ class LoggerPrimitiveContractRunners {
     assert.strictEqual(fault.stack, scenarioCase.expected.stack);
   }
 
-  static 'parse-invalid-string'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'parse-invalid-string'>): void {
-    assert.deepStrictEqual({
-      'empty': ParseLogLevel.parse(''),
-      'invalid': ParseLogLevel.parse('invalid'),
-      'large': ParseLogLevel.parse(999),
-      'negative': ParseLogLevel.parse(-1),
-      'spaced': ParseLogLevel.parse(' info '),
-      'title': ParseLogLevel.parse('Info'),
-      'uppercase': ParseLogLevel.parse('DEBUG')
-    }, scenarioCase.expected.values);
+  static 'parse-invalid-string'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'parse-invalid-string'
+    >
+  ): void {
+    assert.deepStrictEqual(
+      {
+        'empty': ParseLogLevel.parse(''),
+        'invalid': ParseLogLevel.parse('invalid'),
+        'large': ParseLogLevel.parse(999),
+        'negative': ParseLogLevel.parse(-1),
+        'spaced': ParseLogLevel.parse(' info '),
+        'title': ParseLogLevel.parse('Info'),
+        'uppercase': ParseLogLevel.parse('DEBUG')
+      },
+      scenarioCase.expected.values
+    );
   }
 
-  static 'parse-numeric'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'parse-numeric'>): void {
+  static 'parse-numeric'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'parse-numeric'
+    >
+  ): void {
     const values = [
       ParseLogLevel.parse(LOG_LEVEL.TRACE),
       ParseLogLevel.parse(LOG_LEVEL.DEBUG),
@@ -352,28 +453,49 @@ class LoggerPrimitiveContractRunners {
     assert.deepStrictEqual(values, scenarioCase.expected.values);
   }
 
-  static 'parse-string'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'parse-string'>): void {
-    assert.deepStrictEqual({
-      'debug': ParseLogLevel.parse('debug'),
-      'error': ParseLogLevel.parse('error'),
-      'info': ParseLogLevel.parse('info'),
-      'silent': ParseLogLevel.parse('silent'),
-      'trace': ParseLogLevel.parse('trace'),
-      'warn': ParseLogLevel.parse('warn')
-    }, scenarioCase.expected.values);
+  static 'parse-string'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'parse-string'
+    >
+  ): void {
+    assert.deepStrictEqual(
+      {
+        'debug': ParseLogLevel.parse('debug'),
+        'error': ParseLogLevel.parse('error'),
+        'info': ParseLogLevel.parse('info'),
+        'silent': ParseLogLevel.parse('silent'),
+        'trace': ParseLogLevel.parse('trace'),
+        'warn': ParseLogLevel.parse('warn')
+      },
+      scenarioCase.expected.values
+    );
   }
 
-  static 'safe-stringify-basic'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'safe-stringify-basic'>): void {
-    assert.deepStrictEqual([
-      SafeStringify.stringify({ 'name': 'test', 'value': 42 }),
-      SafeStringify.stringify([1, 2, 3]),
-      SafeStringify.stringify({ 'level1': { 'level2': { 'level3': 'deep value' } } }),
-      SafeStringify.stringify({ 'value': null }),
-      SafeStringify.stringify({ 'value': undefined })
-    ], scenarioCase.expected.outputs);
+  static 'safe-stringify-basic'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'safe-stringify-basic'
+    >
+  ): void {
+    assert.deepStrictEqual(
+      [
+        SafeStringify.stringify({ 'name': 'test', 'value': 42 }),
+        SafeStringify.stringify([1, 2, 3]),
+        SafeStringify.stringify({ 'level1': { 'level2': { 'level3': 'deep value' } } }),
+        SafeStringify.stringify({ 'value': null }),
+        SafeStringify.stringify({ 'value': undefined })
+      ],
+      scenarioCase.expected.outputs
+    );
   }
 
-  static 'safe-stringify-circular'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'safe-stringify-circular'>): void {
+  static 'safe-stringify-circular'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'safe-stringify-circular'
+    >
+  ): void {
     const selfReferentialObject: Record<string, unknown> = { 'name': 'test' };
     selfReferentialObject.self = selfReferentialObject;
     const firstResult = SafeStringify.stringify(selfReferentialObject);
@@ -397,25 +519,44 @@ class LoggerPrimitiveContractRunners {
     assert.strictEqual(SafeStringify.stringify(selfReferentialArray), '["value","[Circular]"]');
   }
 
-  static 'safe-stringify-json-edges'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'safe-stringify-json-edges'>): void {
+  static 'safe-stringify-json-edges'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'safe-stringify-json-edges'
+    >
+  ): void {
     const symbolKey = Symbol('test');
     const objectWithSymbol = { 'regular': 'regular value' };
     Object.defineProperty(objectWithSymbol, symbolKey, { 'value': 'symbol value' });
-    assert.strictEqual(SafeStringify.stringify(new Date('2024-01-01T00:00:00.000Z')).includes(
-      scenarioCase.expected.dateContains
-    ), true);
+    assert.strictEqual(
+      SafeStringify.stringify(new Date('2024-01-01T00:00:00.000Z')).includes(
+        scenarioCase.expected.dateContains
+      ),
+      true
+    );
     assert.strictEqual(SafeStringify.stringify({}), scenarioCase.expected.emptyObject);
     assert.strictEqual(SafeStringify.stringify([]), scenarioCase.expected.emptyArray);
-    assert.deepStrictEqual({
-      'boolean': SafeStringify.stringify(true),
-      'null': SafeStringify.stringify(null),
-      'number': SafeStringify.stringify(42),
-      'string': SafeStringify.stringify('string')
-    }, scenarioCase.expected.primitives);
-    assert.strictEqual(SafeStringify.stringify(objectWithSymbol), scenarioCase.expected.symbolObject);
+    assert.deepStrictEqual(
+      {
+        'boolean': SafeStringify.stringify(true),
+        'null': SafeStringify.stringify(null),
+        'number': SafeStringify.stringify(42),
+        'string': SafeStringify.stringify('string')
+      },
+      scenarioCase.expected.primitives
+    );
+    assert.strictEqual(
+      SafeStringify.stringify(objectWithSymbol),
+      scenarioCase.expected.symbolObject
+    );
   }
 
-  static 'safe-stringify-types'(scenarioCase: ScenarioCaseOfType<LoggerPrimitiveContractsScenarioCaseEntity.Type, 'safe-stringify-types'>): void {
+  static 'safe-stringify-types'(
+    scenarioCase: ScenarioCaseOfType<
+      LoggerPrimitiveContractsScenarioCaseEntity.Type,
+      'safe-stringify-types'
+    >
+  ): void {
     const firstLevel: Record<string, unknown> = { 'level2': { 'level3': { 'value': 'deep' } } };
     const circularObject: Record<string, unknown> = { 'level1': firstLevel };
     firstLevel.circularRef = circularObject;
@@ -452,7 +593,7 @@ ScenarioSuite.register({
 });
 void describe('ImmutableSnapshot', () => {
   void it('clones nested Map and Set values into mutation-guarded references', () => {
-    const source = { 'collection': new Map<string, Set<string>>([[ 'members', new Set([ 'ada' ]) ]]) };
+    const source = { 'collection': new Map<string, Set<string>>([['members', new Set(['ada'])]]) };
     const snapshot = ImmutableSnapshot.from(source);
     const members = snapshot.collection.get('members');
 

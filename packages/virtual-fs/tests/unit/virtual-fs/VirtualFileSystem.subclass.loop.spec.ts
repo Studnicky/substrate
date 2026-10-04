@@ -1,11 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import timersPromises from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { VirtualFileSystem } from '../../../src/virtual-fs/VirtualFileSystem.js';
 import { VirtualFileSystemSubclassScenarioCaseEntity } from './entities/VirtualFileSystemSubclassScenarioCaseEntity.js';
 import scenarioGroups from './VirtualFileSystem.subclass.scenarios.json' with { 'type': 'json' };

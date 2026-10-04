@@ -1,11 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { JsonObject } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 import { mock } from 'node:test';
 import { Agent } from 'undici';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ConfigurationError } from '../../src/errors/index.js';
 import { UndiciDispatcher } from '../../src/modules/UndiciDispatcher.js';
 import { TestDispatcher } from '../../src/testing/TestDispatcher.js';

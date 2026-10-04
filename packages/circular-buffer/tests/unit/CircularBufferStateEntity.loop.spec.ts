@@ -1,8 +1,8 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircularBufferStateEntity } from '../../src/entities/index.js';
 import scenarioGroups from './entities/CircularBufferStateEntity.scenarios.json' with { 'type': 'json' };
 import { CircularBufferStateScenarioCaseEntity } from './entities/CircularBufferStateScenarioCaseEntity.js';

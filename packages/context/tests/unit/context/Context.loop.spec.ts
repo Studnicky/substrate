@@ -1,12 +1,11 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
 import { HookInvocationError, RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { setTimeout } from 'node:timers/promises';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { ContextScopeInterface, ContextStorageInterface } from '../../../src/interfaces/index.js';
 
+import { ScenarioSuite } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ContextConfigEntity } from '../../../src/entities/ContextConfigEntity.js';
 import { Context } from '../../../src/node/index.js';
 import { NodeContextStorage } from '../../../src/node/NodeContextStorage.js';

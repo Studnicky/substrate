@@ -19,6 +19,14 @@ Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted 
 
 <<< ../../packages/circular-buffer/examples/basicUsage.ts#usage
 
+## Numeric samples
+
+`SampleBuffer` owns a fixed-capacity numeric sliding window with sorted-cache percentile calculation. It preserves its own seven-hook protocol rather than inheriting the generic ring-buffer protocol. Import it from the canonical subpath:
+
+<<< ../../packages/circular-buffer/examples/sampleBasicUsage.ts#usage
+
+<RunnableExample src="packages/circular-buffer/examples/observedSampleBuffer" title="Observed numeric sample buffer" />
+
 ## Try it
 
 ### Lifecycle hooks
@@ -82,3 +90,8 @@ import type { CircularBufferInterface } from '@studnicky/circular-buffer/interfa
 | `CircularBufferOptionsEntity` | Defines circular buffer configuration. | `@studnicky/circular-buffer/entities` |
 | `CircularBufferStateEntity` | Defines circular buffer state. | `@studnicky/circular-buffer/entities` |
 | `CircularBufferInterface` | Defines the circular buffer contract. | `@studnicky/circular-buffer/interfaces` |
+| `SampleBuffer` | Provides fixed-capacity numeric samples and percentile calculation. | `@studnicky/circular-buffer/samples` |
+| `SampleBufferError` | Represents sample-buffer construction failures. | `@studnicky/circular-buffer/samples` |
+| `SampleBufferOptionsEntity` | Defines sample-buffer construction input. | `@studnicky/circular-buffer/entities` |
+| `SampleBufferStateEntity` | Defines sample-buffer observable state. | `@studnicky/circular-buffer/entities` |
+| `SampleBufferInterface` | Defines the sample-buffer contract. | `@studnicky/circular-buffer/interfaces` |

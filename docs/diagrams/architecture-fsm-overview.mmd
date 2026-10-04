@@ -1,0 +1,15 @@
+stateDiagram-v2
+  [*] --> idle : create()
+  idle --> active : execute()
+  active --> active : execute() [slots available]
+  active --> draining : drain()
+  draining --> done : last op completes
+  active --> aborted : abort()
+  draining --> aborted : abort()
+  done --> [*]
+  aborted --> [*]
+
+  note right of active
+    guard() rejects illegal transitions
+    onEnter() fires on every entry
+  end note

@@ -1,15 +1,15 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { HookInvocationError } from '@studnicky/errors/node';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { CircuitBreakerOptionsEntity } from '../../../src/entities/index.js';
 import type { CircuitBreakerCollaboratorsInterface } from '../../../src/index.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CircuitStateEntity } from '../../../src/entities/index.js';
 import { CircuitBreaker, CircuitBreakerOpenError, ResilienceConfigError } from '../../../src/index.js';
 import { CircuitBreakerScenarioCaseEntity } from '../entities/CircuitBreakerScenarioCaseEntity.js';

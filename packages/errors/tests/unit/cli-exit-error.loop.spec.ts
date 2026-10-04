@@ -1,9 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import { BaseError } from '@studnicky/types/browser';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { CliExitError } from '../../src/errors/CliExitError.js';
 import scenarioGroups from './cli-exit-error.scenarios.json' with { 'type': 'json' };
 import { CliExitErrorScenarioCaseEntity } from './entities/CliExitErrorScenarioCaseEntity.js';

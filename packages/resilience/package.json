@@ -56,6 +56,22 @@
     "./keyed/interfaces": {
       "types": "./dist/keyed/interfaces/index.d.ts",
       "import": "./dist/keyed/interfaces/index.js"
+    },
+    "./retry/node": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
+    },
+    "./retry/browser": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
+    },
+    "./retry/entities": {
+      "types": "./dist/retry/entities/index.d.ts",
+      "import": "./dist/retry/entities/index.js"
+    },
+    "./retry/interfaces": {
+      "types": "./dist/retry/interfaces/index.d.ts",
+      "import": "./dist/retry/interfaces/index.js"
     }
   },
   "publishConfig": {
@@ -70,16 +86,16 @@
   "dependencies": {
     "@studnicky/cache": "workspace:*",
     "@studnicky/circular-buffer": "workspace:*",
+    "@studnicky/clock": "workspace:*",
+    "@studnicky/concurrency": "workspace:*",
+    "@studnicky/config": "workspace:*",
     "@studnicky/entity": "workspace:*",
     "@studnicky/errors": "workspace:*",
+    "@studnicky/event-bus": "workspace:*",
     "@studnicky/fsm": "workspace:*",
     "@studnicky/scheduler": "workspace:*",
     "@studnicky/signal": "workspace:*",
     "@studnicky/types": "workspace:*"
-  },
-  "devDependencies": {
-    "@studnicky/example-smoke-kit": "workspace:*",
-    "@studnicky/scenario-kit": "workspace:*"
   },
   "engines": {
     "node": ">=24.0.0"

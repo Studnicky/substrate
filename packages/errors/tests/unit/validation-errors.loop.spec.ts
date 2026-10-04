@@ -1,9 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import { Predicates } from '@studnicky/types/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite, ScenarioValues } from '../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ValidationViolationEntity } from '../../src/entities/ValidationViolationEntity.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
 import { ValidationErrors } from '../../src/errors/ValidationErrors.js';

@@ -60,34 +60,14 @@ import { AstHelpers } from '../shared/astHelpers.js';
 
 // `this` HANDED TO THE CLASS'S OWN NESTED COLLABORATOR IS NOT AN ESCAPE.
 //
-// Four sites, every one the same idiom — a constructor handing `this` to a nested class the
-// enclosing class itself owns:
+// Memoize constructs its private coalescer with the owning Memoize instance:
 //
 //   this.#coalesce = new Memoize.#OwnedCoalesce<TArgumentList, TResult>(this);
-//   this.#coalesce = new IdempotencyGuard.#OwnedCoalesce<TResult>(this);
-//   this.hooks = new Paginator.OwnedHookInvoker<TPage, TCursor>(this);
-//   this.machine = new Paginator.OwnedMachine<TPage, TCursor>(this);
 //
-// The rule's intent, stated above, is that `this` must not ESCAPE its class — reach
-// somewhere that is not the object. Handing it to `Memoize.#OwnedCoalesce` does not do that:
-// the reference stays inside the enclosing class's own object graph, passed to a type the
-// class itself declares and owns. Two of the four callees (`Memoize.#OwnedCoalesce`,
-// `IdempotencyGuard.#OwnedCoalesce`) are `#private static` nested classes, so the reference
-// provably cannot leave the enclosing class at all — there is no external name that resolves
-// to them. `Paginator.OwnedHookInvoker`/`Paginator.OwnedMachine` are public-static nested
-// classes, but still the enclosing class's own declared collaborators, not third-party code.
-//
-// This idiom is LOAD-BEARING, not incidental style: an earlier agent replaced the owner
-// back-reference on one of these collaborators with constructor parameters instead, to
-// satisfy this rule as it stood, and broke async hook error containment — the collaborator
-// needs `this` to route a failure back to the owning instance's own hook-error accounting.
-// The test suite caught the regression. Do not "fix" this idiom away again.
-//
-// The exemption is intentionally narrow: `this` in the argument list of a `NewExpression`
-// whose callee is a `MemberExpression` rooted at the ENCLOSING CLASS'S OWN NAME (covering
-// both `Class.Nested(this)` and `Class.#Nested(this)` — the callee's property is not
-// inspected, only its object). `new SomeOtherClass(this)` still reports: `SomeOtherClass` is
-// not the class handing out `this`, so that reference genuinely leaves the object graph.
+// The reference remains inside Memoize's object graph: the collaborator is a private
+// static nested class and has no externally-resolvable name. The exemption therefore
+// permits only `this` passed to a nested constructor rooted at the enclosing class name.
+// `new SomeOtherClass(this)` still reports because that reference leaves the object graph.
 
 class ThisContext {
   /**

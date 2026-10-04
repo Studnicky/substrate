@@ -30,10 +30,7 @@
       "path": "../signal"
     },
     {
-      "path": "../example-smoke-kit"
-    },
-    {
-      "path": "../scenario-kit"
+      "path": "../../scripts/test-helpers/scenario-kit"
     }
   ]
 }

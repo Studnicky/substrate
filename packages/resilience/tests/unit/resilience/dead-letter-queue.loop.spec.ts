@@ -1,12 +1,12 @@
 import type { HookInvocationError } from '@studnicky/errors/node';
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { ScenarioSuite, ScenarioValues } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 
+import type { ScenarioCaseOfType } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { DeadLetterQueueOptionsInterface } from '../../../src/index.js';
 
+import { ScenarioSuite, ScenarioValues } from '../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { DeadLetterQueueEntryMetadataEntity } from '../../../src/entities/index.js';
 import {
   DeadLetterQueue,

@@ -1,9 +1,9 @@
-import type { ScenarioCaseOfType } from '@studnicky/scenario-kit/types';
-
-import { ScenarioSuite } from '@studnicky/scenario-kit/node';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { ScenarioCaseOfType } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
+
+import { ScenarioSuite } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { ArrayLogic } from '../../../../src/enums/ArrayLogic.js';
 import { FilterMode } from '../../../../src/enums/FilterMode.js';
 import { LogicGate } from '../../../../src/enums/LogicGate.js';
@@ -17,7 +17,12 @@ import { FilterEngineCharacterizationScenarioCaseEntity } from './entities/Filte
 import scenarioGroups from './filter-engine-characterization.scenarios.json' with { 'type': 'json' };
 
 class FilterEngineCharacterizationRunners {
-  static 'array-equals-deep'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'array-equals-deep'>): void {
+  static 'array-equals-deep'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'array-equals-deep'
+    >
+  ): void {
     const { expected, input } = scenarioCase;
     const { entries } = input;
 
@@ -33,21 +38,29 @@ class FilterEngineCharacterizationRunners {
     assert.equal(engine.evaluate({ 'tags': [...entries, 'zzz'] }).valid, expected.validFail);
   }
 
-  static 'custom-plugin-operator'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'custom-plugin-operator'>): void {
+  static 'custom-plugin-operator'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'custom-plugin-operator'
+    >
+  ): void {
     const { expected, input } = scenarioCase;
     const { failValue, matchValue } = input;
 
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'custom:myOperator', 'path': 'value', 'value': matchValue }
-      ],
+      'conditions': [{ 'operator': 'custom:myOperator', 'path': 'value', 'value': matchValue }],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST,
       'plugins': [
         {
-          'getNamespace': () => { return 'custom'; },
+          'getNamespace': () => {
+            return 'custom';
+          },
           'operators': {
-            'myOperator': (value, filterValue) => { const matches = value === filterValue; return matches; }
+            'myOperator': (value, filterValue) => {
+              const matches = value === filterValue;
+              return matches;
+            }
           }
         }
       ]
@@ -57,21 +70,34 @@ class FilterEngineCharacterizationRunners {
     assert.equal(engine.evaluate({ 'value': failValue }).valid, expected.validFail);
   }
 
-  static 'date-between-in-range'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-in-range'>): void {
+  static 'date-between-in-range'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'date-between-in-range'
+    >
+  ): void {
     FilterEngineCharacterizationRunners.assertDateBetween(scenarioCase);
   }
 
-  static 'date-between-out-of-range'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-out-of-range'>): void {
+  static 'date-between-out-of-range'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'date-between-out-of-range'
+    >
+  ): void {
     FilterEngineCharacterizationRunners.assertDateBetween(scenarioCase);
   }
 
-  static 'date-equals-match'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-equals-match'>): void {
+  static 'date-equals-match'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'date-equals-match'
+    >
+  ): void {
     const { dateValue } = scenarioCase.input;
 
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'DATE.EQUALS', 'path': 'birthday', 'value': dateValue }
-      ],
+      'conditions': [{ 'operator': 'DATE.EQUALS', 'path': 'birthday', 'value': dateValue }],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST
     });
@@ -81,29 +107,44 @@ class FilterEngineCharacterizationRunners {
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'enum-reachability-sanity'(_scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'enum-reachability-sanity'>): void {
+  static 'enum-reachability-sanity'(
+    _scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'enum-reachability-sanity'
+    >
+  ): void {
     assert.equal(typeof LogicGate.CORE.AND, 'function');
     assert.equal(typeof Operator.STRING.EQUALS, 'function');
     assert.equal(typeof ArrayLogic.CORE.EVERY, 'function');
   }
 
-  static 'map-has-direct'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'map-has-direct'>): void {
+  static 'map-has-direct'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'map-has-direct'
+    >
+  ): void {
     const { entries, matchValue } = scenarioCase.input;
 
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'MAP.HAS', 'path': 'roles', 'value': matchValue }
-      ],
+      'conditions': [{ 'operator': 'MAP.HAS', 'path': 'roles', 'value': matchValue }],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST
     });
 
-    const result = engine.evaluate({ 'roles': FilterEngineCharacterizationRunners.mapFromEntries(entries) });
+    const result = engine.evaluate({
+      'roles': FilterEngineCharacterizationRunners.mapFromEntries(entries)
+    });
 
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'map-size-wildcard'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'map-size-wildcard'>): void {
+  static 'map-size-wildcard'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'map-size-wildcard'
+    >
+  ): void {
     const { items, size } = scenarioCase.input;
 
     const engine = new FilterEngine({
@@ -121,14 +162,21 @@ class FilterEngineCharacterizationRunners {
 
     const wrapped: { 'meta': Map<unknown, unknown> }[] = [];
     for (let index = 0; index < items.length; index += 1) {
-      wrapped.push({ 'meta': FilterEngineCharacterizationRunners.mapFromEntries(items[index] ?? []) });
+      wrapped.push({
+        'meta': FilterEngineCharacterizationRunners.mapFromEntries(items[index] ?? [])
+      });
     }
     const result = engine.evaluate({ 'items': wrapped });
 
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'nested-or-group'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'nested-or-group'>): void {
+  static 'nested-or-group'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'nested-or-group'
+    >
+  ): void {
     const { expected, input } = scenarioCase;
     const { failData, matchData } = input;
 
@@ -151,16 +199,25 @@ class FilterEngineCharacterizationRunners {
     assert.equal(engine.evaluate(failData).valid, expected.validFail);
   }
 
-  static 'registered-custom-gate-operator'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'registered-custom-gate-operator'>): void {
+  static 'registered-custom-gate-operator'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'registered-custom-gate-operator'
+    >
+  ): void {
     const plugins = new Plugins();
 
-    plugins.gates.set('customAlwaysTrue', () => { const always = true; return always; });
-    plugins.operators.set('customAlwaysMatch', () => { const always = true; return always; });
+    plugins.gates.set('customAlwaysTrue', () => {
+      const always = true;
+      return always;
+    });
+    plugins.operators.set('customAlwaysMatch', () => {
+      const always = true;
+      return always;
+    });
 
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'customAlwaysMatch', 'path': 'name', 'value': 'irrelevant' }
-      ],
+      'conditions': [{ 'operator': 'customAlwaysMatch', 'path': 'name', 'value': 'irrelevant' }],
       'gate': 'customAlwaysTrue',
       'mode': FilterMode.CORE.WHITELIST,
       'registry': plugins
@@ -171,13 +228,16 @@ class FilterEngineCharacterizationRunners {
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'set-has-direct'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'set-has-direct'>): void {
+  static 'set-has-direct'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'set-has-direct'
+    >
+  ): void {
     const { entries, matchValue } = scenarioCase.input;
 
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'SET.HAS', 'path': 'tags', 'value': matchValue }
-      ],
+      'conditions': [{ 'operator': 'SET.HAS', 'path': 'tags', 'value': matchValue }],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST
     });
@@ -187,7 +247,12 @@ class FilterEngineCharacterizationRunners {
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'set-size-wildcard'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'set-size-wildcard'>): void {
+  static 'set-size-wildcard'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'set-size-wildcard'
+    >
+  ): void {
     const { items, size } = scenarioCase.input;
 
     const engine = new FilterEngine({
@@ -212,20 +277,28 @@ class FilterEngineCharacterizationRunners {
     assert.equal(result.valid, scenarioCase.expected.valid);
   }
 
-  static 'string-gate-fail'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-fail'>): void {
+  static 'string-gate-fail'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'string-gate-fail'
+    >
+  ): void {
     FilterEngineCharacterizationRunners.assertStringGate(scenarioCase);
   }
 
-  static 'string-gate-pass'(scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-pass'>): void {
+  static 'string-gate-pass'(
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'string-gate-pass'
+    >
+  ): void {
     FilterEngineCharacterizationRunners.assertStringGate(scenarioCase);
   }
 
   static declaresNonStringMapKeys(): void {
     void it('retains non-string native Map keys during evaluation', () => {
       const engine = new FilterEngine({
-        'conditions': [
-          { 'operator': 'MAP.HAS', 'path': 'roles', 'value': 42 }
-        ],
+        'conditions': [{ 'operator': 'MAP.HAS', 'path': 'roles', 'value': 42 }],
         'gate': 'CORE.AND',
         'mode': FilterMode.CORE.WHITELIST
       });
@@ -237,7 +310,10 @@ class FilterEngineCharacterizationRunners {
   }
 
   private static assertDateBetween(
-    scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'date-between-in-range' | 'date-between-out-of-range'>
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'date-between-in-range' | 'date-between-out-of-range'
+    >
   ): void {
     const { dateValue, rangeMaximum, rangeMinimum } = scenarioCase.input;
 
@@ -259,12 +335,13 @@ class FilterEngineCharacterizationRunners {
   }
 
   private static assertStringGate(
-    scenarioCase: ScenarioCaseOfType<FilterEngineCharacterizationScenarioCaseEntity.Type, 'string-gate-fail' | 'string-gate-pass'>
+    scenarioCase: ScenarioCaseOfType<
+      FilterEngineCharacterizationScenarioCaseEntity.Type,
+      'string-gate-fail' | 'string-gate-pass'
+    >
   ): void {
     const engine = new FilterEngine({
-      'conditions': [
-        { 'operator': 'STRING.EQUALS', 'path': 'name', 'value': 'Alice' }
-      ],
+      'conditions': [{ 'operator': 'STRING.EQUALS', 'path': 'name', 'value': 'Alice' }],
       'gate': 'CORE.AND',
       'mode': FilterMode.CORE.WHITELIST
     });
@@ -280,7 +357,10 @@ class FilterEngineCharacterizationRunners {
 
     for (let index = 0; index < length; index += 1) {
       const entry = entries[index];
-      assert.ok(Array.isArray(entry) && entry.length === 2, 'Each map entry must contain exactly one key and value');
+      assert.ok(
+        Array.isArray(entry) && entry.length === 2,
+        'Each map entry must contain exactly one key and value'
+      );
       result.set(entry[0], entry[1]);
     }
 
@@ -318,6 +398,12 @@ void describe('filter frozen exports', () => {
   void it('preserves the nested immutability contract through JSON Frozen', () => {
     assert.equal(Object.isFrozen(FilterMode), true);
     assert.equal(Object.isFrozen(FilterMode.CORE), true);
-    assert.equal(Reflect.set(FilterMode.CORE, 'WHITELIST', () => { const rejected = false; return rejected; }), false);
+    assert.equal(
+      Reflect.set(FilterMode.CORE, 'WHITELIST', () => {
+        const rejected = false;
+        return rejected;
+      }),
+      false
+    );
   });
 });

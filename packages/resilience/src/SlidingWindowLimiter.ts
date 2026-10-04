@@ -8,6 +8,7 @@
  * algorithm retains current and prior window totals in constant space.
  * Successful operations return the canonical consumption result.
  */
+import { MonotonicNow } from '@studnicky/clock/monotonic-now';
 import { SchemaIntakeError } from '@studnicky/entity/browser';
 import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
 import { RaceTimeout, Signal } from '@studnicky/signal/browser';
@@ -19,7 +20,6 @@ import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingW
 import { COUNTER_POLL_DIVISOR, MINIMUM_RETRY_DELAY_MS } from './constants/index.js';
 import { SlidingWindowLimiterOptionsEntity } from './entities/SlidingWindowLimiterOptionsEntity.js';
 import { SlidingWindowLimiterConfigError } from './errors/SlidingWindowLimiterConfigError.js';
-import { RateLimiterClock } from './RateLimiterClock.js';
 import { SlidingWindowExhaustedError } from './SlidingWindowExhaustedError.js';
 import { TimestampLog } from './TimestampLog.js';
 
@@ -65,7 +65,7 @@ export class SlidingWindowLimiter {
     this.#limit = schemaOptions.limit;
     this.#windowMs = schemaOptions.windowMs;
     this.#algorithm = schemaOptions.algorithm;
-    this.#clock = RateLimiterClock.create(clock);
+    this.#clock = MonotonicNow.create(clock);
     this.#signal = Signal.create();
     this.#timestamps = this.#algorithm === 'log'
       ? TimestampLog.create<{ readonly 'timestamp': number; readonly 'tokens': number }, TimestampLog>({ 'capacity': this.#limit, 'overflow': 'grow' })

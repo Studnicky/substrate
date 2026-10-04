@@ -1,11 +1,17 @@
 export { AsyncIter } from './AsyncIter.js';
+export { Batch } from './batch/index.js';
 export { Channel } from './Channel.js';
 export { Coalesce } from './Coalesce.js';
 export { ChannelError } from './errors/index.js';
+export { BatchError } from './errors/index.js';
 export { CoalesceTimeoutError } from './errors/index.js';
 export { CoalesceWaitCompletedError } from './errors/index.js';
 export { ConcurrencyError } from './errors/index.js';
+export { LockTimeoutError } from './errors/index.js';
+export { MutexError } from './errors/index.js';
+export { QueueSizeExceededError } from './errors/index.js';
 export { SemaphoreError } from './errors/index.js';
 export { SemaphoreQueueFullError } from './errors/index.js';
 export { KeyedSemaphore } from './KeyedSemaphore.js';
+export { Mutex } from './mutex/Mutex.js';
 export { Semaphore } from './Semaphore.js';
