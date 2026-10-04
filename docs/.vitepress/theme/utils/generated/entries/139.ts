@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/customClassifier.ts. */\nexport const CustomClassifierFixtures = Object.freeze({\n  'failUntil': 2\n});\n"
+  'source': '/** Static input data for examples/customClassifier.ts. */\nexport const CustomClassifierFixtures = Object.freeze({\n  \'failUntil\': 2\n});\n'
 });

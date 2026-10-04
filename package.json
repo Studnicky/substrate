@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "15.0.0",
+  "version": "15.0.1",
   "private": true,
   "description": "A subclass-first toolkit of TypeScript primitives — retry, semaphore, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "homepage": "https://studnicky.github.io/substrate/",
@@ -105,6 +105,7 @@
     "oxfmt": "0.71.0",
     "oxlint": "^1.85.0",
     "pagefind": "1.5.2",
+    "puppeteer": "25.12.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
@@ -120,7 +121,8 @@
   "pnpm": {
     "overrides": {
       "vite": "^8.3.0",
-      "fast-uri": "3.1.6"
+      "fast-uri": "3.1.8",
+      "brace-expansion": "5.0.12"
     }
   },
   "substrate": {

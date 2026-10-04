@@ -6,5 +6,5 @@ export const playgroundPayload = Object.freeze({
     const modules = await loadChunk0();
     return Object.fromEntries(modules.map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "/** Static input data for examples/draft.ts. */\nexport namespace DraftFixture {\n  export const Base = {\n    'meta': { 'label': 'draft' },\n    'tags': ['alpha'],\n    'untouched': { 'value': 1 }\n  };\n\n  export const Document = { 'count': 0, 'status': 'draft' };\n}\n"
+  'source': '/** Static input data for examples/draft.ts. */\nexport namespace DraftFixture {\n  export const Base = {\n    \'meta\': { \'label\': \'draft\' },\n    \'tags\': [\'alpha\'],\n    \'untouched\': { \'value\': 1 }\n  };\n\n  export const Document = { \'count\': 0, \'status\': \'draft\' };\n}\n'
 });

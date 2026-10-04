@@ -1,5 +1,22 @@
 # Changelog
 
+<<<<<<< HEAD
+=======
+
+## 15.0.1
+
+### Patch Changes
+
+- Updated dependencies [3965298]
+  - @studnicky/types@15.0.1
+  - @studnicky/circular-buffer@15.0.1
+  - @studnicky/clock@15.0.1
+  - @studnicky/entity@15.0.1
+  - @studnicky/errors@15.0.1
+  - @studnicky/json@15.0.1
+
+> > > > > > > origin/develop
+
 ## 15.0.0
 
 ### Major Changes

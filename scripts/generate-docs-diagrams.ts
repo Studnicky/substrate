@@ -69,7 +69,13 @@ function run(command: string, arguments_: string[]): Promise<void> {
 }
 
 const temporaryDirectory = await mkdtemp(join(tmpdir(), 'substrate-mermaid-'));
+const puppeteerConfig =
+  process.env.CI === 'true' ? join(temporaryDirectory, 'puppeteer.json') : undefined;
 await mkdir(outputDirectory, { 'recursive': true });
+
+if (puppeteerConfig !== undefined) {
+  await writeFile(puppeteerConfig, `${JSON.stringify({ 'args': ['--no-sandbox'] })}\n`);
+}
 
 try {
   for (const diagram of diagrams) {
@@ -99,6 +105,7 @@ try {
         theme.background,
         '--configFile',
         config,
+        ...(puppeteerConfig === undefined ? [] : ['--puppeteerConfigFile', puppeteerConfig]),
         '--input',
         input,
         '--output',

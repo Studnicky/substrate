@@ -1,5 +1,16 @@
 # Changelog
 
+<<<<<<< HEAD
+=======
+
+## 15.0.1
+
+### Patch Changes
+
+- 3965298: Publish the integrated primitive release and complete package reference.
+
+> > > > > > > origin/develop
+
 ## 15.0.0
 
 ### Major Changes

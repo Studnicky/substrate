@@ -16,5 +16,5 @@ export const playgroundPayload = Object.freeze({
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': "import { WebLock } from '../src/file-lock/browser/index.js';\n\nconst lock = await WebLock.create({ 'name': 'substrate-browser-lock-demo' });\n\ntry {\n  console.log('browser lock acquired');\n} finally {\n  lock.release();\n}\n"
+  'source': 'import { WebLock } from \'../src/file-lock/browser/index.js\';\n\nconst lock = await WebLock.create({ \'name\': \'substrate-browser-lock-demo\' });\n\ntry {\n  console.log(\'browser lock acquired\');\n} finally {\n  lock.release();\n}\n'
 });
