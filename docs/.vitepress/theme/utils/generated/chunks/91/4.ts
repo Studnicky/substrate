@@ -22,16 +22,16 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/486').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/487').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/488').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/568').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/569').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/570').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/571').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/572').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/573').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/574').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/575').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/576').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/577').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/578').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/716').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/717').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/718').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/719').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/720').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/721').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/722').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/723').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/724').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/725').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/726').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

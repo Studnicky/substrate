@@ -49,6 +49,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./retry": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
     }
   },
   "publishConfig": {

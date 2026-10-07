@@ -3,6 +3,11 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/144/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/144/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/144/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/144/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/144/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/144/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/144/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/144/7';
+import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/144/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +15,14 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7(),
+      loadChunk8()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace JobEffectEntity {\n  export const Schema = {\n    \'oneOf\': [\n      {\n        \'additionalProperties\': false,\n        \'properties\': {\n          \'delayMs\': { \'type\': \'number\' },\n          \'variant\': { \'const\': \'scheduleAdvance\', \'type\': \'string\' }\n        },\n        \'required\': [\'delayMs\', \'variant\'],\n        \'type\': \'object\'\n      },\n      {\n        \'additionalProperties\': false,\n        \'properties\': {\n          \'variant\': { \'const\': \'requestAck\', \'type\': \'string\' }\n        },\n        \'required\': [\'variant\'],\n        \'type\': \'object\'\n      }\n    ]\n  } as const;\n\n  export const Node = SchemaNode.defineOneOf({}, [SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'delayMs\': SchemaNode.defineNumber({ \'type\': \'number\' } as const), \'variant\': SchemaNode.defineConst({}, \'scheduleAdvance\' as const) }, [\'delayMs\', \'variant\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} }), SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'variant\': SchemaNode.defineConst({}, \'requestAck\' as const) }, [\'variant\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} })]);\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n}\n'
+  'source': 'import { RuntimeError } from \'@studnicky/errors/node\';\n/** token-bucket — consume() throws when exhausted; waitForToken() blocks until refill. Run: npx tsx examples/token-bucket.ts */\nimport assert from \'node:assert/strict\';\n\n// #region usage\nimport { TokenBucket, TokenBucketExhaustedError } from \'../src/index.js\';\n\n// Deterministic clock: start at t=0, advance manually.\nlet now = 0;\nclass Clock {\n  static now(): number { const result = now + 0; return result; }\n}\n\n// 2 tokens/s, burst capacity 3 → starts full (3 tokens).\nconst bucket = TokenBucket.create({ \'burstSize\': 3, \'clock\': Clock.now, \'requestsPerSecond\': 2 });\nconsole.log(\'Initial available tokens:\', bucket.available);\n\n// --- consume() drains tokens ---\nconst firstAdmission = bucket.consume();\nbucket.consume();\nbucket.consume();\nconsole.log(\'First admission:\', firstAdmission);\nconsole.log(\'Available after 3 consumes:\', bucket.available);\n\n// --- Advance 500 ms → 1 new token (2 tokens/s × 0.5 s = 1) ---\nnow = 500;\nconsole.log(\'Available at t=500ms:\', bucket.available);\nbucket.consume();\n\n// --- Advance to 1500 ms → 2 tokens refilled, capped at burstSize=3 ---\nnow = 1_500;\nconsole.log(\'Available at t=1500ms:\', bucket.available);\n\n// --- waitForToken with abort signal cancels correctly ---\n// Drain remaining tokens so waitForToken has to block, then abort concurrently.\nbucket.consume();\nbucket.consume();\nconst controller = new AbortController();\nconst abortError = RuntimeError.create(\'cancelled\');\n// Abort after a microtask so waitForToken is already suspended in the Promise.\nconst waitPromise = bucket.waitForToken({ \'signal\': controller.signal, \'tokens\': 1 });\nqueueMicrotask(() => { controller.abort(abortError); });\nconst abortRejected = await waitPromise.then(() => { const result = false; return result; }).catch(() => { const result = true; return result; });\nconsole.log(\'waitForToken aborted:\', abortRejected);\n// #endregion usage\n\nassert.equal(bucket.available, 0);\nassert.throws(() => { bucket.consume(); }, TokenBucketExhaustedError);\nassert.equal(abortRejected, true);\n\nconsole.log(\'token-bucket: all assertions passed\');\n'
 });

@@ -7,7 +7,6 @@ import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/153/4';
 import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/153/5';
 import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/153/6';
 import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/153/7';
-import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/153/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -19,10 +18,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk4(),
       loadChunk5(),
       loadChunk6(),
-      loadChunk7(),
-      loadChunk8()
+      loadChunk7()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `import {\n  BrowserPersistence, JsonStateCodec, StorageTarget, Store\n} from '@studnicky/store/browser';\n\nconst NUMBER_CODEC = JsonStateCodec.create<number>({ 'decode': (value: unknown): number => {\n  if (typeof value !== 'number') {\n    throw new Error('Expected a number');\n  }\n\n  return value;\n} });\n\nconst TARGETS: StorageTarget[] = [\n  StorageTarget.Memory,\n  StorageTarget.LocalStorage,\n  StorageTarget.SessionStorage,\n  StorageTarget.IndexedDb\n];\n\n// #region usage\nconst count = TARGETS.length;\n\nfor (let index = 0; index < count; index += 1) {\n  const target = TARGETS[index];\n\n  if (target === undefined) {\n    throw new Error('Missing browser storage target');\n  }\n\n  const key = \`demo:browser-target:${String.fromCharCode(36, 123)}target}\`;\n  const persistence = BrowserPersistence.create({ 'codec': NUMBER_CODEC, 'storageTarget': target });\n  const store = Store.create({ 'initialState': 0, 'key': key, 'persistence': persistence });\n\n  await store.setState(index + 1);\n\n  const hydrated = Store.create({ 'initialState': 0, 'key': key, 'persistence': persistence });\n\n  await hydrated.hydrate();\n\n  console.log(\`${String.fromCharCode(36, 123)}target}: ${String.fromCharCode(36, 123)}hydrated.getSnapshot()}\`);\n  await hydrated.clear();\n}\n// #endregion usage\n`
+  'source': '/**\n * virtual-scheduler — schedules two one-shot tasks and advances time in steps.\n * Demonstrates deterministic task firing: only tasks due at or before the current\n * virtual time are executed when advance() is called.\n *\n * Run: npx tsx packages/scheduler/examples/virtual-scheduler.ts\n */\nimport { VirtualTimeCounter } from \'@studnicky/clock/node\';\nimport assert from \'node:assert/strict\';\n\nimport { VirtualScheduler } from \'../src/index.js\';\n\n// #region usage\nconst counter = VirtualTimeCounter.create({ \'startMs\': 0 });\nconst scheduler = VirtualScheduler.create({ \'counter\': counter });\n\nconst fireOrder: number[] = [];\n\nscheduler.scheduleAt(100, () => { fireOrder.push(100); });\nscheduler.scheduleAt(200, () => { fireOrder.push(200); });\n\n// Advance to 150 — only the task at 100 should fire.\nscheduler.advance(150);\n\nconsole.log(\'Fire order after advance(150):\', fireOrder);\n\n// Advance another 100 (total 250) — the task at 200 should now fire.\nscheduler.advance(100);\n\nconsole.log(\'Fire order after advance(100) more:\', fireOrder);\n// #endregion usage\n\nassert.equal(fireOrder.length, 2, \'Expected 2 fired tasks after both advances\');\nassert.equal(fireOrder[0], 100, \'Expected task at ms=100 to fire first\');\nassert.equal(fireOrder[1], 200, \'Expected task at ms=200 to fire second\');\n\nconsole.log(\'virtual-scheduler: all assertions passed\');\n'
 });

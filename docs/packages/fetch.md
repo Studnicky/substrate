@@ -27,6 +27,7 @@ The runnable browser-fetch example performs a live GET through the browser clien
 | `@studnicky/fetch/browser`    | A storefront browser needs the native-fetch implementation behind the shared client contract.            |
 | `@studnicky/fetch/entities`   | An adapter validates the package's JSON-shaped request, response, query, and client-configuration data.  |
 | `@studnicky/fetch/interfaces` | TypeScript composition shares HTTP client, request, response, query, and dispatcher contracts.           |
+| `@studnicky/fetch/retry`      | A client needs HTTP-aware retry classification and backoff for failed requests.                          |
 
 ## Install
 

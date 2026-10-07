@@ -3,6 +3,11 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/69/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/69/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/69/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/69/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/69/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/69/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/69/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/69/7';
+import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/69/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +15,14 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7(),
+      loadChunk8()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type {\n  EntityCreateFunctionInterface,\n  EntityIntakeFunctionInterface,\n  EntityValidateFunctionInterface\n} from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace DispatchTopicMapEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'dispatch.completed\': {\n        \'additionalProperties\': false,\n        \'properties\': { \'key\': { \'type\': \'string\' }, \'result\': { \'type\': \'string\' } },\n        \'required\': [\'key\', \'result\'],\n        \'type\': \'object\'\n      },\n      \'dispatch.failed\': {\n        \'additionalProperties\': false,\n        \'properties\': { \'error\': {}, \'key\': { \'type\': \'string\' } },\n        \'required\': [\'error\', \'key\'],\n        \'type\': \'object\'\n      },\n      \'dispatch.started\': {\n        \'additionalProperties\': false,\n        \'properties\': { \'key\': { \'type\': \'string\' } },\n        \'required\': [\'key\'],\n        \'type\': \'object\'\n      }\n    },\n    \'required\': [\'dispatch.completed\', \'dispatch.failed\', \'dispatch.started\'],\n    \'type\': \'object\'\n  } as const;\n  export const Node = SchemaNode.defineObject(\n    { \'type\': \'object\' } as const,\n    {\n      \'dispatch.completed\': SchemaNode.defineObject(\n        { \'type\': \'object\' } as const,\n        { \'key\': SchemaNode.defineString({}), \'result\': SchemaNode.defineString({}) },\n        [\'key\', \'result\'] as const,\n        { \'additionalProperties\': false, \'patternProperties\': {} }\n      ),\n      \'dispatch.failed\': SchemaNode.defineObject(\n        { \'type\': \'object\' } as const,\n        { \'error\': SchemaNode.defineUnknown({}), \'key\': SchemaNode.defineString({}) },\n        [\'error\', \'key\'] as const,\n        { \'additionalProperties\': false, \'patternProperties\': {} }\n      ),\n      \'dispatch.started\': SchemaNode.defineObject(\n        { \'type\': \'object\' } as const,\n        { \'key\': SchemaNode.defineString({}) },\n        [\'key\'] as const,\n        { \'additionalProperties\': false, \'patternProperties\': {} }\n      )\n    },\n    [\'dispatch.completed\', \'dispatch.failed\', \'dispatch.started\'] as const,\n    { \'additionalProperties\': false, \'patternProperties\': {} }\n  );\n  export type Type = NodeStaticType<typeof Node>;\n  export const validate: EntityValidateFunctionInterface<Type> =\n    EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> =\n    EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> =\n    EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': `/** configUsage — browser-safe platform-call policy smoke test. Run: npx tsx examples/configUsage.ts */\n\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport { PlatformCallDefaults } from '../src/browser/index.js';\n\nconst entries = PlatformCallDefaults.build();\nconst fetchPolicy = entries.find((entry) => {\n  const result = entry.kind === 'call' && entry.member === 'fetch' && entry.owner === '';\n\n  return result;\n});\n\nconsole.log(\`Platform call policy entries: ${String.fromCharCode(36, 123)}entries.length}\`);\nconsole.log('Fetch policy:', fetchPolicy);\n// #endregion usage\n\nassert.ok(entries.length > 0, 'platform call policy defaults must be non-empty');\nassert.deepEqual(fetchPolicy, { 'kind': 'call', 'member': 'fetch', 'owner': '', 'safeWhenLiteral': 'never' });\n\nconsole.log('configUsage: all assertions passed');\n`
 });

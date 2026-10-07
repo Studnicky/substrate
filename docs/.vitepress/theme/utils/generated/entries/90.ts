@@ -3,6 +3,11 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/90/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/90/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/90/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/90/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/90/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/90/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/90/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/90/7';
+import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/90/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +15,14 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7(),
+      loadChunk8()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace BrokenEventEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'type\': { \'const\': \'boom\', \'type\': \'string\' }\n    },\n    \'required\': [\'type\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'type\': SchemaNode.defineConst({}, \'boom\' as const) }, [\'type\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': '/** filterProducts — keep sellable Northstar Books catalogue entries in a storefront result. Run: npx tsx examples/filterProducts.ts */\n\n// #region usage\nimport { FilterEngine, FilterMode } from \'@studnicky/filters/node\';\nimport assert from \'node:assert/strict\';\n\nconst engine = new FilterEngine({\n  \'conditions\': [\n    { \'operator\': \'STRING.EQUALS\', \'path\': \'catalogueStatus\', \'value\': \'listed\' },\n    { \'operator\': \'NUMBER.GREATER_EQUAL\', \'path\': \'availableCopies\', \'value\': 1 }\n  ],\n  \'gate\': \'CORE.AND\',\n  \'mode\': FilterMode.CORE.WHITELIST\n});\n\nconst sellableBook = engine.evaluate({ \'availableCopies\': 8, \'catalogueStatus\': \'listed\', \'isbn\': \'978-0-14-118776-1\', \'title\': \'The Left Hand of Darkness\' });\nconst unavailableBook = engine.evaluate({ \'availableCopies\': 0, \'catalogueStatus\': \'listed\', \'isbn\': \'978-0-06-112008-4\', \'title\': \'To Kill a Mockingbird\' });\n\nconsole.log({ \'sellableBook\': sellableBook.valid, \'unavailableBook\': unavailableBook.valid });\n// #endregion usage\n\nassert.equal(sellableBook.valid, true);\nassert.equal(unavailableBook.valid, false);\nconsole.log(\'filterProducts: all assertions passed\');\n'
 });

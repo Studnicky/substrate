@@ -3,6 +3,10 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/145/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/145/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/145/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/145/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/145/4';
+import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/145/5';
+import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/145/6';
+import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/145/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +14,13 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4(),
+      loadChunk5(),
+      loadChunk6(),
+      loadChunk7()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace JobEventEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'type\': { \'enum\': [\'acknowledge\', \'advance\', \'cancel\', \'start\'], \'type\': \'string\' }\n    },\n    \'required\': [\'type\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'type\': SchemaNode.defineEnum({}, [\'acknowledge\', \'advance\', \'cancel\', \'start\'] as const) }, [\'type\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': '/**\n * delay — `Delay.sleep` in both real-time and virtual-time modes.\n * Demonstrates that injecting a `VirtualScheduler` + `VirtualClockProvider` pair\n * resolves the returned Promise as soon as virtual time is advanced, with no\n * real wall-clock wait.\n *\n * Run: npx tsx packages/scheduler/examples/delay.ts\n */\nimport { VirtualClockProvider, VirtualTimeCounter } from \'@studnicky/clock/node\';\nimport assert from \'node:assert/strict\';\n\nimport { Delay, VirtualScheduler } from \'../src/index.js\';\n\n// #region usage\n// Real-time: resolves after ~10ms of wall-clock time.\nawait Delay.sleep(10);\nconsole.log(\'Real-time sleep resolved\');\n\n// Virtual-time: resolves as soon as advance() crosses the requested delay,\n// with no real wall-clock wait.\nconst counter = VirtualTimeCounter.create({ \'startMs\': 0 });\nconst scheduler = VirtualScheduler.create({ \'counter\': counter });\nconst clock = VirtualClockProvider.create(counter);\n\nlet resolved = false;\nconst sleepPromise = Delay.sleep(1_000, { \'clock\': clock, \'scheduler\': scheduler }).then(() => {\n  resolved = true;\n});\n\nconsole.log(\'Resolved before advance:\', resolved);\n\nscheduler.advance(1_000);\nawait sleepPromise;\n\nconsole.log(\'Resolved after advance:\', resolved);\n\n// #endregion usage\n\nassert.equal(resolved, true, \'Expected virtual sleep to resolve after advance()\');\n\nconsole.log(\'delay: all assertions passed\');\n'
 });

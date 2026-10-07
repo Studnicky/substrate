@@ -1,4 +1,4 @@
-import { JaccardScorer } from '@studnicky/matching/scorers';
+import { JaccardScorer } from '@studnicky/matching/browser';
 
 import { Plugin } from '../plugins/Plugin.js';
 import { StringArrayPredicate } from './predicates/StringArrayPredicate.js';
