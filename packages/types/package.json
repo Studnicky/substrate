@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/types",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Shared runtime type-guard and object helpers for @studnicky/substrate",
   "keywords": [
     "json",
