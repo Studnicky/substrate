@@ -1,4 +1,4 @@
-import { NgramScorer } from '@studnicky/matching/scorers';
+import { NgramScorer } from '@studnicky/matching/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import { Plugin } from '../plugins/Plugin.js';

@@ -1,0 +1,93 @@
+import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
+import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '@studnicky/entity/browser';
+import { SchemaNode } from '@studnicky/entity/types';
+
+export namespace AdaptiveStatsEntity {
+  export const Schema = {
+    '$id': 'https://studnicky.github.io/substrate/schemas/AdaptiveStats',
+    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+    'additionalProperties': false,
+    'description': 'Adaptive concurrency statistics.',
+    'properties': {
+      'adjustmentCount': {
+        'description': 'Total number of adjustments made.',
+        'minimum': 0,
+        'type': 'integer'
+      },
+      'enabled': {
+        'description': 'Whether adaptive mode is enabled.',
+        'type': 'boolean'
+      },
+      'lastAdjustmentTime': {
+        'description': 'Timestamp of last adjustment (ms since epoch).',
+        'minimum': 0,
+        'type': 'integer'
+      },
+      'maximumConcurrency': {
+        'description': 'Maximum concurrency limit.',
+        'minimum': 1,
+        'type': 'integer'
+      },
+      'minimumConcurrency': {
+        'description': 'Minimum concurrency limit.',
+        'minimum': 1,
+        'type': 'integer'
+      },
+      'targetLatencyMs': {
+        'description': 'Target latency in milliseconds.',
+        'exclusiveMinimum': 0,
+        'type': 'number'
+      }
+    },
+    'required': [
+      'adjustmentCount',
+      'enabled',
+      'lastAdjustmentTime',
+      'maximumConcurrency',
+      'minimumConcurrency',
+      'targetLatencyMs'
+    ],
+    'title': 'AdaptiveStats',
+    'type': 'object'
+  } as const;
+
+  export const Node = SchemaNode.defineObject({ '$id': 'https://studnicky.github.io/substrate/schemas/AdaptiveStats', '$schema': 'https://json-schema.org/draft/2020-12/schema', 'description': 'Adaptive concurrency statistics.', 'title': 'AdaptiveStats', 'type': 'object' } as const, { 'adjustmentCount': SchemaNode.defineNumber({
+    'description': 'Total number of adjustments made.',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'enabled': SchemaNode.defineBoolean({
+    'description': 'Whether adaptive mode is enabled.',
+    'type': 'boolean'
+  } as const), 'lastAdjustmentTime': SchemaNode.defineNumber({
+    'description': 'Timestamp of last adjustment (ms since epoch).',
+    'minimum': 0,
+    'type': 'integer'
+  } as const), 'maximumConcurrency': SchemaNode.defineNumber({
+    'description': 'Maximum concurrency limit.',
+    'minimum': 1,
+    'type': 'integer'
+  } as const), 'minimumConcurrency': SchemaNode.defineNumber({
+    'description': 'Minimum concurrency limit.',
+    'minimum': 1,
+    'type': 'integer'
+  } as const), 'targetLatencyMs': SchemaNode.defineNumber({
+    'description': 'Target latency in milliseconds.',
+    'exclusiveMinimum': 0,
+    'type': 'number'
+  } as const) }, [
+    'adjustmentCount',
+    'enabled',
+    'lastAdjustmentTime',
+    'maximumConcurrency',
+    'minimumConcurrency',
+    'targetLatencyMs'
+  ] as const, { 'additionalProperties': false, 'patternProperties': {} });
+  export type Type = NodeStaticType<typeof Node>;
+  export type InputType = NodeInputType<typeof Node>;
+
+  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);
+  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);
+  export const create: EntityCreateFunctionInterface<Type, InputType> = EntityCompiler.compileCreate<Type, InputType>(Schema);
+}

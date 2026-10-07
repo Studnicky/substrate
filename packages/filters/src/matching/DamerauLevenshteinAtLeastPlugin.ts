@@ -1,4 +1,4 @@
-import { DamerauLevenshteinScorer } from '@studnicky/matching/scorers';
+import { DamerauLevenshteinScorer } from '@studnicky/matching/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import { Plugin } from '../plugins/Plugin.js';

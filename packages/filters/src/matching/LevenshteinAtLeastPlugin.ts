@@ -1,4 +1,4 @@
-import { LevenshteinScorer } from '@studnicky/matching/scorers';
+import { LevenshteinScorer } from '@studnicky/matching/browser';
 import { Predicates } from '@studnicky/types/browser';
 
 import { Plugin } from '../plugins/Plugin.js';

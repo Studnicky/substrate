@@ -85,6 +85,22 @@
     "./batch": {
       "types": "./dist/batch/index.d.ts",
       "import": "./dist/batch/index.js"
+    },
+    "./throttle/node": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/browser": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/entities": {
+      "types": "./dist/throttle/entities/index.d.ts",
+      "import": "./dist/throttle/entities/index.js"
+    },
+    "./throttle/interfaces": {
+      "types": "./dist/throttle/interfaces/index.d.ts",
+      "import": "./dist/throttle/interfaces/index.js"
     }
   },
   "publishConfig": {
