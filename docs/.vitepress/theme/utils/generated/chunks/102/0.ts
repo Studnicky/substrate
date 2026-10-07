@@ -32,6 +32,6 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/61').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/62').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/63').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/334').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/352').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }
