@@ -3,6 +3,24 @@
 <<<<<<< HEAD
 =======
 
+## 15.1.0
+
+### Patch Changes
+
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/cache@15.1.0
+  - @studnicky/event-bus@15.1.0
+  - @studnicky/circular-buffer@15.1.0
+  - @studnicky/clock@15.1.0
+  - @studnicky/config@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/scheduler@15.1.0
+  - @studnicky/signal@15.1.0
+  - @studnicky/types@15.1.0
+
 ## 15.0.2
 
 ### Patch Changes

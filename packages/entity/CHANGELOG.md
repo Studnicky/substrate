@@ -3,6 +3,12 @@
 <<<<<<< HEAD
 =======
 
+## 15.1.0
+
+### Patch Changes
+
+- @studnicky/types@15.1.0
+
 ## 15.0.2
 
 ### Patch Changes

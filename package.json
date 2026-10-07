@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "private": true,
   "description": "A subclass-first toolkit of TypeScript primitives — retry, semaphore, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "homepage": "https://studnicky.github.io/substrate/",

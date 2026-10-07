@@ -3,6 +3,16 @@
 <<<<<<< HEAD
 =======
 
+## 15.1.0
+
+### Patch Changes
+
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
+
 ## 15.0.2
 
 ### Patch Changes

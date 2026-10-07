@@ -3,6 +3,15 @@
 <<<<<<< HEAD
 =======
 
+## 15.1.0
+
+### Patch Changes
+
+- @studnicky/cache@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
+
 ## 15.0.2
 
 ### Patch Changes
