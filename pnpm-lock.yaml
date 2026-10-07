@@ -513,6 +513,27 @@ importers:
         specifier: 4.0.3
         version: 4.0.3
 
+  packages/paginator:
+    dependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
+      '@studnicky/json':
+        specifier: workspace:*
+        version: link:../json
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
+
   packages/pipeline:
     dependencies:
       '@studnicky/entity':
@@ -629,6 +650,24 @@ importers:
       fake-indexeddb:
         specifier: ^6.2.5
         version: 6.2.5
+
+  packages/system:
+    dependencies:
+      '@studnicky/entity':
+        specifier: workspace:*
+        version: link:../entity
+      '@studnicky/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@studnicky/fsm':
+        specifier: workspace:*
+        version: link:../fsm
+      '@studnicky/types':
+        specifier: workspace:*
+        version: link:../types
+      json-schema-to-ts:
+        specifier: ^3.1.1
+        version: 3.1.1
 
   packages/types:
     dependencies:

@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "runs cpuMemoryPlatform without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/cpuMemoryPlatform.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs cpuMemoryPlatform without throwing"
+    }
+  ]
+}

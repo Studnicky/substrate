@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../fsm"
+    },
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../types"
+    }
+  ]
+}
