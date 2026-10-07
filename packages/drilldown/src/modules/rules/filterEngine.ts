@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { DateRangeFilterRuleEntity } from '../../entities/DateRangeFilterRuleEntity.js';
 import type { FilterRuleEntity } from '../../entities/FilterRuleEntity.js';

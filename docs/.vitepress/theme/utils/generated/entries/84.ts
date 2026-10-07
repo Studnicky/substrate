@@ -3,9 +3,6 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/84/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/84/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/84/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/84/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/84/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/84/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/84/6';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -13,12 +10,9 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6()
+      loadChunk3()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** browserFetch — a real HTTP GET over the browser-native fetch client. Run: npx tsx packages/fetch/examples/browserFetch.ts */\n\nimport assert from 'node:assert/strict';\n\n// #region usage\nimport { BrowserFetchClient } from '../src/browser/index.js';\n\nawait (async function runBrowserFetchExample(): Promise<void> {\n  const originalFetch = globalThis.fetch;\n  globalThis.fetch = (_input, _init) => {\n    const result = Promise.resolve(new Response(JSON.stringify({\n      'completed': false,\n      'id': 1,\n      'title': 'delectus aut autem'\n    }), {\n      'headers': { 'Content-Type': 'application/json' },\n      'status': 200\n    }));\n    return result;\n  };\n\n  const api = BrowserFetchClient.create({\n    'baseURL': 'https://example.test',\n    'timeout': 8000\n  });\n\n  try {\n    console.log('GET https://example.test/todos/1 (native browser fetch)');\n\n    const response = await api.get('/todos/1');\n    const todo = await response.json();\n\n    console.log(\`status: ${String.fromCharCode(36, 123)}response.status}\`);\n\n    assert.equal(response.status, 200, 'expected HTTP 200');\n    assert.equal(typeof todo, 'object', 'fetched JSON body');\n\n    console.log('browserFetch: all assertions passed');\n  } finally {\n    globalThis.fetch = originalFetch;\n  }\n})();\n// #endregion usage\n`
+  'source': '/** 01-client-config — construct a FetchClient with shared request defaults. Run: npx tsx packages/fetch/examples/01-client-config.ts */\n\nimport assert from \'node:assert/strict\';\n\n// #region usage\nimport { FetchClient } from \'../src/node/index.js\';\n\nconst api = FetchClient.create({\n  \'autoGenerateRequestId\': true,\n  \'baseURL\': \'https://api.example.com\',\n  \'headers\': {\n    \'Authorization\': \'Bearer demo-token\',\n    \'X-Client-Name\': \'example\'\n  },\n  \'timeout\': 8000\n});\n\n// Execute requests directly through the verb methods:\n// await api.get(\'/users?page=1&limit=20\', {\n//   headers: { \'X-Correlation-ID\': \'abc-123\' },\n//   metadata: { operation: \'listUsers\', source: \'dashboard\' },\n//   timeout: 3000\n// });\n// #endregion usage\n\nassert.ok(api instanceof FetchClient);\n\nconsole.log(\'01-client-config: all assertions passed\');\n'
 });

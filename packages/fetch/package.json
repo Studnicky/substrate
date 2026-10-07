@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fetch",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "keywords": [
     "abort-controller",
@@ -33,6 +33,13 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./browser": {
       "types": "./dist/browser/index.d.ts",
@@ -49,6 +56,10 @@
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js"
+    },
+    "./retry": {
+      "types": "./dist/retry/index.d.ts",
+      "import": "./dist/retry/index.js"
     }
   },
   "publishConfig": {

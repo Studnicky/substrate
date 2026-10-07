@@ -1,5 +1,5 @@
-import { ConfigurationError } from '@studnicky/config/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { ConfigurationError, Predicates } from '#runtime';
 
 import type { BackoffStrategyOptionsInterface } from '../interfaces/BackoffStrategyOptionsInterface.js';
 

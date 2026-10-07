@@ -1,4 +1,5 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
+
+import type { FileSystemInterface } from '#runtime';
 
 import type { FileLockInspectionEntity } from '../entities/FileLockInspectionEntity.js';
 

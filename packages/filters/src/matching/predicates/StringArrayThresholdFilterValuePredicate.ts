@@ -1,4 +1,5 @@
-import { Predicate, Predicates } from '@studnicky/types/browser';
+
+import { Predicate, Predicates } from '#runtime';
 
 import { StringArrayPredicate } from './StringArrayPredicate.js';
 

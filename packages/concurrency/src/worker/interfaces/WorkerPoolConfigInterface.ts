@@ -1,4 +1,5 @@
-import type { Signal } from '@studnicky/signal/browser';
+
+import type { Signal } from '#runtime';
 
 import type { WorkerPoolConfigEntity } from '../entities/WorkerPoolConfigEntity.js';
 

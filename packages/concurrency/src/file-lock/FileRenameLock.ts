@@ -2,6 +2,8 @@ import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
 import { Predicates } from '@studnicky/types/node';
 
+import { NodeFileSystem } from '#file-system';
+
 import type {
   FileRenameLockCreateOptionsInterface,
   OwnerTokenInterface
@@ -10,7 +12,6 @@ import type {
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockContentionError } from './errors/FileLockContentionError.js';
 import { FileLockFileSystemError } from './errors/FileLockFileSystemError.js';
-import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
 export class FileRenameLock {

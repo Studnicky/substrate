@@ -1,7 +1,8 @@
 /**
  * Safely stringifies an object to JSON, handling circular references
  */
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { LogSerializationError } from '../errors/LogSerializationError.js';
 

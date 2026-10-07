@@ -1,6 +1,5 @@
-import { HookInvoker } from '@studnicky/errors/browser';
-import { TransitionRejectedError } from '@studnicky/fsm/browser';
-import { BaseError, CallerFault } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, HookInvoker, TransitionRejectedError } from '#runtime';
 
 /**
  * ContextScope - An initialized context ready for execution.

@@ -1,4 +1,5 @@
-import type { BaseError } from '@studnicky/types/browser';
+
+import type { BaseError } from '#runtime';
 
 import type { FireOnWorkerErrorEffectEntity } from '../entities/FireOnWorkerErrorEffectEntity.js';
 import type { WorkerTaskIndexEntity } from '../entities/WorkerTaskIndexEntity.js';

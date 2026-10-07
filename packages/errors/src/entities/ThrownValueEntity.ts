@@ -1,14 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-import {
-  CAUSE_CHAIN_DEPTH_LIMIT,
-  PROBLEM_TITLE_THROWN_NULLISH,
-  PROBLEM_TYPE_THROWN_NULLISH,
-  ThrownValueProjection
-} from '@studnicky/types/browser';
+
+import { CAUSE_CHAIN_DEPTH_LIMIT, EntityCompiler, PROBLEM_TITLE_THROWN_NULLISH, PROBLEM_TYPE_THROWN_NULLISH, ThrownValueProjection } from '#runtime';
 
 import { RuntimeError } from '../errors/RuntimeError.js';
 import { CauseNodeEntity } from './CauseNodeEntity.js';

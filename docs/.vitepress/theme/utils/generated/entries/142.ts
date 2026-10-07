@@ -2,25 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/142/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/142/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/142/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/142/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/142/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/142/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/142/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/142/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': '/**\n * delay — `Delay.sleep` in both real-time and virtual-time modes.\n * Demonstrates that injecting a `VirtualScheduler` + `VirtualClockProvider` pair\n * resolves the returned Promise as soon as virtual time is advanced, with no\n * real wall-clock wait.\n *\n * Run: npx tsx packages/scheduler/examples/delay.ts\n */\nimport { VirtualClockProvider, VirtualTimeCounter } from \'@studnicky/clock/node\';\nimport assert from \'node:assert/strict\';\n\nimport { Delay, VirtualScheduler } from \'../src/index.js\';\n\n// #region usage\n// Real-time: resolves after ~10ms of wall-clock time.\nawait Delay.sleep(10);\nconsole.log(\'Real-time sleep resolved\');\n\n// Virtual-time: resolves as soon as advance() crosses the requested delay,\n// with no real wall-clock wait.\nconst counter = VirtualTimeCounter.create({ \'startMs\': 0 });\nconst scheduler = VirtualScheduler.create({ \'counter\': counter });\nconst clock = VirtualClockProvider.create(counter);\n\nlet resolved = false;\nconst sleepPromise = Delay.sleep(1_000, { \'clock\': clock, \'scheduler\': scheduler }).then(() => {\n  resolved = true;\n});\n\nconsole.log(\'Resolved before advance:\', resolved);\n\nscheduler.advance(1_000);\nawait sleepPromise;\n\nconsole.log(\'Resolved after advance:\', resolved);\n\n// #endregion usage\n\nassert.equal(resolved, true, \'Expected virtual sleep to resolve after advance()\');\n\nconsole.log(\'delay: all assertions passed\');\n'
+  'source': 'import { RuntimeError } from \'@studnicky/errors/node\';\n/** eventSinkRetry — publish retry lifecycle snapshots to EventBus. Run: npx tsx examples/eventSinkRetry.ts */\nimport { EventBus } from \'@studnicky/event-bus/node\';\nimport assert from \'node:assert/strict\';\n\nimport type { RetryEventTopicMapInterface } from \'../src/retry/interfaces/index.js\';\n\nimport { Retry } from \'../src/retry/index.js\';\n\nclass EventSinkRetryExample {\n  static async run(): Promise<void> {\n    const bus = EventBus.create<RetryEventTopicMapInterface>();\n    const topics: (keyof RetryEventTopicMapInterface)[] = [];\n\n    bus.subscribe(\'attempt\', () => {\n      topics.push(\'attempt\');\n      const result = Promise.resolve();\n      return result;\n    });\n    bus.subscribe(\'retryScheduled\', () => {\n      topics.push(\'retryScheduled\');\n      const result = Promise.resolve();\n      return result;\n    });\n    bus.subscribe(\'success\', () => {\n      topics.push(\'success\');\n      const result = Promise.resolve();\n      return result;\n    });\n\n    const retry = Retry.create({\n      \'errorClassifier\': () => {\n        const result = { \'retryable\': true };\n        return result;\n      },\n      \'eventSink\': bus,\n      \'maximumRetries\': 1\n    });\n\n    let attempts = 0;\n    const result = await retry.execute(() => {\n      attempts += 1;\n      if (attempts === 1) {\n        const error = Promise.reject(RuntimeError.create(\'transient\'));\n        return error;\n      }\n      const success = Promise.resolve(\'complete\');\n      return success;\n    });\n\n    await bus.drain();\n    await bus.close();\n\n    assert.equal(result, \'complete\');\n    assert.deepEqual(topics, [\'attempt\', \'retryScheduled\', \'attempt\', \'success\']);\n    console.log(\'eventSinkRetry: EventBus received retry lifecycle snapshots\');\n  }\n}\n\nawait EventSinkRetryExample.run();\n'
 });

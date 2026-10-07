@@ -1,7 +1,8 @@
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Options accepted by the `HookInvoker` constructor. */
 export namespace HookInvokerOptionsEntity {

@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/concurrency",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Async coordination primitives: Semaphore, Coalesce, Channel, AsyncIter",
   "keywords": [
     "async-iter",
@@ -29,6 +29,18 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#file-system": {
+      "browser": "./dist/file-system/browser/index.js",
+      "node": "./dist/file-system/node/index.js",
+      "default": "./dist/file-system/node/index.js"
+    },
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/index.d.ts",
@@ -85,6 +97,22 @@
     "./batch": {
       "types": "./dist/batch/index.d.ts",
       "import": "./dist/batch/index.js"
+    },
+    "./throttle/node": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/browser": {
+      "types": "./dist/throttle/index.d.ts",
+      "import": "./dist/throttle/index.js"
+    },
+    "./throttle/entities": {
+      "types": "./dist/throttle/entities/index.d.ts",
+      "import": "./dist/throttle/entities/index.js"
+    },
+    "./throttle/interfaces": {
+      "types": "./dist/throttle/interfaces/index.d.ts",
+      "import": "./dist/throttle/interfaces/index.js"
     }
   },
   "publishConfig": {

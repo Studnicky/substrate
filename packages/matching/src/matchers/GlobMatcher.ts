@@ -1,7 +1,6 @@
-import { LruCache } from '@studnicky/cache/browser';
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
 import picomatch from 'picomatch';
+
+import { LruCache, Predicates, RuntimeError } from '#runtime';
 
 export class GlobMatcher {
   private static readonly matchers = LruCache.create<string, (value: string) => boolean>({ 'capacity': 256 });

@@ -19,8 +19,8 @@
  */
 
 
-import { ImmutableSnapshot } from '@studnicky/json/browser';
-import { CallerFault } from '@studnicky/types/browser';
+
+import { CallerFault, ImmutableSnapshot } from '#runtime';
 
 import type { PipelineFunctionInterface } from '../interfaces/PipelineFunctionInterface.js';
 import type { PipelineInterface } from '../interfaces/PipelineInterface.js';

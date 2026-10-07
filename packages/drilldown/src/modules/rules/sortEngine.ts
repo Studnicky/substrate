@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { SortRuleEntity } from '../../entities/SortRuleEntity.js';
 import type { GroupNodeInterface } from '../../interfaces/index.js';

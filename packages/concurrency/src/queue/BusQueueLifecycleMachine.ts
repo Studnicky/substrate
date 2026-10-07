@@ -25,10 +25,11 @@
  * re-running cancellation logic against already-cleared bookkeeping.
  */
 
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { RuntimeError } from '@studnicky/errors/browser';
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { RuntimeError, StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
 import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';

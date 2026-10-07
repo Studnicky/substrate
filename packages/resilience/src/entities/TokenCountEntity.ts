@@ -1,8 +1,9 @@
 import type { EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Positive token count `TokenBucket`/`KeyedRateLimiter` consume per call. Defaults to one token when omitted. */
 export namespace TokenCountEntity {

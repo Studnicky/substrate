@@ -1,7 +1,8 @@
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Human-readable diagnostic fields exposed by Error-compatible contracts. */
 export namespace ErrorDiagnosticEntity {

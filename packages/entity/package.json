@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/entity",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
   "keywords": [
     "boundary",
@@ -28,6 +28,13 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./browser": {
       "types": "./dist/browser/index.d.ts",

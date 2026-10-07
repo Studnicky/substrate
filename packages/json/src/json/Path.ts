@@ -1,6 +1,7 @@
 /** JSON Pointer utilities and safe dot-path access for arbitrary values. */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { JsonValueEntity } from '../entities/JsonValueEntity.js';
 import type { PathWildcardResultInterface } from '../interfaces/PathWildcardResultInterface.js';

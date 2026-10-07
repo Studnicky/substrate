@@ -233,22 +233,26 @@ The async-iter demo uses native `async function*` generators as sources — no N
 
 ## Public entrypoints
 
-| Import path                                   | Use it when                                                                                   |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `@studnicky/concurrency/node`                 | A server or worker needs general runtime coordination primitives.                             |
-| `@studnicky/concurrency/browser`              | A browser bundle needs the same general primitives; it is the runtime alternative to `/node`. |
-| `@studnicky/concurrency/entities`             | A consumer needs shared coordination schemas as contracts.                                    |
-| `@studnicky/concurrency/interfaces`           | A consumer needs shared coordination interfaces as contracts.                                 |
-| `@studnicky/concurrency/queue/node`           | A server needs FIFO admission for catalogue work.                                             |
-| `@studnicky/concurrency/queue/browser`        | A browser needs the same queue primitive; it is the runtime alternative to `/queue/node`.     |
-| `@studnicky/concurrency/queue/entities`       | A consumer needs queue state and option schemas as contracts.                                 |
-| `@studnicky/concurrency/queue/interfaces`     | A consumer needs queue construction contracts.                                                |
-| `@studnicky/concurrency/mutex`                | An ISBN or order key needs FIFO mutual exclusion.                                             |
-| `@studnicky/concurrency/file-lock/node`       | A Node process needs file-based exclusive coordination.                                       |
-| `@studnicky/concurrency/file-lock/browser`    | A browser needs native Web Locks; it is the runtime alternative to `/file-lock/node`.         |
-| `@studnicky/concurrency/file-lock/entities`   | A consumer needs file-lock schemas as contracts.                                              |
-| `@studnicky/concurrency/file-lock/interfaces` | A consumer needs file-lock ports as contracts.                                                |
-| `@studnicky/concurrency/batch`                | A finite import needs bounded windowed processing.                                            |
+| Import path                                   | Use it when                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `@studnicky/concurrency/node`                 | A server or worker needs general runtime coordination primitives.                               |
+| `@studnicky/concurrency/browser`              | A browser bundle needs the same general primitives; it is the runtime alternative to `/node`.   |
+| `@studnicky/concurrency/entities`             | A consumer needs shared coordination schemas as contracts.                                      |
+| `@studnicky/concurrency/interfaces`           | A consumer needs shared coordination interfaces as contracts.                                   |
+| `@studnicky/concurrency/queue/node`           | A server needs FIFO admission for catalogue work.                                               |
+| `@studnicky/concurrency/queue/browser`        | A browser needs the same queue primitive; it is the runtime alternative to `/queue/node`.       |
+| `@studnicky/concurrency/queue/entities`       | A consumer needs queue state and option schemas as contracts.                                   |
+| `@studnicky/concurrency/queue/interfaces`     | A consumer needs queue construction contracts.                                                  |
+| `@studnicky/concurrency/mutex`                | An ISBN or order key needs FIFO mutual exclusion.                                               |
+| `@studnicky/concurrency/file-lock/node`       | A Node process needs file-based exclusive coordination.                                         |
+| `@studnicky/concurrency/file-lock/browser`    | A browser needs native Web Locks; it is the runtime alternative to `/file-lock/node`.           |
+| `@studnicky/concurrency/file-lock/entities`   | A consumer needs file-lock schemas as contracts.                                                |
+| `@studnicky/concurrency/file-lock/interfaces` | A consumer needs file-lock ports as contracts.                                                  |
+| `@studnicky/concurrency/batch`                | A finite import needs bounded windowed processing.                                              |
+| `@studnicky/concurrency/throttle/node`        | A server needs adaptive or fixed concurrency limiting with drain and abort control.             |
+| `@studnicky/concurrency/throttle/browser`     | A browser needs the same throttle primitive; it is the runtime alternative to `/throttle/node`. |
+| `@studnicky/concurrency/throttle/entities`    | A consumer needs throttle configuration and stats schemas as contracts.                         |
+| `@studnicky/concurrency/throttle/interfaces`  | A consumer needs throttle construction and event contracts.                                     |
 
 ## Exports
 

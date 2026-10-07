@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
+
 
 const TERMINATOR_TYPES: ReadonlySet<string> = new Set([
   'BreakStatement',

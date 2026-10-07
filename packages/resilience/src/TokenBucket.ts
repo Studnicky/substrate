@@ -1,9 +1,7 @@
 /** Token bucket rate limiter; consume() throws when exhausted, waitForToken() blocks until available. */
 import { MonotonicNow } from '@studnicky/clock/monotonic-now';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { RaceTimeout } from '@studnicky/signal/browser';
-import { CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { CallerFault, HookInvoker, Predicates, RaceTimeout, RuntimeError, SchemaIntakeError } from '#runtime';
 
 import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from './interfaces/TokenBucketOptionsInterface.js';

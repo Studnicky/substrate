@@ -1,12 +1,7 @@
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { EventSinkInterface } from '@studnicky/event-bus/interfaces';
 
-import { Clock, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { ConfigurationError } from '@studnicky/config/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { TransitionRejectedError } from '@studnicky/fsm/browser';
-import { RaceTimeout } from '@studnicky/signal/browser';
-import { BaseError, Predicates } from '@studnicky/types/browser';
+import { BaseError, Clock, ConfigurationError, HookInvoker, Predicates, RaceTimeout, RealTimeClockProvider, RuntimeError, TransitionRejectedError } from '#runtime';
 
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';

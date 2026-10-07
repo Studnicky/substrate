@@ -6,9 +6,9 @@ import type {
 } from 'typescript';
 import type * as ts from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
+
+import { EntityCompiler, Predicates } from '#runtime';
 
 import { TRIVIAL_OPTIONS } from './constants/StaticMethodVerbsConstants.js';
 import { ParameterNames } from './shared/ParameterNames.js';

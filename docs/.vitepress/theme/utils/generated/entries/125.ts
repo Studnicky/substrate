@@ -2,21 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/125/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/125/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/125/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/125/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/125/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/125/5';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/**\n * subclass-hooks — extend Pipeline<T> to override protected lifecycle hooks.\n * TimedPipeline records start time in onRunStart and attaches elapsed\n * milliseconds to the context in afterStage.\n *\n * Run: npx tsx packages/pipeline/examples/subclass-hooks.ts\n */\n\nimport { RuntimeError } from '@studnicky/errors/node';\nimport assert from 'node:assert/strict';\n\nimport { Pipeline } from '../src/index.js';\n// #region usage\nimport { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';\n\nclass TimedPipeline extends Pipeline<HookRequestContextEntity.Type> {\n  private startTime = 0;\n\n  protected override onRunStart(_context: Readonly<HookRequestContextEntity.Type>): void {\n    this.startTime = Date.now();\n  }\n\n  protected override afterStage(context: HookRequestContextEntity.Type): HookRequestContextEntity.Type {\n    const candidate: unknown = { ...context, 'elapsed': Date.now() - this.startTime };\n    if (!HookRequestContextEntity.validate(candidate)) {\n      throw RuntimeError.create('assembled hook request context failed validation');\n    }\n    return candidate;\n  }\n}\n\nconst pipeline = TimedPipeline.create<HookRequestContextEntity.Type>([\n  // Stage: attach an Authorization header\n  (context) => { return {\n    ...context,\n    'headers': { ...context.headers, 'Authorization': 'Bearer token-abc' }\n  }; }\n]);\n\nconst result = await pipeline.run(HookRequestContextEntity.create({ 'headers': {}, 'url': '/api/data' }));\n\nconsole.log(\`url:           ${String.fromCharCode(36, 123)}result.url}\`);\nconsole.log(\`Authorization: ${String.fromCharCode(36, 123)}result.headers.Authorization}\`);\nconsole.log(\`elapsed:       ${String.fromCharCode(36, 123)}result.elapsed}ms\`);\n// #endregion usage\n\nassert.ok(\n  result.headers.Authorization !== undefined,\n  'Authorization header must be set'\n);\nassert.ok(\n  result.elapsed !== undefined && result.elapsed >= 0,\n  \`elapsed must be a non-negative number, got ${String.fromCharCode(36, 123)}result.elapsed}\`\n);\n\nconsole.log('subclass-hooks: all assertions passed');\n`
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace HookRequestContextEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'elapsed\': { \'minimum\': 0, \'type\': \'number\' },\n      \'headers\': {\n        \'additionalProperties\': { \'type\': \'string\' },\n        \'type\': \'object\'\n      },\n      \'url\': { \'type\': \'string\' }\n    },\n    \'required\': [\'headers\', \'url\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'elapsed\': SchemaNode.defineNumber({ \'minimum\': 0, \'type\': \'number\' } as const), \'headers\': SchemaNode.defineObject({ \'type\': \'object\' } as const, {  }, [] as const, { \'additionalProperties\': SchemaNode.defineString({ \'type\': \'string\' } as const), \'patternProperties\': {} }), \'url\': SchemaNode.defineString({ \'type\': \'string\' } as const) }, [\'headers\', \'url\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

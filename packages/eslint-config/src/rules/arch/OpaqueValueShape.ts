@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import { REFLECT_KEYED_METHODS } from '../constants/OpaqueValueShapeConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';

@@ -161,6 +161,18 @@
     },
     {
       "path": "packages/drilldown/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/paginator"
+    },
+    {
+      "path": "packages/paginator/tsconfig.tests.json"
+    },
+    {
+      "path": "packages/system"
+    },
+    {
+      "path": "packages/system/tsconfig.tests.json"
     }
   ],
   "files": []

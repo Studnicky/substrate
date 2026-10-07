@@ -2,25 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/150/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/150/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/150/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/150/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/150/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/150/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/150/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/150/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': '/**\n * virtual-scheduler — schedules two one-shot tasks and advances time in steps.\n * Demonstrates deterministic task firing: only tasks due at or before the current\n * virtual time are executed when advance() is called.\n *\n * Run: npx tsx packages/scheduler/examples/virtual-scheduler.ts\n */\nimport { VirtualTimeCounter } from \'@studnicky/clock/node\';\nimport assert from \'node:assert/strict\';\n\nimport { VirtualScheduler } from \'../src/index.js\';\n\n// #region usage\nconst counter = VirtualTimeCounter.create({ \'startMs\': 0 });\nconst scheduler = VirtualScheduler.create({ \'counter\': counter });\n\nconst fireOrder: number[] = [];\n\nscheduler.scheduleAt(100, () => { fireOrder.push(100); });\nscheduler.scheduleAt(200, () => { fireOrder.push(200); });\n\n// Advance to 150 — only the task at 100 should fire.\nscheduler.advance(150);\n\nconsole.log(\'Fire order after advance(150):\', fireOrder);\n\n// Advance another 100 (total 250) — the task at 200 should now fire.\nscheduler.advance(100);\n\nconsole.log(\'Fire order after advance(100) more:\', fireOrder);\n// #endregion usage\n\nassert.equal(fireOrder.length, 2, \'Expected 2 fired tasks after both advances\');\nassert.equal(fireOrder[0], 100, \'Expected task at ms=100 to fire first\');\nassert.equal(fireOrder[1], 200, \'Expected task at ms=200 to fire second\');\n\nconsole.log(\'virtual-scheduler: all assertions passed\');\n'
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace JobEventEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'type\': { \'enum\': [\'acknowledge\', \'advance\', \'cancel\', \'start\'], \'type\': \'string\' }\n    },\n    \'required\': [\'type\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'type\': SchemaNode.defineEnum({}, [\'acknowledge\', \'advance\', \'cancel\', \'start\'] as const) }, [\'type\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

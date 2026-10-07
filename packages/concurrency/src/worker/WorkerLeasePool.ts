@@ -1,5 +1,5 @@
-import { Semaphore } from '@studnicky/concurrency/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { WorkerLifecycleStateEntity } from './entities/WorkerLifecycleStateEntity.js';
 import type { WorkerFactoryInterface } from './interfaces/WorkerFactoryInterface.js';
@@ -8,6 +8,7 @@ import type { WorkerLeasePoolOptionsInterface } from './interfaces/WorkerLeasePo
 import type { WorkerObservationInterface } from './interfaces/WorkerObservationInterface.js';
 import type { WorkerTransportInterface } from './interfaces/WorkerTransportInterface.js';
 
+import { Semaphore } from '../Semaphore.js';
 import { WorkerPoolError } from './errors/index.js';
 import { WorkerLifecycleMachine } from './WorkerLifecycleMachine.js';
 

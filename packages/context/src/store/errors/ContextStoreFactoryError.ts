@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when a `ContextStore` factory returns a value that does not satisfy `StoreInterface`. */
 export class ContextStoreFactoryError extends BaseError {

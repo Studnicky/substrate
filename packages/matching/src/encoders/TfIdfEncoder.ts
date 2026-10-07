@@ -1,4 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+
+import { RuntimeError } from '#runtime';
 
 import { TokenExtractor } from '../extractors/TokenExtractor.js';
 

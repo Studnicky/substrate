@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when a `ContextStore` is used outside an active Context scope. */
 export class ContextScopeInactiveError extends BaseError {

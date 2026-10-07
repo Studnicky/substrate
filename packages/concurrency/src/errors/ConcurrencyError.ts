@@ -1,9 +1,11 @@
+import type { BaseErrorArgumentsInterface } from '#runtime';
+
+import { BaseError } from '#runtime';
 /**
  * Abstract base error for the `@studnicky/concurrency` package.
  *
  * @module
  */
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /** Abstract base for all concurrency-domain errors. */
 export abstract class ConcurrencyError extends BaseError {

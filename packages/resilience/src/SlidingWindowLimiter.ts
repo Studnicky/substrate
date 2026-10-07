@@ -9,10 +9,10 @@
  * Successful operations return the canonical consumption result.
  */
 import { MonotonicNow } from '@studnicky/clock/monotonic-now';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { type HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { RaceTimeout, Signal } from '@studnicky/signal/browser';
-import { BaseError, CallerFault } from '@studnicky/types/browser';
+
+import type { HookInvocationError} from '#runtime';
+
+import { BaseError, CallerFault, HookInvoker, RaceTimeout, RuntimeError, SchemaIntakeError, Signal } from '#runtime';
 
 import type { RateLimitConsumptionInterface } from './interfaces/RateLimitConsumptionInterface.js';
 import type { SlidingWindowLimiterOptionsInterface } from './interfaces/SlidingWindowLimiterOptionsInterface.js';

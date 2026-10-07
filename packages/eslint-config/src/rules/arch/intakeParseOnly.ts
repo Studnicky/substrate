@@ -2,9 +2,9 @@ import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } fro
 import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
+
+import { EntityCompiler, Predicates } from '#runtime';
 
 import { DEFAULT_EXEMPT_PACKAGES, DEFAULT_STRUCTURAL_PROPERTIES } from '../constants/IntakeParseOnlyConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';

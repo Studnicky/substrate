@@ -2,27 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/129/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/129/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/129/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/129/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/129/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/129/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/129/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/129/7';
-import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/129/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7(),
-      loadChunk8()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import { RuntimeError } from \'@studnicky/errors/node\';\n/** dead-letter-queue — enqueue failed items; drain via async generator; close to end iteration. Run: npx tsx examples/dead-letter-queue.ts */\nimport assert from \'node:assert/strict\';\n\n// #region usage\nimport {\n  DeadLetterQueue,\n  DeadLetterQueueClosedError,\n  DeadLetterQueueFullError,\n  DeadLetterQueueRetryGenerator\n} from \'../src/index.js\';\n\nawait (async function runDeadLetterQueueExample(): Promise<void> {\n  // --- Basic enqueue and drain ---\n  const deadLetterQueue = DeadLetterQueue.create<string>({ \'capacity\': 5 });\n\n  deadLetterQueue.enqueue(\'job-1\', \'timeout\');\n  deadLetterQueue.enqueue(\'job-2\', \'network error\', RuntimeError.create(\'ECONNREFUSED\'));\n  console.log(\'Queue size after 2 enqueues:\', deadLetterQueue.size);\n\n  // Close before draining so the generator terminates instead of waiting.\n  deadLetterQueue.close();\n\n  const collected: string[] = [];\n  for await (const entry of deadLetterQueue.drain()) {\n    collected.push(entry.item);\n  }\n  console.log(\'Drained items:\', collected);\n  console.log(\'Queue size after drain:\', deadLetterQueue.size);\n\n  // --- Capacity enforcement ---\n  const bounded = DeadLetterQueue.create<number>({ \'capacity\': 2 });\n  bounded.enqueue(1, \'err\');\n  bounded.enqueue(2, \'err\');\n  console.log(\'Bounded queue size:\', bounded.size);\n\n  // --- DeadLetterQueueRetryGenerator re-yields entries with a pause ---\n  const retryDeadLetterQueue = DeadLetterQueue.create<string>();\n  retryDeadLetterQueue.enqueue(\'retry-job-1\', \'failed\');\n  retryDeadLetterQueue.enqueue(\'retry-job-2\', \'failed\');\n  retryDeadLetterQueue.close();\n\n  const generator = DeadLetterQueueRetryGenerator.create({ \'deadLetterQueue\': retryDeadLetterQueue, \'intervalMs\': 0 });\n  const retried: string[] = [];\n  for await (const entry of generator.generate()) {\n    retried.push(entry.item);\n  }\n  console.log(\'Retried items:\', retried);\n\n  // --- AbortSignal aborts the queue on construction ---\n  const controller = new AbortController();\n  controller.abort();\n  const abortedDeadLetterQueue = DeadLetterQueue.create<string>({ \'signal\': controller.signal });\n  const abortedEntries: string[] = [];\n  for await (const entry of abortedDeadLetterQueue.drain()) {\n    abortedEntries.push(entry.item);\n  }\n  console.log(\'Aborted drain count:\', abortedEntries.length);\n\n  assert.deepEqual(collected, [\'job-1\', \'job-2\']);\n  assert.equal(deadLetterQueue.size, 0);\n  assert.throws(() => { deadLetterQueue.enqueue(\'job-3\', \'late\'); }, DeadLetterQueueClosedError);\n  assert.throws(() => { bounded.enqueue(3, \'overflow\'); }, DeadLetterQueueFullError);\n  assert.deepEqual(retried, [\'retry-job-1\', \'retry-job-2\']);\n  assert.equal(abortedEntries.length, 0);\n\n  console.log(\'dead-letter-queue: all assertions passed\');\n})();\n// #endregion usage\n'
+  'source': `/** operation-pipeline — run an operation through ordered policies. Run: npx tsx packages/pipeline/examples/operation-pipeline.ts */\n\nimport assert from 'node:assert/strict';\n\nimport { OperationPipeline } from '../src/index.js';\nimport { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';\n\n// #region usage\nconst pipeline = OperationPipeline.create<HookRequestContextEntity.Type>([\n  async (context, next) => {\n    console.log(\`starting ${String.fromCharCode(36, 123)}context.url}\`);\n    const result = await next(context);\n    console.log(\`completed ${String.fromCharCode(36, 123)}context.url}\`);\n    return result;\n  }\n]);\n\nconst result = await pipeline.run(HookRequestContextEntity.create({\n  'headers': {},\n  'url': 'request-42'\n}), (context) => {\n  return \`handled ${String.fromCharCode(36, 123)}context.url}\`;\n});\n// #endregion usage\n\nassert.strictEqual(result, 'handled request-42');\nconsole.log('operation-pipeline: all assertions passed');\n`
 });

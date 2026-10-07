@@ -9,7 +9,8 @@
  * @throws {RegexError} When a pattern is detected as too dangerous to execute
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { ComparatorFunctionInterface } from '../../interfaces.js';
 

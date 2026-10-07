@@ -1,4 +1,6 @@
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
+import type { BaseErrorArgumentsInterface } from '#runtime';
+
+import { BaseError } from '#runtime';
 
 /** Abstract base for all `@studnicky/resilience/keyed` errors. */
 export abstract class KeyedRateLimiterError extends BaseError {

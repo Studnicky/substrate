@@ -2,17 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/98/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/98/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/98/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/98/3';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace TrafficStateEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'variant\': { \'enum\': [\'amber\', \'green\', \'red\'], \'type\': \'string\' }\n    },\n    \'required\': [\'variant\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'variant\': SchemaNode.defineEnum({}, [\'amber\', \'green\', \'red\'] as const) }, [\'variant\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace ToggleStateEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'variant\': { \'enum\': [\'off\', \'on\'], \'type\': \'string\' }\n    },\n    \'required\': [\'variant\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'variant\': SchemaNode.defineEnum({}, [\'off\', \'on\'] as const) }, [\'variant\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

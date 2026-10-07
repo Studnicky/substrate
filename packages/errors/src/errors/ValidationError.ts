@@ -5,7 +5,7 @@
  */
 import type { JSONSchema7Type } from 'json-schema';
 
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 import type { ValidationErrorArgumentsEntity } from '../entities/ValidationErrorArgumentsEntity.js';
 import type { ValidationViolationDetailEntity } from '../entities/ValidationViolationDetailEntity.js';

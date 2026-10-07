@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/errors",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Standardized error handling for all modules",
   "keywords": [
     "base-error",
@@ -31,6 +31,13 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/index.d.ts",

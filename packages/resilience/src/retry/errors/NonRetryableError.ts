@@ -1,4 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+
+import { RuntimeError } from '#runtime';
 
 import { RetryError } from './RetryError.js';
 

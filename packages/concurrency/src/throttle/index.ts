@@ -1,0 +1,13 @@
+/**
+ * @studnicky/concurrency/throttle
+ * Generic async operation throttle with sliding window concurrency control
+ */
+
+export {
+  ThrottleAbortedError,
+  ThrottleAcquisitionError,
+  ThrottleDrainingError,
+  ThrottleGracePeriodEndedError
+} from './errors/index.js';
+export type { ThrottleInterface } from './interfaces/ThrottleInterface.js';
+export { Throttle } from './throttle/Throttle.js';

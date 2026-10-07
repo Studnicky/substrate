@@ -3,7 +3,8 @@
  * @description Error thrown when filter configuration is invalid
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { ErrorCodes } from '../enums/ErrorCodes.js';
 import { FilterError } from './FilterError.js';

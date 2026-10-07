@@ -2,25 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/51/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/51/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/51/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/51/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/51/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/51/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/51/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/51/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** basic-context — complete create → initialize → execute → terminate lifecycle. Run: npx tsx packages/context/examples/basic-context.ts */\n\n// #region usage\nimport { Context } from '@studnicky/context/node';\nimport assert from 'node:assert/strict';\n\nconst context = Context.create({ 'name': 'request' });\n\nconst scope = context.initialize({ 'requestId': 'req-001' });\n\nscope.execute(() => {\n  context.set('statusCode', 200);\n  context.set('userId', 'u-42');\n\n  console.log(\`requestId: ${String.fromCharCode(36, 123)}context.get('requestId')}\`);\n  console.log(\`statusCode: ${String.fromCharCode(36, 123)}context.get('statusCode')}\`);\n  console.log(\`isActive inside execute: ${String.fromCharCode(36, 123)}context.isActive()}\`);\n});\n\nconst snapshot = scope.terminate();\n\nconsole.log('snapshot:', snapshot);\nconsole.log(\`isActive after terminate: ${String.fromCharCode(36, 123)}context.isActive()}\`);\n// #endregion usage\n\nassert.equal(snapshot.get('requestId'), 'req-001');\nassert.equal(snapshot.get('statusCode'), 200);\nassert.equal(snapshot.get('userId'), 'u-42');\nassert.equal(context.isActive(), false);\n\nconsole.log('basic-context: all assertions passed');\n`
+  'source': 'import type {\n  EntityCreateFunctionInterface,\n  EntityIntakeFunctionInterface,\n  EntityValidateFunctionInterface\n} from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/browser\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace ItemEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'n\': { \'type\': \'number\' }\n    },\n    \'required\': [\'n\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject(\n    { \'type\': \'object\' } as const,\n    { \'n\': SchemaNode.defineNumber({ \'type\': \'number\' } as const) },\n    [\'n\'] as const,\n    { \'additionalProperties\': false, \'patternProperties\': {} }\n  );\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> =\n    EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> =\n    EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> =\n    EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

@@ -3,6 +3,7 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/91/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/91/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/91/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/91/3';
+import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/91/4';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -10,9 +11,10 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3()
+      loadChunk3(),
+      loadChunk4()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace BrokenStateEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'variant\': { \'const\': \'active\', \'type\': \'string\' }\n    },\n    \'required\': [\'variant\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'variant\': SchemaNode.defineConst({}, \'active\' as const) }, [\'variant\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': '/** fuzzyFilter — find a misspelled Northstar Books catalogue title without matching another title. Run: npx tsx examples/fuzzyFilter.ts */\n\n// #region usage\nimport { LevenshteinAtLeastPlugin } from \'@studnicky/filters/matching\';\nimport { FilterEngine, FilterMode } from \'@studnicky/filters/node\';\nimport assert from \'node:assert/strict\';\n\nconst engine = new FilterEngine({\n  \'conditions\': [{\n    \'operator\': \'LevenshteinAtLeastPlugin:LEVENSHTEIN_AT_LEAST\',\n    \'path\': \'title\',\n    \'value\': { \'threshold\': 0.8, \'value\': \'The Dispossessed\' }\n  }],\n  \'gate\': \'CORE.AND\',\n  \'mode\': FilterMode.CORE.WHITELIST,\n  \'plugins\': [new LevenshteinAtLeastPlugin()]\n});\n\nconst closeMatch = engine.evaluate({ \'title\': \'The Dispossed\' });\nconst different = engine.evaluate({ \'title\': \'A Wizard of Earthsea\' });\n\nconsole.log({ \'catalogueTitleMatch\': closeMatch.valid, \'differentCatalogueTitle\': different.valid });\n// #endregion usage\n\nassert.equal(closeMatch.valid, true);\nassert.equal(different.valid, false);\nconsole.log(\'fuzzyFilter: all assertions passed\');\n'
 });

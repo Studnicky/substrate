@@ -1,8 +1,8 @@
+import { Frozen } from '#runtime';
 /**
  * Standard property names used in filter configurations
  */
 
-import { Frozen } from '@studnicky/json/browser';
 
 export const PropertyName = Frozen.deepFreeze({
   'CORE': {

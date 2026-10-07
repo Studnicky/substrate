@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/clock",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Wall-clock and monotonic time primitives with injectable providers for deterministic testing",
   "keywords": [
     "clock",
@@ -29,6 +29,13 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/index.d.ts",

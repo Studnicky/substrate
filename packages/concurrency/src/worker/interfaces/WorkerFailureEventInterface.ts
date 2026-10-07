@@ -1,4 +1,5 @@
-import type { BaseError } from '@studnicky/types/browser';
+
+import type { BaseError } from '#runtime';
 
 import type { WorkerFailureEventEntity } from '../entities/WorkerFailureEventEntity.js';
 import type { WorkerTaskIndexEntity } from '../entities/WorkerTaskIndexEntity.js';

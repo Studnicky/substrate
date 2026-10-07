@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 export class ImportSourceValue {
   public static get(node: unknown): string | undefined {

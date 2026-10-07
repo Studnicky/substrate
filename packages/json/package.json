@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/json",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch",
   "keywords": [
     "clone",
@@ -31,6 +31,13 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/index.d.ts",

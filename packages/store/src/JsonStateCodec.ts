@@ -1,6 +1,6 @@
 import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
-import { Clone } from '@studnicky/json/browser';
+import { Clone } from '#runtime';
 
 import type { JsonStateCodecOptionsInterface } from './interfaces/JsonStateCodecOptionsInterface.js';
 import type { StateCodecInterface } from './interfaces/StateCodecInterface.js';

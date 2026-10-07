@@ -2,10 +2,10 @@ import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } fro
 import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
 import { isTypeReferenceNode, type Node, type Program, TypeFlags } from 'typescript';
+
+import { EntityCompiler, Predicates } from '#runtime';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';

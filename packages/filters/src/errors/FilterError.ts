@@ -1,9 +1,11 @@
+import type { BaseErrorArgumentsInterface } from '#runtime';
+
+import { BaseError } from '#runtime';
 /**
  * @module FilterError
  * @description Base class for all FilterEngine errors
  */
 
-import { BaseError, type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /**
  * Options for constructing a FilterError

@@ -1,8 +1,8 @@
+import { Frozen } from '#runtime';
 /**
  * Error codes for consistent error handling
  */
 
-import { Frozen } from '@studnicky/json/browser';
 
 export const ErrorCodes = Frozen.deepFreeze({
   'CORE': {

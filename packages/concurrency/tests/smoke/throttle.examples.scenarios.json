@@ -1,0 +1,48 @@
+{
+  "cases": [
+    {
+      "description": "runs basicThrottle without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/basicThrottle.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs basicThrottle without throwing"
+    },
+    {
+      "description": "runs boundaryKitComposition without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/boundaryKitComposition.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs boundaryKitComposition without throwing"
+    },
+    {
+      "description": "runs drainThrottle without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/drainThrottle.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs drainThrottle without throwing"
+    },
+    {
+      "description": "runs observedThrottle without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedThrottle.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs observedThrottle without throwing"
+    }
+  ]
+}

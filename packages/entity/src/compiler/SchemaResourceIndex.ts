@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { SchemaResourceIndexInterface } from './interfaces/SchemaResourceIndexInterface.js';
 import type { SchemaResourceInterface } from './interfaces/SchemaResourceInterface.js';

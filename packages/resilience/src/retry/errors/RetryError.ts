@@ -1,6 +1,8 @@
 
-import { RuntimeError } from '@studnicky/errors/browser';
-import { BaseError, type BaseErrorArgumentsInterface, JsonObject, Predicates } from '@studnicky/types/browser';
+
+import type { BaseErrorArgumentsInterface} from '#runtime';
+
+import { BaseError, JsonObject, Predicates, RuntimeError } from '#runtime';
 
 import type { RetryErrorOptionsInterface } from '../interfaces/RetryErrorOptionsInterface.js';
 

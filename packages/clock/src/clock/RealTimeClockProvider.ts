@@ -5,7 +5,8 @@
  * @module
  */
 
-import { HookInvoker } from '@studnicky/errors/browser';
+
+import { HookInvoker } from '#runtime';
 
 import type { ClockProviderInterface } from '../interfaces/ClockProviderInterface.js';
 

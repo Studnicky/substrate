@@ -12,10 +12,8 @@
  * a robust date library like date-fns or dayjs.
  */
 
-import {
-  Predicates,
-  TIME_ONLY_PATTERN
-} from '@studnicky/types/browser';
+
+import { Predicates, TIME_ONLY_PATTERN } from '#runtime';
 
 import type { FilterValueEntity } from '../FilterValueEntity.js';
 import type { ContextualOperatorFunctionInterface } from './ContextualOperatorFunctionInterface.js';

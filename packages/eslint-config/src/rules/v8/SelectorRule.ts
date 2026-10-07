@@ -1,6 +1,7 @@
 import type { Rule } from 'eslint';
 
-import { JsonObject } from '@studnicky/types/browser';
+import { JsonObject } from '#runtime';
+
 
 export class SelectorRule {
   public static create(ruleName: string, selector: string, message: string): Rule.RuleModule {

@@ -3,7 +3,8 @@
  *
  * @module
  */
-import { DomainErrorArgumentList } from '@studnicky/errors/browser';
+
+import { DomainErrorArgumentList } from '#runtime';
 
 import { ConcurrencyError } from './ConcurrencyError.js';
 

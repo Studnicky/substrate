@@ -1,6 +1,7 @@
-import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import type { ClockProviderInterface} from '#runtime';
+
+import { Clock, HookInvoker, Predicates, RealTimeClockProvider, RuntimeError } from '#runtime';
 
 import type { LruCacheCollaboratorsInterface } from './interfaces/LruCacheCollaboratorsInterface.js';
 
