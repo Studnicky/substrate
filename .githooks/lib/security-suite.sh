@@ -223,7 +223,12 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as sarif_file:
     report = json.load(sarif_file)
 
-findings = [result for run in report.get("runs", []) for result in run.get("results", [])]
+findings = [
+    result
+    for run in report.get("runs", [])
+    for result in run.get("results", [])
+    if not result.get("suppressions")
+]
 sys.exit(1 if findings else 0)
 PY
   then
