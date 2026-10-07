@@ -1,5 +1,7 @@
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { HookInvoker } from '@studnicky/errors/browser';
+
+import type { ClockProviderInterface} from '#runtime';
+
+import { HookInvoker, RealTimeClockProvider } from '#runtime';
 
 import type { EntryEntity } from '../entities/EntryEntity.js';
 import type { MkdirOptionsEntity } from '../entities/MkdirOptionsEntity.js';
