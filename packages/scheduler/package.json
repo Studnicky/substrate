@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/scheduler",
-  "version": "15.0.2",
+  "version": "15.1.0",
   "description": "Scheduler primitives — real-time (setTimeout/setInterval) and virtual (min-heap, deterministic) implementations",
   "keywords": [
     "deterministic",

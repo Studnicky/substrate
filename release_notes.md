@@ -2,263 +2,279 @@
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/concurrency@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/circular-buffer
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/clock
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/config@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/config@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/concurrency
 
+### Minor Changes
+
+- 3183a52: `@studnicky/concurrency` provides `Throttle` (adaptive and fixed concurrency limiting with drain and abort control) at `/throttle/node`, `/throttle/browser`, `/throttle/entities`, and `/throttle/interfaces`. `@studnicky/fetch` provides HTTP-aware retry classification and backoff at `/retry`. `@studnicky/filters` scorer plugins import the browser-safe `@studnicky/matching/browser` entry. `@studnicky/eslint-config`'s browser entry exports the full rule plugin surface.
+
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/circular-buffer@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/config@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/fsm@15.0.1
-  - @studnicky/signal@15.0.1
-  - @studnicky/virtual-fs@15.0.1
+- @studnicky/circular-buffer@15.1.0
+  - @studnicky/clock@15.1.0
+  - @studnicky/config@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/signal@15.1.0
+  - @studnicky/types@15.1.0
+  - @studnicky/virtual-fs@15.1.0
 
 ### @studnicky/config
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/context
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/fsm@15.0.1
-  - @studnicky/json@15.0.1
-  - @studnicky/store@15.0.1
+- @studnicky/store@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/drilldown
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/cache@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/filters@15.0.1
+- Updated dependencies [3183a52]
+  - @studnicky/filters@15.1.0
+  - @studnicky/cache@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/entity
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
+- @studnicky/types@15.1.0
 
 ### @studnicky/errors
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/eslint-config
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
+- 3183a52: `@studnicky/concurrency` provides `Throttle` (adaptive and fixed concurrency limiting with drain and abort control) at `/throttle/node`, `/throttle/browser`, `/throttle/entities`, and `/throttle/interfaces`. `@studnicky/fetch` provides HTTP-aware retry classification and backoff at `/retry`. `@studnicky/filters` scorer plugins import the browser-safe `@studnicky/matching/browser` entry. `@studnicky/eslint-config`'s browser entry exports the full rule plugin surface.
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/event-bus
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/concurrency@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/fetch
 
+### Minor Changes
+
+- 3183a52: `@studnicky/concurrency` provides `Throttle` (adaptive and fixed concurrency limiting with drain and abort control) at `/throttle/node`, `/throttle/browser`, `/throttle/entities`, and `/throttle/interfaces`. `@studnicky/fetch` provides HTTP-aware retry classification and backoff at `/retry`. `@studnicky/filters` scorer plugins import the browser-safe `@studnicky/matching/browser` entry. `@studnicky/eslint-config`'s browser entry exports the full rule plugin surface.
+
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
-  - @studnicky/signal@15.0.1
+- @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/signal@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/filters
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
-  - @studnicky/matching@15.0.1
+- 3183a52: `@studnicky/concurrency` provides `Throttle` (adaptive and fixed concurrency limiting with drain and abort control) at `/throttle/node`, `/throttle/browser`, `/throttle/entities`, and `/throttle/interfaces`. `@studnicky/fetch` provides HTTP-aware retry classification and backoff at `/retry`. `@studnicky/filters` scorer plugins import the browser-safe `@studnicky/matching/browser` entry. `@studnicky/eslint-config`'s browser entry exports the full rule plugin surface.
+- @studnicky/matching@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/fsm
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/circular-buffer@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/circular-buffer@15.1.0
+  - @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/json
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/logger
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/matching
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/cache@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
+- @studnicky/cache@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
+
+### @studnicky/paginator
+
+### Minor Changes
+
+- b184f5d: `@studnicky/system` provides static host-system inspection: CPU topology, GPU detection (Metal, CUDA, ROCm), memory, and platform information, at `/node`, `/browser`, `/entities`, and `/interfaces`. `@studnicky/paginator` provides cursor and page-list state tracking for paginated data sources, at the same four entrypoints.
+
+### Patch Changes
+
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/pipeline
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/fsm@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/resilience
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/cache@15.0.1
-  - @studnicky/circular-buffer@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/concurrency@15.0.1
-  - @studnicky/config@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/event-bus@15.0.1
-  - @studnicky/fsm@15.0.1
-  - @studnicky/scheduler@15.0.1
-  - @studnicky/signal@15.0.1
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/cache@15.1.0
+  - @studnicky/event-bus@15.1.0
+  - @studnicky/circular-buffer@15.1.0
+  - @studnicky/clock@15.1.0
+  - @studnicky/config@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/scheduler@15.1.0
+  - @studnicky/signal@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/scheduler
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/fsm@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/signal
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/errors@15.0.1
+- @studnicky/errors@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/store
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/concurrency@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/json@15.0.1
+- Updated dependencies [3183a52]
+  - @studnicky/concurrency@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
-### @studnicky/types
+### @studnicky/system
+
+### Minor Changes
+
+- b184f5d: `@studnicky/system` provides static host-system inspection: CPU topology, GPU detection (Metal, CUDA, ROCm), memory, and platform information, at `/node`, `/browser`, `/entities`, and `/interfaces`. `@studnicky/paginator` provides cursor and page-list state tracking for paginated data sources, at the same four entrypoints.
 
 ### Patch Changes
 
-- 3965298: Publish the integrated primitive release and complete package reference.
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/fsm@15.1.0
+  - @studnicky/types@15.1.0
+
+### @studnicky/types
+
+No changes in this release.
 
 ### @studnicky/virtual-fs
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/clock@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0
 
 ### @studnicky/visible-range
 
 ### Patch Changes
 
-- Updated dependencies [3965298]
-  - @studnicky/types@15.0.1
-  - @studnicky/entity@15.0.1
-  - @studnicky/errors@15.0.1
-  - @studnicky/json@15.0.1
+- @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/types@15.1.0

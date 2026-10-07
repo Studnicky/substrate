@@ -3,6 +3,21 @@
 <<<<<<< HEAD
 =======
 
+## 15.1.0
+
+### Minor Changes
+
+- 3183a52: `@studnicky/concurrency` provides `Throttle` (adaptive and fixed concurrency limiting with drain and abort control) at `/throttle/node`, `/throttle/browser`, `/throttle/entities`, and `/throttle/interfaces`. `@studnicky/fetch` provides HTTP-aware retry classification and backoff at `/retry`. `@studnicky/filters` scorer plugins import the browser-safe `@studnicky/matching/browser` entry. `@studnicky/eslint-config`'s browser entry exports the full rule plugin surface.
+
+### Patch Changes
+
+- @studnicky/clock@15.1.0
+  - @studnicky/entity@15.1.0
+  - @studnicky/errors@15.1.0
+  - @studnicky/json@15.1.0
+  - @studnicky/signal@15.1.0
+  - @studnicky/types@15.1.0
+
 ## 15.0.2
 
 ### Patch Changes
