@@ -1,4 +1,5 @@
-import { Clone } from '@studnicky/json/browser';
+
+import { Clone } from '#runtime';
 
 import type { StoreListenerInterface } from '../interfaces/StoreListenerInterface.js';
 import type { EntityStateInterface } from './EntityStateInterface.js';

@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { EntityDiagnosticRenderContextInterface } from '../interfaces/EntityDiagnosticRenderContextInterface.js';
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';

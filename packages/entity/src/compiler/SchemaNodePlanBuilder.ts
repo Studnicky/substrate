@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { SchemaNodePlanInterface } from './interfaces/SchemaNodePlanInterface.js';
 

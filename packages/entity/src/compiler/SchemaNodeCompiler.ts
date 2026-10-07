@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { EntityValidationErrorInterface } from '../interfaces/EntityValidationErrorInterface.js';
 import type { CompiledNodeInterface, DynamicScopeFrameInterface } from './interfaces/CompilerExecutionStateInterface.js';

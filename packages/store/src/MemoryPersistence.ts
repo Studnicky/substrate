@@ -1,4 +1,5 @@
-import { Clone } from '@studnicky/json/browser';
+
+import { Clone } from '#runtime';
 
 import type { StatePersistenceInterface } from './interfaces/StatePersistenceInterface.js';
 

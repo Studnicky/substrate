@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { SCHEMA_VOCABULARY_CONSTANTS } from './constants/SchemaVocabularyConstants.js';
 

@@ -4,14 +4,25 @@
   "compilerOptions": {
     "lib": ["DOM", "ESNext"],
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "paths": {
+      "#runtime": ["./src/runtime/node/index.ts"]
+    }
   },
   "exclude": ["dist", "node_modules"],
   "include": ["src/**/*"],
   "references": [
-    { "path": "../json" },
-    { "path": "../concurrency" },
-    { "path": "../entity" },
-    { "path": "../types" }
+    {
+      "path": "../json"
+    },
+    {
+      "path": "../concurrency"
+    },
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../types"
+    }
   ]
 }
