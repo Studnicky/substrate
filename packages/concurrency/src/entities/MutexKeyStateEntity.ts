@@ -4,8 +4,9 @@ import type {
 } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Canonical per-key mutex lifecycle state. */
 export namespace MutexKeyStateEntity {

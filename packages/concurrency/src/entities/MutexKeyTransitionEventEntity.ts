@@ -5,8 +5,9 @@ import type {
 } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Canonical JSON event requesting a per-key lifecycle transition. */
 export namespace MutexKeyTransitionEventEntity {

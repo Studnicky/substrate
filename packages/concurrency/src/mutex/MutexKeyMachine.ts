@@ -1,6 +1,8 @@
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { MutexKeyStateEntity } from '../entities/MutexKeyStateEntity.js';
 import type { MutexKeyTransitionEventEntity } from '../entities/MutexKeyTransitionEventEntity.js';

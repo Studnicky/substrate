@@ -4,9 +4,8 @@
  * Exposed for testing and advanced use — not part of the public package surface.
  */
 
-import { ConfigurationError } from '@studnicky/config/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { ConfigurationError, Predicates, SchemaIntakeError } from '#runtime';
 
 import { MutexConfigEntity } from '../entities/MutexConfigEntity.js';
 

@@ -1,7 +1,7 @@
 import type { ErrorConstructorOptionsInterface } from '@studnicky/errors/interfaces';
 
-import { DomainErrorArgumentList } from '@studnicky/errors/browser';
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError, DomainErrorArgumentList } from '#runtime';
+
 
 /** Optional construction arguments for {@link BatchError}; the class supplies its own code and message. */
 /** Thrown when batch configuration is invalid. */

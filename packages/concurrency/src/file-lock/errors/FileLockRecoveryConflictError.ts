@@ -1,4 +1,5 @@
-import { DomainErrorArgumentList } from '@studnicky/errors/browser';
+
+import { DomainErrorArgumentList } from '#runtime';
 
 import { FileLockError } from './FileLockError.js';
 

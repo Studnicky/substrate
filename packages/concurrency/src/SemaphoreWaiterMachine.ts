@@ -1,6 +1,8 @@
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { SemaphoreWaiterStateEntity } from './entities/SemaphoreWaiterStateEntity.js';
 import type { SemaphoreWaiterTransitionEventEntity } from './entities/SemaphoreWaiterTransitionEventEntity.js';

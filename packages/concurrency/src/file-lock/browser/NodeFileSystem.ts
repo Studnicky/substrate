@@ -1,7 +1,9 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
 import type { StatResultInterface } from '@studnicky/virtual-fs/interfaces';
 
-import { VirtualFileSystem } from '@studnicky/virtual-fs/browser';
+import type { FileSystemInterface} from '#runtime';
+
+import { VirtualFileSystem } from '#runtime';
+
 
 const sharedInstance = VirtualFileSystem.create();
 

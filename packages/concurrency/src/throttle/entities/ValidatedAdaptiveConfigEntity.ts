@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Fields every branch carries, restated per branch (not extracted to a shared entity) so each branch is a complete, self-contained `defineObject` — `defineAnyOf`'s static type is `InferUnionOfStaticType<TItems>` alone, with no mechanism to intersect a sibling schema into it. */
 const sharedFieldSchema = {

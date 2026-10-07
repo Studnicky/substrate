@@ -29,6 +29,18 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#file-system": {
+      "browser": "./dist/file-system/browser/index.js",
+      "node": "./dist/file-system/node/index.js",
+      "default": "./dist/file-system/node/index.js"
+    },
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/index.d.ts",

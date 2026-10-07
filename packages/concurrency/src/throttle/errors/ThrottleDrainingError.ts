@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /**
  * Error thrown when operations are rejected during throttle drain

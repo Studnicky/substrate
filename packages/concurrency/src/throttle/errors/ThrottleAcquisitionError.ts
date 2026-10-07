@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /**
  * Error thrown when a throttle permit acquisition fails with a value that is not a `BaseError`.

@@ -1,7 +1,7 @@
 /** Static utilities for async iterables: merge, filter, enrich. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
-import { CallerFault } from '@studnicky/types/browser';
+
+import { CallerFault, CircularBuffer } from '#runtime';
 
 import type { AsyncIterDoneDiscriminantEntity } from './entities/AsyncIterDoneDiscriminantEntity.js';
 import type { AsyncIterErrorDiscriminantEntity } from './entities/AsyncIterErrorDiscriminantEntity.js';

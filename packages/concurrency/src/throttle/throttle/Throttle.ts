@@ -1,8 +1,6 @@
 import { SampleBuffer } from '@studnicky/circular-buffer/samples';
-import { ConfigurationError } from '@studnicky/config/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, ConfigurationError, HookInvoker, Predicates, RuntimeError, SchemaIntakeError } from '#runtime';
 
 import type { ActiveOperationStateEntity } from '../entities/ActiveOperationStateEntity.js';
 import type { AdaptiveConfigEntity } from '../entities/AdaptiveConfigEntity.js';

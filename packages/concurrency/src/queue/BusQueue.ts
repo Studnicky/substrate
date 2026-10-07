@@ -1,8 +1,7 @@
 /** Bounded async FIFO queue with backpressure; enqueue blocks at highWaterMark. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
-import { HookInvoker } from '@studnicky/errors/browser';
-import { CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { CallerFault, CircularBuffer, HookInvoker, Predicates } from '#runtime';
 
 import type { BusQueueAbortedStateEntity } from './entities/BusQueueAbortedStateEntity.js';
 import type { BusQueueAbortEventEntity } from './entities/BusQueueAbortEventEntity.js';

@@ -1,4 +1,4 @@
-import type { FileSystemInterface } from '@studnicky/virtual-fs/browser';
+import type { FileSystemInterface } from '#runtime';
 
 export interface FileLockInspectionOptionsInterface {
   readonly 'fileSystem'?: FileSystemInterface;

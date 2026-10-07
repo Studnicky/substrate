@@ -1,9 +1,7 @@
 /** String-keyed fan-in async generator inbox; one active subscriber per key. */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker } from '@studnicky/errors/browser';
-import { CallerFault } from '@studnicky/types/browser';
+
+import { CallerFault, CircularBuffer, HookInvoker, SchemaIntakeError } from '#runtime';
 
 import type { ChannelEntryStateEntity } from './entities/ChannelEntryStateEntity.js';
 import type { ChannelKeyStateEntity } from './entities/ChannelKeyStateEntity.js';
