@@ -2,21 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/127/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/127/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/127/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/127/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/127/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/127/5';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/** operation-pipeline — run an operation through ordered policies. Run: npx tsx packages/pipeline/examples/operation-pipeline.ts */\n\nimport assert from 'node:assert/strict';\n\nimport { OperationPipeline } from '../src/index.js';\nimport { HookRequestContextEntity } from './entities/HookRequestContextEntity.js';\n\n// #region usage\nconst pipeline = OperationPipeline.create<HookRequestContextEntity.Type>([\n  async (context, next) => {\n    console.log(\`starting ${String.fromCharCode(36, 123)}context.url}\`);\n    const result = await next(context);\n    console.log(\`completed ${String.fromCharCode(36, 123)}context.url}\`);\n    return result;\n  }\n]);\n\nconst result = await pipeline.run(HookRequestContextEntity.create({\n  'headers': {},\n  'url': 'request-42'\n}), (context) => {\n  return \`handled ${String.fromCharCode(36, 123)}context.url}\`;\n});\n// #endregion usage\n\nassert.strictEqual(result, 'handled request-42');\nconsole.log('operation-pipeline: all assertions passed');\n`
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace StepContextTypeEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'step\': { \'type\': \'number\' },\n      \'value\': { \'type\': \'string\' }\n    },\n    \'required\': [\'step\', \'value\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'step\': SchemaNode.defineNumber({ \'type\': \'number\' } as const), \'value\': SchemaNode.defineString({ \'type\': \'string\' } as const) }, [\'step\', \'value\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

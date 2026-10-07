@@ -2,7 +2,8 @@
  * Comparison operators with direct function access for declarative configuration
  */
 
-import { Frozen } from '@studnicky/json/browser';
+
+import { Frozen } from '#runtime';
 
 import { BinaryOperators } from '../operators/BinaryOperators.js';
 import { ObjectOperators } from '../operators/ObjectOperators.js';

@@ -1,7 +1,8 @@
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Compact rollup of deduplicated paths and keywords with a total error count. */
 export namespace ValidationAggregateViewEntity {

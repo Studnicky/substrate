@@ -26,10 +26,11 @@
  *
  * @module
  */
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { RuntimeError } from '@studnicky/errors/browser';
-import { StateMachine } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { RuntimeError, StateMachine } from '#runtime';
 
 import type { OperationLifecycleStateEntity } from '../entities/OperationLifecycleStateEntity.js';
 import type { AbortStartedEventInterface } from '../interfaces/AbortStartedEventInterface.js';

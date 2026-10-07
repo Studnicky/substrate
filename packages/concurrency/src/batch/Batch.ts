@@ -1,5 +1,5 @@
-import { HookInvoker } from '@studnicky/errors/browser';
-import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, HookInvoker, Predicates } from '#runtime';
 
 import { BatchStatsEntity } from '../entities/BatchStatsEntity.js';
 import { BatchError } from '../errors/BatchError.js';

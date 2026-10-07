@@ -1,9 +1,9 @@
+import type { BaseErrorArgumentsInterface } from '#runtime';
 /**
  * Shared optional construction parameters for domain-error leaf classes.
  *
  * @module
  */
-import type { BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 /** Optional BaseError construction parameters supplied by a domain-error caller. */
 export interface ErrorConstructorOptionsInterface extends Pick<

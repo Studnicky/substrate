@@ -1,4 +1,5 @@
-import { CosineScorer } from '@studnicky/matching/browser';
+
+import { CosineScorer } from '#runtime';
 
 import { Plugin } from '../plugins/Plugin.js';
 import { StringNumberMapPredicate } from './predicates/StringNumberMapPredicate.js';

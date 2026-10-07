@@ -1,3 +1,4 @@
+import { CircularBuffer } from '#runtime';
 /**
  * Internal weighted timestamp queue for the `log` algorithm.
  *
@@ -6,7 +7,6 @@
  * each unit amount expires exactly at its own rolling-window boundary.
  */
 
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
 
 export class TimestampLog extends CircularBuffer<{ readonly 'timestamp': number; readonly 'tokens': number }> {
   /** Adds weighted units, coalescing admissions recorded at the same timestamp. */

@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { FsmStepInterface } from './interfaces/FsmStepInterface.js';
 

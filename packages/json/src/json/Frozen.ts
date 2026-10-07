@@ -1,4 +1,5 @@
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+
+import { JsonObject, Predicates } from '#runtime';
 
 import { FrozenMutationError } from '../errors/FrozenMutationError.js';
 import { FROZEN_MAP_MUTATORS, FROZEN_SET_MUTATORS } from './constants/FrozenConstants.js';

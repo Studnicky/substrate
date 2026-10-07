@@ -1,4 +1,5 @@
-import { RaceTimeout } from '@studnicky/signal/browser';
+
+import { RaceTimeout } from '#runtime';
 
 import { ThrottleAbortedError } from '../errors/ThrottleAbortedError.js';
 

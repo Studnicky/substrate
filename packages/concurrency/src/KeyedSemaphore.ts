@@ -1,4 +1,5 @@
-import { BaseError, CallerFault } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault } from '#runtime';
 
 import type { SemaphoreAcquireOptionsInterface } from './interfaces/SemaphoreAcquireOptionsInterface.js';
 

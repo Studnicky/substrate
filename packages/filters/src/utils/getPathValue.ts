@@ -3,10 +3,8 @@
  * @description Extracts values from objects using dot notation paths with security protections
  */
 
-import {
-  Predicates,
-  RuntimeValue
-} from '@studnicky/types/browser';
+
+import { Predicates, RuntimeValue } from '#runtime';
 
 import { FilterTypeGuards } from '../interfaces.js';
 import { BRACKETED_KEY_PATTERN } from './constants/BracketedKeyPattern.js';

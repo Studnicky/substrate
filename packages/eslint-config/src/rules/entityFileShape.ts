@@ -2,7 +2,8 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import {
   ENTITY_DIR_REGEX,

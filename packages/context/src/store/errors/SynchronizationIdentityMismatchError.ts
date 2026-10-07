@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when a backing Store reports a synchronization identity that differs from the `ContextStore` configuration. */
 export class SynchronizationIdentityMismatchError extends BaseError {

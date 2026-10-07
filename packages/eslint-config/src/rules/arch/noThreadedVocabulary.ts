@@ -3,10 +3,10 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 import type * as TypeScript from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
 import { isTypeNode, type Node, type Program, TypeFlags } from 'typescript';
+
+import { EntityCompiler, Predicates } from '#runtime';
 
 import type { LayerBindingEntity } from '../layers/LayerBindingEntity.js';
 

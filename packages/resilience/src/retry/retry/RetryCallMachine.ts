@@ -1,6 +1,8 @@
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { RetryCallStateEntity } from '../entities/RetryCallStateEntity.js';
 import type { RetryCallTransitionEventEntity } from '../entities/RetryCallTransitionEventEntity.js';

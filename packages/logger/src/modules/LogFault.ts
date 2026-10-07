@@ -1,5 +1,5 @@
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { ImmutableSnapshot } from '@studnicky/json/browser';
+
+import { ImmutableSnapshot, SchemaIntakeError } from '#runtime';
 
 import type { LogFaultDataEntity } from '../entities/LogFaultDataEntity.js';
 

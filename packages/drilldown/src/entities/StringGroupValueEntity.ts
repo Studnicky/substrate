@@ -1,7 +1,7 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
+import { EntityCompiler } from '#runtime';
 
 import { DRILLDOWN_DEFAULTS } from '../constants/index.js';
 import { drilldownRulesNodes } from '../schema/DrilldownRulesNodes.js';

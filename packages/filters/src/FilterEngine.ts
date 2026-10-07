@@ -5,7 +5,8 @@
  */
 
 import { ThrownValueEntity } from '@studnicky/errors/entities';
-import { RuntimeValue } from '@studnicky/types/browser';
+
+import { RuntimeValue } from '#runtime';
 
 import type { FilterEvaluationErrorEntryInterface } from './FilterEvaluationErrorEntryInterface.js';
 import type { FilterValueEntity } from './FilterValueEntity.js';

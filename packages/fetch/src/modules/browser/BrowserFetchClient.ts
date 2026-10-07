@@ -1,7 +1,8 @@
 import type { ComposedSignalInterface } from '@studnicky/signal/interfaces';
 
-import { Signal } from '@studnicky/signal/browser';
-import { type BaseError, CallerFault } from '@studnicky/types/browser';
+import type { BaseError} from '#runtime';
+
+import { CallerFault, Signal } from '#runtime';
 
 import type { DestroyOptionsEntity } from '../../entities/DestroyOptionsEntity.js';
 import type { QueryParametersEntity } from '../../entities/QueryParametersEntity.js';

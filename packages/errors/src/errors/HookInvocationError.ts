@@ -1,4 +1,5 @@
-import { BaseError } from '@studnicky/types/browser';
+
+import { BaseError } from '#runtime';
 
 /**
  * Error thrown when a lifecycle hook implementation throws during invocation.

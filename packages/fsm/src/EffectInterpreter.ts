@@ -1,8 +1,6 @@
 
-import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Clone } from '@studnicky/json/browser';
-import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, CircularBuffer, CircularBufferError, Clone, Predicates, RuntimeError } from '#runtime';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { EffectInterpreterConstructorOptionsInterface } from './interfaces/EffectInterpreterConstructorOptionsInterface.js';

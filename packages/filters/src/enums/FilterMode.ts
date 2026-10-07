@@ -1,8 +1,8 @@
+import { Frozen } from '#runtime';
 /**
  * Filter modes for data filtering
  */
 
-import { Frozen } from '@studnicky/json/browser';
 
 /** Filter mode implementations backing `FilterMode.CORE`. */
 class FilterModeHandlers {

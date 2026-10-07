@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import { INTAKE_MEMBER } from '../constants/IntakeParseOnlyConstants.js';
 import { AstHelpers } from '../shared/astHelpers.js';

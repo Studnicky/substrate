@@ -1,4 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock/browser';
+import type { ClockProviderInterface } from '#runtime';
 
 export interface VirtualFileSystemOptionsInterface {
   'clock'?: ClockProviderInterface;

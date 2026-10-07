@@ -1,4 +1,5 @@
-import { BaseError } from '@studnicky/types/browser';
+
+import { BaseError } from '#runtime';
 
 import type { EntityValidationErrorInterface } from './interfaces/EntityValidationErrorInterface.js';
 

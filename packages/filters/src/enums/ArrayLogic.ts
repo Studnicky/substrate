@@ -1,8 +1,8 @@
+import { Frozen } from '#runtime';
 /**
  * Array logic operators for multi-value conditions - using Node.js array method names
  */
 
-import { Frozen } from '@studnicky/json/browser';
 
 /** Array logic operator implementations backing `ArrayLogic.CORE`. */
 class ArrayLogicHandlers {

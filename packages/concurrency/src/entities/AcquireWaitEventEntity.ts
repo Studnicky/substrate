@@ -5,8 +5,9 @@ import type {
 } from '@studnicky/entity/interfaces';
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 export namespace AcquireWaitEventEntity {
   export const Schema = {

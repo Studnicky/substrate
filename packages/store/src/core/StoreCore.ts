@@ -1,6 +1,6 @@
 import type { MutexInterface } from '@studnicky/concurrency/interfaces';
 
-import { Clone, ImmutableSnapshot } from '@studnicky/json/browser';
+import { Clone, ImmutableSnapshot } from '#runtime';
 
 import type { StatePersistenceInterface } from '../interfaces/StatePersistenceInterface.js';
 import type { StoreInterface } from '../interfaces/StoreInterface.js';

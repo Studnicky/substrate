@@ -1,9 +1,9 @@
+import { BaseError } from '#runtime';
 /**
  * Concrete error for the `@studnicky/signal` package.
  *
  * @module
  */
-import { BaseError } from '@studnicky/types/browser';
 
 /** Thrown when `Signal#compose()` receives invalid configuration (e.g. negative `deadlineMs`). */
 export class SignalError extends BaseError {

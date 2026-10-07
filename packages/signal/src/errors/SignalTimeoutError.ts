@@ -1,9 +1,9 @@
+import { BaseError } from '#runtime';
 /**
  * Abort reason for a deadline composed by `Signal#compose()`.
  *
  * @module
  */
-import { BaseError } from '@studnicky/types/browser';
 
 /** The `AbortSignal.reason` of a composed signal whose `deadlineMs` elapsed. */
 export class SignalTimeoutError extends BaseError {

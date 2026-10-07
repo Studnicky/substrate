@@ -2,7 +2,8 @@ import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 import type { ErrorClassifierInterface } from '@studnicky/errors/interfaces';
 
 import { ErrorWithCodeEntity, ErrorWithStatusEntity } from '@studnicky/errors/entities';
-import { ErrorClassifier, HttpStatus, matchers } from '@studnicky/errors/node';
+
+import { ErrorClassifier, HttpStatus, matchers } from '#runtime';
 
 import { DEFAULT_HTTP_ERROR_CLASSIFIER_CONSTANTS } from './constants/index.js';
 

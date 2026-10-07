@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when the recursive drilldown rules schema node cannot be assembled. */
 export class DrilldownRulesBuildError extends BaseError {

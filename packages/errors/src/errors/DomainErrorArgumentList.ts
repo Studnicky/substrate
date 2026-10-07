@@ -6,7 +6,8 @@
  * @module
  */
 
-import { type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
+
+import type { BaseErrorArgumentsInterface } from '#runtime';
 
 import type { DomainErrorOptionsInterface } from '../interfaces/DomainErrorOptionsInterface.js';
 

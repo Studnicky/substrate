@@ -2,7 +2,6 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
 import {
   isIndexSignatureDeclaration,
   isInterfaceDeclaration,
@@ -13,6 +12,8 @@ import {
   type Node,
   type Program
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 

@@ -1,9 +1,7 @@
-import { CircularBuffer, CircularBufferError } from '@studnicky/circular-buffer/browser';
-import { Clock, type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Clone } from '@studnicky/json/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import type { ClockProviderInterface} from '#runtime';
+
+import { CircularBuffer, CircularBufferError, Clock, Clone, Predicates, RealTimeClockProvider, RuntimeError, SchemaIntakeError } from '#runtime';
 
 import type { EffectHandlerInterface } from './interfaces/EffectHandlerInterface.js';
 import type { InterpreterHistoryCollaboratorsInterface } from './interfaces/InterpreterHistoryCollaboratorsInterface.js';

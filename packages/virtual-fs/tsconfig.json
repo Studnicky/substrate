@@ -4,14 +4,25 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "paths": {
+      "#runtime": ["./src/runtime/node/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
   "references": [
-    { "path": "../clock" },
-    { "path": "../entity" },
-    { "path": "../errors" },
-    { "path": "../types" }
+    {
+      "path": "../clock"
+    },
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../types"
+    }
   ]
 }

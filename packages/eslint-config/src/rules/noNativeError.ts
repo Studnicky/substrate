@@ -3,9 +3,10 @@ import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule, Scope } from 'eslint';
 import type ts from 'typescript';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
 import { isBindingElement, isCallLikeExpression, isIdentifier, isInterfaceDeclaration, isObjectBindingPattern, isObjectLiteralExpression, isPropertySignature, TypeFlags } from 'typescript';
+
+import { EntityCompiler } from '#runtime';
 
 import {
   ABORT_CONTROLLER_TYPE_NAME,

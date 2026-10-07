@@ -3,7 +3,8 @@
  * @description Process numeric range values for comparison
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { FilterConditionInterface } from '../interfaces.js';
 

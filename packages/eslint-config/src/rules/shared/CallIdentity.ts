@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import { type Declaration, isCallLikeExpression, type Node, type TypeChecker } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { AstHelpers } from './astHelpers.js';
 

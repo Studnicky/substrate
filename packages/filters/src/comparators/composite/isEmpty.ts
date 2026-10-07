@@ -29,7 +29,8 @@
  * IsEmpty.isEmpty({ name: 'John' }); // false
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { IsEmptyObject } from './isEmptyObject.js';
 

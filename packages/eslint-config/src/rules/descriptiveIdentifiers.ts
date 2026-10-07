@@ -1,6 +1,5 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import {
   isObjectLiteralExpression,
   type Program,
@@ -9,6 +8,8 @@ import {
   type Type,
   type TypeChecker
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import {

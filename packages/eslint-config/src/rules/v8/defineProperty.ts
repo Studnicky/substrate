@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import { FUNCTION_TYPES } from '../shared/constants/LoopContextConstants.js';
 import {

@@ -1,12 +1,13 @@
 import type { FileSystemInterface } from '@studnicky/virtual-fs/node';
 
+import { NodeFileSystem } from '#file-system';
+
 import type { FileLockInspectionOptionsInterface } from './interfaces/FileLockInspectionOptionsInterface.js';
 
 import { FileLockInspectionEntity } from './entities/FileLockInspectionEntity.js';
 import { FileLockOptionsEntity } from './entities/FileLockOptionsEntity.js';
 import { FileLockFileSystemError } from './errors/FileLockFileSystemError.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
-import { NodeFileSystem } from './NodeFileSystem.js';
 
 export class FileLockInspection {
   public static inspect(

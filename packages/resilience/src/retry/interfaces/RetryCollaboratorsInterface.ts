@@ -1,8 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock/browser';
-import type {
-  ErrorClassifierFunctionInterface,
-  ErrorClassifierInterface
-} from '@studnicky/errors/browser';
+import type { ClockProviderInterface, ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '#runtime';
 
 /** Typed collaborators Retry receives through its construction options. */
 export interface RetryCollaboratorsInterface {

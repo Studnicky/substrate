@@ -2,25 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/150/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/150/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/150/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/150/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/150/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/150/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/150/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/150/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': `/**\n * interval-tasks — demonstrates scheduleEvery() and cancelAll() with VirtualScheduler.\n * Shows that a 50 ms interval fires 4 times when virtual time advances 200 ms from 0,\n * and that cancelAll() prevents further fires after it is called.\n *\n * Run: npx tsx packages/scheduler/examples/interval-tasks.ts\n */\nimport { VirtualTimeCounter } from '@studnicky/clock/node';\nimport assert from 'node:assert/strict';\n\nimport { VirtualScheduler } from '../src/index.js';\n\n// #region usage\n// --- Part 1: interval fires the expected number of times ---\n\nconst counter = VirtualTimeCounter.create({ 'startMs': 0 });\nconst scheduler = VirtualScheduler.create({ 'counter': counter });\n\nlet count = 0;\n\n// Counter starts at 0; first fire at 0+50=50. Subsequent fires at 100, 150, 200.\nscheduler.scheduleEvery(50, () => { count++; });\n\nscheduler.advance(200);\n\nconsole.log('Interval fire count:', count);\n\n// --- Part 2: cancelAll() prevents further fires ---\n\nconst counter2 = VirtualTimeCounter.create({ 'startMs': 0 });\nconst scheduler2 = VirtualScheduler.create({ 'counter': counter2 });\n\nlet countAfterCancel = 0;\n\nscheduler2.scheduleEvery(50, () => { countAfterCancel++; });\n\n// Cancel before any advance — no tasks should fire.\nscheduler2.cancelAll();\nscheduler2.advance(200);\n\nconsole.log('Fires after cancelAll():', countAfterCancel);\n// #endregion usage\n\nassert.equal(count, 4, \`Expected 4 fires from a 50 ms interval over 200 ms; got ${String.fromCharCode(36, 123)}count.toString()}\`);\nassert.equal(countAfterCancel, 0, 'Expected 0 fires after cancelAll()');\n\nconsole.log('interval-tasks: all assertions passed');\n`
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace JobEventEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'type\': { \'enum\': [\'acknowledge\', \'advance\', \'cancel\', \'start\'], \'type\': \'string\' }\n    },\n    \'required\': [\'type\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'type\': SchemaNode.defineEnum({}, [\'acknowledge\', \'advance\', \'cancel\', \'start\'] as const) }, [\'type\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

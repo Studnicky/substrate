@@ -3,10 +3,11 @@ import type { Rule } from 'eslint';
 import type * as ts from 'typescript';
 
 import { SchemaNode } from '@studnicky/entity/types';
-import { Predicates } from '@studnicky/types/browser';
 import {
   type Program, type Symbol, SymbolFlags
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import {
   CANONICAL_INDEX_BASES,

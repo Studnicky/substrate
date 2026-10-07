@@ -37,7 +37,7 @@
     "docs:build": "pnpm run docs:diagrams && pnpm run docs:playgrounds && vitepress build docs && pagefind --site docs/.vitepress/dist",
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs --config docs/.vitepress/config.ts",
-    "lint": "pnpm run check:runtime-exports && pnpm run check:no-json-schema-to-ts && oxlint packages docs scripts && eslint . && pnpm run lint:docs && pnpm run lint:docs:rules && pnpm run lint:docs:exports && pnpm run lint:docs:demos",
+    "lint": "pnpm run check:runtime-exports && pnpm run check:no-json-schema-to-ts && oxlint packages docs scripts && NODE_OPTIONS=--max-old-space-size=8192 eslint . && pnpm run lint:docs && pnpm run lint:docs:rules && pnpm run lint:docs:exports && pnpm run lint:docs:demos",
     "lint:docs": "tsx scripts/check-docs-includes.ts",
     "lint:docs:demos": "tsx scripts/check-docs-demos.ts",
     "lint:docs:rules": "tsx scripts/check-rule-docs.ts",

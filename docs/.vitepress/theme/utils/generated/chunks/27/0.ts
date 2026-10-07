@@ -2,6 +2,8 @@
 export async function loadPlaygroundModulesChunk() {
   return await Promise.all([
     import('../../modules/85').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/350').then(({ playgroundModule }) => { return playgroundModule; }),
+    import('../../modules/351').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/352').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/353').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/354').then(({ playgroundModule }) => { return playgroundModule; }),
@@ -30,8 +32,6 @@ export async function loadPlaygroundModulesChunk() {
     import('../../modules/377').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/378').then(({ playgroundModule }) => { return playgroundModule; }),
     import('../../modules/379').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/380').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/381').then(({ playgroundModule }) => { return playgroundModule; }),
-    import('../../modules/382').then(({ playgroundModule }) => { return playgroundModule; })
+    import('../../modules/380').then(({ playgroundModule }) => { return playgroundModule; })
   ]);
 }

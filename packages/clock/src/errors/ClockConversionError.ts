@@ -1,9 +1,9 @@
+import { BaseError } from '#runtime';
 /**
  * Concrete error for the `@studnicky/clock` package.
  *
  * @module
  */
-import { BaseError } from '@studnicky/types/browser';
 
 /** Thrown when a host timer reading cannot be converted to integer nanoseconds. */
 export class ClockConversionError extends BaseError {

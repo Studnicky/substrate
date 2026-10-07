@@ -1,4 +1,4 @@
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { JsonObject, Predicates } from '#runtime';
 
 /** Cycle-safe deep clone for entity boundaries. */
 export class EntityClone {

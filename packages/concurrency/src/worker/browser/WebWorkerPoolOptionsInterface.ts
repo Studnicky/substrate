@@ -1,4 +1,5 @@
-import type { Signal } from '@studnicky/signal/browser';
+
+import type { Signal } from '#runtime';
 
 import type { WorkerFactoryInterface } from '../interfaces/WorkerFactoryInterface.js';
 import type { WorkerTransportInterface } from '../interfaces/WorkerTransportInterface.js';

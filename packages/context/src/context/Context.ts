@@ -1,5 +1,5 @@
-import { HookInvoker } from '@studnicky/errors/browser';
-import { CallerFault } from '@studnicky/types/browser';
+
+import { CallerFault, HookInvoker } from '#runtime';
 
 /**
  * Context implementation using ContextStorageInterface.

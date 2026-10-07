@@ -1,3 +1,3 @@
-import { Predicate, Predicates } from '@studnicky/types/browser';
+import { Predicate, Predicates } from '#runtime';
 
 export const StringArrayPredicate = Predicate.arrayItems(Predicates.isString);

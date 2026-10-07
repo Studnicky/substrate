@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 import type { RequestFailureSignalsInterface } from '../interfaces/RequestFailureSignalsInterface.js';
 

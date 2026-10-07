@@ -1,4 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+
+import { RuntimeError } from '#runtime';
 
 import { StringNormalizer } from '../normalizers/StringNormalizer.js';
 

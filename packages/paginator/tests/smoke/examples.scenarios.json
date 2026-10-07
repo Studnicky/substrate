@@ -1,0 +1,15 @@
+{
+  "cases": [
+    {
+      "description": "runs observedPaginator without throwing",
+      "expected": {
+        "importsWithoutThrow": true
+      },
+      "input": {
+        "file": "../../examples/observedPaginator.ts"
+      },
+      "shape": "imports-example",
+      "name": "runs observedPaginator without throwing"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
-import { Coalesce } from '@studnicky/concurrency/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { Coalesce, HookInvoker, Predicates, RuntimeError } from '#runtime';
 
 import { LruCache } from '../LruCache.js';
 

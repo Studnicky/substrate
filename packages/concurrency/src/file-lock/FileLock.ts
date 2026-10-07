@@ -9,6 +9,8 @@ import {
 } from '@studnicky/scheduler/node';
 import { type BaseError, Predicates } from '@studnicky/types/node';
 
+import { NodeFileSystem } from '#file-system';
+
 import type { FileLockPathStateEntity } from './entities/FileLockPathStateEntity.js';
 import type { FileLockStateInterface } from './FileLockStateInterface.js';
 import type {
@@ -25,7 +27,6 @@ import { FileLockMachine } from './FileLockMachine.js';
 import { FileLockTimeoutError } from './FileLockTimeoutError.js';
 import { FileRenameLock } from './FileRenameLock.js';
 import { LockPathHelpers } from './LockPathHelpers.js';
-import { NodeFileSystem } from './NodeFileSystem.js';
 import { NodeOwnerToken } from './NodeOwnerToken.js';
 
 interface FileLockInternalOptionsInterface {

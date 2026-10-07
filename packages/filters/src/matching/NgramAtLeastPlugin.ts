@@ -1,5 +1,5 @@
-import { NgramScorer } from '@studnicky/matching/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { NgramScorer, Predicates } from '#runtime';
 
 import { Plugin } from '../plugins/Plugin.js';
 import { NgramThresholdFilterValuePredicate } from './predicates/NgramThresholdFilterValuePredicate.js';

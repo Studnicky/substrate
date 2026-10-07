@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import { type Node, type Program, TypeFlags } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 // WHY THE TYPE, AND NOT THE SYNTAX.
 //

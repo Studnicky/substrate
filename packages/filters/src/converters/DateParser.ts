@@ -3,7 +3,8 @@
  * @description Date parsing with multiple format support
  */
 
-import { TIME_ONLY_PATTERN } from '@studnicky/types/browser';
+
+import { TIME_ONLY_PATTERN } from '#runtime';
 
 import { INTEGER_STRING_PATTERN } from './constants/IntegerStringPattern.js';
 

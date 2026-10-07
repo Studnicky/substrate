@@ -166,5 +166,8 @@
   "packages/resilience/examples/retry-fixtures/customClassifierFixtures",
   "packages/resilience/examples/retry-observedRetry",
   "packages/pipeline/examples/traffic-light",
-  "packages/resilience/examples/boundaryKitComposition"
+  "packages/resilience/examples/boundaryKitComposition",
+  "packages/paginator/examples/entities/TransitionRecordEntity",
+  "packages/paginator/examples/observedPaginator",
+  "packages/system/examples/cpuMemoryPlatform"
 ]

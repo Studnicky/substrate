@@ -1,5 +1,5 @@
+import type { BaseErrorArgumentsInterface } from '#runtime';
 /** Runtime options for RetryError construction. */
-import { type BaseErrorArgumentsInterface } from '@studnicky/types/browser';
 
 export interface RetryErrorOptionsInterface extends Omit<
   BaseErrorArgumentsInterface,

@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /**
  * Thrown when a schema node is read before its definition resolves, or a bundled metaschema document is malformed.

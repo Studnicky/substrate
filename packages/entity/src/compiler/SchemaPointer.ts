@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 /** Resolves and renders JSON Pointers (RFC 6901) against a schema document. */
 export class SchemaPointer {

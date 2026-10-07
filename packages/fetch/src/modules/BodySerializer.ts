@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import type { BodyRequestOptionsInterface } from '../interfaces/BodyRequestOptionsInterface.js';
 

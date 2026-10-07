@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when the Context key a `ContextStore` resolves already holds a value that is not a Store owned by that `ContextStore`. */
 export class ContextStoreKeyConflictError extends BaseError {

@@ -1,4 +1,5 @@
-import type { ClockProviderInterface } from '@studnicky/clock/browser';
+
+import type { ClockProviderInterface } from '#runtime';
 
 import type { LoggerOptionsEntity } from '../entities/LoggerOptionsEntity.js';
 import type { TransportInterface } from '../transports/TransportInterface.js';

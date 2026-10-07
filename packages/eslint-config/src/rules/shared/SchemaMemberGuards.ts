@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { AstHelpers } from './astHelpers.js';
 import { ACCEPTED_SCHEMA_VALUE_NAMES, DISCRIMINANT_DEFEATING_SCHEMA_KEYS } from './constants/SchemaDerivationConstants.js';

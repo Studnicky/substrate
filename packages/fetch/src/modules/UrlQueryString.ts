@@ -2,7 +2,7 @@
  * URL and query string utilities as static class methods
  */
 
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { JsonObject, Predicates } from '#runtime';
 
 import type { QueryParametersInterface } from '../interfaces/QueryParametersInterface.js';
 

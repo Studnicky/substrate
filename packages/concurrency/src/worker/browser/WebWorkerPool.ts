@@ -1,5 +1,5 @@
-import { Signal } from '@studnicky/signal/browser';
-import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, Predicates, Signal } from '#runtime';
 
 import type {
   WorkerLeaseInterface,

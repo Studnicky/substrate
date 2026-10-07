@@ -2,23 +2,13 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/58/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/58/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/58/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/58/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/58/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/58/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/58/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/58/7';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },

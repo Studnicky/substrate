@@ -1,5 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates, RuntimeError } from '#runtime';
 
 export class StringNormalizer {
   static normalize(value: string, options: { 'caseSensitive'?: boolean; 'trim'?: boolean } = {}): string {

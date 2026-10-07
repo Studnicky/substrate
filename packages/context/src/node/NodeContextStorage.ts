@@ -1,5 +1,6 @@
-import { CallerFault } from '@studnicky/types/browser';
 import { AsyncLocalStorage } from 'node:async_hooks';
+
+import { CallerFault } from '#runtime';
 
 import type { ContextStorageInterface } from '../interfaces/ContextStorageInterface.js';
 

@@ -1,7 +1,8 @@
 import type { Rule } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
+
 
 // `esTreeNodeToTSNodeMap` is `Map`-shaped under some parser configs and `WeakMap`-shaped
 // under others; duck-typed on `.get()` rather than pinned to the `Map` constructor.

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["DOM", "ESNext"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "#runtime": ["./src/runtime/node/index.ts"],
+      "#provider": ["./src/providers/node/index.ts"]
+    }
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../errors"
+    },
+    {
+      "path": "../entity"
+    },
+    {
+      "path": "../fsm"
+    },
+    {
+      "path": "../types"
+    }
+  ]
+}

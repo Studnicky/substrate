@@ -1,6 +1,8 @@
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { CoalesceKeyStateEntity } from './entities/CoalesceKeyStateEntity.js';
 import type { CoalesceKeyTransitionEventEntity } from './entities/CoalesceKeyTransitionEventEntity.js';

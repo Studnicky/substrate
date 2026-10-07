@@ -1,5 +1,5 @@
-import { DamerauLevenshteinScorer } from '@studnicky/matching/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { DamerauLevenshteinScorer, Predicates } from '#runtime';
 
 import { Plugin } from '../plugins/Plugin.js';
 import { TextThresholdFilterValuePredicate } from './predicates/TextThresholdFilterValuePredicate.js';
