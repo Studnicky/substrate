@@ -28,6 +28,18 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#platform": {
+      "browser": "./dist/platform/browser/index.js",
+      "node": "./dist/platform/node/index.js",
+      "default": "./dist/platform/node/index.js"
+    },
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/node/index.d.ts",

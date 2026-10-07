@@ -1,6 +1,6 @@
 import type { StoreInterface, StoreListenerInterface, StoreSynchronizationIdentityInterface } from '@studnicky/store/interfaces';
 
-import { Clone, ImmutableSnapshot } from '@studnicky/json/browser';
+import { Clone, ImmutableSnapshot } from '#runtime';
 
 import type { ContextStoreOptionsInterface } from './interfaces/ContextStoreOptionsInterface.js';
 

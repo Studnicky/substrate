@@ -1,4 +1,5 @@
-import { CallerFault } from '@studnicky/types/browser';
+
+import { CallerFault } from '#runtime';
 
 import { BrowserContextStorage } from './BrowserContextStorage.js';
 

@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when `ContextStore.create` receives options that do not satisfy the ContextStore contract. */
 export class ContextStoreOptionsError extends BaseError {
