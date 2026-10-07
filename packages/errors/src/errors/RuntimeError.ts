@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 interface RuntimeErrorOptionsInterface {
   readonly 'cause'?: unknown;

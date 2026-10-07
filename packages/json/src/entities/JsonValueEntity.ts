@@ -1,8 +1,9 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 import { JsonValueNode } from '../schema/JsonValueNode.js';
 import { JsonValueSchema } from '../schema/JsonValueSchema.js';

@@ -1,6 +1,7 @@
 /** Deep merging for arbitrary in-memory values. */
 
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+
+import { JsonObject, Predicates } from '#runtime';
 
 import { Clone } from './Clone.js';
 

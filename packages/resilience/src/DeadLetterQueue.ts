@@ -1,7 +1,6 @@
 /** Bounded FIFO DLQ with async-generator drain; enqueue() throws on capacity/closed/aborted. */
-import { CircularBuffer } from '@studnicky/circular-buffer/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { CircularBuffer, HookInvoker, Predicates, RuntimeError } from '#runtime';
 
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';
 import type { DeadLetterQueueOptionsInterface } from './interfaces/DeadLetterQueueOptionsInterface.js';

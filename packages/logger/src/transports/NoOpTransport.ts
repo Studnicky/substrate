@@ -1,5 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates, RuntimeError } from '#runtime';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { TransportInterface } from './TransportInterface.js';

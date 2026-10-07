@@ -1,8 +1,7 @@
 /** Wraps a DeadLetterQueue and re-yields entries at a configurable interval. */
 
-import { EntityCompiler } from '@studnicky/entity/browser';
-import { HookInvoker } from '@studnicky/errors/browser';
-import { Delay } from '@studnicky/scheduler/browser';
+
+import { Delay, EntityCompiler, HookInvoker } from '#runtime';
 
 import type { DeadLetterQueue } from './DeadLetterQueue.js';
 import type { DeadLetterQueueEntryInterface } from './interfaces/DeadLetterQueueEntryInterface.js';

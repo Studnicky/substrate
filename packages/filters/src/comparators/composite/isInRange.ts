@@ -12,7 +12,8 @@
  * IsInRange.isInRange(15, [1, 10]); // false
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { FilterValueEntity } from '../../FilterValueEntity.js';
 

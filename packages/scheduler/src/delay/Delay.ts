@@ -7,8 +7,10 @@
  *
  * @module
  */
-import { type ClockProviderInterface, RealTimeClockProvider } from '@studnicky/clock/browser';
-import { CallerFault } from '@studnicky/types/browser';
+
+import type { ClockProviderInterface} from '#runtime';
+
+import { CallerFault, RealTimeClockProvider } from '#runtime';
 
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';
 import type { SchedulerProviderInterface } from '../interfaces/SchedulerProviderInterface.js';

@@ -1,6 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { ImmutableSnapshot } from '@studnicky/json/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { ImmutableSnapshot, Predicates, RuntimeError } from '#runtime';
 
 import type { LogRecordEntity } from '../entities/LogRecordEntity.js';
 import type { MemoryTransportOptionsEntity } from '../entities/MemoryTransportOptionsEntity.js';

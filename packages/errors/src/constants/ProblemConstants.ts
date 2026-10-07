@@ -1,9 +1,9 @@
+import { PROBLEM_TYPE_BASE } from '#runtime';
 /**
  * RFC 9457 Problem Details constants for the entities in this package.
  *
  * @module
  */
-import { PROBLEM_TYPE_BASE } from '@studnicky/types/browser';
 
 /** RFC 9457 §4.2.1: the type a problem carries when it adds nothing beyond its status. */
 export const PROBLEM_TYPE_BLANK = 'about:blank';

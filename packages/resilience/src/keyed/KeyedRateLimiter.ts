@@ -4,12 +4,10 @@
 
 import type { LruCacheOptionsEntity } from '@studnicky/cache/entities';
 
-import { LruCache } from '@studnicky/cache/browser';
 import { MonotonicNow } from '@studnicky/clock/monotonic-now';
 import { ClockError } from '@studnicky/clock/node';
-import { EntityCompiler } from '@studnicky/entity/browser';
-import { HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { BaseError, CallerFault, Predicates } from '@studnicky/types/browser';
+
+import { BaseError, CallerFault, EntityCompiler, HookInvoker, LruCache, Predicates, RuntimeError } from '#runtime';
 
 import type { RateLimitConsumptionInterface } from '../interfaces/RateLimitConsumptionInterface.js';
 import type { TokenBucketOptionsInterface } from '../interfaces/TokenBucketOptionsInterface.js';

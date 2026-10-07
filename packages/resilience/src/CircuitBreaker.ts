@@ -1,14 +1,9 @@
 /** Async circuit breaker: closed → open (on failure threshold) → halfOpen (on timeout) → closed. */
 import type { ErrorClassificationEntity } from '@studnicky/errors/entities';
 
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import {
-  type ErrorClassifierFunctionInterface,
-  type ErrorClassifierInterface,
-  HookInvoker,
-  RuntimeError
-} from '@studnicky/errors/browser';
-import { CallerFault, Predicates } from '@studnicky/types/browser';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface} from '#runtime';
+
+import { CallerFault, HookInvoker, Predicates, RuntimeError, SchemaIntakeError } from '#runtime';
 
 import type { CircuitBreakerCallRejectedEventEntity } from './entities/CircuitBreakerCallRejectedEventEntity.js';
 import type { CircuitBreakerCallSucceededEventEntity } from './entities/CircuitBreakerCallSucceededEventEntity.js';

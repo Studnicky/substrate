@@ -1,6 +1,5 @@
-import { ConfigurationError } from '@studnicky/config/browser';
-import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { ConfigurationError, HookInvocationError, HookInvoker, Predicates, RuntimeError } from '#runtime';
 
 import type { TimeUnitEntity } from '../entities/TimeUnitEntity.js';
 import type { TimingEventDataEntity } from '../entities/TimingEventDataEntity.js';

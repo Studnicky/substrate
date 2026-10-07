@@ -6,7 +6,8 @@
  * @module
  */
 
-import { HookInvoker } from '@studnicky/errors/browser';
+
+import { HookInvoker } from '#runtime';
 
 import { VirtualTimeCounterOptionsEntity } from '../entities/VirtualTimeCounterOptionsEntity.js';
 

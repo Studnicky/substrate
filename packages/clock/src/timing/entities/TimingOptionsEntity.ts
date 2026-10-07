@@ -5,8 +5,9 @@ import type {
 } from '@studnicky/entity/interfaces';
 import type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 import { DEFAULT_DECIMAL_PRECISION, DEFAULT_MAXIMUM_EVENTS } from '../constants/index.js';
 import { TimingPrecisionEntity } from './TimingPrecisionEntity.js';

@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { FacetAccessorMapType } from './types/FacetAccessorMapType.js';
 import type { FacetFilterStateType } from './types/FacetFilterStateType.js';

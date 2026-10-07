@@ -1,4 +1,5 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+
+import { RuntimeError } from '#runtime';
 
 import { NgramExtractor } from '../extractors/NgramExtractor.js';
 

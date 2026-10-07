@@ -3,7 +3,8 @@
  * @description Process date range values for comparison
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import { DateParser } from './DateParser.js';
 

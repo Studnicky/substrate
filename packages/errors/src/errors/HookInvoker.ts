@@ -3,7 +3,8 @@
  *
  * @module
  */
-import { CallerFault, JsonObject, Predicates } from '@studnicky/types/browser';
+
+import { CallerFault, JsonObject, Predicates } from '#runtime';
 
 import { HookInvokerOptionsEntity } from '../entities/HookInvokerOptionsEntity.js';
 import { HookInvocationError } from './HookInvocationError.js';

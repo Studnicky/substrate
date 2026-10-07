@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /**
  * Thrown when a retry lifecycle event payload cannot be structured-cloned for publishing.

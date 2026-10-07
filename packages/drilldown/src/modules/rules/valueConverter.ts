@@ -1,4 +1,4 @@
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 /**
  * Provides type conversion utilities for matching operations.

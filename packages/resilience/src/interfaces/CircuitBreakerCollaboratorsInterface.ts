@@ -1,7 +1,4 @@
-import type {
-  ErrorClassifierFunctionInterface,
-  ErrorClassifierInterface
-} from '@studnicky/errors/browser';
+import type { ErrorClassifierFunctionInterface, ErrorClassifierInterface } from '#runtime';
 
 /** Typed collaborators `CircuitBreaker.create` accepts alongside schema-validated options. */
 export interface CircuitBreakerCollaboratorsInterface {

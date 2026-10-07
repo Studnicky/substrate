@@ -4,9 +4,8 @@ import type { BusQueueCreateOptionsInterface } from '@studnicky/concurrency/queu
 
 import { BusQueueOptionsEntity } from '@studnicky/concurrency/queue/entities';
 import { BusQueue, BusQueueConfigError } from '@studnicky/concurrency/queue/node';
-import { SchemaIntakeError } from '@studnicky/entity/browser';
-import { HookInvoker } from '@studnicky/errors/browser';
-import { JsonObject } from '@studnicky/types/browser';
+
+import { HookInvoker, JsonObject, SchemaIntakeError } from '#runtime';
 
 import type {
   EventHandlerInterface,

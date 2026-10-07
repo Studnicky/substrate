@@ -1,8 +1,8 @@
+import { Predicates } from '#runtime';
 /**
  * Checks if object (Set, Map, or plain object) is empty
  */
 
-import { Predicates } from '@studnicky/types/browser';
 
 export class IsEmptyObject {
   static isEmptyObject(value: unknown): boolean {

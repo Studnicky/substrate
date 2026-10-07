@@ -1,4 +1,4 @@
-import { LruCache } from '@studnicky/cache/browser';
+import { LruCache } from '#runtime';
 
 export class SuffixMatcher {
   private static readonly skipTables = LruCache.create<string, ReadonlyMap<string, number>>({ 'capacity': 256 });

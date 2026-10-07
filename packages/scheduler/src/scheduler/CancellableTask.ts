@@ -3,8 +3,8 @@
  *
  * @module
  */
-import { TransitionRejectedError } from '@studnicky/fsm/browser';
-import { BaseError } from '@studnicky/types/browser';
+
+import { BaseError, TransitionRejectedError } from '#runtime';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
 import type { ScheduledTaskInterface } from '../interfaces/ScheduledTaskInterface.js';

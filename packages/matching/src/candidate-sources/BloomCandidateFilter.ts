@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+import { RuntimeError } from '#runtime';
 
 export class BloomCandidateFilter {
   readonly #bits: Uint8Array;

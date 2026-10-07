@@ -1,8 +1,9 @@
 import type { EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Schema-derived serializable state carried by an internal draft node. */
 export namespace DraftNodeStateEntity {

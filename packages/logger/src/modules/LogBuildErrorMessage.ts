@@ -1,4 +1,4 @@
-import type { SchemaIntakeError } from '@studnicky/entity/browser';
+import type { SchemaIntakeError } from '#runtime';
 
 /** Resolves a `LogBuildError` message from a config entity's `SchemaIntakeError`, naming the missing field when the failure is a required-property violation. */
 class LogBuildErrorMessage {

@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { GroupRuleEntity } from '../../entities/GroupRuleEntity.js';
 import type { GroupValueDiscriminantEntity } from '../../entities/GroupValueDiscriminantEntity.js';

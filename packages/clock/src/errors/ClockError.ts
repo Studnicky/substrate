@@ -1,9 +1,9 @@
+import { BaseError } from '#runtime';
 /**
  * Concrete error for the `@studnicky/clock` package.
  *
  * @module
  */
-import { BaseError } from '@studnicky/types/browser';
 
 /** Thrown when clock configuration is invalid (e.g. non-finite `offsetMs`). */
 export class ClockError extends BaseError {

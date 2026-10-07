@@ -1,8 +1,8 @@
+import { Frozen } from '#runtime';
 /**
  * Logical operators for combining criteria with direct function access
  */
 
-import { Frozen } from '@studnicky/json/browser';
 
 /** Logic gate implementations backing `LogicGate.CORE`. */
 class LogicGateHandlers {

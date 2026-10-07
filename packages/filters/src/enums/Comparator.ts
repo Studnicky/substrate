@@ -2,8 +2,8 @@
  * Comparator functions with direct function access
  */
 
-import { Frozen } from '@studnicky/json/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { Frozen, Predicates } from '#runtime';
 
 import { AreDeeplyEqual } from '../comparators/composite/areDeeplyEqual.js';
 import { AreStringsEqualCaseAware } from '../comparators/composite/areStringsEqualCaseAware.js';

@@ -1,4 +1,4 @@
-import type { ClockProviderInterface } from '@studnicky/clock/browser';
+import type { ClockProviderInterface } from '#runtime';
 
 /** Typed collaborators `LruCache.create` accepts alongside schema-validated options. */
 export interface LruCacheCollaboratorsInterface {

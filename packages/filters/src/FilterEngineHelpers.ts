@@ -4,7 +4,8 @@
  * error-entry conversion; no engine instance state.
  */
 
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { FilterEvaluationErrorEntryInterface } from './FilterEvaluationErrorEntryInterface.js';
 import type { FilterConditionInterface, FilterModeFunctionInterface } from './interfaces.js';

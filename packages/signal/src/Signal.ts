@@ -1,6 +1,6 @@
 /** Composes AbortSignal sources; eliminates repeated AbortController boilerplate. */
-import { HookInvoker } from '@studnicky/errors/browser';
-import { Predicates } from '@studnicky/types/browser';
+
+import { HookInvoker, Predicates } from '#runtime';
 
 import type { ComposedSignalInterface } from './interfaces/ComposedSignalInterface.js';
 import type { DeadlineTimerInterface } from './interfaces/DeadlineTimerInterface.js';

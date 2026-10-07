@@ -1,6 +1,8 @@
-import type { FsmStepInterface } from '@studnicky/fsm/browser';
 
-import { StateMachine, TransitionRejectedError } from '@studnicky/fsm/browser';
+
+import type { FsmStepInterface} from '#runtime';
+
+import { StateMachine, TransitionRejectedError } from '#runtime';
 
 import type { CancellableTaskStateEntity } from '../entities/CancellableTaskStateEntity.js';
 import type { CancellableTaskTransitionEventEntity } from '../entities/CancellableTaskTransitionEventEntity.js';

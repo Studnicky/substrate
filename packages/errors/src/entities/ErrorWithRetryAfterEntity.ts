@@ -1,7 +1,8 @@
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** Error with retry-after value (typically in seconds). */
 export namespace ErrorWithRetryAfterEntity {

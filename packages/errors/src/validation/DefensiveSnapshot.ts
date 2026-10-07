@@ -1,6 +1,7 @@
 import type { EntityIntakeFunctionInterface } from '@studnicky/entity/interfaces';
 
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+import { JsonObject, Predicates } from '#runtime';
+
 
 /** Builds detached projections of arrays and plain records without cloning collaborator instances. */
 export class DefensiveSnapshot {

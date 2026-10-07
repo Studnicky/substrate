@@ -1,4 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/browser';
+import { RuntimeError } from '#runtime';
 
 export class LshCandidateIndex {
   readonly #idsByBand = new Map<string, Set<string>>();

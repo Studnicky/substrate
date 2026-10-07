@@ -1,6 +1,7 @@
 /** Deep cloning for JavaScript values. */
 
-import { JsonObject, Predicates } from '@studnicky/types/browser';
+
+import { JsonObject, Predicates } from '#runtime';
 
 import { CloneError } from '../errors/CloneError.js';
 import { SameKind } from './SameKind.js';

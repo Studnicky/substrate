@@ -1,7 +1,8 @@
 /**
  * Fixed-capacity circular buffer for numeric samples with percentile calculation
  */
-import { HookInvoker } from '@studnicky/errors/browser';
+
+import { HookInvoker } from '#runtime';
 
 import type { SampleBufferInterface } from '../interfaces/SampleBufferInterface.js';
 
