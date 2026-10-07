@@ -1,12 +1,13 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import {
   IndexKind,
   type Type,
   type TypeChecker,
   TypeFlags
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 

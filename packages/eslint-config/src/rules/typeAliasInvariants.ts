@@ -1,6 +1,5 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import {
   isIndexedAccessTypeNode,
   isLiteralTypeNode,
@@ -24,6 +23,8 @@ import {
   type TypeNode,
   type TypeReferenceNode
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES

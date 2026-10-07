@@ -1,9 +1,10 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import {
   type InterfaceDeclaration, isInterfaceDeclaration, type Node, type Program
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 

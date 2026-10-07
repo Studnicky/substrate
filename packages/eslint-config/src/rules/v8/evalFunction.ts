@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { MESSAGE, RULE_NAME } from './constants/EvalFunctionConstants.js';

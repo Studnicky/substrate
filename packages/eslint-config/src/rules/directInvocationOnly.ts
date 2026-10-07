@@ -1,7 +1,8 @@
 import type { Rule, Scope } from 'eslint';
 import type ts from 'typescript';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
+
 
 interface ParserServicesInterface {
   readonly 'esTreeNodeToTSNodeMap'?: Map<unknown, ts.Node>;

@@ -1,6 +1,5 @@
 import type { Rule } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
 import {
   getCombinedModifierFlags,
   isIdentifier,
@@ -20,6 +19,8 @@ import {
   type TypeNode,
   type VariableStatement
 } from 'typescript';
+
+import { Predicates } from '#runtime';
 
 import { ACCEPTED_SCHEMA_VALUE_NAMES, CANONICAL_ENTITY_MEMBER_NAMES } from './shared/constants/SchemaDerivationConstants.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';

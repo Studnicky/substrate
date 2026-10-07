@@ -2,8 +2,9 @@ import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface } fro
 import type { NodeStaticType } from '@studnicky/entity/types';
 import type { Rule } from 'eslint';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 import { LayerOptionsEntity } from '../layers/LayerOptionsEntity.js';
 import { LayerResolver } from '../layers/LayerResolver.js';

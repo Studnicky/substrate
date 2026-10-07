@@ -1,8 +1,9 @@
 import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from '@studnicky/entity/interfaces';
 import type { NodeStaticType } from '@studnicky/entity/types';
 
-import { EntityCompiler } from '@studnicky/entity/browser';
 import { SchemaNode } from '@studnicky/entity/types';
+
+import { EntityCompiler } from '#runtime';
 
 /** A `class.method` pair whose body may throw a value that is not a BaseError: the sanctioned channel for errors raised by caller-supplied code. */
 export namespace PassThroughMethodEntity {

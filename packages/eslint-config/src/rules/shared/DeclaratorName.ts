@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import {
   BUILTIN_COLLECTION_CONSTRUCTOR_NAMES,

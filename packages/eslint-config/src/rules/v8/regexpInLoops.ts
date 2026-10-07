@@ -1,6 +1,6 @@
 import type { Rule, Scope } from 'eslint';
 
-import { Predicates } from '@studnicky/types/browser';
+import { Predicates } from '#runtime';
 
 import { AstHelpers } from '../shared/astHelpers.js';
 import { LoopContext } from '../shared/LoopContext.js';
