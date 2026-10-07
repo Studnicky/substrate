@@ -1,6 +1,4 @@
-import { RuntimeError } from '@studnicky/errors/browser';
-import { Clone } from '@studnicky/json/browser';
-import { Predicates } from '@studnicky/types/browser';
+import { Clone, Predicates, RuntimeError } from '#runtime';
 
 import type { QueryParametersEntity } from '../entities/QueryParametersEntity.js';
 import type { ClientConfigInterface } from '../interfaces/ClientConfigInterface.js';
