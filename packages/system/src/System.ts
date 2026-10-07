@@ -1,4 +1,6 @@
-import { RuntimeError } from '@studnicky/errors/node';
+
+import { SystemProvider } from '#provider';
+import { Predicates, RuntimeError } from '#runtime';
 
 import type { CpuInfoEntity } from './entities/CpuInfoEntity.js';
 import type { GpuCacheComputedNoneStateEntity } from './entities/GpuCacheComputedNoneStateEntity.js';
@@ -9,7 +11,6 @@ import type { MemoryInfoEntity } from './entities/MemoryInfoEntity.js';
 import type { PlatformInfoEntity } from './entities/PlatformInfoEntity.js';
 
 import { GPU_CACHE_MACHINE } from './GPU_CACHE_MACHINE.js';
-import { SystemProvider } from './providers/SystemProvider.js';
 
 const PROVIDER = new SystemProvider();
 
@@ -47,9 +48,13 @@ export class System {
 
     const result: PlatformInfoEntity.Type = {
       'isAppleSilicon': platformString === 'darwin' && PROVIDER.arch() === 'arm64',
-      'nodeVersion': PROVIDER.runtimeVersion(),
       'os': platformString
     };
+    const runtimeVersion = PROVIDER.runtimeVersion();
+
+    if (Predicates.isString(runtimeVersion)) {
+      result.nodeVersion = runtimeVersion;
+    }
     return result;
   }
 

@@ -1,6 +1,6 @@
-import type { HookInvoker } from '@studnicky/errors/node';
+import type { HookInvoker } from '#runtime';
 
-import { RuntimeError } from '@studnicky/errors/node';
+import { RuntimeError } from '#runtime';
 
 import type { PaginatorIdleStateEntity } from './entities/PaginatorIdleStateEntity.js';
 import type { PaginatorResetEventEntity } from './entities/PaginatorResetEventEntity.js';

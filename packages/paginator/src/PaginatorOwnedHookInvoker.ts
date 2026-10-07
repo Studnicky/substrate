@@ -1,4 +1,4 @@
-import { HookInvocationError, HookInvoker, RuntimeError } from '@studnicky/errors/node';
+import { HookInvocationError, HookInvoker, RuntimeError } from '#runtime';
 
 import type { PaginatorOwnerInterface } from './interfaces/PaginatorOwnerInterface.js';
 

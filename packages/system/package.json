@@ -30,6 +30,18 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "imports": {
+    "#runtime": {
+      "browser": "./dist/runtime/browser/index.js",
+      "node": "./dist/runtime/node/index.js",
+      "default": "./dist/runtime/node/index.js"
+    },
+    "#provider": {
+      "browser": "./dist/providers/browser/index.js",
+      "node": "./dist/providers/node/index.js",
+      "default": "./dist/providers/node/index.js"
+    }
+  },
   "exports": {
     "./node": {
       "types": "./dist/node/index.d.ts",

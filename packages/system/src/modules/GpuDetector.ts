@@ -1,6 +1,7 @@
-import { Predicates } from '@studnicky/types/node';
 import * as childProcess from 'node:child_process';
 import os from 'node:os';
+
+import { Predicates } from '#runtime';
 
 import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
 

@@ -1,4 +1,4 @@
-import { BaseError } from '@studnicky/types/browser';
+import { BaseError } from '#runtime';
 
 /** Thrown when a page or cursor cannot be structured-cloned. */
 export class PaginatorCloneError extends BaseError {

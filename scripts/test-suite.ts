@@ -457,6 +457,14 @@ function resolveExampleSmokePackageName(files: readonly string[], workspacePacka
   return packageName;
 }
 
+const BROWSER_CONDITION_ARGS: readonly string[] = ['--conditions=browser'];
+
+function isBrowserSpecFile(file: string): boolean {
+  const result = file.split('/').includes('browser');
+
+  return result;
+}
+
 async function runNodeTests(
   files: readonly string[],
   watch: boolean,
@@ -464,7 +472,27 @@ async function runNodeTests(
   workspacePackages: readonly WorkspacePackageInterface[],
   packageFilter: string
 ): Promise<void> {
-  const args: string[] = [];
+  const nodeFiles = files.filter((file) => { return isBrowserSpecFile(file) === false; });
+  const browserFiles = files.filter((file) => { return isBrowserSpecFile(file); });
+
+  if (nodeFiles.length > 0) {
+    const nodeSmokePackageName = resolveExampleSmokePackageName(nodeFiles, workspacePackages, packageFilter);
+    await spawnNodeTestProcess(nodeFiles, watch, coverage, [], nodeSmokePackageName);
+  }
+  if (browserFiles.length > 0) {
+    const browserSmokePackageName = resolveExampleSmokePackageName(browserFiles, workspacePackages, packageFilter);
+    await spawnNodeTestProcess(browserFiles, watch, coverage, BROWSER_CONDITION_ARGS, browserSmokePackageName);
+  }
+}
+
+async function spawnNodeTestProcess(
+  files: readonly string[],
+  watch: boolean,
+  coverage: boolean,
+  conditionArgs: readonly string[],
+  exampleSmokePackageName: string
+): Promise<void> {
+  const args: string[] = [...conditionArgs];
 
   if (coverage) {
     appendCoverageArgs(args, files);
@@ -479,7 +507,6 @@ async function runNodeTests(
   args.push(...files);
   logSuite(`spawn ${NODE_BIN} ${args.map(shellQuote).join(' ')} (${files.length} files)`);
 
-  const exampleSmokePackageName = resolveExampleSmokePackageName(files, workspacePackages, packageFilter);
   await new Promise<void>((settle, fail) => {
     const child = spawn(NODE_BIN, args, {
       'cwd': ROOT_DIR,

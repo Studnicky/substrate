@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import { describe, it, mock } from 'node:test';
 
+import { SystemProvider } from '#provider';
+
 import type { GpuInfoEntity } from '../../src/entities/GpuInfoEntity.js';
 
-import { SystemProvider } from '../../src/providers/SystemProvider.js';
 import { System } from '../../src/System.js';
 import scenarioGroups from './System.scenarios.json' with { 'type': 'json' };
 

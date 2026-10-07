@@ -1,4 +1,5 @@
-import { Predicates } from '@studnicky/types/browser';
+
+import { Predicates } from '#runtime';
 
 import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
 import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
@@ -122,10 +123,8 @@ export class SystemProvider implements SystemProviderInterface {
     return result;
   }
 
-  runtimeVersion(): string {
-    const nav = SystemProvider.#navigator();
-    const result = nav.userAgent ?? 'unknown';
-    return result;
+  runtimeVersion(): string | undefined {
+    return undefined;
   }
 
   totalMb(): number {

@@ -1,11 +1,11 @@
 import os from 'node:os';
 
-import type { CpuSnapshotEntity } from '../entities/CpuSnapshotEntity.js';
-import type { GpuInfoEntity } from '../entities/GpuInfoEntity.js';
-import type { SystemProviderInterface } from '../interfaces/SystemProviderInterface.js';
+import type { CpuSnapshotEntity } from '../../entities/CpuSnapshotEntity.js';
+import type { GpuInfoEntity } from '../../entities/GpuInfoEntity.js';
+import type { SystemProviderInterface } from '../../interfaces/SystemProviderInterface.js';
 
-import { BYTES_PER_MB } from '../constants/index.js';
-import { GpuDetector } from '../modules/GpuDetector.js';
+import { BYTES_PER_MB } from '../../constants/index.js';
+import { GpuDetector } from '../../modules/GpuDetector.js';
 
 export class SystemProvider implements SystemProviderInterface {
   arch(): string {

@@ -10,6 +10,6 @@ export interface SystemProviderInterface {
   logicalCpuCount(): number;
   physicalCpuCount(): number;
   platform(): string;
-  runtimeVersion(): string;
+  runtimeVersion(): string | undefined;
   totalMb(): number;
 }
