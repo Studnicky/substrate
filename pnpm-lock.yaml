@@ -530,9 +530,6 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
-      json-schema-to-ts:
-        specifier: ^3.1.1
-        version: 3.1.1
 
   packages/pipeline:
     dependencies:
@@ -665,9 +662,6 @@ importers:
       '@studnicky/types':
         specifier: workspace:*
         version: link:../types
-      json-schema-to-ts:
-        specifier: ^3.1.1
-        version: 3.1.1
 
   packages/types:
     dependencies:
