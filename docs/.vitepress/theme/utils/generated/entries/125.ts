@@ -2,17 +2,15 @@
 import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/125/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/125/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/125/2';
-import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/125/3';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
     const chunks = await Promise.all([
       loadChunk0(),
       loadChunk1(),
-      loadChunk2(),
-      loadChunk3()
+      loadChunk2()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
-  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace StepContextTypeEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'step\': { \'type\': \'number\' },\n      \'value\': { \'type\': \'string\' }\n    },\n    \'required\': [\'step\', \'value\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'step\': SchemaNode.defineNumber({ \'type\': \'number\' } as const), \'value\': SchemaNode.defineString({ \'type\': \'string\' } as const) }, [\'step\', \'value\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
+  'source': 'import type { EntityCreateFunctionInterface, EntityIntakeFunctionInterface, EntityValidateFunctionInterface } from \'@studnicky/entity/interfaces\';\nimport type { NodeStaticType } from \'@studnicky/entity/types\';\n\nimport { EntityCompiler } from \'@studnicky/entity/node\';\nimport { SchemaNode } from \'@studnicky/entity/types\';\n\nexport namespace HookRequestContextEntity {\n  export const Schema = {\n    \'additionalProperties\': false,\n    \'properties\': {\n      \'elapsed\': { \'minimum\': 0, \'type\': \'number\' },\n      \'headers\': {\n        \'additionalProperties\': { \'type\': \'string\' },\n        \'type\': \'object\'\n      },\n      \'url\': { \'type\': \'string\' }\n    },\n    \'required\': [\'headers\', \'url\'],\n    \'type\': \'object\'\n  } as const;\n\n  export const Node = SchemaNode.defineObject({ \'type\': \'object\' } as const, { \'elapsed\': SchemaNode.defineNumber({ \'minimum\': 0, \'type\': \'number\' } as const), \'headers\': SchemaNode.defineObject({ \'type\': \'object\' } as const, {  }, [] as const, { \'additionalProperties\': SchemaNode.defineString({ \'type\': \'string\' } as const), \'patternProperties\': {} }), \'url\': SchemaNode.defineString({ \'type\': \'string\' } as const) }, [\'headers\', \'url\'] as const, { \'additionalProperties\': false, \'patternProperties\': {} });\n  export type Type = NodeStaticType<typeof Node>;\n\n  export const validate: EntityValidateFunctionInterface<Type> = EntityCompiler.compile<Type>(Schema);\n  export const intake: EntityIntakeFunctionInterface<Type> = EntityCompiler.compileIntake<Type>(Schema);\n  export const create: EntityCreateFunctionInterface<Type> = EntityCompiler.compileCreate<Type>(Schema);\n}\n'
 });

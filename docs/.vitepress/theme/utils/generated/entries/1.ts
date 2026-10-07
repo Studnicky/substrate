@@ -3,11 +3,6 @@ import { loadPlaygroundModulesChunk as loadChunk0 } from '../chunks/1/0';
 import { loadPlaygroundModulesChunk as loadChunk1 } from '../chunks/1/1';
 import { loadPlaygroundModulesChunk as loadChunk2 } from '../chunks/1/2';
 import { loadPlaygroundModulesChunk as loadChunk3 } from '../chunks/1/3';
-import { loadPlaygroundModulesChunk as loadChunk4 } from '../chunks/1/4';
-import { loadPlaygroundModulesChunk as loadChunk5 } from '../chunks/1/5';
-import { loadPlaygroundModulesChunk as loadChunk6 } from '../chunks/1/6';
-import { loadPlaygroundModulesChunk as loadChunk7 } from '../chunks/1/7';
-import { loadPlaygroundModulesChunk as loadChunk8 } from '../chunks/1/8';
 
 export const playgroundPayload = Object.freeze({
   'loadModules': async function() {
@@ -15,12 +10,7 @@ export const playgroundPayload = Object.freeze({
       loadChunk0(),
       loadChunk1(),
       loadChunk2(),
-      loadChunk3(),
-      loadChunk4(),
-      loadChunk5(),
-      loadChunk6(),
-      loadChunk7(),
-      loadChunk8()
+      loadChunk3()
     ]);
     return Object.fromEntries(chunks.flat().map(({ canonical, code }) => { return [canonical, code]; }));
   },
