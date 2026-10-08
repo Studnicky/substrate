@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/filters",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Composable declarative filtering primitives for @studnicky/substrate",
   "keywords": [
     "composition",
@@ -22,8 +22,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

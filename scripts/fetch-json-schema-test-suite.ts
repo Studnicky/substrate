@@ -28,9 +28,19 @@ interface VendoredCommitManifestInterface {
   readonly 'repository': string;
 }
 
+const COMMIT_SHA_RE = /^[0-9a-f]{7,40}$/;
+
+/** Rejects a commit that is not a bare hex SHA before it reaches a fetch URL or a filesystem path segment. */
+function requireValidCommitSha(commit: string): string {
+  if (!COMMIT_SHA_RE.test(commit)) {
+    throw new Error(`fetch-json-schema-test-suite: '${commit}' is not a valid commit SHA`);
+  }
+  return commit;
+}
+
 function readPinnedCommit(): string {
   const manifest = JSON.parse(readFileSync(PIN_PATH, 'utf8')) as VendoredCommitManifestInterface;
-  return manifest.commit;
+  return requireValidCommitSha(manifest.commit);
 }
 
 async function fetchArchive(commit: string, archivePath: string): Promise<void> {
@@ -51,7 +61,8 @@ function extractArchive(archivePath: string, destinationDir: string): void {
 }
 
 async function main(): Promise<void> {
-  const commit = process.argv[2] ?? readPinnedCommit();
+  const cliCommit = process.argv[2];
+  const commit = cliCommit === undefined ? readPinnedCommit() : requireValidCommitSha(cliCommit);
   const scratchDir = resolve(ROOT_DIR, '.tmp-json-schema-test-suite');
   rmSync(scratchDir, { 'force': true, 'recursive': true });
   mkdirSync(scratchDir, { 'recursive': true });

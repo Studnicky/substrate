@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/substrate",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "private": true,
   "description": "A subclass-first toolkit of TypeScript primitives — retry, semaphore, mutex, scheduler, clock, context, pipeline, logger, errors, json, and more. Every class is a usable primitive and an extension base via protected lifecycle hooks and an explicit FSM.",
   "homepage": "https://studnicky.github.io/substrate/",
@@ -52,6 +52,7 @@
     "test:conformance:update-baseline": "tsx packages/entity/tests/conformance/run-conformance.ts --update-baseline",
     "test:unit": "tsx scripts/test-suite.ts unit --fail-if-empty",
     "test:integration": "tsx scripts/test-suite.ts integration --fail-if-empty",
+    "test:browser": "tsx scripts/RunBrowserTests.ts",
     "test:smoke": "tsx scripts/test-suite.ts smoke --fail-if-empty",
     "test:all": "tsx scripts/test-suite.ts all --fail-if-empty",
     "test:coverage": "tsx scripts/test-suite.ts all --coverage --fail-if-empty",
@@ -93,6 +94,7 @@
     "cytoscape-cose-bilkent": "^4.1.0",
     "cytoscape-fcose": "^2.2.0",
     "dayjs": "^1.11.23",
+    "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-perfectionist": "^5.11.1",
@@ -105,7 +107,9 @@
     "oxfmt": "0.71.0",
     "oxlint": "^1.85.0",
     "pagefind": "1.5.2",
+    "playwright": "^1.64.0",
     "puppeteer": "25.12.0",
+    "resolve.exports": "^2.0.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.70.1",
@@ -122,7 +126,8 @@
     "overrides": {
       "vite": "^8.3.0",
       "fast-uri": "3.1.8",
-      "brace-expansion": "5.0.12"
+      "brace-expansion": "5.0.12",
+      "katex": "0.18.2"
     }
   },
   "substrate": {

@@ -19,6 +19,10 @@ inputs:
     description: Install Puppeteer's lockfile-pinned Chrome Headless Shell.
     required: false
     default: "false"
+  install-playwright-browsers:
+    description: Install Playwright's lockfile-pinned Chromium, Firefox, and WebKit, with their Linux system dependencies.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -92,3 +96,20 @@ runs:
       name: Install Chrome Headless Shell
       shell: bash
       run: pnpm exec puppeteer browsers install chrome-headless-shell
+    - if: inputs.install-playwright-browsers == 'true'
+      id: playwright-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+    - if: inputs.install-playwright-browsers == 'true'
+      name: Install Playwright browsers
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.playwright-cache.outputs.cache-hit }}
+      run: |
+        if [ "$CACHE_HIT" = 'true' ]; then
+          pnpm exec playwright install-deps chromium firefox webkit
+        else
+          pnpm exec playwright install --with-deps chromium firefox webkit
+        fi

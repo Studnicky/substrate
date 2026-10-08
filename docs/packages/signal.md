@@ -19,13 +19,13 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ### Compose a signal from a caller signal and/or a deadline
 
-Create a `Signal` instance with `Signal.create()`. Its async `compose` method combines a caller `AbortSignal` and a timeout deadline using `AbortSignal.any`. The composed signal aborts as soon as either source fires. If neither is provided, it returns the never-aborting sentinel so consuming code always receives a valid `AbortSignal`.
+A reader's title search needs to stop the moment either of two things happens: the reader cancels, or the supplier's allotted time runs out — whichever comes first. `Signal.create()` gives you a `compose()` method that combines a caller `AbortSignal` and a timeout deadline with `AbortSignal.any`, aborting as soon as either source fires; supply neither and it hands back a never-aborting sentinel instead, so the calling code never has to branch on whether a signal exists. The example below runs through every combination — both sources, each alone, neither, a zero-millisecond deadline, and the `SignalError` thrown for a negative or `NaN` deadline — to pin down the exact behavior of each case.
 
 <<< ../../packages/signal/examples/compose.ts#usage
 
 ### Never-aborting sentinel and deadline signal
 
-The sentinel is a singleton: `Signal.never()` returns the same `AbortSignal` instance on every call. `Signal.create().compose({ deadlineMs })` accepts whole milliseconds from 0 through 2,147,483,647 and creates a deadline signal through the same observed composition path used for every other option combination.
+Not every operation has a caller signal or a deadline — sometimes the honest answer is "this never gets cancelled," and code further down the chain still needs a real `AbortSignal` to pass around. `Signal.never()` is built for that: every call hands back a fresh `AbortSignal` that simply never aborts, so there's no shared state to worry about. The example below confirms three successive calls return three distinct, never-aborted signals, then checks that `compose({ deadlineMs })` still produces its own distinct signal for each deadline, following the same composition path proven in the previous example.
 
 <<< ../../packages/signal/examples/neverTimeout.ts#usage
 
@@ -70,6 +70,6 @@ Northstar Books uses `Signal` when a catalogue lookup or inventory action must s
 | --------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `create`  | `static () => Signal`                                                     | Creates a Signal instance                                                                                          |
 | `compose` | `(options: { signal?, deadlineMs? }) => Promise<ComposedSignalInterface>` | Returns a disposable handle whose `signal` merges caller signal and/or timeout; dispose it when the operation ends |
-| `never`   | `static () => AbortSignal`                                                | Returns a singleton signal that never aborts                                                                       |
+| `never`   | `static () => AbortSignal`                                                | Returns a fresh signal that never aborts                                                                           |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/signal)

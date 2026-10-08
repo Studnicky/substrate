@@ -23,21 +23,21 @@ pnpm add @studnicky/errors
 
 ## Usage
 
-`ModuleError.create()` resolves error code, retry behavior, and HTTP status from a named scenario.
+Not every error needs a bespoke subclass — sometimes a `NOT_FOUND` or a `CONNECTION` failure just needs the right code, status, and retry guidance already filled in. This example creates both from named scenarios, wraps a timeout around a lower-level `RuntimeError` to build a real cause chain, and calls `toJSON()` to see the RFC 9457 shape a client would actually receive.
 
 <<< ../../packages/errors/examples/02-module-error.ts#usage
 
-Extend `BaseError` (exported by [`@studnicky/types`](./types.md#baseerror)) or `ModuleError` for a domain-specific error, and use `DomainErrorArgumentList` when a leaf error carries typed fields.
+Two different needs call for two different tools. The first example below subclasses `BaseError` (exported by [`@studnicky/types`](./types.md#baseerror)) directly to build `AppError` — overriding `serializeExtra()` to add a `domain` field and `formatUserMessage()` for a user-facing string — and shows a real cause chain by wrapping a lower-level error. The second needs something `BaseError` alone can't give for free: typed constructor fields. `DomainErrorArgumentList.build()` takes the field values and a message-building function and hands back exactly the arguments `BaseError`'s constructor expects, so `RateLimitExceededError` ends up with a `.limit` and a `.route` a caller can read directly, not just a formatted message.
 
 <<< ../../packages/errors/examples/01-base-error.ts#usage
 
 <<< ../../packages/errors/examples/04-domain-error-args.ts#usage
 
-`HookInvoker` runs synchronous or asynchronous lifecycle hooks, preserving diagnostics in `HookInvocationError` and reporting timeouts as `HookTimeoutError`.
+A broken observability hook shouldn't be able to break the thing it's observing. This example wires a counter's `increment()` through `HookInvoker`, then deliberately makes the hook throw on the second increment — the counter still reaches 3, and the failure is captured as a single recorded `HookInvocationError` rather than propagating up and aborting the increment that triggered it.
 
 <<< ../../packages/errors/examples/06-hook-invoker.ts#usage
 
-`EventRecorder` stores detached event projections for small observability integrations.
+Logging a cache hit or miss shouldn't require a logger import and a console-formatting decision at every call site — `EventRecorder` collapses "push an event, print a trace line" into one call. This example's `TracingCache` records a hit for a key it has and a miss for one it doesn't, and the assertions read the recorded events straight back as plain structured data.
 
 <<< ../../packages/errors/examples/05-event-recorder.ts#usage
 

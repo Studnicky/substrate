@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "keywords": [
     "cpu",
@@ -25,8 +25,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

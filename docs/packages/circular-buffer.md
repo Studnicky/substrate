@@ -28,13 +28,13 @@ pnpm add @studnicky/circular-buffer
 
 ## Usage
 
-Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted and the new item takes its slot. Length stays at capacity:
+Northstar wants to keep the three most recent catalogue edits on hand without that list growing forever — a fixed-capacity ring is exactly the shape for that. Push a fourth item onto a capacity-3 `CircularBuffer` and the oldest one — the first pushed — gets evicted automatically, so length never exceeds capacity. The example below pushes four numbers into a ring that only holds three, then shifts everything back out to confirm the survivors are the three most recent, in the order they arrived.
 
 <<< ../../packages/circular-buffer/examples/basicUsage.ts#usage
 
 ## Numeric samples
 
-`SampleBuffer` owns a fixed-capacity numeric sliding window with sorted-cache percentile calculation. It preserves its own seven-hook protocol rather than inheriting the generic ring-buffer protocol. Import it from the canonical subpath:
+Measuring book-search latency means watching a rolling window of recent timings and asking questions like "what's the p95?" — without holding on to every sample ever recorded. `SampleBuffer` is a fixed-capacity numeric sliding window with its own sorted-cache percentile calculation, built on a separate seven-hook protocol rather than inheriting the generic ring-buffer's hooks; import it from its own canonical subpath. The example below fills a five-sample buffer, reads back its median and 95th percentile, pushes two more values to evict the oldest two, and clears it.
 
 <<< ../../packages/circular-buffer/examples/sampleBasicUsage.ts#usage
 
@@ -44,7 +44,7 @@ Fixed-capacity ring buffer. When the buffer is full, the oldest item is evicted 
 
 ### Lifecycle hooks
 
-`TracingBuffer` subclasses `CircularBuffer` and overrides five hooks: `onOverflow`, `onEvict`, `onPush`, `onShift`, and `onGrow`. Two scenarios run: an overwrite-mode ring (capacity 3, 5 pushes — watch 2 overflow and 2 eviction events) and a grow-mode ring (capacity 2, 3 pushes — watch the buffer double to capacity 4 instead of evicting).
+`TracingBuffer` subclasses `CircularBuffer` and overrides all five lifecycle hooks — `onOverflow`, `onEvict`, `onPush`, `onShift`, and `onGrow` — to print every capacity decision as it happens. Two scenarios run side by side: an overwrite-mode ring at capacity 3 takes five pushes and visibly overflows and evicts twice, while a grow-mode ring at capacity 2 takes three pushes and doubles its own capacity to 4 instead of ever evicting anything.
 
 <RunnableExample src="packages/circular-buffer/examples/observedCircularBuffer" title="Observed ring buffer — lifecycle hook trace" />
 
@@ -54,13 +54,13 @@ Import `CircularBuffer` and `CircularBufferError` from `@studnicky/circular-buff
 
 ## Extending
 
-`CircularBuffer` is a class; subclass it to add domain-specific behavior. Override the protected hooks `onEvict`, `onGrow`, `onPush`, and `onShift` to observe lifecycle events without coupling business logic to the buffer internals:
+`CircularBuffer` is an ordinary class, so adding domain-specific behavior is just a subclass away. The example below builds two: an `EvictTracker` that overrides `onEvict` to record exactly which item gets dropped when a capacity-2 overwrite ring takes a third push, and a `GrowTracker` that overrides `onGrow` to catch the moment a capacity-2 grow-mode ring doubles itself to 4 instead of evicting anything.
 
 <<< ../../packages/circular-buffer/examples/subclassHooks.ts#usage
 
 ## Observability hooks
 
-Override any protected hook to observe lifecycle events without coupling to a logger or metrics library.
+Every meaningful change to a `CircularBuffer` — an overflow, an eviction, a push, a shift, a grow — has its own protected hook ready to override, so Northstar can watch what's happening without wiring the buffer itself to any particular logger or metrics library.
 
 | Hook                               | When it fires                                                                                         | Args                                         |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |

@@ -38,7 +38,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Create a `Logger` with one configuration object, attach transports, then pass structured `LogBody` or `LogFault` entries to the log methods:
+A logger is only as useful as the questions it can answer later, so Northstar wants every entry to carry the same shape: a component, an operation, a status, a message. This example builds a `Logger` with an in-memory transport, writes one successful `LogBody` entry and one `LogFault` entry, clears the buffer, then creates a child logger and confirms its own metadata (`service: 'auth'`) rides along on every record it writes — all without the component code ever knowing where the logs actually end up:
 
 <<< ../../packages/logger/examples/01-memory-transport.ts#usage
 
@@ -55,19 +55,19 @@ object and return an immutable normalized entry. Both require `component`, `oper
 
 ## Fan-out and level filtering
 
-Pass multiple transports to `Logger.create`. Each transport has its own level floor; entries below the floor are silently dropped. Child loggers share all parent transports and merge their metadata into every record:
+One request might need a full debug log and only its warnings and errors sent to an alerting channel — `Logger` doesn't force a choice between the two. This example attaches two transports with different level floors to one logger, sends an `info` that only the permissive transport keeps, then a `warn` that both keep, and finally logs through a child logger to confirm its metadata still reaches every transport the parent has, not just the one it was created from:
 
 <<< ../../packages/logger/examples/03-fanout.ts#usage
 
 ## Custom transports
 
-Implement `TransportInterface` directly for a custom sink. Use `ParseLogLevel.parse()` from `@studnicky/logger/node` when the transport accepts named or numeric level configuration:
+Not every destination wants one record at a time — a transport shipping logs over the network usually wants to batch them first. This example writes a small `BufferedTransport` that implements `TransportInterface` directly, uses `ParseLogLevel.parse()` to accept its minimum level as a plain string, and only calls its sink once two records have accumulated. The assertions confirm the first log alone doesn't trigger a flush, but the second one does:
 
 <<< ../../packages/logger/examples/04-custom-transport.ts#usage
 
 ## Observability hooks
 
-Subclass `Logger` and override the protected hooks below to inject tracing, metrics, or debug logging without modifying the class itself.
+The point of a hook is that nothing needs to touch `Logger` itself to see what it's doing — subclass it, override one of the four protected methods below, and there's a front-row seat to every record assembled, every record dropped, every child created, and every transport that throws.
 
 | Hook               | Class    | When it fires                                                    | Args                                                                          |
 | ------------------ | -------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -136,7 +136,7 @@ The examples below run in the browser via the embedded playground.
 
 ### Lifecycle hooks
 
-Each log call fires `onLog`, filtered calls fire `onDropped`, and transport failures surface via `onTransportError` — all without modifying Logger's public API.
+Run this one to watch a logger instrument itself in real time: an `info` call fires `onLog`, a `debug` call below the configured floor fires `onDropped` instead, creating a child logger fires `onChildCreate`, and — because the only transport attached here throws on every write — `onTransportError` fires too, catching the failure rather than letting it take down the rest of the call. None of this required touching `Logger`'s public surface.
 
 <RunnableExample src="packages/logger/examples/observedLogger" title="Logger lifecycle hooks" />
 

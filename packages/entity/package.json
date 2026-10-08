@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/entity",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Entity construction primitives: strict creation and intake compilation, canonical entity contracts, and cycle-safe value-graph checks",
   "keywords": [
     "boundary",
@@ -23,8 +23,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

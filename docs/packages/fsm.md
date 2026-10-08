@@ -52,13 +52,13 @@ A preparing transition can emit a pipeline effect that validates the order, calc
 
 ## MachineRegistry: named registry
 
-Each `MachineRegistry.create()` call creates an independent store for named interpreter instances. Registering under a key makes the interpreter available to code holding that registry instance:
+Northstar Books might run several independent toggles or small machines side by side — a feature flag here, a sync indicator there — and each one needs a name other code can look it up by, without those machines bleeding into each other across unrelated parts of the app. `MachineRegistry.create()` gives you exactly that: a fresh, isolated namespace. The example below registers one interpreter under `'toggle-a'`, drives it entirely through the registry rather than the original object, proves a second registration under the same name throws, and shows that unregistering it frees the name again:
 
 <<< ../../packages/fsm/examples/registry.ts#usage
 
 ## Error handling
 
-`StateMachine.transition` rethrows `TransitionRejectedError` unchanged and wraps other reducer defects in `ReducerThrewError`. `EffectInterpreter` guards against reads before `start()` and sends after `stop()`:
+A reducer is just a function, and functions can misbehave — throw on a bad event, get read before the interpreter is ready, or get sent to after it has already shut down. Rather than let any of that surface as a bare, unrecognizable exception, the FSM wraps each failure in a named error you can catch for. This example triggers all three: a reducer that throws mid-transition (wrapped as `ReducerThrewError`), a `getState()` call before `start()` (`InterpreterNotStartedError`), and a `send()` after `stop()` (`InterpreterNotRunningError`):
 
 <<< ../../packages/fsm/examples/error-handling.ts#usage
 
@@ -102,6 +102,8 @@ Every stateful class exposes `protected` hook methods that fire at each signific
 | `onResolveMiss(id)` | When `get()` returns `undefined` for an unknown id                   | `id: string` |
 
 ### Example — traced traffic light
+
+Here is all three layers wired up with their hooks at once: a traffic-light machine logging its own transitions, an interpreter logging effect dispatch around it, and a registry logging registration events — the full stack a Northstar Books ops dashboard would tap into to watch a fulfilment machine live. Watch the paired `[fsm:machine]` and `[fsm:interp]` log lines as the light advances red → green → amber → red, a chime effect firing on the amber transition, and a deliberate lookup miss against an unregistered id along the way.
 
 <<< ../../packages/fsm/examples/observedFsm.ts#usage
 
@@ -149,7 +151,7 @@ Import FSM classes and package errors from `@studnicky/fsm/node`; import type co
 
 ### `InterpreterHistory<TState, TEvent, TEffect>`
 
-`InterpreterHistory` is a bounded `EffectInterpreter` with the same optional singular handler. It records each variant-changing `onTransition` event and exposes readonly, isolated snapshots:
+Sometimes you don't want a subclass just to remember the last few transitions — you want that memory built in. `InterpreterHistory` is an `EffectInterpreter` that keeps its own bounded ring of transition records, evicting the oldest once it's full. The example below caps that ring at 2 and sends 3 advances through a traffic light, so the very first transition (red → green) falls out of the recorded history, leaving only the two most recent:
 
 <<< ../../packages/fsm/examples/interpreterHistory.ts#usage
 
@@ -163,7 +165,7 @@ Run the examples below directly in the browser to see the FSM primitives in acti
 
 ### Lifecycle hooks
 
-Every variant-changing state transition fires hooks on both the machine and interpreter layers — watch the paired log lines as each advance propagates.
+Run the traffic light live and watch the two layers talk to each other: every advance fires a matched pair of log lines, one from the machine announcing its own state change and one from the interpreter announcing the same change plus any effect it dispatched.
 
 <RunnableExample src="packages/fsm/examples/observedFsm" title="FSM lifecycle hooks" />
 

@@ -31,7 +31,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Node usage
 
-The `/node` entrypoint configures AsyncLocalStorage automatically, so ordinary `await` retains the active scope. Create a named context, initialize a scope with seed values, run code inside `execute()`, then call `terminate()` to extract the final snapshot:
+Say a Northstar Books request comes in and needs its own `requestId` to follow it everywhere it goes — into logging, into every handler it touches — without threading that value through every function signature by hand. The `/node` entrypoint handles this automatically: once a scope is open, ordinary `await` keeps carrying it along for you. Below, a scope opens with a seed `requestId`, two more values get set from inside `execute()`, and `terminate()` hands back everything the scope collected as a frozen snapshot you can still read after the scope itself has gone inactive.
 
 <<< ../../packages/context/examples/basic-context.ts#usage
 
@@ -158,7 +158,7 @@ scope.terminate();
 
 ## Try it
 
-The playground demo does not run the Vite transform, so it uses `scope.await(value)` to preserve browser Context across its waits. Browser applications use the transform plugin and ordinary `await`.
+Picture two Northstar Books readers opening different book-detail pages at nearly the same moment — one page's data comes back in a few milliseconds, the other takes a bit longer. Both requests want to carry their own `requestId` through whatever async work they trigger, and neither should ever see the other's value by accident. This demo first runs one scope automatically through `runAsync`, then opens two scopes side by side with different delays and interleaves them with `Promise.all`, confirming each one still reports back its own `requestId` once the race finishes. Because the playground does not run the Vite transform, the demo reaches for `scope.await(value)` at each wait; a real browser app wired up with the transform plugin keeps using ordinary `await`.
 
 <RunnableExample src="packages/context/examples/browser-context" title="Context browser scopes — overlapping async isolation" />
 
@@ -172,7 +172,7 @@ The playground demo does not run the Vite transform, so it uses `scope.await(val
 
 ## Extending
 
-Override `onInitialize` to seed default values into every scope without requiring callers to pass them:
+Say Northstar Books wants every audit-trail scope to carry a `_createdAt` timestamp, but doesn't want every call site to remember to set it by hand — that is exactly the gap `onInitialize` closes. Subclassing `Context` and overriding this one hook lets `AuditContext` stamp the timestamp into every scope the moment it is created, so a caller that only passes `operation` and `resource` still finds `_createdAt` sitting in the scope when it reads from inside `execute()`:
 
 <<< ../../packages/context/examples/subclass-hooks.ts#usage
 
@@ -187,6 +187,8 @@ Override `onInitialize` to seed default values into every scope without requirin
 | `onGet`            | `Context` | After a successful `get()` retrieval                                                  | `key: string, value: unknown`                                                 |
 | `onSet`            | `Context` | After `set()` stores a value                                                          | `key: string, value: unknown`                                                 |
 | `onDelete`         | `Context` | After `delete()` removes (or attempts to remove) a key                                | `key: string, existed: boolean`                                               |
+
+Wire up every hook at once and a scope's entire lifecycle becomes visible: its creation, every `get`, every `set`, and both a deletion that finds something and one that does not. The example below drives one scope through that full sequence and records which hook fired with which arguments at each step.
 
 <<< ../../packages/context/examples/observedContext.ts#usage
 

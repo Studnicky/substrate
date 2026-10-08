@@ -47,25 +47,25 @@ When Northstar accepts an order, audit capture, fulfilment dispatch, and analyti
 
 ## Usage
 
-Subscribe to a topic, publish a payload, and drain the queue. The subscriber receives every published item:
+Pub/sub starts with the smallest loop there is: one topic, one subscriber, one message. Here `EventBus` publishes a typed `user:created` event and `drain()` waits until the subscriber's queue has actually processed it, so by the time the example inspects `received` the handler has genuinely run — not merely been scheduled. That delivered-and-confirmed guarantee is what every other example on this page builds on:
 
 <<< ../../packages/event-bus/examples/pubSub.ts#usage
 
 ### Multiple subscribers
 
-All subscribers on the same topic receive each published payload independently. Calling the returned unsubscribe function removes that subscriber:
+Northstar Books needs a checkout confirmation and a fulfilment queue to both react to the same order, with neither one aware the other exists. This example subscribes two independent handlers to `order:placed`, confirms both receive the first order, then calls the unsubscribe function the first `subscribe()` returned — after that, only the fulfilment handler sees the second order. Each subscriber owns its own delivery and its own lifecycle, so removing one never touches the other:
 
 <<< ../../packages/event-bus/examples/multiSubscriber.ts#usage
 
 ### AbortSignal-based lifecycle
 
-Pass a `signal` option to bind a subscriber's lifetime to an `AbortController`. When the signal aborts the subscriber is removed and stops receiving events. The handler also receives the subscription's own AbortSignal as a second argument; it aborts on unsubscribe, on caller-signal abort, or on bus close. Use it to cancel in-flight async work:
+A subscriber shouldn't always outlive the thing that created it — a request handler, a UI component, a worker that's shutting down. Pass an `AbortController`'s signal when subscribing and the subscription tears itself down the moment that signal fires. This example confirms a `ping` topic delivers normally before the abort and confirms nothing arrives after it, while the handler's own subscription signal — passed in as its second argument — fires its own `abort` listener so any in-flight async work it started can react to teardown too:
 
 <<< ../../packages/event-bus/examples/abortSignal.ts#usage
 
 ## Topic routing
 
-`TopicRouter` is the event-bus router primitive. It stores dynamic subscriptions, invokes selected handlers, and carries caller-owned selection evidence. Supply a matcher or candidate source from application composition; selection policy is not part of the router.
+Northstar Books wants its audit trail to catch every order-related topic while fulfilment only cares about orders being created — two different matching rules reacting to the same bus. `TopicRouter` doesn't decide that matching logic itself: it accepts a caller-supplied matcher, then uses it to work out which registered subscriptions a published topic should reach. The example below registers a wildcard audit subscription and an exact-match fulfilment subscription, publishes one order-created event, and confirms both rules routed correctly off the same topic string.
 
 <RunnableExample src="packages/event-bus/examples/router-routeTopics" title="Route selected topic subscriptions" />
 
@@ -94,7 +94,7 @@ async function recordFailure(
 
 ## Observability hooks
 
-Subclass `EventBus` and override its protected hook methods to instrument pub/sub lifecycle events without modifying the base class. Use `BusQueue` from `@studnicky/concurrency/queue/node` when an application needs standalone FIFO admission.
+Watching what a bus actually does — who subscribed, what fired, what backed up — usually means reaching for a metrics library. `EventBus` instead exposes ten protected hook methods you can override on a subclass, each a plain no-op until you say otherwise, so instrumentation lives next to the class it's observing instead of wrapped around it. Reaching for a queue without a bus around it? `BusQueue` from `@studnicky/concurrency/queue/node` gives standalone FIFO admission on its own.
 
 ### EventBus hooks
 
@@ -117,11 +117,11 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Try it
 
-The pub/sub demo constructs a typed `EventBus` directly with `EventBus.create<AppEvents>()`, publishes an event, and drains the subscriber queue before closing.
+Run this one live to watch the whole publish-subscribe cycle happen in the browser: it builds a typed `EventBus` with `EventBus.create<AppEvents>()`, publishes a single event, drains the subscriber queue so delivery actually completes, then closes the bus cleanly.
 
 <RunnableExample src="packages/event-bus/examples/pubSub" title="EventBus pub/sub" />
 
-The hooks demo subclasses `EventBus` and overrides seven protected lifecycle methods. Watch the full fan-out trace: `subscribe` fires once per handler registration; `publish` fires once per `bus.publish()` call; `enqueue` and `dequeue` fire once per subscriber per publish; and `deliver` fires after each handler invocation. `unsubscribe` fires for the explicit `unsub1()` call, and `dispose` fires on `bus.close()`.
+Where the first hooks example explains what each hook means, this one shows the full fan-out trace side by side so you can see the order things actually happen in. Watch `subscribe` fire once per handler registration, `publish` fire once per `bus.publish()` call, `enqueue`/`dequeue` fire once per subscriber per publish, and `deliver` land after each individual handler runs — then `unsubscribe` fires once for the explicit `unsub1()` call and `dispose` fires once as `bus.close()` finishes.
 
 <RunnableExample src="packages/event-bus/examples/observedEventBus" title="EventBus lifecycle hooks" />
 

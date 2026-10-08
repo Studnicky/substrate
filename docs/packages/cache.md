@@ -36,7 +36,7 @@ Northstar serves a frequently viewed title catalogue without treating an in-proc
 
 ## Usage
 
-Create an `LruCache` instance with a capacity, then use `set`, `get`, `has`, `delete`, and `clear`:
+Northstar Books wants to keep a handful of hot lookups — like a shopper's running order score — warm without letting memory grow without bound. Spin up an `LruCache` with a fixed capacity, then work with it like a slightly smarter `Map`: `set` a value in, `get` it back out, check it with `has`, `delete` a single entry, or `clear` the whole thing when you're done.
 
 <<< ../../packages/cache/examples/basicCache.ts#usage
 
@@ -60,27 +60,27 @@ const loadOrder = Memoize.create(
 const order = await loadOrder.call("order-42");
 ```
 
-`invalidate(...args)` evicts one derived key, while `clear()` evicts every cached result. Subclasses can observe `onMemoHit`, `onMemoMiss`, and `onMemoCoalesced` without coupling memoization to a logging or metrics package.
+Two checkout pages can easily ask for the same order summary within milliseconds of each other, and Northstar doesn't want to run that expensive lookup twice. `invalidate(...args)` evicts one derived key when the underlying order changes, while `clear()` wipes every cached result at once. The example below calls a loader back-to-back for `order-42`: the first call misses and fetches, the second call hits the cache for free, and after an explicit `invalidate` the loader runs again — all observable through the `onMemoHit`/`onMemoMiss`/`onMemoCoalesced` hooks without wiring in a logger.
 
 <RunnableExample src="packages/cache/examples/observedMemoize" title="Observed memoization — cache and single-flight lifecycle" />
 
 ## LRU eviction
 
-When the cache is at capacity, the least-recently-used entry is evicted on the next `set`. Reading an entry promotes it to most-recently-used:
+Northstar only keeps its two hottest catalogue records warm at a time, so when a third title shows up something has to go. Below, `Clean Code` and `Design Patterns` are cached first; a checkout lookup then reads `Clean Code`, which promotes it to most-recently-used. When `Domain-Driven Design` arrives and pushes the cache over capacity, `Design Patterns` — now the least-recently-used of the three — is the one evicted, not `Clean Code`:
 
 <<< ../../packages/cache/examples/lruEviction.ts#usage
 
 ## TTL expiry
 
-Pass `ttlMs` to expire entries automatically. Eviction is lazy: entries are removed on the next `get` or `has` after the TTL has elapsed:
+Some values — a short-lived auth token, say — shouldn't outlive their welcome even if nobody ever deletes them. Pass `ttlMs` when setting a value and the cache treats it as expired once that window passes, though eviction is lazy: the entry isn't actually swept out until the next `get` or `has` touches it. Below, a token cached with a 10ms TTL reads back fine immediately, but after waiting past that window the very same `get` call returns `undefined` and quietly removes the stale entry on its way out:
 
 <<< ../../packages/cache/examples/ttlExpiry.ts#usage
 
 ## Local replay and single-flight
 
-When a Node process needs a short-lived replay window for one request key, compose `LruCache` with `Coalesce` at the application boundary. The recipe validates a finite, acyclic JSON payload once at intake, retains an immutable snapshot, and uses deep structural equality for both replayed and in-flight requests. Property order does not affect identity, while changed or invalid payloads reject. `tryGet` preserves a stored `undefined` result.
+A shopper double-clicks "place order," or a flaky network makes the browser retry a checkout request that already went through — Northstar needs to recognize "I've seen this exact request before" and hand back the original result instead of charging twice. The recipe below composes `LruCache` with `Coalesce` at the application boundary: it validates the incoming JSON payload once, snapshots it immutably, and uses deep structural equality to decide whether a replay matches the original request or is a different payload wearing the same key, which it rejects outright. Concurrent calls for the same key share one in-flight execution rather than racing each other, and a loader that legitimately resolves to `undefined` still replays as `undefined` instead of looking like a miss.
 
-This is process-local coordination only: it is not durable idempotency, cross-process mutual exclusion, or a replacement for an authoritative write boundary.
+This is process-local coordination only — it does not survive a process restart, coordinate across multiple servers, or substitute for an authoritative write boundary that actually guarantees the charge happened once.
 
 <<< ../../packages/cache/examples/idempotencyReplayComposition.ts#usage
 
@@ -105,7 +105,7 @@ const cache = LruCache.create<string, string>(
 
 ### Lifecycle hooks
 
-`TracingCache` subclasses `LruCache` and overrides eight hooks: `onHit`, `onMiss`, `onSet`, `onUpdate`, `onEvict`, `onExpire`, `onDelete`, and `onClear`. With capacity=2, watch the event sequence: set a, set b, hit a, update a, evict b for capacity, miss b, delete c, set d, clear. A second TTL scenario shows expire firing before miss.
+Say Northstar's platform team wants to watch a cache's behavior in production — every hit, miss, and eviction — without baking a logging dependency into `LruCache` itself. `TracingCache` below subclasses `LruCache` and overrides all eight lifecycle hooks (`onHit`, `onMiss`, `onSet`, `onUpdate`, `onEvict`, `onExpire`, `onDelete`, `onClear`) to record each event. With capacity pinned to 2, trace the exact sequence as it happens: two sets, a hit, an update, an eviction when a third key arrives, a miss for the now-evicted key, a delete, another set, and a clear — plus a second scenario proving that an expiring TTL entry fires `onExpire` before it ever reports as a miss.
 
 <RunnableExample src="packages/cache/examples/observedCache" title="Observed cache — lifecycle hook trace" />
 

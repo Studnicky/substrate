@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/json",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch",
   "keywords": [
     "clone",
@@ -26,8 +26,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

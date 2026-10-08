@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/context",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Async context isolation for Node and browser code",
   "keywords": [
     "async",
@@ -23,8 +23,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

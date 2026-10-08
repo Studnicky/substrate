@@ -32,8 +32,19 @@ assert_security_suite_calls_shared_commands() {
     out=$(PATH="$repo/bin:$PATH" run_semgrep_check "HEAD~1..HEAD")
     assert_contains "semgrep scan" "scan --quiet --config=auto --error --disable-version-check src/file.ts" "$out"
 
+    # The stub must also write a minimal SARIF report to its --output path:
+    # run_semgrep_sarif_check parses that file after the scan "succeeds",
+    # the same way a real semgrep invocation's own --output write would.
+    stub_cmd "$repo" semgrep '
+for arg in "$@"; do
+  case "$arg" in
+    --output=*) printf "%s" "{\"version\":\"2.1.0\",\"runs\":[]}" > "${arg#--output=}" ;;
+  esac
+done
+printf "%s\n" "$*"
+'
     out=$(PATH="$repo/bin:$PATH" run_semgrep_sarif_check "HEAD~1..HEAD" semgrep.sarif)
-    assert_contains "semgrep sarif" "scan --quiet --config=auto --error --disable-version-check --sarif --output=semgrep.sarif src/file.ts" "$out"
+    assert_contains "semgrep sarif" "scan --quiet --config=auto --no-error --disable-version-check --sarif --output=semgrep.sarif src/file.ts" "$out"
 
     if SECURITY_SUITE_REQUIRE_TOOLS=true PATH="$repo/empty-bin" run_gitleaks_check staged >/dev/null 2>&1; then
       fail "required gitleaks" "missing gitleaks should fail when tools are required"

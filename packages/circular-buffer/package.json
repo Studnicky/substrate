@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/circular-buffer",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Generic circular buffer with O(1) push and shift operations",
   "keywords": [
     "circular-buffer",
@@ -23,8 +23,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

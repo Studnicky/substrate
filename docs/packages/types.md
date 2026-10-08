@@ -21,7 +21,7 @@ Runtime helpers publish from both `@studnicky/types/node` and `@studnicky/types/
 
 ## Northstar Books boundary
 
-Northstar receives catalogue filters, cart payloads, and supplier records as `unknown` at HTTP and message boundaries. `Predicate`, `JsonObject`, and `JsonValue` turn those inputs into a checked structural shape once, while `RuntimeValue` admits internal jobs that legitimately carry `Date`, `Map`, or `Set`. The guarantee is explicit: downstream catalogue and checkout code receives a normalized value or the boundary rejects it; it does not keep reinterpreting untrusted fields.
+Every catalogue filter, cart payload, and supplier record that reaches Northstar off the wire arrives as plain `unknown` — and search logic downstream shouldn't have to keep re-checking what it's holding. The example below shows the admission check that makes that promise real: `Predicates.isObject`/`asRecordArray` narrow a raw payload into a checked record array, scalar guards confirm individual fields, and `Empty` hands back fresh collection instances for whatever didn't survive validation. `RuntimeValue` covers the one legitimate exception — an internal job payload that carries native `Date`, `Map`, or `Set` values — while `JsonValue` keeps the wire boundary itself JSON-only, so nothing reaches catalogue or checkout code without being normalized exactly once.
 
 <<< ../../packages/types/examples/predicates-accessors.ts#usage
 
@@ -239,7 +239,7 @@ Northstar Books uses these primitives at the intake edge of catalogue filters, c
 
 ## Hashing (`Hash` and `StructuralHash`)
 
-`Hash.value` produces a deterministic FNV-1a 32-bit hex digest for arbitrary in-memory values, encoding `Date`, `Map`, and `Set` values deterministically. `StructuralHash.of` strips annotation-only keys (`$id`, `title`, `description`) from a JSON schema document before hashing it, so two schemas that differ only in their annotations hash identically.
+Northstar wants to know whether two JSON schema documents describe the same shape, even when one carries a `$id` and a human-written `title` that the other doesn't — those are annotations, not structure. `Hash.value` gives any in-memory value, `Date`, `Map`, and `Set` included, a deterministic FNV-1a digest, and `StructuralHash.of` builds on it by stripping annotation-only keys before hashing, so a schema with full metadata and its bare structural twin come out identical below, while two schemas that actually differ in type still hash apart:
 
 <<< ../../packages/types/examples/hash.ts#usage
 

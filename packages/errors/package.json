@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/errors",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Standardized error handling for all modules",
   "keywords": [
     "base-error",
@@ -26,8 +26,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

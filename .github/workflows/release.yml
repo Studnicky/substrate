@@ -152,6 +152,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y librsvg2-bin
+      - name: Snapshot pending changesets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/changeset-snapshot"
+          cp .changeset/*.md "$RUNNER_TEMP/changeset-snapshot/"
       - name: Apply pending changesets
         shell: bash
         run: |
@@ -185,7 +191,7 @@ jobs:
           bash scripts/ci-suite.sh predocs-build >"$tmpdir/predocs.log" 2>&1 &
           predocs_pid=$!
 
-          node scripts/extract-release-notes.ts >"$tmpdir/release_notes.md" &
+          node scripts/extract-release-notes.ts --changeset-dir "$RUNNER_TEMP/changeset-snapshot" >"$tmpdir/release_notes.md" &
           notes_pid=$!
 
           if ! wait "$predocs_pid"; then

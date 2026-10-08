@@ -31,19 +31,19 @@ Each primitive makes one guarantee only: breakers reject while their circuit is 
 
 ### CircuitBreaker
 
-Tracks failures and opens the circuit after a threshold, then probes with limited calls after a timeout.
+Northstar's supplier catalogue lookup is healthy right up until it isn't — and hammering a dead supplier with retries only makes things worse. This example trips a breaker after three failures, confirms the very next call gets rejected instantly with `CircuitBreakerOpenError` instead of hitting the supplier again, then advances a virtual clock past the reset timeout to watch it probe, recover after two successful calls, and settle back to closed.
 
 <<< ../../packages/resilience/examples/circuit-breaker.ts#usage
 
 ### TokenBucket
 
-Token-bucket rate limiter; `consume` throws immediately when exhausted, `waitForToken` blocks until tokens refill. Both operations accept positive finite token counts, including fractional units. An optional `clock` supplies finite, nondecreasing millisecond readings for deterministic tests.
+A token bucket is really just a budget that refills itself over time — spend it with `consume()`, or queue up and wait for more with `waitForToken()`. This example drains a 3-token burst capacity immediately, watches it slowly refill as a virtual clock advances, then drains it again and aborts an in-flight `waitForToken()` call with an `AbortSignal`, confirming the wait itself is cancellable, not just the token math.
 
 <<< ../../packages/resilience/examples/token-bucket.ts#usage
 
 ### KeyedRateLimiter
 
-`KeyedRateLimiter` creates one rate-limiting strategy per key, using `TokenBucket` by default. `maximumKeys` bounds the key registry and `keyIdleTtlMs` evicts idle strategies.
+One slow-moving supplier account shouldn't be able to starve every other supplier's request budget — `KeyedRateLimiter` gives each key its own independent `TokenBucket` by default. This example tracks three suppliers against a registry capped at two keys: the first two get their own budgets, exhausting one doesn't touch the other, and adding a third evicts the least-recently-used supplier's budget — all visible through telemetry hooks firing on creation, eviction, exhaustion, and every successful token grab. A second scenario swaps in a hand-written `FixedAllowance` strategy to show the limiter works with any object matching `RateLimiterStrategyInterface`, not just `TokenBucket`.
 
 <<< ../../packages/resilience/examples/observedKeyedRateLimiter.ts#usage
 
@@ -75,7 +75,7 @@ try {
 
 ### DeadLetterQueue
 
-Bounded FIFO queue for items that failed processing. Drain via async generator.
+When an order's replenishment task fails, Northstar doesn't want it lost, just set aside for deliberate recovery. `DeadLetterQueue` is a fixed-capacity FIFO queue drained with an async generator rather than a callback — the example below enqueues a couple of failed jobs and drains them, proves capacity rejects a queue that's full, then feeds a closed queue into `DeadLetterQueueRetryGenerator` to re-yield its entries with a configurable pause between each, finishing with a queue that's aborted before anything is ever drained from it.
 
 ### DeadLetterQueueRetryGenerator: timed re-delivery
 
@@ -137,11 +137,15 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Try it
 
-The hooks demo subclasses both `CircuitBreaker` and `DeadLetterQueue` and overrides their lifecycle hooks. Watch the full scenario: two failures trigger `onFailure`, `onTrip`, and `onOpen`; a rejected call triggers `onReject`; advancing the virtual clock into half-open triggers `onHalfOpen`, `onSuccess`, and `onClose`; and DLQ drain emits `onDequeue` for every item recovered from the queue.
+This is the same breaker-plus-DLQ pattern a lot of Northstar's supplier code actually needs: when a call fails, send the failed work to a dead-letter queue instead of losing it. Watch the full scenario play out — two failures trip the breaker through `onFailure`, `onTrip`, and `onOpen`; a call made while it's open gets rejected via `onReject`; advancing a virtual clock into the half-open probe window and succeeding fires `onHalfOpen`, `onSuccess`, and `onClose`; and finally draining the dead-letter queue emits `onDequeue` for every item it had been holding onto.
 
 <RunnableExample src="packages/resilience/examples/observedResilience" title="Resilience lifecycle hooks" />
 
+Run this to compare the two sliding-window accounting strategies side by side: the exact `log` algorithm admits weighted requests until the limit, rejects the next one, then succeeds again once the window fully elapses and stale entries are pruned; the approximate `counter` algorithm tracks the same budget in constant memory, rejecting at the limit and recovering as its blended estimate decays. A third scenario exhausts a single-slot limiter and calls `waitForToken()`, which resolves only once the decaying estimate drops back under the limit.
+
 <RunnableExample src="packages/resilience/examples/observedSlidingWindowLimiter" title="Sliding-window rate limiting" />
+
+Run this to see the per-key isolation and eviction from the `KeyedRateLimiter` example above happen live: two suppliers draw down independent budgets, exhausting one doesn't touch the other, and adding a third supplier past the two-key limit evicts the least-recently-used budget — each step logged through the telemetry hooks as it happens.
 
 <RunnableExample src="packages/resilience/examples/observedKeyedRateLimiter" title="Per-key token buckets with LRU eviction" />
 

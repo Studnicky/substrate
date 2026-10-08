@@ -1,7 +1,7 @@
 import type { MessagePort } from 'node:worker_threads';
 
 import { RuntimeError } from '@studnicky/errors/node';
-import { existsSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { parentPort } from 'node:worker_threads';
 
 import { WorkerReply } from './WorkerReply.js';
@@ -25,20 +25,24 @@ class ExitWorker {
   }
 
   private static handle(port: MessagePort, item: ExitRequestInterface): void {
-    if (
-      item.exit === true &&
-      typeof item.stateFile === 'string' &&
-      existsSync(item.stateFile) === false
-    ) {
-      try {
-        writeFileSync(item.stateFile, 'exited');
-      } catch (cause) {
-        throw RuntimeError.create('Exit worker could not record its exit state.', { 'cause': cause });
-      }
+    if (item.exit === true && typeof item.stateFile === 'string' && ExitWorker.claimExitState(item.stateFile)) {
       process.exit(0);
     }
 
     WorkerReply.post(port, { 'type': 'result', 'value': item.value });
+  }
+
+  /** Atomically claims the exit-state file: true if this call created it, false if it already existed. Exclusive create removes the check-then-write race between the existence check and the write. */
+  private static claimExitState(stateFile: string): boolean {
+    try {
+      writeFileSync(stateFile, 'exited', { 'flag': 'wx' });
+      return true;
+    } catch (cause) {
+      if (cause instanceof Error && 'code' in cause && cause.code === 'EEXIST') {
+        return false;
+      }
+      throw RuntimeError.create('Exit worker could not record its exit state.', { 'cause': cause });
+    }
   }
 }
 

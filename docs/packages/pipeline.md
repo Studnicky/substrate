@@ -21,14 +21,13 @@ Import `Pipeline` and `OperationPipeline` from `@studnicky/pipeline/node` in Nod
 
 ## Usage
 
-Construct a `Pipeline<T>` instance with a fixed array of stages, and run a context
-through all of them with `run()`. Each stage receives the context and returns a
-(possibly transformed) copy. The stage list is fixed at construction — a different
-composition is a different `Pipeline.create()` call with a different array:
+Say a Northstar Books order needs to pass through the same two steps every time before it's ready to fulfil: work out what it costs, then decide which warehouse route it ships from. `Pipeline<T>` lets you nail that sequence down once as a fixed array of stages and run any order through all of them with a single `run()` call. Each stage hands its result to the next, so the order below arrives at the routing stage already priced, without that stage ever needing to know how the price got there. The stage list is fixed at construction — a different composition is a different `Pipeline.create()` call with a different array:
 
 <<< ../../packages/pipeline/examples/basic-pipeline.ts#usage
 
 ## Pipeline effects in an FSM
+
+This is where `@studnicky/fsm` and `@studnicky/pipeline` meet: a fulfilment machine moves a Northstar Books order from draft to processing by emitting a pipeline effect, and the interpreter runs that pipeline — validate, then price, then route — before feeding the resulting event back to the reducer. The reducer never runs the pipeline itself, and the pipeline never decides the order's state; it only confirms all three stages actually ran before the order is allowed to move on to ready-to-ship.
 
 <<< ../../packages/pipeline/examples/traffic-light.ts#usage
 
@@ -38,11 +37,11 @@ The pipeline resolves with the prepared order or rejects at the stage that canno
 
 ## Try it
 
-The basic demo constructs a `Pipeline` directly with `Pipeline.create<RequestCtx>([...stages])`. Each stage receives the transformed context from the previous one.
+Run the Northstar order through its pricing-then-routing pipeline live and watch the context grow more complete at each stage — the same `Pipeline.create([...stages])` pattern shown above, now executing end to end with real assertions on the final price and route.
 
 <RunnableExample src="packages/pipeline/examples/basic-pipeline" title="Pipeline stages" />
 
-The hooks demo subclasses `Pipeline` and overrides all eight protected hooks. The failing run emits `stageError` and `runError` with the exact stage error, then rejects with that same value.
+Subclass `Pipeline` and override every one of its eight hooks, and you get a blow-by-blow trace of a run — which stage started, which succeeded, and in a run built to fail, exactly where it broke. This demo runs both: a clean three-stage pipeline where every stage starts and succeeds in order, then a two-stage pipeline where the second stage throws, so you can watch `stageError` and `runError` fire with that same error before it propagates out of `run()` unchanged.
 
 <RunnableExample src="packages/pipeline/examples/observedPipeline" title="Pipeline lifecycle hooks" />
 
@@ -52,15 +51,17 @@ Use the runtime entry point for the active platform and import type contracts fr
 
 ## Run an operation through policies
 
-Use `OperationPipeline<TContext>` when a policy surrounds a supplied operation. Interceptors receive the context and `next(context)`. The first declared interceptor enters first, each interceptor decides when to call `next`, each `run()` call chooses its own result type, and the operation result or thrown value passes through unchanged:
+Sometimes the thing moving through a pipeline isn't data being transformed stage by stage — it's a policy wrapping around someone else's operation, like a Northstar Books request log wrapping around whatever actually serves the request. `OperationPipeline<TContext>` is built for that: each interceptor receives the context and a `next(context)` it decides when to call. Below, one interceptor logs before and after it calls `next`, which runs the supplied operation and hands its result straight back through — untouched, whatever type it happens to be:
 
 <<< ../../packages/pipeline/examples/operation-pipeline.ts#usage
+
+Run it live to see the `starting`/`completed` log lines bracket the operation call, with the handled result passing back out unchanged.
 
 <RunnableExample src="packages/pipeline/examples/operation-pipeline" title="Operation policies" />
 
 ## Extending
 
-`beforeStage` and `afterStage` are the transform hooks. Each returns the context passed to the adjacent stage, and an error from either rejects the run. The six lifecycle hooks are observers: `onRunStart`, `onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`, and `onRunComplete`. They receive a detached, deeply frozen context snapshot when context is available and may return `void` or a promise; their return values are ignored, and a throw, rejection, unresolved promise, or snapshot failure never delays, replaces, or changes a stage or run outcome. A context that cannot be cloned skips only that observer while the pipeline continues.
+Two of Pipeline's hooks aren't just observers — `beforeStage` and `afterStage` actually transform the context, and throwing from either rejects the whole run. The example below puts both to work: `onRunStart` stamps a start time, and `afterStage` uses it to attach how many milliseconds the stage took directly onto the context flowing to the next stage, alongside a plain stage that adds an `Authorization` header — a transform hook and a plain stage cooperating in one pipeline. The six remaining lifecycle hooks are pure observers: `onRunStart`, `onStageStart`, `onStageSuccess`, `onStageError`, `onRunError`, and `onRunComplete`. They receive a detached, deeply frozen context snapshot when context is available and may return `void` or a promise; their return values are ignored, and a throw, rejection, unresolved promise, or snapshot failure never delays, replaces, or changes a stage or run outcome. A context that cannot be cloned skips only that observer while the pipeline continues.
 
 <<< ../../packages/pipeline/examples/subclass-hooks.ts#usage
 
@@ -78,6 +79,8 @@ The `stages` getter returns a readonly snapshot of all constructed transforms, u
 | `onStageError(index, error)` | When a stage throws, before the same value propagates.              | `index: number`, `error: unknown`   |
 | `onRunError(error)`          | When a stage error propagates out of `run()`, after `onStageError`. | `error: unknown`                    |
 | `onRunComplete(ctx)`         | After all stages complete.                                          | `ctx: Readonly<T>`                  |
+
+The same tracing subclass used in the demo above makes every row in this table concrete — run it to match each hook name to the exact log line it produces, on both the successful run and the one that fails.
 
 <<< ../../packages/pipeline/examples/observedPipeline.ts#usage
 

@@ -41,4 +41,6 @@ Create a paginator with `Paginator.create<TPage, TCursor>()`, record each fetche
 
 `PaginatorIdleStateEntity`, `PaginatorHasMoreStateEntity`, `PaginatorExhaustedStateEntity`, `PaginatorAvailableCursorEntity`, `PaginatorExhaustedCursorEntity`, `PaginatorPageReceivedEventEntity`, and `PaginatorResetEventEntity` are schema-derived contracts available from `@studnicky/paginator/entities`.
 
+Northstar's catalogue browser moves through a small, exact set of states as it pages through titles: idle before any page has arrived, hasMore while the server's cursor says there's another page, and exhausted once it says there isn't. This demo subclasses `Paginator` to log every state transition as it happens — three real pages arrive, a repeat `hasMore → hasMore` page fires no transition hooks at all because the variant hasn't changed, and a final `reset()` carries the paginator back to idle.
+
 <RunnableExample src="packages/paginator/examples/observedPaginator" title="Observed pagination — transition trace" />

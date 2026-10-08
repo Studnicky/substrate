@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/clock",
-  "version": "15.1.0",
+  "version": "15.1.1",
   "description": "Wall-clock and monotonic time primitives with injectable providers for deterministic testing",
   "keywords": [
     "clock",
@@ -24,8 +24,7 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,

@@ -40,7 +40,7 @@ Use `@studnicky/json/node` in Node.js and `@studnicky/json/browser` in browser b
 
 ## Merge and Clone
 
-Deep merge nested objects: overlay wins on conflict, base keys are preserved, and arrays are replaced atomically by default. Clone produces a new object with no shared references, with full Date/Map/Set awareness:
+Northstar's storefront team wants to layer a seasonal overlay — holiday pricing, a new tag list — on top of the base catalogue config without hand-writing a merge function or accidentally mutating the original settings object. `Merge.deep` does exactly that: nested objects merge key by key with the overlay winning on conflict, while arrays are swapped out wholesale rather than combined, unless a subclass like `ConcatMerge` below overrides that rule to concatenate instead. `Clone.deep` handles the companion problem — producing an independent copy of a record, dates, maps, and sets included, that shares no references with the original, so editing the clone can never leak back into the source:
 
 <<< ../../packages/json/examples/merge-clone.ts#usage
 
@@ -54,7 +54,7 @@ The output shows overlay keys winning on conflict, base keys preserved, arrays r
 
 ## Immutable snapshots
 
-`ImmutableSnapshot.from(value)` creates a detached, deeply frozen value with `structuredClone` and `Frozen.deepFreeze`. The snapshot never shares mutable object, `Map`, or `Set` references with its input. Mutation attempts on frozen maps and sets throw `FrozenMutationError`; values that cannot be structured-cloned throw `ImmutableSnapshotError`.
+A pricing calculation is reading a stock record while, somewhere else in the request, another piece of code is about to update that exact same object — Northstar needs the calculation to see a stable, frozen-in-time view no matter what happens next. `ImmutableSnapshot.from(value)` takes that stock record and hands back a fully detached, deeply frozen copy, built with `structuredClone` and `Frozen.deepFreeze`. Below, the source object's name and role set keep changing after the snapshot is taken, but the snapshot never notices — and trying to mutate its frozen `Map` throws `FrozenMutationError` instead of silently succeeding.
 
 <<< ../../packages/json/examples/immutable-snapshot.ts#usage
 
@@ -62,7 +62,7 @@ The output shows overlay keys winning on conflict, base keys preserved, arrays r
 
 ## Patch, predicates, and Frozen
 
-Apply RFC-6902 JSON Patch operations by passing one operation or an operation array to `Patch.create(operations)`. Read a deeply isolated snapshot through the patch instance's `operations` projection. Import `Predicates` from `@studnicky/types/node` for deep structural equality, cycle detection, and type guards. `Frozen.deepFreeze` freezes all levels safely, including circular structures; Map and Set references remain mutation-guarded wherever they occur in the object graph:
+Northstar wants to describe "publish this draft" as data — a portable list of edits — instead of writing bespoke mutation code for every workflow that changes a document's status. The example below builds exactly that: a `Patch` that replaces `status`, adds a `publishedAt` date, and removes the now-irrelevant `count` field, then applies it to a working document in one call; a `test` operation shows how a patch can also assert a value and throw `PatchError` when reality doesn't match. Alongside the patch, `Predicates` proves out the structural checks — `areDeeplyEqual`, `isPlainObject`, `isRecord` — a consumer needs before it trusts what it's about to patch, and `Frozen.deepFreeze` locks a nested document tree at every level, including anything circular, so it can't be edited after the fact:
 
 <<< ../../packages/json/examples/patch-predicates.ts#usage
 
@@ -87,7 +87,7 @@ The remaining public interfaces describe operation results and path wildcards:
 
 ## Path and Sort
 
-Convert JSON Pointers to JS access notation, read values via proto-safe dot-paths, and sort arrays naturally. `Hash` and `StructuralHash` publish from [`@studnicky/types`](./types.md).
+A JSON Patch operation hands Northstar a pointer like `/items/0/name`, but application code wants to read that value the way JavaScript actually does — `items[0].name`. `Path.toAccess` makes that conversion, and `Path.get` reads a value straight off that dotted path while refusing to touch `__proto__` or `constructor`, so a malicious path string can't climb the prototype chain. `Sort.natural` rounds out the toolkit by sorting strings the way a person would — `file2` before `file10` — rather than lexicographically, with `longestFirst`/`shortestFirst` variants for ordering by length instead. `Hash` and `StructuralHash` publish from [`@studnicky/types`](./types.md).
 
 <<< ../../packages/json/examples/path-sort.ts#usage
 

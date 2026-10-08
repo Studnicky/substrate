@@ -21,11 +21,13 @@ pnpm add @studnicky/visible-range
 
 ## Usage
 
-Given a scroll offset, a viewport size, an item-size accessor (fixed or per-index), and an overscan count, `VisibleRange` computes the inclusive `[start, end]` index range of items currently visible. Fixed mode (`itemSize`) shares one size across every item; variable mode (`estimateSize`) uses a per-index estimator corrected over time via `measureItem()`:
+Northstar's catalogue page could hold ten thousand titles, but the browser only ever needs to know which handful are actually in or near view right now. Feed `VisibleRange` a scroll offset, a viewport size, and either a fixed row height or a per-item size estimator, and it does the index arithmetic for you. The example below scrolls a 10,000-row catalogue at a fixed 40px row height — watching the computed range stay put when the scroll position hasn't actually changed — then switches to a 500-item list with an estimated height that `measureItem()` corrects once real measurements come in:
 
 <<< ../../packages/visible-range/examples/observedVisibleRange.ts#usage
 
 ## Try it
+
+Run it to watch `onRangeChange` fire exactly when the visible window actually moves — not on every scroll event — and see the variable-size estimate shift once measured heights replace the initial guess.
 
 <RunnableExample src="packages/visible-range/examples/observedVisibleRange" title="Fixed and variable-size visible-range computation" />
 
