@@ -41,29 +41,35 @@ Import Node APIs from `@studnicky/fetch/node` and browser APIs from `@studnicky/
 
 ## Usage
 
+A `FetchClient` starts life as a single configuration object — base URL, default headers, a timeout — shared by every request it makes afterward. This example builds one for Northstar's catalogue API once, bearer token and client name already baked in, so every `get`/`post`/`put` call that follows just supplies the path and anything genuinely request-specific:
+
 <<< ../../packages/fetch/examples/01-client-config.ts#usage
 
 `get`, `head`, `options`, and `delete` accept `FetchOptionsInterface`. `post`, `put`, and `patch` also accept a request body.
 
 ## Browser demo
 
+The same client contract works unmodified in a browser. This demo swaps in `BrowserFetchClient`, points it at a stand-in `fetch` implementation, and performs a real GET for a single todo item, checking that the response status and parsed JSON body come back exactly as a storefront screen would expect:
+
 <RunnableExample src="packages/fetch/examples/browserFetch" title="Live GET with browser fetch" />
 
 ## Compose a resilient Node request
 
-Compose `FetchClient`, `Retry`, and `Signal` directly when a Node request needs retries and a deadline. This recipe starts a local Node HTTP server, so it remains a Node-only source example rather than a browser runnable demo.
+A single `fetch` call is rarely resilient on its own — Northstar's supplier endpoint can flake for a request or two before it recovers, and one deadline still has to apply across every attempt, not reset on each retry. This recipe wires `FetchClient`, `Retry`, and `Signal` together by hand: `Signal.compose()` establishes that one deadline, `Retry.execute()` reissues the request against a server that deliberately fails twice before succeeding, and the assertions confirm it took exactly two retries to land one real 200. Because it needs an actual local HTTP server to fail against, this stays a Node-only source example rather than a browser runnable demo.
 
 <<< ../../packages/fetch/examples/resilientRequestComposition.ts#usage
 
 ## Customize requests
 
-Subclass `FetchClient` and override `onRequest` to update the outgoing request context or `onResponse` to inspect or replace the response context.
+Say every request from one client needs an `Authorization` header stamped on automatically — not something anyone wants to remember at every call site. This example subclasses `FetchClient`, overriding `onRequest` to add that header before the request goes out and `onResponse` to note the status code on the way back. The test server echoes the headers it actually received, so the assertions prove the header really arrived, not just that the override compiled.
 
 <<< ../../packages/fetch/examples/02-override-hooks.ts#usage
 
 ## Configure and observe
 
-Configure shared `baseURL`, headers, query parameters, timeouts, metadata, request IDs, and dispatcher settings with `FetchClient.create`. Timeouts use positive whole milliseconds. Use `UrlQueryString` to build and parse query strings. Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
+Configure shared `baseURL`, headers, query parameters, timeouts, metadata, request IDs, and dispatcher settings with `FetchClient.create`. Timeouts use positive whole milliseconds. Use `UrlQueryString` to build and parse query strings.
+
+Beyond configuring one client, it helps to see what it's actually doing on the wire — every request starting, every response landing, every failure. This example overrides both the request/response transform hooks and the observer hooks that fire around them, then drives one successful call and one that comes back 503, so the hook log shows exactly which events fired for each outcome:
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage
 
@@ -128,7 +134,7 @@ import type { RequestIdGeneratorInterface } from "@studnicky/fetch/interfaces";
 
 ## Observability hooks
 
-Override observer hooks to collect request timing, responses, errors, timeouts, and aborts.
+Each of these six hooks fires around the network call itself rather than around the request/response transform: before the call starts, after a clean response, after a non-success response, after a request failure, and after a timeout or abort. The `ObservedFetch` example above exercises this lifecycle in practice.
 
 | Hook                | When it fires                |
 | ------------------- | ---------------------------- |

@@ -74,6 +74,8 @@ Import `PlatformCallDefaults` from the browser entrypoint when a browser applica
 
 ## Try it
 
+The browser bundle doesn't ship any ESLint plugin — it ships the policy data those plugins check against, so a storefront team can see exactly which platform calls are restricted without pulling in the TypeScript compiler. This example builds the default policy list and looks up the entry for a bare `fetch()` call, confirming it's flagged as never safe even when called with a literal argument.
+
 <<< ../../packages/eslint-config/examples/configUsage.ts#usage
 
 <RunnableExample src="packages/eslint-config/examples/configUsage" title="Inspecting browser-safe platform-call policy" />

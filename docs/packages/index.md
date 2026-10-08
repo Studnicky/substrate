@@ -44,6 +44,7 @@ Every package page uses the same reader contract: **What it is** identifies the 
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [@studnicky/context](/packages/context)             | Per-request async context isolation using `AsyncLocalStorage`                                                                                                                                 |
 | [@studnicky/fsm](/packages/fsm)                     | Abstract finite state machine base class with effect interpreter                                                                                                                              |
+| [@studnicky/paginator](/packages/paginator)         | Cursor/page-list state tracker for paginated data sources                                                                                                                                     |
 | [@studnicky/pipeline](/packages/pipeline)           | Generic typed async pipeline for sequential context transforms                                                                                                                                |
 | [@studnicky/store](/packages/store)                 | Observable state container with interchangeable persistence, ordered cache, durable browser-state synchronization, and composable normalized entity collections via `@studnicky/store/entity` |
 | [@studnicky/visible-range](/packages/visible-range) | Pure index/offset arithmetic for computing the visible item range of a virtualized list                                                                                                       |
@@ -83,7 +84,8 @@ Every package page uses the same reader contract: **What it is** identifies the 
 
 ## Foundation
 
-| Package                                             | Description                                         |
-| --------------------------------------------------- | --------------------------------------------------- |
-| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages |
-| [@studnicky/entity](/packages/entity)               | Strict entity input compilation and cycle detection |
+| Package                                             | Description                                                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [@studnicky/eslint-config](/packages/eslint-config) | Shared ESLint flat config for `@studnicky` packages                                                                 |
+| [@studnicky/entity](/packages/entity)               | Strict entity input compilation and cycle detection                                                                 |
+| [@studnicky/system](/packages/system)               | Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths |

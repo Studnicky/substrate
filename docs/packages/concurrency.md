@@ -57,7 +57,7 @@ Runtime APIs have identical `@studnicky/concurrency/node` and `@studnicky/concur
 
 ### Channel and Semaphore
 
-Channel provides keyed producer/consumer buffering; Semaphore gates concurrent access to a shared resource with a counting permit. Its `activeCount` and `queuedCount` properties expose current load; use `setPermits()` to adapt capacity without cancelling in-flight work, and `waitForIdle()` to await a fully drained gate:
+Northstar's stock-refresh worker needs two different guarantees at once: deliveries should queue up safely even before anyone's listening, and only so many refresh jobs should run at the same time so the supplier API doesn't get hammered. `Channel` solves the first — it buffers published items per key so a late subscriber still receives everything in order — while `Semaphore` solves the second, capping concurrent work with a counting permit. The example below publishes numbers into a channel before anyone subscribes, keeps two independent keys from crossing streams, and then runs four competing tasks through a two-permit semaphore while watching `activeCount` and `available` move as permits are acquired, resized with `setPermits()`, and released.
 
 <<< ../../packages/concurrency/examples/channelSemaphore.ts#usage
 
@@ -65,7 +65,7 @@ A semaphore accepts an optional queue cap. Pass `signal` to `acquire()` or `with
 
 ### FIFO queue
 
-`BusQueue` is a generic FIFO admission primitive. It preserves delivery order, applies backpressure at `highWaterMark`, accepts an `AbortSignal`, and exposes protected lifecycle hooks for consumers that need observation without embedding policy.
+When Northstar's catalogue-change feed fires faster than the indexer can keep up, the fix isn't to drop updates — it's to make the backlog visible and let the producer feel the slowdown. `BusQueue` is exactly that: a generic FIFO admission primitive that preserves delivery order, applies backpressure once a configured `highWaterMark` is reached, and accepts an `AbortSignal` for cancellation. The example enqueues three catalogue changes against a queue capped at two in flight, drains it, and confirms every item arrives in the order it was admitted.
 
 <!-- inline-ts-ok: Canonical queue runtime import path; verified by check-docs-exports. -->
 
@@ -79,7 +79,7 @@ import { BusQueue } from "@studnicky/concurrency/queue/node";
 
 ## Batch finite work
 
-`Batch` processes a finite input in fixed-size windows. `process()` yields ordered fulfilled results and stops when an item rejects; `processSettled()` yields every settlement. `processContinuous()` and `processContinuousSettled()` refill capacity as each item settles, preserving input order in their final arrays.
+Northstar's nightly publisher-price import has a hard ceiling on how many requests can run at once, but it still needs every result accounted for in the original order. `Batch` processes a finite list in fixed-size windows — here, five prices doubled two at a time — yielding each window's results as it completes. The demo walks through `process()` collecting ordered, fulfilled batches and shows how the final flattened array still lines up with the input, regardless of which window a given price landed in.
 
 <<< ../../packages/concurrency/examples/batch-basic-processing.ts#usage
 
@@ -91,7 +91,7 @@ Compose `Semaphore`, `EventBus`, and a scheduler directly when an application ne
 
 ### Mutex
 
-`Mutex` serializes asynchronous work for one key while unrelated keys continue independently. It preserves FIFO admission, supports queue limits and deadlines, returns an idempotent release handle, and exposes a disposable lock for `await using`.
+Two warehouse clerks editing the same ISBN's stock count at once is a recipe for a lost update — but blocking every unrelated title while they sort it out would be worse. `Mutex` serializes work per key: one holder at a time for `'resource'`, FIFO-ordered waiters, and every other key free to proceed untouched. The example below acquires the lock manually with a `try`/`finally` release, watches a second acquirer queue up behind it, and then shows the same guarantee through `acquireDisposable()`'s `await using`-friendly handle.
 
 <<< ../../packages/concurrency/examples/mutex-acquire-release.ts#usage
 
@@ -99,7 +99,7 @@ Compose `Semaphore`, `EventBus`, and a scheduler directly when an application ne
 
 ### File lock
 
-File Lock provides two platform-native exclusive-lock primitives. Node.js uses atomic rename of an existing file into an owner-qualified lock path; it supports injected clock and scheduler providers for deterministic deadlines, inspection, explicit recovery, owner liveness checks, and lifecycle hooks. Browser code uses the native Web Locks API.
+A bookseller editing a draft catalogue entry needs exclusive access to that one file, on whatever platform they're running — a Node import script or a browser tab. `FileLock` gives Node.js this guarantee through an atomic rename into an owner-qualified lock path, so only one process ever holds the file at a time. The example below acquires the lock, reads the original content, writes an update, reads it back, and releases — all inside a `try`/`finally` so the lock can't leak even if something goes wrong in between.
 
 <!-- inline-ts-ok: Canonical file-lock runtime entry points; verified by check-docs-exports. -->
 
@@ -116,13 +116,13 @@ FileLock coordinates participants that use the same path and lock protocol; it d
 
 ### KeyedSemaphore
 
-Use `KeyedSemaphore` when each account, tenant, partition, or other key needs its own concurrency limit. The configured permit and queue limits apply independently to every key, and idle keys are released automatically:
+Northstar pulls stock updates from several publisher feeds in parallel, but each publisher's own API can only take one request at a time — hammer it from two directions and you'll get throttled. `KeyedSemaphore` hands out a completely independent permit pool per key, so `account:a` and `account:b` can both be active at once while a second request for `account:a` queues up and waits its turn. The example proves the isolation: two keys acquire simultaneously, a third request for an already-busy key is forced to wait, and once everything releases, every key's bookkeeping drops back to zero.
 
 <<< ../../packages/concurrency/examples/keyedSemaphore.ts#usage
 
 ### Coalesce: deduplicate concurrent calls by key
 
-All concurrent callers for the same key share a single in-flight promise; sequential callers each invoke the factory independently:
+When three parts of the storefront ask for the same book's price at the same moment, there's no reason to hit the pricing API three times — the first caller's answer is good enough for all of them. `Coalesce` deduplicates concurrent calls by key: whoever arrives first starts the factory, and every other caller for that key simply waits on the same promise instead of starting their own. The example confirms the sharing with a call counter that stays at one for concurrent callers, checks `isInflight()` before, during, and after the call, and then shows that calls which don't overlap in time each pay for their own factory invocation.
 
 <<< ../../packages/concurrency/examples/coalesce.ts#usage
 
@@ -151,14 +151,13 @@ try {
 
 ### AsyncIter: merge, filter, enrich
 
-Compose async iterables with FIFO merge, sync/async predicate filter, and left-join enrichment:
+Northstar's catalogue has several independent streams of change events — new titles, price updates, inventory ticks — and combining them without pulling in Node's stream machinery keeps the logic portable to the browser too. `AsyncIter` works directly against plain `async function*` generators: `merge` interleaves multiple sources in arrival order, `filter` keeps only the values a predicate accepts (sync or async), and `enrich` left-joins extra data onto matching items while passing the rest through untouched. The example chains all three — merging two numeric ranges, filtering down to multiples of three, and tagging only the larger survivors with a `tier` label — to show the combinators composing into one pipeline.
 
 <<< ../../packages/concurrency/examples/asyncIter.ts#usage
 
 ## Observability hooks
 
-Each class exposes protected hook methods you can override in a subclass to observe
-internal lifecycle events without modifying the class logic.
+Watching what a `Semaphore`, `Channel`, or `Coalesce` instance is actually doing shouldn't require rewriting its logic — each class exposes protected hook methods built for exactly that, fired at every meaningful lifecycle event. Subclass any of them, override the hooks that matter, and the base class keeps working exactly as before while your overrides collect whatever trace or metric Northstar needs.
 
 ### Semaphore hooks
 
@@ -221,13 +220,13 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Try it
 
-The channel-and-semaphore demo constructs both primitives directly with `create(...)`. Watch the Semaphore limit concurrent executions to two at a time across four competing tasks, then watch the Channel deliver buffered items in publish order.
+This demo builds a `Semaphore` and a `Channel` directly with `create(...)` and puts both through their paces live. Watch the semaphore cap four competing tasks down to two running at once no matter how they race to start, and watch the channel hand back everything it buffered in exactly the order it was published, even across multiple keys and a concurrent subscriber.
 
 <RunnableExample src="packages/concurrency/examples/channelSemaphore" title="Channel and Semaphore" />
 
 <RunnableExample src="packages/concurrency/examples/keyedSemaphore" title="Keyed semaphore" />
 
-The async-iter demo uses native `async function*` generators as sources — no Node.js streams — and passes them through `AsyncIter.merge`, `AsyncIter.filter`, and `AsyncIter.enrich`. Watch the merged output interleave values from two independent ranges, the filter keep only even numbers, and the final composed pipeline emit only the multiples-of-three with a `tier` enrichment applied to values above five.
+This demo feeds two independent `async function*` ranges — no Node.js streams involved — straight into `AsyncIter.merge`, `AsyncIter.filter`, and `AsyncIter.enrich`. Watch the merge interleave values from both ranges as they arrive, the filter narrow a 1–10 range down to just the evens, and the final composed pipeline keep only the multiples of three while tagging anything above five with a `tier: 'high'` enrichment.
 
 <RunnableExample src="packages/concurrency/examples/asyncIter" title="AsyncIter merge / filter / enrich" />
 

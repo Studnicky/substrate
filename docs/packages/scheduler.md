@@ -17,27 +17,25 @@ pnpm add @studnicky/scheduler
 
 ### Virtual scheduler (deterministic)
 
-Schedule one-shot tasks at specific virtual timestamps and advance time in steps. Only tasks due at or before the advanced time are fired:
+A stock-refresh job scheduled to run at a specific future moment shouldn't actually have to wait for that moment in a test — `VirtualScheduler` lets Northstar schedule one-shot tasks against virtual timestamps and fast-forward time in controlled steps instead. The example schedules tasks at virtual ms 100 and 200, then advances to 150 — firing only the first — before a second advance crosses 200 and fires the rest, proving tasks fire exactly when their due time is reached and not a moment sooner.
 
 <<< ../../packages/scheduler/examples/virtual-scheduler.ts#usage
 
 ### Interval tasks and cancellation
 
-Use `scheduleEvery` for repeating tasks and `cancelAll` to stop all pending tasks:
+A repeating stock-refresh check needs to fire on a fixed cadence, and when Northstar shuts it down, it needs to actually stop — not keep firing from some orphaned timer. `scheduleEvery` sets up the repeating side of that story; `cancelAll` handles the shutdown. The example proves both: a 50ms interval advanced 200ms fires exactly four times, while an identical interval cancelled before any time advances never fires at all.
 
 <<< ../../packages/scheduler/examples/interval-tasks.ts#usage
 
 ### Scheduler-aware sleep
 
-`Delay.sleep(ms, { clock?, scheduler?, signal? })` resolves through the selected scheduler. A native `AbortSignal` rejects with its exact `signal.reason`: a pre-aborted signal schedules nothing, while an abort during the delay cancels the pending scheduled task.
-
-With a `VirtualScheduler` and `VirtualClockProvider` sharing one counter, completion stays deterministic without wall-clock timers. Passing a native `AbortController.signal` in the same options object makes cancellation deterministic too; advancing virtual time after abort does not fire the cancelled task.
+Code that needs to pause for a moment shouldn't force its tests to actually sit and wait that moment out. `Delay.sleep(ms, { clock?, scheduler?, signal? })` resolves through whichever scheduler you hand it, so a `VirtualScheduler` paired with a `VirtualClockProvider` sharing one counter makes the wait deterministic — no wall-clock timers, no flakiness. The example sleeps for a real 10ms first, then schedules a virtual 1000ms sleep, confirms it hasn't resolved yet, advances the counter by exactly 1000ms, and watches the promise resolve the instant that threshold is crossed.
 
 <<< ../../packages/scheduler/examples/delay.ts#usage
 
 ### Reducer-with-effects process composition
 
-Compose a `StateMachine`, `EffectInterpreter`, `VirtualScheduler`, and `Signal` directly when a local process needs effects and scheduled transitions. The example distinguishes same-drain handler dispatch from post-drain `interpreter.send()`, cancels scheduled work through an `AbortSignal`, and exercises rejected and terminal transitions. It is node-only because it uses `node:assert`.
+A background job process sometimes needs more than a scheduler alone can give it — a state machine to track where the job is, effects to trigger scheduled work, and a cancellation signal to cut it short. The example below composes a `StateMachine`, `EffectInterpreter`, `VirtualScheduler`, and `Signal` directly into one job process: it distinguishes an acknowledgment that dispatches within the same drain cycle from a scheduled advance that arrives through `interpreter.send()` after the cycle ends, cancels pending scheduled work through an `AbortSignal`, and exercises both a deliberately rejected transition and an attempt to act on an already-terminated machine. It runs node-only, since it relies on `node:assert`.
 
 <<< ../../packages/scheduler/examples/processKitComposition.ts
 
@@ -47,13 +45,13 @@ Import `Delay`, `RealTimeScheduler`, `VirtualScheduler`, and `SchedulerError` fr
 
 ## Extending
 
-Both schedulers expose protected hooks for every lifecycle event. The `di-provider` example demonstrates the injectable `SchedulerProviderInterface` pattern with a `LoggingScheduler` subclass that records `schedule` and `fire` events:
+A `WorkQueue` that hard-codes `VirtualScheduler` can never be swapped to real timers in production, or back to virtual time in a test, without editing its internals. Depend on the injectable `SchedulerProviderInterface` instead, and any scheduler implementation can be passed in from outside. The example below wires a `LoggingScheduler` subclass — one that records every `schedule` and `fire` event — into a `WorkQueue` that only knows about the interface, then enqueues two labeled tasks and advances time to watch both the scheduler's log and the queue's processed output land in the right order.
 
 <<< ../../packages/scheduler/examples/di-provider.ts#usage
 
 ## Observability hooks
 
-Both `VirtualScheduler` and `RealTimeScheduler` expose the same set of protected lifecycle hooks. Override any of them in a subclass to add logging, metrics, or alerting without coupling the scheduler to any external library.
+`VirtualScheduler` and `RealTimeScheduler` expose the exact same set of protected lifecycle hooks, so a subclass written against one works the same way against the other. Override any of them to add logging, metrics, or alerting without wiring the scheduler itself to any particular library.
 
 ### VirtualScheduler hooks
 
@@ -90,7 +88,7 @@ The base class never calls any logger or metrics library. All hooks are no-ops b
 
 ## Try it
 
-The hooks demo subclasses `VirtualScheduler` and overrides nine protected lifecycle methods. Observe the full trace: every `scheduleAt`/`scheduleEvery` call emits `schedule`; each `advance()` emits `advance` then `runUntil`; the failing task triggers both `fire` and `fireError`; the interval task emits `reschedule` after each fire; and `cancelAll` followed by `idle` appear at the end.
+This demo subclasses `VirtualScheduler` and overrides all nine protected lifecycle methods to print a full trace as three tasks run their course — a one-shot, a repeating interval, and one that deliberately throws. Watch every `scheduleAt`/`scheduleEvery` call emit `schedule`, each `advance()` emit `advance` then `runUntil`, the failing task trigger both `fire` and `fireError`, the interval reschedule itself after every fire, and `cancelAll` followed by `idle` close out the run.
 
 <RunnableExample src="packages/scheduler/examples/observedScheduler" title="Scheduler lifecycle hooks" />
 

@@ -85,7 +85,7 @@ Northstar intakes a browser or partner request to create a catalogue title, cust
 
 ## Try it
 
-Run strict entity intake and creation, then check an acyclic and cyclic value graph.
+Run this to see the three operations `EntityCompiler` derives from one schema actually enforce its contract: `intake` accepts a valid Northstar Books order and the derived `validate` confirms it, then two deliberately bad calls — one with an extra undeclared field, one missing a required field — both fail fast as `SchemaIntakeError` before any order logic ever sees them.
 
 <RunnableExample src="packages/entity/examples/entityCompiler" title="Entity compilation and cycle detection" />
 

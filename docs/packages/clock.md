@@ -29,7 +29,7 @@ pnpm add @studnicky/clock
 
 ## Usage
 
-Build a `Clock` instance with a provider, then call `now()` for epoch-ms and `hrtime()` for nanosecond bigint. Both reads are monotonically clamped per instance:
+Northstar's book-hold expiry logic needs a trustworthy clock in production and a fully controllable one in tests — and both should answer to the exact same interface. Build a `Clock` from any provider and call `now()` for epoch-milliseconds or `hrtime()` for a nanosecond bigint; either reading is monotonically clamped per instance, so it can never appear to run backward. The example below reads a real-time clock twice to confirm it never decreases, then drives a `VirtualTimeCounter` through two manual advances to show the virtual clock landing on exactly the millisecond values you told it to.
 
 <<< ../../packages/clock/examples/basic-usage.ts#usage
 
@@ -39,7 +39,7 @@ Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCou
 
 ## Timing
 
-`Timing` records bounded component-operation event timelines against an injected `Clock`. Its default uses `Clock.create(RealTimeClockProvider.create())`; pass a clock backed by `VirtualClockProvider` when a caller needs deterministic elapsed values.
+When a book-search request crawls, Northstar needs to know which stage of the pipeline actually took the time — not just that the whole thing was slow. `Timing` records a bounded timeline of `component.operation` events against an injected `Clock`, defaulting to real time but happy to take a `VirtualClockProvider` when a test needs deterministic elapsed values instead. The example records a plain query event alongside a `start`/`complete`/`hit` cache sequence, then reads the resulting map back to confirm every named key — including the overall `durationMs` — is present with a sane numeric value.
 
 <<< ../../packages/clock/examples/timing-basic-usage.ts#usage
 
@@ -47,7 +47,7 @@ Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCou
 
 ### Timing lifecycle hooks
 
-`Timing` provides protected `onInitialize`, `onEvent`, `onEvict`, `onClear`, and `onGetEvents` hooks for instrumentation. Hooks observe the injected clock values and do not select a host time source.
+Watching a `Timing` tracker's internals — when it initializes, records, evicts, clears, or gets read — is a subclassing job, not a call to some external logger. `Timing` exposes protected `onInitialize`, `onEvent`, `onEvict`, `onClear`, and `onGetEvents` hooks that fire with the clock values already attached, leaving the choice of time source entirely to the host. The example below deliberately caps the tracker at three events so a fourth triggers eviction, clears it mid-run, and confirms every hook fired the expected number of times with the expected shapes.
 
 <<< ../../packages/clock/examples/timing-observedTiming.ts#usage
 
@@ -59,19 +59,19 @@ Import `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, `VirtualTimeCou
 
 ## Virtual time control
 
-`VirtualTimeCounter` and `VirtualClockProvider` give deterministic time control with no sleeping and no wall-clock dependency. Multiple independent or shared counters can drive separate clocks:
+A test suite that actually sleeps to wait for timeouts is slow and flaky by design — `VirtualTimeCounter` and `VirtualClockProvider` let Northstar fast-forward time instead, deterministically, with zero real waiting. The example checks that `hrtime()` always agrees with `now()` scaled to nanoseconds, walks a counter through an irregular sequence of advances to prove it never reports time moving backward, and then shows two counters evolving completely independently before two clocks sharing one counter stay perfectly in sync.
 
 <<< ../../packages/clock/examples/virtual-time.ts#usage
 
 ## Custom providers
 
-Implement `ClockProviderInterface` (two methods: `now(): number` and `hrtime(): bigint`) to inject any time source into `Clock`. Swapping the provider changes what `Clock` returns without touching consumers:
+`Clock` doesn't care where time comes from — it only needs something that implements two methods, `now(): number` and `hrtime(): bigint`. The example below builds a provider that always returns fixed values, another that counts up on every call, and then swaps between two fixed providers on the same `Clock` constructor to prove the behavior change lives entirely in the injected provider, never in `Clock` itself.
 
 <<< ../../packages/clock/examples/custom-provider.ts#usage
 
 ## Observability hooks
 
-Every stateful operation across `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, and `VirtualTimeCounter` exposes a protected lifecycle hook. Subclass any of these classes and override the relevant hook to add logging, metrics, or tracing without touching public API behavior.
+Every read and every advance across `Clock`, `RealTimeClockProvider`, `VirtualClockProvider`, and `VirtualTimeCounter` fires its own protected hook, so Northstar can subclass any of them and add logging, metrics, or tracing without changing what the public API actually returns.
 
 | Hook                        | Class                   | When it fires                                                                                                    | Args                             |
 | --------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------- |
@@ -98,7 +98,7 @@ The examples below run directly in the browser against the published package.
 
 ### Lifecycle hooks
 
-Each `now()` and `hrtime()` read fires the corresponding hook on the counter, provider, and clock layers.
+This demo stacks three layers of tracing — a counter, a provider, and a clock, each subclassed to record its own hook firings — then drives one scenario: read `now()`, advance 500ms, read again, advance 250ms, read a third time, then read `hrtime()` once. Watch the clock-level hook fire three times with the expected millisecond values while the counter-level `onAdvance` hook fires exactly twice, one per advance call.
 
 <RunnableExample src="packages/clock/examples/observedClock" title="Clock lifecycle hooks" />
 

@@ -25,7 +25,7 @@ The guarantee is that subscribers receive committed, detached snapshots only aft
 
 ## Core store
 
-`Store<TState>` owns one named state value. `setState` and `update` persist before notifying subscribers; `hydrate` restores the named value; and `clear` removes it before publishing the initial state. Store copies initial state, mutation inputs, and persistence values at its boundary. `getSnapshot`, updater callbacks, and subscribers receive detached immutable snapshots; return a new value from `update` instead of changing its snapshot.
+A Northstar Books shopper's cart is just one named value — the list of ISBNs in it — and `Store<TState>` exists to hold exactly that kind of single, observable piece of state. `setState` and `update` persist before notifying subscribers, `hydrate` restores the named value, and `clear` removes it before publishing the initial state again. Below, one store adds a book to the cart and its subscriber is notified only once that write has actually persisted; a second `Store` pointed at the same key and persistence then hydrates and recovers the identical cart, proving the state survives past the original store instance. Store copies initial state, mutation inputs, and persistence values at its boundary, and `getSnapshot`, updater callbacks, and subscribers all receive detached immutable snapshots — return a new value from `update` instead of changing its snapshot.
 
 <<< ../../packages/store/examples/memory-store.ts#usage
 
@@ -61,7 +61,7 @@ A layered composition uses a distinct mutex and key pair from every layer. `Stor
 
 `hydrate()` restores the target, then seeds the source so the value propagates across the chain. `clear()` clears every layer, and `dispose()` releases the propagation subscriptions.
 
-Pass a shared `MutexInterface<string>` and matching `mutexKey` to coordinate independent strata. The pair differs from every layer synchronization identity; construction rejects a layer that would reacquire the composition lock.
+Keep a Northstar Books shopper's checkout cart quantity snappy with an in-memory cache in front, while a durable `localStorage` layer behind it survives a page reload. `StrataStore` composes exactly that: writes enter at the cache and propagate down to the durable layer before they resolve, while reads and subscriptions watch the far end of the chain. The example below seeds the durable layer directly, hydrates the composed store back through both layers, then pushes an update and confirms the cache, the composed store, and the durable target all agree on the final quantity — before cleaning up with `clear()` and `dispose()`. Pass a shared `MutexInterface<string>` and matching `mutexKey` to coordinate independent strata; the pair differs from every layer synchronization identity, and construction rejects a layer that would reacquire the composition lock.
 
 <RunnableExample src="packages/store/examples/layered-browser-store" title="Memory cache → localStorage → consumer" />
 
@@ -90,13 +90,13 @@ Use `JsonStateCodec.create({ decode })` only when the state is not a JSON entity
 
 ### Memory state
 
-This example updates a state value, observes the notification, then creates a second `Store` with the same persistence to hydrate the value.
+Run the same cart scenario live: watch the update land, the subscriber fire, and a freshly created `Store` pull the identical cart back out through `hydrate()`.
 
 <RunnableExample src="packages/store/examples/memory-store" title="Store with MemoryPersistence" />
 
 ### Browser persistence targets
 
-`BrowserPersistence` has the same `StatePersistenceInterface<TState>` contract as `MemoryPersistence`. Select `Memory`, `LocalStorage`, `SessionStorage`, or `IndexedDb`; the browser adapter uses the corresponding native API directly.
+Northstar Books might want a shopper's filter choice to disappear the moment the tab closes, or a checkout draft to survive a browser restart — different durability for different needs, through the exact same `Store` interface. This demo loops through all four targets — memory, local storage, session storage, and IndexedDB — writing, hydrating fresh, and clearing each one in turn, so you can see one consistent contract sitting on top of four genuinely different native browser APIs. `BrowserPersistence` shares the same `StatePersistenceInterface<TState>` contract as `MemoryPersistence`; the browser adapter uses the corresponding native API directly for whichever target is selected.
 
 <RunnableExample src="packages/store/examples/browser-targets" title="One store interface across every browser target" />
 

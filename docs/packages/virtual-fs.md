@@ -23,7 +23,7 @@ files, `@studnicky/virtual-fs/node` exposes Node promise-based files and
 
 ## Usage
 
-Create an instance with `VirtualFileSystem.create(options?)`, seed files, then call the familiar synchronous methods:
+Testing a supplier catalogue import shouldn't require touching the real disk — `VirtualFileSystem` gives Northstar's test suite a filesystem that behaves exactly like Node's `fs`, entirely in memory. Create an instance with `VirtualFileSystem.create(options?)`, seed it with starting files, and then call the same synchronous methods you'd already reach for: `writeFileSync`, `readFileSync`, `renameSync`, `readdirSync`, `statSync`. The example below seeds one file, writes a second, reads both back, renames one, lists the directory, and stats the result — all without a single real file touched.
 
 <<< ../../packages/virtual-fs/examples/basicVirtualFs.ts#usage
 
@@ -31,25 +31,25 @@ Create an instance with `VirtualFileSystem.create(options?)`, seed files, then c
 
 ### Factory demo
 
-The factory seeds `/data/hello.txt`, writes a second file, renames it, reads the directory listing, and stats the renamed file. All assertions verify the expected state.
+Run it and watch one `VirtualFileSystem` instance walk through a realistic import: it starts seeded with `/data/hello.txt`, writes `config.json` alongside it, renames that file to `settings.json`, lists everything sitting in `/data`, and stats the renamed file to confirm it's really there. Every step is checked by an assertion, so the demo doubles as proof the in-memory filesystem behaves exactly like the real one would.
 
 <RunnableExample src="packages/virtual-fs/examples/basicVirtualFs" title="VirtualFileSystem factory — seed, write, rename, readdir, stat" />
 
 ### Lifecycle hooks
 
-`TracingVfs` subclasses `VirtualFileSystem` and overrides all five hooks: `onCreate`, `onWrite`, `onRead`, `onRename`, and `onDelete`. The demo exercises every path — seeding (triggers `onCreate`), overwriting (triggers `onWrite`), reading, renaming, and unlinking — printing a full hook trace.
+Suppose Northstar wants a full audit trail of every file touched during a book-metadata import, without hard-coding logging calls into the filesystem logic itself. `TracingVfs` subclasses `VirtualFileSystem` and overrides all five lifecycle hooks — `onCreate`, `onWrite`, `onRead`, `onRename`, and `onDelete` — to record each one instead. Run the demo to see every operation in a realistic import walk through its matching hook: a fresh file triggers `onCreate`, overwriting it triggers `onWrite`, and reading, renaming, and deleting each fire their own event in a full trace.
 
 <RunnableExample src="packages/virtual-fs/examples/observedVirtualFs" title="Observed VirtualFileSystem — lifecycle hook trace" />
 
 ### Origin Private File System
 
-`OpfsFileSystem` implements the asynchronous durable-file contract through the browser Origin Private File System API.
+A bookseller drafting an import list in the browser needs somewhere durable to stash it between page loads — somewhere that isn't a server round-trip and isn't `localStorage`. `OpfsFileSystem` implements the same asynchronous durable-file contract through the browser's native Origin Private File System, so the demo can create a directory, write a file into it, read the directory listing and the file back, and clean up — all running against real OPFS storage in your browser, no server involved.
 
 <RunnableExample src="packages/virtual-fs/examples/browserOpfs" title="OpfsFileSystem — browser-native durable files" />
 
 ## Observability hooks
 
-Subclass `VirtualFileSystem` and override any protected hook to inject trace logging, metrics, or side-effects at the exact stage where they are needed. Hooks should stay fast and non-blocking; observer-hook failures are contained so the filesystem operation still wins.
+Every meaningful filesystem event — a file created, overwritten, read, renamed, or deleted — has a matching protected hook ready to be overridden, so Northstar can inject trace logging, metrics, or other side-effects at exactly the stage that matters. Keep overrides fast and non-blocking; a hook that throws is contained so the real filesystem operation still succeeds regardless.
 
 | Hook                         | When it fires                                                                   | Args                                 |
 | ---------------------------- | ------------------------------------------------------------------------------- | ------------------------------------ |
