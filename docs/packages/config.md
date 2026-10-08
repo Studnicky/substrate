@@ -29,7 +29,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-Parse external configuration through an entity's `intake` function. Intake supplies schema defaults and removes undeclared properties, without coercing a value's type — a wrong-typed field is rejected, not silently converted:
+Northstar Books' catalogue worker reads its settings — host, port, retry limits — from the outside world, and outside data is never trusted at face value. The example below defines a schema for that configuration once, then runs two inputs through its generated `intake` function: a config missing `port` and `maximumRetries` (which fall back to their declared defaults), and a minimal config with just a `host`. Watch that a wrong-typed field is rejected outright rather than coerced — intake fills in what's missing, it never guesses what's wrong:
 
 <<< ../../packages/config/examples/validate-config.ts#usage
 
@@ -45,7 +45,7 @@ The output shows a typed configuration with defaults applied and undeclared prop
 
 ## Configuration errors
 
-Build a `ConfigurationError` with an `Error` cause when an already-parsed configuration cannot be used:
+Sometimes a configuration only breaks after it's already been parsed — an environment variable a downstream step needed turns out to be unset. The example below shows the shape for surfacing that failure cleanly: wrap the underlying problem in a `RuntimeError`, then hand it to `ConfigurationError.create` as the `cause`, so the original failure stays attached to the error Northstar Books' worker ultimately reports:
 
 <<< ../../packages/config/examples/custom-error.ts#usage
 

@@ -23,7 +23,7 @@ pnpm add @studnicky/matching
 
 ## Try it
 
-Normalize a user query, retrieve likely candidates from an n-gram index, and rank them with deterministic edit-distance scoring.
+A Northstar Books reader who types "clean code" with stray spaces and imperfect memory still expects the catalogue to find "Clean Code" — not nothing, and not the wrong book. The example below normalizes that query, pulls a short list of plausible titles out of an n-gram candidate index seeded with three programming classics, then scores each candidate against the query with deterministic edit-distance similarity. The result: "Clean Code" comes back on top with a similarity score above 0.8, giving Northstar Books reproducible evidence it can rank on rather than a black-box guess.
 
 <RunnableExample src="packages/matching/examples/findSimilarText" title="Normalize, retrieve candidates, and score similar text" />
 

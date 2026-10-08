@@ -45,7 +45,7 @@ pnpm add @studnicky/filters
 
 ## Try it
 
-Build an `AND` filter for active products with inventory, then evaluate a matching and non-matching record.
+Northstar Books runs the same sellability check in three places — the storefront, the catalogue export, and the reservation worker — and all three need to reach the exact same verdict on a given title. The example below builds one declarative `AND` condition tree once: a book must be listed and have at least one copy in stock. It then runs that single rule against two records, a title with eight copies on the shelf and one that's sold out, to show the engine admitting the first and rejecting the second without any consumer writing its own ad-hoc check.
 
 <RunnableExample src="packages/filters/examples/filterProducts" title="Filter active products with inventory" />
 
@@ -86,7 +86,7 @@ Build an `AND` filter for active products with inventory, then evaluate a matchi
 
 ## Matching plugins
 
-The `@studnicky/filters/matching` entrypoint provides browser-safe adapters that validate untrusted filter values, delegate scoring to `@studnicky/matching/browser`, and register one filter operation per plugin.
+A shopper searching for "The Dispossessed" who types "The Dispossed" should still find it — but a search for an unrelated book shouldn't quietly slip through on a loose match either. Rather than bolting on a separate fuzzy-search code path, this example adds `LevenshteinAtLeastPlugin` straight into the same filter engine as one more declared condition on the title field. The plugin validates the filter values before delegating the actual scoring to `@studnicky/matching/browser`, so the example can confirm the near-miss spelling passes at an 0.8 similarity threshold while a genuinely different title, "A Wizard of Earthsea", does not.
 
 <RunnableExample src="packages/filters/examples/fuzzyFilter" title="Fuzzy title filter with a matching plugin" />
 

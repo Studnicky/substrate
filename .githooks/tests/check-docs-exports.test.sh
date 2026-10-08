@@ -22,7 +22,20 @@ printf '%s\n' 'export const BrowserOnly = true;' > "$repo/packages/alpha/src/bro
 printf '%s\n' 'export const CandidateSource = true;' > "$repo/packages/alpha/src/candidate-sources/index.ts"
 
 write_valid_docs() {
-  printf '%s\n' '# Alpha' '' '## Exports' '' '| Symbol | Purpose | Import path |' '| --- | --- | --- |' '| SharedInterface | Shared contract | @studnicky/alpha/interfaces |' '| NodeOnly | Node runtime API | @studnicky/alpha/node |' '| BrowserOnly | Browser runtime API | @studnicky/alpha/browser |' > "$repo/docs/packages/alpha.md"
+  printf '%s\n' \
+    '# Alpha' '' \
+    '## What it is' '' 'A fixture package.' '' \
+    '## What it is for' '' 'Exercising the exports checker.' '' \
+    '## Northstar Books examples' '' '- none' '' \
+    '## Public entrypoints' '' \
+    '| Import path | Use it when |' \
+    '| --- | --- |' \
+    '| @studnicky/alpha/node | Node runtime |' \
+    '| @studnicky/alpha/browser | Browser runtime |' \
+    '| @studnicky/alpha/interfaces | Shared contract |' \
+    '| @studnicky/alpha/candidate-sources | Candidate sources |' \
+    '' \
+    '## Exports' '' '| Symbol | Purpose | Import path |' '| --- | --- | --- |' '| SharedInterface | Shared contract | @studnicky/alpha/interfaces |' '| NodeOnly | Node runtime API | @studnicky/alpha/node |' '| BrowserOnly | Browser runtime API | @studnicky/alpha/browser |' > "$repo/docs/packages/alpha.md"
 }
 
 write_valid_docs
@@ -30,7 +43,7 @@ out=$(node "$CHECKER" --root "$repo")
 assert_contains "canonical neutral and browser-only rows pass" "check-docs-exports: OK" "$out"
 assert_not_contains "arbitrary feature paths do not require table rows" "CandidateSource" "$out"
 
-perl -0pi -e 's#\@studnicky/alpha/interfaces#\@studnicky/alpha/node#' "$repo/docs/packages/alpha.md"
+perl -0pi -e 's#\| SharedInterface \| Shared contract \| \@studnicky/alpha/interfaces \|#| SharedInterface | Shared contract | \@studnicky/alpha/node |#' "$repo/docs/packages/alpha.md"
 if out=$(node "$CHECKER" --root "$repo" 2>&1); then
   fail "node row for neutral symbol fails canonical completeness" "checker exited successfully"
 fi

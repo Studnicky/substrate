@@ -33,13 +33,13 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Usage
 
-`propertyPriority` fixes the drilldown order explicitly — each entry adds one level to the tree:
+Northstar's ops team wants to drill into orders by region, then category, then fulfillment status — in that exact order every time, not whatever order the engine happens to discover first. `propertyPriority` locks that order in: each entry listed adds one more level to the resulting tree. The example below groups a set of orders three levels deep and walks down the first branch at each level, confirming along the way that the regions split into categories and the categories split into statuses, exactly as the priority list dictates:
 
 <<< ../../packages/drilldown/examples/basic-drilldown.ts#usage
 
 ## Explicit rule types
 
-Import `DrilldownRulesEntity` from `@studnicky/drilldown/entities` when application code constructs reusable grouping rules. Its nested entity types represent each supported matcher branch.
+Sometimes the grouping rule itself needs to be saved, shared, or validated ahead of time — not just inferred on the fly. `DrilldownRulesEntity`, imported from `@studnicky/drilldown/entities`, is the schema-backed shape for exactly that: define a rule once, like grouping by `category` matching the string `alpha`, and pass it through `DrilldownRulesEntity.intake` to get back a typed, validated rule tree ready to reuse across calls.
 
 <<< ../../packages/drilldown/examples/basic-drilldown.ts#explicit-rule-types
 

@@ -35,6 +35,10 @@ on:
         required: false
         type: boolean
         default: false
+      run-test-browser:
+        required: false
+        type: boolean
+        default: false
       run-test-all:
         required: false
         type: boolean
@@ -95,6 +99,7 @@ jobs:
           RUN_TEST_ALL: ${{ inputs.run-test-all }}
           RUN_TEST_CONFORMANCE: ${{ inputs.run-test-conformance }}
           RUN_TEST_INTEGRATION: ${{ inputs.run-test-integration }}
+          RUN_TEST_BROWSER: ${{ inputs.run-test-browser }}
           RUN_TEST_SMOKE: ${{ inputs.run-test-smoke }}
           RUN_TEST_UNIT: ${{ inputs.run-test-unit }}
           RUN_TYPECHECK: ${{ inputs.run-typecheck }}
@@ -121,6 +126,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-browser","command":"bash scripts/ci-suite.sh test-browser","install_playwright_browsers":"true"}'
               append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               ;;
@@ -134,6 +140,7 @@ jobs:
               append_entry '{"name":"test-unit","command":"bash scripts/ci-suite.sh test-unit"}'
               append_entry '{"name":"test-integration","command":"bash scripts/ci-suite.sh test-integration"}'
               append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              append_entry '{"name":"test-browser","command":"bash scripts/ci-suite.sh test-browser","install_playwright_browsers":"true"}'
               append_entry '{"name":"test-conformance","command":"bash scripts/ci-suite.sh test-conformance"}'
               append_entry '{"name":"build","command":"bash scripts/ci-suite.sh build"}'
               append_entry "{\"name\":\"audit\",\"command\":\"CI_SUITE_BASE_REF=${AUDIT_BASE_REF} bash scripts/ci-suite.sh audit\"}"
@@ -170,6 +177,9 @@ jobs:
               fi
               if [ "$RUN_TEST_SMOKE" = 'true' ]; then
                 append_entry '{"name":"test-smoke","command":"bash scripts/ci-suite.sh test-smoke"}'
+              fi
+              if [ "$RUN_TEST_BROWSER" = 'true' ]; then
+                append_entry '{"name":"test-browser","command":"bash scripts/ci-suite.sh test-browser","install_playwright_browsers":"true"}'
               fi
               if [ "$RUN_TEST_ALL" = 'true' ]; then
                 append_entry '{"name":"test-all","command":"bash scripts/ci-suite.sh test-all"}'
@@ -220,6 +230,7 @@ jobs:
       - uses: ./.github/actions/pnpm-node-setup
         with:
           install-browser: ${{ matrix.install_browser == 'true' }}
+          install-playwright-browsers: ${{ matrix.install_playwright_browsers == 'true' }}
       # `full`/`release-validate`/`publish-validate` fan typecheck/lint/test-*/build
       # out into separate parallel jobs, each independently satisfying its own
       # `prepare_dist` (tsc -b) if dist/ isn't already present — an exact-key
