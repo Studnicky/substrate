@@ -45,7 +45,7 @@ check_rebased_onto_base() {
 # check_rebased_onto_base only proves a branch contains develop's commits, not
 # that it avoids main's — a branch cut from main right after a release can
 # satisfy that check (main was a superset of develop at that moment) while
-# still carrying main-only content (a version bump, a stamped CHANGELOG) that
+# still carrying main-only content (a version bump, stamped docs assets) that
 # develop hasn't absorbed yet. Landing that in develop corrupts the "main is
 # an ancestor of develop" invariant the direct main-to-develop backmerge
 # depends on: the next backmerge then has to 3-way-merge two independently

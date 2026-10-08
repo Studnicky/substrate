@@ -55,7 +55,7 @@ classify_changes() {
     CHANGED_INTEGRATION_TESTS=false
     CHANGED_SMOKE_TESTS=false
 
-    echo "$changed" | grep -qE '^(docs/|README\.md|CONTRIBUTING\.md|SECURITY\.md|CHANGELOG\.md)$' && CHANGED_DOCS=true
+    echo "$changed" | grep -qE '^(docs/|README\.md|CONTRIBUTING\.md|SECURITY\.md)$' && CHANGED_DOCS=true
     echo "$changed" | grep -qE '^(docs/public/|assets/brand/)' && CHANGED_DOCS_ASSETS=true
     echo "$changed" | grep -qE '^packages/' && CHANGED_PACKAGES=true
     echo "$changed" | grep -qE '^scripts/' && CHANGED_SCRIPTS=true
@@ -69,7 +69,7 @@ classify_changes() {
     echo "$changed" | grep -qE '^(\.github/(workflows/(audit|codeql|dependency-review|gitleaks|security|security-audit|semgrep)\.yml|ci-secrets\.(json|schema\.json)$|scripts/check-ci-secrets\.ts$)|\.gitleaks\.toml$|\.semgrepignore$)' && CHANGED_SECURITY_CONFIG=true
     echo "$changed" | grep -qE '^(docs/dependency-graph\.md|docs/public/og-image.*\.(svg|png|svg\.template)$|scripts/(dependency-diagram|stamp-version)\.ts$|assets/brand/)' && CHANGED_GENERATED_DOCS=true
     echo "$changed" | grep -qE '(^|/)(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml)$' && CHANGED_LOCKFILES=true
-    echo "$changed" | grep -qE '^(\.changeset/|CHANGELOG\.md|package\.json$|packages/.+/package\.json$|docs/public/og-image.*\.(svg|png|svg\.template)$)' && CHANGED_RELEASE=true
+    echo "$changed" | grep -qE '^(\.changeset/|package\.json$|packages/.+/package\.json$|docs/public/og-image.*\.(svg|png|svg\.template)$)' && CHANGED_RELEASE=true
 
     if [ "$CHANGED_PACKAGES" = true ] || [ "$CHANGED_SCRIPTS" = true ] || [ "$CHANGED_TESTS" = true ] || [ "$CHANGED_LOCKFILES" = true ]; then
         CHANGED_SOURCE=true

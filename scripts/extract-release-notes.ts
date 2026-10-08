@@ -1,35 +1,41 @@
 #!/usr/bin/env node
 /**
- * extract-release-notes.ts — concatenate each package's CHANGELOG.md section
- * for the current root package.json#version into one GitHub Release body.
+ * extract-release-notes.ts — render the pending changesets for this release
+ * into one GitHub Release body. Changesets are the only changelog mechanism
+ * this repo keeps: no package carries a maintained `CHANGELOG.md`, so this
+ * script reads `.changeset/*.md` directly rather than a generated artifact.
+ *
+ * `pnpm changeset version` deletes every consumed `.changeset/*.md` file as
+ * part of the version-bump commit, so this script must run against a
+ * snapshot taken before that step, not against the live `.changeset/`
+ * directory mid-release. `--changeset-dir <path>` points at that snapshot;
+ * it defaults to `.changeset` for ad-hoc/local runs, where the pending files
+ * are still present.
  *
  * Versioning is lockstep (`.changeset/config.json`'s `fixed` group), so every
- * published package shares the same version heading; this script collects
- * whichever packages actually have a non-empty entry for it and skips the rest.
+ * changeset in this release shares the one root version heading.
  *
  * A GitHub Release body is capped at 125,000 characters and the API rejects the
  * whole request when a body exceeds it, so the notes are assembled against that
- * budget: sections are emitted in full until the next one would not fit, and
- * every package that did not fit is listed with a link to its CHANGELOG at this
- * release's tag. A large release therefore publishes readable notes rather than
- * failing after the packages are already on the registry.
+ * budget: entries are emitted in full until the next one would not fit, then the
+ * rest are listed by name only, pointing at the release commit's diff.
  *
  * Usage:
  *   tsx scripts/extract-release-notes.ts > release_notes.md
+ *   tsx scripts/extract-release-notes.ts --changeset-dir /tmp/changeset-snapshot > release_notes.md
  */
 
 import { promises } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, '..');
-const PACKAGES_ROOT = join(REPO_ROOT, 'packages');
 
 /** GitHub rejects a release whose body exceeds this many characters. */
 const BODY_LIMIT = 125000;
 
-/** Headroom for the overflow list appended after the last section that fits. */
+/** Headroom for the overflow list appended after the last entry that fits. */
 const OVERFLOW_RESERVE = 4000;
 
 interface RootPackageManifestInterface {
@@ -37,9 +43,9 @@ interface RootPackageManifestInterface {
   readonly 'version': string;
 }
 
-interface ReleasedPackageEntryInterface {
-  readonly 'dir': string;
-  readonly 'pkgName': string;
+interface ChangesetEntryInterface {
+  readonly 'affectedPackages': readonly string[];
+  readonly 'name': string;
   readonly 'section': string;
 }
 
@@ -66,6 +72,20 @@ function isRootPackageManifest(value: unknown): value is RootPackageManifestInte
   return true;
 }
 
+function resolveChangesetDir(argv: readonly string[]): string {
+  const flagIndex = argv.indexOf('--changeset-dir');
+  if (flagIndex === -1) {
+    return join(REPO_ROOT, '.changeset');
+  }
+  const value = argv[flagIndex + 1];
+  if (value === undefined) {
+    throw new Error('extract-release-notes: --changeset-dir requires a path argument');
+  }
+  return value;
+}
+
+const CHANGESET_DIR = resolveChangesetDir(process.argv.slice(2));
+
 const pkgRaw = await promises.readFile(join(REPO_ROOT, 'package.json'), 'utf8');
 const parsedRootPkg: unknown = JSON.parse(pkgRaw);
 if (!isRootPackageManifest(parsedRootPkg)) {
@@ -73,34 +93,6 @@ if (!isRootPackageManifest(parsedRootPkg)) {
 }
 const rootPkg = parsedRootPkg;
 const VERSION = rootPkg.version;
-
-function escapeRegExp(value: string): string {
-  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escaped;
-}
-
-const HEADING_RE = new RegExp(`^## \\[?${escapeRegExp(VERSION)}\\]?`);
-
-function extractSection(changelog: string): string {
-  const lines = changelog.split('\n');
-  const start = lines.findIndex((line) => {
-    const isHeading = HEADING_RE.test(line);
-    return isHeading;
-  });
-
-  if (start === -1) {
-    return '';
-  }
-
-  const rest = lines.slice(start + 1);
-  const end = rest.findIndex((line) => {
-    const isNextHeading = line.startsWith('## ');
-    return isNextHeading;
-  });
-  const body = (end === -1 ? rest : rest.slice(0, end)).join('\n').trim();
-
-  return body;
-}
 
 /** `owner/repo`, preferring the value Actions supplies over the manifest URL. */
 function resolveRepositorySlug(): string {
@@ -121,100 +113,82 @@ function resolveRepositorySlug(): string {
 
 const REPOSITORY_SLUG = resolveRepositorySlug();
 
-function changelogLink(dir: string, pkgName: string): string {
-  if (REPOSITORY_SLUG === '') {
-    return `- \`${pkgName}\` — \`packages/${dir}/CHANGELOG.md\``;
+/** Splits a changeset file's `---`-delimited frontmatter from its markdown body, and lists the packages named in that frontmatter. */
+function parseChangesetFile(raw: string): { readonly 'affectedPackages': readonly string[]; readonly 'body': string } {
+  const frontmatterMatch = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/.exec(raw);
+  if (frontmatterMatch === null) {
+    return { 'affectedPackages': [], 'body': raw.trim() };
   }
-
-  return `- [\`${pkgName}\`](https://github.com/${REPOSITORY_SLUG}/blob/v${VERSION}/packages/${dir}/CHANGELOG.md)`;
+  const [, frontmatter, body] = frontmatterMatch;
+  const packageNames = [...(frontmatter ?? '').matchAll(/^"([^"]+)":\s*\S+/gm)].map((match) => { return match[1] ?? ''; });
+  return { 'affectedPackages': packageNames.filter((name) => { return name !== ''; }), 'body': (body ?? '').trim() };
 }
 
-class ChangelogReader {
-  public static async readOrNull(changelogPath: string): Promise<string | null> {
-    try {
-      const changelog = await promises.readFile(changelogPath, 'utf8');
-      return changelog;
-    } catch {
-      return null;
+function compareEntryNames(left: ChangesetEntryInterface, right: ChangesetEntryInterface): number {
+  return left.name.localeCompare(right.name);
+}
+
+async function readChangesetEntries(changesetDir: string): Promise<readonly ChangesetEntryInterface[]> {
+  const entries = await promises.readdir(changesetDir, { 'withFileTypes': true });
+  const changesetFiles = entries.filter((entry) => {
+    const isMarkdownChangeset = entry.isFile() && entry.name.endsWith('.md') && entry.name !== 'README.md';
+    return isMarkdownChangeset;
+  });
+
+  const parsed: ChangesetEntryInterface[] = [];
+  for (const file of changesetFiles) {
+    const raw = await promises.readFile(join(changesetDir, file.name), 'utf8');
+    const { affectedPackages, body } = parseChangesetFile(raw);
+    if (body === '') {
+      continue;
     }
+    const name = basename(file.name, '.md');
+    const affectedLine = affectedPackages.length > 0 ? `*Affects: ${affectedPackages.join(', ')}*\n\n` : '';
+    parsed.push({ 'affectedPackages': affectedPackages, 'name': name, 'section': `### ${name}\n\n${affectedLine}${body}` });
   }
+
+  return parsed.toSorted(compareEntryNames);
 }
 
-const entries = await promises.readdir(PACKAGES_ROOT, { 'withFileTypes': true });
-const directoryNames: string[] = [];
-for (let index = 0; index < entries.length; index += 1) {
-  const entry = entries[index];
-  if (entry === undefined) {
-    continue;
-  }
-  if (entry.isDirectory()) {
-    directoryNames.push(entry.name);
-  }
-}
-const packageDirs = directoryNames.toSorted();
+const releasedEntries = await readChangesetEntries(CHANGESET_DIR);
 
-const released: ReleasedPackageEntryInterface[] = [];
-
-for (let index = 0; index < packageDirs.length; index += 1) {
-  const dir = packageDirs[index];
-  if (dir === undefined) {
-    continue;
-  }
-  const changelogPath = join(PACKAGES_ROOT, dir, 'CHANGELOG.md');
-  const pkgJsonPath = join(PACKAGES_ROOT, dir, 'package.json');
-
-  const changelog = await ChangelogReader.readOrNull(changelogPath);
-  if (changelog === null) {
-    continue;
-  }
-
-  const body = extractSection(changelog);
-  if (body === '') {
-    continue;
-  }
-
-  const pkgJsonRaw = await promises.readFile(pkgJsonPath, 'utf8');
-  const pkgName = (JSON.parse(pkgJsonRaw) as { 'name': string }).name;
-
-  released.push({ 'dir': dir, 'pkgName': pkgName, 'section': `### ${pkgName}\n\n${body}` });
-}
-
-if (released.length === 0) {
+if (releasedEntries.length === 0) {
   process.stdout.write(`Release v${VERSION}\n`);
   process.exit(0);
 }
 
-const included: ReleasedPackageEntryInterface[] = [];
-const overflowed: ReleasedPackageEntryInterface[] = [];
+function compareReferenceUrl(): string {
+  if (REPOSITORY_SLUG === '') {
+    return '';
+  }
+  return `https://github.com/${REPOSITORY_SLUG}/commits/v${VERSION}/.changeset`;
+}
+
+const included: ChangesetEntryInterface[] = [];
+const overflowed: ChangesetEntryInterface[] = [];
 let budget = BODY_LIMIT - OVERFLOW_RESERVE;
 
-for (let index = 0; index < released.length; index += 1) {
-  const entry = released[index];
-  if (entry === undefined) {
-    continue;
-  }
+for (const entry of releasedEntries) {
   const cost = entry.section.length + '\n\n'.length;
   if (overflowed.length === 0 && cost <= budget) {
     included.push(entry);
     budget -= cost;
     continue;
   }
-
   overflowed.push(entry);
 }
 
 const parts = included.map((entry) => { return entry.section; });
 
 if (overflowed.length > 0) {
-  const links = overflowed.map((entry) => {
-    const link = changelogLink(entry.dir, entry.pkgName);
-    return link;
-  }).join('\n');
+  const names = overflowed.map((entry) => { return `- \`${entry.name}\``; }).join('\n');
+  const referenceUrl = compareReferenceUrl();
+  const referenceLine = referenceUrl === '' ? '' : ` See the release commit's diff: ${referenceUrl}`;
   parts.push(
-    '### Remaining packages\n\n' +
-    `${overflowed.length} of ${released.length} packages released at this version are listed below rather than ` +
-    `inlined, because a GitHub Release body is capped at ${BODY_LIMIT.toLocaleString('en-US')} characters. ` +
-    `Their notes are in their own changelogs.\n\n${links}`
+    '### Remaining changes\n\n' +
+    `${overflowed.length} of ${releasedEntries.length} changes in this release are listed below rather than ` +
+    `inlined, because a GitHub Release body is capped at ${BODY_LIMIT.toLocaleString('en-US')} characters.` +
+    `${referenceLine}\n\n${names}`
   );
 }
 
