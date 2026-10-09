@@ -87,7 +87,7 @@ void it('selects validated project hosts and retains distinct node and browser d
 
   assert.equal(fallbackHost, nodeDefault);
 
-  const throwingSettings = Object.defineProperty({}, '@studnicky/projectHost', {
+  const throwingSettings = new Proxy({}, {
     'get': function(): unknown {
       throw RuntimeError.create('untrusted setting getter');
     }
