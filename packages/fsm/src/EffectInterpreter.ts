@@ -177,7 +177,7 @@ export class EffectInterpreter<
   protected onTransition(_from: TState, _to: TState, _event: TEvent): void {}
 
   /** Fires when entering a new state variant (after commit). */
-  protected onEnterState(_state: TState): void {}
+  protected onEnterState(_state: TState): void | Promise<void> {}
 
   /** Fires when exiting a state variant (before commit). */
   protected onExitState(_state: TState): void {}

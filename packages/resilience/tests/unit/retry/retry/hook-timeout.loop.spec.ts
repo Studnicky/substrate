@@ -4,6 +4,7 @@ import { setTimeout } from 'node:timers/promises';
 
 import type { ScenarioCaseOfType } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RetryCallStateEntity } from '../../../../src/retry/entities/RetryCallStateEntity.js';
+import type { RetryConfigInterface } from '../../../../src/retry/interfaces/RetryConfigInterface.js';
 
 import { ScenarioSuite } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Retry } from '../../../../src/retry/retry/index.js';
@@ -39,8 +40,18 @@ class HookTimeoutRunners {
   static async 'fast-hook'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'fast-hook'>): Promise<void> {
     const { expected, input } = scenario;
 
-    const retry = RetryFixture.create(input.retry);
-    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.delayed(1)), true);
+    class DelayedAttemptRetry extends Retry {
+      constructor(config = {}) {
+        super(RetryFixture.options(config));
+      }
+
+      protected override onAttempt(): Promise<void> {
+        const result = AsyncHook.delayed(1)();
+        return result;
+      }
+    }
+
+    const retry = new DelayedAttemptRetry(input.retry ?? {});
     const result = await retry.execute(DelayedOperation.of(Number(input.delayMs), String(input.result)));
     assert.strictEqual(result, String(expected.result));
   }
@@ -48,8 +59,18 @@ class HookTimeoutRunners {
   static async 'hung-attempt-with-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-attempt-with-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    const retry = RetryFixture.create(input.retry);
-    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.hanging), true);
+    class HangingAttemptRetry extends Retry {
+      constructor(config = {}) {
+        super(RetryFixture.options(config));
+      }
+
+      protected override onAttempt(): Promise<void> {
+        const result = AsyncHook.hanging();
+        return result;
+      }
+    }
+
+    const retry = new HangingAttemptRetry(input.retry ?? {});
     const startedAt = Date.now();
     const result = await retry.execute(ResolvingOperation.of(String(input.result)));
     const elapsedMs = Date.now() - startedAt;
@@ -61,8 +82,18 @@ class HookTimeoutRunners {
   static async 'hung-attempt-without-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-attempt-without-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    const retry = RetryFixture.create(input.retry);
-    assert.strictEqual(Reflect.set(retry, 'onAttempt', AsyncHook.hanging), true);
+    class HangingAttemptRetry extends Retry {
+      constructor(config = {}) {
+        super(RetryFixture.options(config));
+      }
+
+      protected override onAttempt(): Promise<void> {
+        const result = AsyncHook.hanging();
+        return result;
+      }
+    }
+
+    const retry = new HangingAttemptRetry(input.retry ?? {});
     const timedOutMarker = 'timed-out';
     const raceResult = await Promise.race([
       retry.execute(ResolvingOperation.of(String(input.result ?? 'ok'))),
@@ -75,11 +106,21 @@ class HookTimeoutRunners {
   static async 'hung-give-up-with-timeout'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-give-up-with-timeout'>): Promise<void> {
     const { expected, input } = scenario;
 
-    const retry = Retry.create({
+    class HangingGiveUpRetry extends Retry {
+      constructor(config: RetryConfigInterface) {
+        super(config);
+      }
+
+      protected override onGiveUp(): Promise<void> {
+        const result = AsyncHook.hanging();
+        return result;
+      }
+    }
+
+    const retry = new HangingGiveUpRetry({
       'errorClassifier': RetryClassifier.nonRetryable,
       ...input.retry
     });
-    assert.strictEqual(Reflect.set(retry, 'onGiveUp', AsyncHook.hanging), true);
 
     const startedAt = Date.now();
     await assert.rejects(
@@ -94,11 +135,21 @@ class HookTimeoutRunners {
   static async 'hung-retry-scheduled'(scenario: ScenarioCaseOfType<HookTimeoutScenarioCaseEntity.Type, 'hung-retry-scheduled'>): Promise<void> {
     const { expected, input } = scenario;
 
-    const retry = Retry.create({
+    class HangingRetryScheduledRetry extends Retry {
+      constructor(config: RetryConfigInterface) {
+        super(config);
+      }
+
+      protected override onRetryScheduled(): Promise<void> {
+        const result = AsyncHook.hanging();
+        return result;
+      }
+    }
+
+    const retry = new HangingRetryScheduledRetry({
       'errorClassifier': RetryClassifier.retryable,
       ...input.retry
     });
-    assert.strictEqual(Reflect.set(retry, 'onRetryScheduled', AsyncHook.hanging), true);
     const startedAt = Date.now();
     const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.errorMessage), String(input.result));
     const elapsedMs = Date.now() - startedAt;

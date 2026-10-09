@@ -1058,19 +1058,19 @@ export class Throttle implements ThrottleInterface {
   /**
    * Fires when a slot is acquired immediately (activeCount < limit).
    */
-  protected onAcquire(_activeCount: number, _queuedCount: number): void {}
+  protected onAcquire(_activeCount: number, _queuedCount: number): void | Promise<void> {}
 
   /**
    * Fires when a caller arrives at a fully-saturated window and is about to
    * be queued. Fires before onAcquireWait. Useful for detecting congestion.
    */
-  protected onContended(_activeCount: number, _queuedCount: number): void {}
+  protected onContended(_activeCount: number, _queuedCount: number): void | Promise<void> {}
 
   /**
    * Fires immediately after a caller is pushed onto the queue because the
    * window is saturated. The argument is the queue length after enqueue.
    */
-  protected onAcquireWait(_queuedCount: number): void {}
+  protected onAcquireWait(_queuedCount: number): void | Promise<void> {}
 
   /**
    * Fires each time a slot is granted to a previously-queued caller (i.e. the
@@ -1083,7 +1083,7 @@ export class Throttle implements ThrottleInterface {
   /**
    * Fires when abort is executed.
    */
-  protected onAbortStart(_cancelledCount: number): void {}
+  protected onAbortStart(_cancelledCount: number): void | Promise<void> {}
 
   /**
    * Fires when adaptive concurrency adjusts the limit.

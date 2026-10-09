@@ -36,13 +36,11 @@ class ObservedTimeoutCoalesce<T> extends Coalesce<T> {
 }
 
 class RejectingTimeoutCoalesce<T> extends Coalesce<T> {
-  static make(options: CoalesceOptionsEntity.InputType): RejectingTimeoutCoalesce<string> {
-    const coalesce = RejectingTimeoutCoalesce.create<string>(options);
-    Object.defineProperty(coalesce, 'onTimeout', { 'value': RejectingTimeoutCoalesce.rejectAfterTick });
-    return coalesce;
+  static override create<T>(options?: CoalesceOptionsEntity.InputType): RejectingTimeoutCoalesce<T> {
+    return new RejectingTimeoutCoalesce<T>(CoalesceOptionsEntity.intake(options ?? {}));
   }
 
-  private static async rejectAfterTick(): Promise<void> {
+  protected override async onTimeout(): Promise<void> {
     await new Promise((resolve) => { setImmediate(resolve); });
     throw RuntimeError.create('timeout hook boom');
   }
@@ -67,15 +65,19 @@ class RejectingJoinCoalesce extends Coalesce<string> {
 
 class GatedStartCoalesce extends Coalesce<string> {
   readonly settledEvents: boolean[] = [];
+  readonly #gate: Promise<void>;
 
-  private constructor() {
+  private constructor(gate: Promise<void>) {
     super(CoalesceOptionsEntity.intake({}));
+    this.#gate = gate;
   }
 
   static make(gate: Promise<void>): GatedStartCoalesce {
-    const coalesce = new GatedStartCoalesce();
-    Object.defineProperty(coalesce, 'onCoalesceStart', { 'value': () => { return gate; } });
-    return coalesce;
+    return new GatedStartCoalesce(gate);
+  }
+
+  protected override onCoalesceStart(): Promise<void> {
+    return this.#gate;
   }
 
   protected override onCoalesceSettled(_key: string, success: boolean): void {
@@ -102,7 +104,7 @@ class CoalesceRunners {
     const onUnhandledRejection = (): void => { rejectionCount += 1; };
     process.on('unhandledRejection', onUnhandledRejection);
     try {
-      const c = RejectingTimeoutCoalesce.make({ 'timeout': scenarioCase.input.coalesce.timeout });
+      const c = RejectingTimeoutCoalesce.create<string>({ 'timeout': scenarioCase.input.coalesce.timeout });
       const deferred = Promise.withResolvers<string>();
       const pending = c.run(scenarioCase.input.key, () => {return deferred.promise;});
       await assert.rejects(pending, { 'hookName': scenarioCase.expected.hookName, 'name': HookInvocationError.name });

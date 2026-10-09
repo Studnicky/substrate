@@ -60,14 +60,10 @@ class AsyncRejectingRegisterRegistry extends MachineRegistry<
   MachineNoopEventEntity.Type
 > {
   static make(): AsyncRejectingRegisterRegistry {
-    const registry = new AsyncRejectingRegisterRegistry();
-    Object.defineProperty(registry, 'onRegister', {
-      'value': AsyncRejectingRegisterRegistry.rejectAfterTick
-    });
-    return registry;
+    return new AsyncRejectingRegisterRegistry();
   }
 
-  private static async rejectAfterTick(): Promise<void> {
+  protected override async onRegister(): Promise<void> {
     await Promise.resolve();
     throw RuntimeError.create('async onRegister boom');
   }

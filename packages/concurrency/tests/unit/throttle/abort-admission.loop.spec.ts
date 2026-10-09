@@ -26,44 +26,41 @@ class AbortAdmissionHelpers {
 
 class DeferredAbortThrottle extends Throttle {
   static override create(config?: unknown): DeferredAbortThrottle {
-    const throttle = new DeferredAbortThrottle(config);
-    const installed = Reflect.set(throttle, 'onAbortStart', async (): Promise<void> => {
-      throttle.abortStarted.resolve();
-      await throttle.continueAbort.promise;
-    });
-    assert.strictEqual(installed, true);
-    return throttle;
+    return new DeferredAbortThrottle(config);
   }
   readonly abortStarted = Promise.withResolvers<void>();
   readonly continueAbort = Promise.withResolvers<void>();
+
+  protected override async onAbortStart(): Promise<void> {
+    this.abortStarted.resolve();
+    await this.continueAbort.promise;
+  }
 }
 
 class DeferredAcquireThrottle extends Throttle {
   static override create(config?: unknown): DeferredAcquireThrottle {
-    const throttle = new DeferredAcquireThrottle(config);
-    const installed = Reflect.set(throttle, 'onAcquire', async (): Promise<void> => {
-      throttle.acquireStarted.resolve();
-      await throttle.continueAcquire.promise;
-    });
-    assert.strictEqual(installed, true);
-    return throttle;
+    return new DeferredAcquireThrottle(config);
   }
   readonly acquireStarted = Promise.withResolvers<void>();
   readonly continueAcquire = Promise.withResolvers<void>();
+
+  protected override async onAcquire(): Promise<void> {
+    this.acquireStarted.resolve();
+    await this.continueAcquire.promise;
+  }
 }
 
 class DeferredAcquireWaitThrottle extends Throttle {
   static override create(config?: unknown): DeferredAcquireWaitThrottle {
-    const throttle = new DeferredAcquireWaitThrottle(config);
-    const installed = Reflect.set(throttle, 'onAcquireWait', async (): Promise<void> => {
-      throttle.acquireWaitStarted.resolve();
-      await throttle.continueAcquireWait.promise;
-    });
-    assert.strictEqual(installed, true);
-    return throttle;
+    return new DeferredAcquireWaitThrottle(config);
   }
   readonly acquireWaitStarted = Promise.withResolvers<void>();
   readonly continueAcquireWait = Promise.withResolvers<void>();
+
+  protected override async onAcquireWait(): Promise<void> {
+    this.acquireWaitStarted.resolve();
+    await this.continueAcquireWait.promise;
+  }
 }
 
 void describe('Throttle abort admission ownership', () => {

@@ -146,7 +146,7 @@ export class VirtualScheduler implements SchedulerProviderInterface {
   protected onSchedule(_id: string, _atMs: number, _variant: 'interval' | 'timeout'): void { return; }
 
   /** Called immediately before a task's `fire` callback is invoked. */
-  protected onFire(_id: string): void { return; }
+  protected onFire(_id: string): void | Promise<void> { return; }
 
   /**
    * Called when a fired task's callback throws synchronously or returns a rejected Promise.

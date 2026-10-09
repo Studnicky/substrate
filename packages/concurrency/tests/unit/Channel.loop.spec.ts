@@ -48,12 +48,10 @@ class AsyncRejectingEnqueueChannel<T> extends Channel<T> {
   #enqueueCount = 0;
 
   static make(): AsyncRejectingEnqueueChannel<number> {
-    const channel = new AsyncRejectingEnqueueChannel<number>(ChannelOptionsEntity.intake({}));
-    Object.defineProperty(channel, 'onEnqueue', { 'value': channel.rejectFirstEnqueue });
-    return channel;
+    return new AsyncRejectingEnqueueChannel<number>(ChannelOptionsEntity.intake({}));
   }
 
-  private async rejectFirstEnqueue(): Promise<void> {
+  protected override async onEnqueue(): Promise<void> {
     this.#enqueueCount += 1;
     if (this.#enqueueCount === 1) {
       await new Promise((resolve) => { setImmediate(resolve); });

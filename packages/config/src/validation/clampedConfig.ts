@@ -31,7 +31,7 @@ export class ClampedConfig {
    * computed but before it is written into the returned object. Default is a
    * no-op; no dependency on any logging package.
    */
-  protected static onClamp(_event: ClampEventEntity.Type): void {
+  protected static onClamp(_event: ClampEventEntity.Type): void | Promise<void> {
     // no-op default — subclasses override to observe clamp events
   }
 

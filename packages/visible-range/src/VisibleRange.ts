@@ -262,7 +262,7 @@ export class VisibleRange {
    * always fires (there is no prior range to compare against).
    * No-op default — override to observe range changes.
    */
-  protected onRangeChange(_range: VisibleRangeEntity.Type): void {
+  protected onRangeChange(_range: VisibleRangeEntity.Type): void | Promise<void> {
     // no-op
   }
 }
