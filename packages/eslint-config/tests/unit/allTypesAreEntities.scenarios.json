@@ -54,6 +54,16 @@
       "code": "import type { SchemaNodeInterface } from '@studnicky/entity/interfaces';\nimport type { NodeInputType, NodeStaticType } from '@studnicky/entity/types';\n// Ambient augmentation stands in for the real @studnicky/entity/types export until feature/inferref merges NodeInputType \u2014 re-point this import then.\ndeclare module '@studnicky/entity/types' {\n  export type NodeInputType<TNode extends SchemaNodeInterface<unknown, unknown>> = TNode extends SchemaNodeInterface<unknown, infer S> ? S : never;\n}\ndeclare function defineNode<S>(schema: unknown): SchemaNodeInterface<unknown, S>;\nexport namespace CanonicalEntity {\n  export const Node = defineNode<string>({ type: 'string' } as const);\n  export type Type = NodeStaticType<typeof Node>;\n  export type InputType = NodeInputType<typeof Node>;\n}",
       "filename": "packages/retry/src/entities/NodeInputTypeFixtureEntity.ts",
       "name": "NodeInputType<typeof Node>-derived entity namespace InputType form is valid, on the same terms as Type"
+    },
+    {
+      "code": "declare const middleware: () => { handle(): void };\ninterface MiddlewareInterface extends ReturnType<typeof middleware> {}",
+      "filename": "packages/retry/src/models/MiddlewareInterface.ts",
+      "name": "standard-library utilities do not establish schema derivation"
+    },
+    {
+      "code": "declare function buildSchema(): () => { value: string };\nconst Schema = buildSchema();\ntype ValueType = ReturnType<typeof Schema>;",
+      "filename": "packages/retry/src/models/SchemaFactoryInterface.ts",
+      "name": "a declaration-file generic does not establish schema provenance"
     }
   ],
   "invalid": [

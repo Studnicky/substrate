@@ -95,12 +95,15 @@ class DeclarationNames {
     return result;
   }
 
+}
+
+export class CallIdentity {
   /**
    * True when the declaration comes from a TypeScript lib file (`lib.es5.d.ts`,
    * `lib.dom.d.ts`, …) rather than from project or dependency source. This is the
    * check that separates a genuine built-in from a same-named user method.
    */
-  public static isFromStandardLibrary(declaration: Declaration): boolean {
+  public static isStandardLibraryDeclaration(declaration: Declaration): boolean {
     const fileName = declaration.getSourceFile().fileName;
     const basename = fileName.slice(fileName.lastIndexOf('/') + 1);
 
@@ -108,9 +111,7 @@ class DeclarationNames {
 
     return result;
   }
-}
 
-export class CallIdentity {
   // True when `node` resolves to one of `methods` declared on one of `owners` in the
   // standard library, independent of callee spelling; `false` when type services are unavailable.
   public static isBuiltinCall(
@@ -139,7 +140,7 @@ export class CallIdentity {
     if (declaration === undefined) {
       return false;
     }
-    if (!DeclarationNames.isFromStandardLibrary(declaration)) {
+    if (!CallIdentity.isStandardLibraryDeclaration(declaration)) {
       return false;
     }
     const resolvedMethod = DeclarationNames.of(declaration);

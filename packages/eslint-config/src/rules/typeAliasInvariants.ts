@@ -2,12 +2,14 @@ import type { Rule } from 'eslint';
 
 import {
   isIndexedAccessTypeNode,
+  isIntersectionTypeNode,
   isLiteralTypeNode,
   isMappedTypeNode,
   isPropertySignature,
   isStringLiteral,
   isTypeAliasDeclaration,
   isTypeLiteralNode,
+  isTypeOperatorNode,
   isTypeReferenceNode,
   isUnionTypeNode,
   type MappedTypeNode,
@@ -26,10 +28,12 @@ import {
 
 import { Predicates } from '#runtime';
 
+import { ProjectHostRegistry } from '../runtime/ProjectHostRegistry.js';
 import {
   PRIMITIVE_DISPLAY_NAMES, PRIMITIVE_TYPES
 } from './constants/TypeAliasInvariantsConstants.js';
 import { AstHelpers } from './shared/astHelpers.js';
+import { ExternalTypeOrigin } from './shared/ExternalTypeOrigin.js';
 import { SchemaMemberGuards } from './shared/SchemaMemberGuards.js';
 import { TypeContractClassification } from './shared/TypeContractClassification.js';
 
@@ -522,6 +526,49 @@ class AliasingCheck {
   }
 }
 
+class BrandedPrimitiveAlias {
+  public static is(declaration: TypeAliasDeclaration): boolean {
+    if (!isIntersectionTypeNode(declaration.type)) {
+      return false;
+    }
+
+    let primitive = false;
+    let brand = false;
+
+    for (let index = 0; index < declaration.type.types.length; index += 1) {
+      const member = declaration.type.types[index]!;
+
+      if (BrandedPrimitiveAlias.isPrimitive(member.kind)) {
+        primitive = true;
+        continue;
+      }
+      if (isTypeLiteralNode(member) && member.members.some((property) => {
+        const isBrandMember = isPropertySignature(property) && property.type !== undefined
+          && isTypeOperatorNode(property.type)
+          && property.type.operator === SyntaxKind.UniqueKeyword;
+
+        return isBrandMember;
+      })) {
+        brand = true;
+      }
+    }
+
+    const result = primitive && brand;
+
+    return result;
+  }
+
+  private static isPrimitive(kind: SyntaxKind): boolean {
+    const result = kind === SyntaxKind.StringKeyword
+      || kind === SyntaxKind.NumberKeyword
+      || kind === SyntaxKind.BooleanKeyword
+      || kind === SyntaxKind.BigIntKeyword
+      || kind === SyntaxKind.SymbolKeyword;
+
+    return result;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Check 5: noPartialCanonicalType — canonical, codebase-owned types are
 // consumed whole, never subsetted via `Partial`/`Pick`/`Omit` or an equivalent.
@@ -879,6 +926,41 @@ class PartialCanonicalTypeCheck {
 // Rule
 // ---------------------------------------------------------------------------
 
+interface ExternalOrBrandedAliasCheckParametersInterface {
+  readonly 'analysis': ReturnType<TypeContractClassification['analyzeAlias']>;
+  readonly 'classification': TypeContractClassification;
+  readonly 'context': Rule.RuleContext;
+  readonly 'declaration': TypeAliasDeclaration;
+  readonly 'node': Rule.Node;
+  readonly 'services': ParserServicesInterface;
+}
+
+/**
+ * Composing an externally-exported type, or a unique-symbol-branded primitive, is valid
+ * regardless of schema provenance — neither is local data this rule governs.
+ */
+class ExternalOrBrandedAliasCheck {
+  public static handles(parameters: ExternalOrBrandedAliasCheckParametersInterface): boolean {
+    const {
+      analysis, classification, context, declaration, node, services
+    } = parameters;
+
+    const external = analysis.classification !== 'pureDataCanonical'
+      && !classification.isSchemaDerivationApplication(declaration.type)
+      && ExternalTypeOrigin.isComposedIn(declaration, services.program, ProjectHostRegistry.hostFor(context));
+
+    if (!external && !BrandedPrimitiveAlias.is(declaration)) {
+      return false;
+    }
+
+    if (!AliasingCheck.checkTypeAlias(context, node)) {
+      MustEndTypeCheck.run(context, node);
+    }
+
+    return true;
+  }
+}
+
 class TypeAliasDeclarationCheck {
   public static run(
     context: Rule.RuleContext,
@@ -966,6 +1048,29 @@ class TypeAliasDeclarationCheck {
   }
 }
 
+interface TypeAliasDeclarationResolutionInterface {
+  readonly 'analysis': ReturnType<TypeContractClassification['analyzeAlias']>;
+  readonly 'declaration': TypeAliasDeclaration;
+}
+
+class TypeAliasDeclarationResolver {
+  public static resolve(
+    node: Rule.Node,
+    services: ParserServicesInterface,
+    classification: TypeContractClassification
+  ): TypeAliasDeclarationResolutionInterface | undefined {
+    const typeScriptNode = services.esTreeNodeToTSNodeMap.get(node);
+
+    if (typeScriptNode === undefined || !isTypeAliasDeclaration(typeScriptNode)) {
+      return undefined;
+    }
+
+    const analysis = classification.analyzeAlias(typeScriptNode);
+
+    return { 'analysis': analysis, 'declaration': typeScriptNode };
+  }
+}
+
 export const typeAliasInvariants: Rule.RuleModule = {
   'create': (context) => {
     const services = ContextHelpers.getServices(context);
@@ -974,17 +1079,15 @@ export const typeAliasInvariants: Rule.RuleModule = {
       : TypeContractClassification.forProgram(services.program);
 
     const onTSTypeAliasDeclaration = (node: Rule.Node): void => {
-      const typeScriptNode = services?.esTreeNodeToTSNodeMap.get(node);
-      const declaration = typeScriptNode !== undefined && isTypeAliasDeclaration(typeScriptNode)
-        ? typeScriptNode
-        : undefined;
-      const analysis = declaration === undefined || classification === undefined
+      const resolved = services === undefined || classification === undefined
         ? undefined
-        : classification.analyzeAlias(declaration);
+        : TypeAliasDeclarationResolver.resolve(node, services, classification);
 
-      if (analysis === undefined || declaration === undefined || classification === undefined) {
+      if (resolved === undefined || services === undefined || classification === undefined) {
         return;
       }
+      const { analysis, declaration } = resolved;
+
       // entity-file-shape consults the same predicate on this file's own AST; consulting it
       // here too keeps both rules agreeing on the same declaration rather than each running
       // its own derivation-legitimacy judgment.
@@ -992,7 +1095,13 @@ export const typeAliasInvariants: Rule.RuleModule = {
         return;
       }
 
-      TypeAliasDeclarationCheck.run(context, node, declaration, classification, analysis);
+      const handled = ExternalOrBrandedAliasCheck.handles({
+        'analysis': analysis, 'classification': classification, 'context': context, 'declaration': declaration, 'node': node, 'services': services
+      });
+
+      if (!handled) {
+        TypeAliasDeclarationCheck.run(context, node, declaration, classification, analysis);
+      }
     };
 
     const onImportSpecifier = (node: Rule.Node): void => {

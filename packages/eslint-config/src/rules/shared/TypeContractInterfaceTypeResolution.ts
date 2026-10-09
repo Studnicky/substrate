@@ -536,47 +536,6 @@ export class TypeContractInterfaceTypeResolution implements InterfaceTypeResolut
     return result;
   }
 
-  /**
-   * True for the interface spelling of a canonical schema-derived entity type:
-   * `export interface Type extends FromSchema<typeof Schema> {}`, declared directly inside a
-   * module block whose enclosing namespace is named `*Entity` and which owns a sibling exported
-   * `Schema` const. Commit 04083ad added `all-types-are-entities`' recognition of exactly this
-   * shape (as the interface-heritage counterpart to `type Type = FromSchema<typeof Schema>`) —
-   * this method is the single shared definition of that pattern, consulted by both
-   * `all-types-are-entities` (which accepts it) and `interface-must-be-contract` (its only other
-   * caller, which exempts it) so the two rules cannot re-diverge on what counts as "the entity
-   * interface pattern."
-   *
-   * D3 (see the eslint-config objectives) — PAIRED RULE `interface-must-be-contract`: that rule
-   * visits every `TSInterfaceDeclaration` and rejects any that is not `analyzeInterface(...)
-   * .classification === 'contract'`. A schema-derived `Type` interface is `pureData` BY
-   * CONSTRUCTION (see `classifyInterface` — it has heritage evidence, not a method/brand/
-   * readonly/callable member, so `findInterfaceContract` finds no contract evidence and
-   * `classifyInterface` falls to `pureData`), so without this exemption
-   * `interface-must-be-contract` unconditionally rejected the exact shape `all-types-are-entities`
-   * was taught to recognize as canonical — no author could satisfy both rules on the same
-   * declaration. VERIFIED via `npx eslint` probe (ZzP4 prefix):
-   *
-   *   namespace FooEntity {
-   *     export const Schema = { ... } as const satisfies JSONSchema;
-   *     export interface Type extends FromSchema<typeof Schema> {}
-   *   }
-   *
-   * was flagged by `interface-must-be-contract` ("contains only pure data") while accepted by
-   * `all-types-are-entities`, on the same declaration, before this method existed. Fixed on
-   * `interface-must-be-contract`'s side (per the objectives' stated preference) rather than by
-   * widening `classifyInterface`'s own `analyzeInterface` classification — that keeps this
-   * exemption's blast radius to exactly the one rule with the proven contradiction, and preserves
-   * `analyzeInterface`'s existing `pureData` classification (and every OTHER rule that reads it,
-   * e.g. `interfaces-compose-named-types`'s "skip pure-data interfaces entirely" early return)
-   * completely unaffected.
-   *
-   * KNOWN UNRESOLVED CONFLICT (not fixable within this rule's scope; do not edit
-   * `eslint.config.mjs`): `@typescript-eslint/naming-convention` requires every interface name to
-   * match `/Interface$/u`, while this exact pattern requires the literal name `Type`. An author
-   * following both `all-types-are-entities` and `naming-convention` cannot name the interface
-   * `Type` without also failing `naming-convention` — REPORTED, not resolved.
-   */
   private canonicalEntityExtendedType(declaration: InterfaceDeclaration): ExpressionWithTypeArguments | undefined {
     const extendsClause = (declaration.heritageClauses ?? []).find((clause) => {
       const result = clause.token === SyntaxKind.ExtendsKeyword;
@@ -667,6 +626,9 @@ export class TypeContractInterfaceTypeResolution implements InterfaceTypeResolut
     return false;
   }
 
+  /**
+   * Identifies the interface spelling of a canonical schema-derived entity type.
+   */
   public isCanonicalEntityInterface(declaration: InterfaceDeclaration): boolean {
     if (declaration.name.text !== 'Type') {
       return false;

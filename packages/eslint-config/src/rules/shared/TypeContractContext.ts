@@ -491,6 +491,20 @@ export class TypeContractContext implements TypeContractContextInterface {
   }
 
   /**
+   * True when `node` applies the canonical `json-schema-to-ts` `FromSchema` deriving function —
+   * narrower than {@link isSchemaDerivedApplication}, which also accepts a project-local deriving
+   * function. Used to tell a verified canonical derivation apart from a plain external-type
+   * composition that merely resembles one.
+   */
+  public isSchemaDerivationApplication(node: TypeNode): boolean {
+    const shape = this.schemaDerivationShape(node);
+    const result = shape?.derivingNameNode !== undefined
+      && this.isCanonicalFromSchemaReference(shape.derivingNameNode);
+
+    return result;
+  }
+
+  /**
    * An interface's `extends FromSchema<typeof Schema>` heritage clause derives the same canonical
    * pure-data shape a `type X = FromSchema<typeof Schema>` alias does — the interface spelling of
    * the identical pattern. Heritage-clause types are `ExpressionWithTypeArguments`, not
@@ -880,15 +894,16 @@ export class TypeContractContext implements TypeContractContextInterface {
     })) {
       return true;
     }
-    if (builderCallee !== undefined && this.sharePackageRoot(derivingSymbol, builderCallee)) {
-      return true;
+    if (builderCallee !== undefined) {
+      const result = this.sharePackageRoot(derivingSymbol, builderCallee);
+
+      return result;
     }
 
     const declarations = derivingSymbol.getDeclarations() ?? [];
-
     const result = declarations.some((declaration) => {
       const isGenericOrDeclarationFile = (isTypeAliasDeclaration(declaration) && (declaration.typeParameters?.length ?? 0) > 0)
-      || declaration.getSourceFile().isDeclarationFile;
+        || declaration.getSourceFile().isDeclarationFile;
 
       return isGenericOrDeclarationFile;
     });

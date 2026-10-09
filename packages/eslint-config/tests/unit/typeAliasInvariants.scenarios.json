@@ -58,6 +58,21 @@
         "name": "an entity namespace Type resolves the canonical json-schema-to-ts FromSchema import against its own Schema"
       },
       {
+        "code": "import type { JSONSchema } from \"json-schema-to-ts\";\nexport type SchemaInputType = JSONSchema | { label: string };",
+        "filename": "packages/eslint-config/ExternalComposition.ts",
+        "name": "a direct dependency public type may be composed into a retained alias"
+      },
+      {
+        "code": "declare const USER_ID: unique symbol;\nexport type UserIdType = string & { readonly [USER_ID]: unique symbol };",
+        "filename": "packages/eslint-config/BrandedPrimitive.ts",
+        "name": "a unique-symbol branded primitive retains its runtime primitive representation"
+      },
+      {
+        "code": "export type DeferredValueType = ReturnType<() => Promise<string>>;",
+        "filename": "packages/eslint-config/StandardLibrary.ts",
+        "name": "a standard-library type-level utility remains an external computation"
+      },
+      {
         "code": "function accept<T>(value: Partial<T>): void {}",
         "name": "'Partial<T>' on a generic type parameter - not flagged, T is not a canonical owned shape"
       },
@@ -360,6 +375,16 @@
         "name": "a local type named NodeStaticType cannot validate a canonical entity alias"
       },
       {
+        "code": "import type { JSONSchema } from 'json-schema-to-ts';\nexport type LocalSchemaType = JSONSchema;",
+        "errors": [
+          {
+            "messageId": "nakedTypeAlias"
+          }
+        ],
+        "filename": "packages/eslint-config/ExternalAlias.ts",
+        "name": "a direct dependency type cannot be renamed locally"
+      },
+      {
         "code": "interface FooInterface { a: number; b: string; }\nfunction accept(value: Partial<FooInterface>): void {}",
         "errors": [
           {
@@ -461,16 +486,12 @@
     "code": "type HandlerType = () => void;",
     "warningFilename": "OuterSeverity.ts",
     "disabledFilename": "OuterSeverityOff.ts",
-    "expectedMessageIds": [
-      "aliasMustBeInterface"
-    ],
+    "expectedMessageIds": ["aliasMustBeInterface"],
     "expectedWarningSeverity": 1
   },
   "combined": {
     "code": "import type { ImportedPureDataInterface } from './packages/eslint-config/tests/fixtures/ImportedPureDataInterface.js';\ninterface LocalPureDataInterface { first: string; second: number; }",
     "filename": "ImportedPureDataInterfaceConsumer.ts",
-    "expectedMessageIds": [
-      "dataShapeMustBeType"
-    ]
+    "expectedMessageIds": ["dataShapeMustBeType"]
   }
 }
