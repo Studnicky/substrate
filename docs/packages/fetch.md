@@ -134,15 +134,16 @@ import type { RequestIdGeneratorInterface } from "@studnicky/fetch/interfaces";
 
 ## Observability hooks
 
-Each of these six hooks fires around the network call itself rather than around the request/response transform: before the call starts, after a clean response, after a non-success response, after a request failure, and after a timeout or abort. The `ObservedFetch` example above exercises this lifecycle in practice.
+Each of these seven hooks fires around the network call itself rather than around the request/response transform: before the call starts, after a clean response, after a non-success response, after a request failure, after a timeout or abort, and before the client's dispatcher is destroyed. The `ObservedFetch` example above exercises this lifecycle in practice.
 
-| Hook                | When it fires                |
-| ------------------- | ---------------------------- |
-| `onRequestStart`    | Before sending a request     |
-| `onResponseSuccess` | After a successful response  |
-| `onResponseError`   | After a non-success response |
-| `onRequestError`    | After a request failure      |
-| `onTimeout`         | After a timeout              |
-| `onAbort`           | After a caller abort         |
+| Hook                  | When it fires                               |
+| --------------------- | ------------------------------------------- |
+| `onRequestStart`      | Before sending a request                    |
+| `onResponseSuccess`   | After a successful response                 |
+| `onResponseError`     | After a non-success response                |
+| `onRequestError`      | After a request failure                     |
+| `onTimeout`           | After a timeout                             |
+| `onAbort`             | After a caller abort                        |
+| `onDispatcherDestroy` | Before the client's dispatcher is destroyed |
 
 <<< ../../packages/fetch/examples/observedFetch.ts#usage

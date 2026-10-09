@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/static-method-verbs'
-description: 'Disallows freestanding functions at module scope.'
+title: "@studnicky/static-method-verbs"
+description: "Disallows freestanding functions at module scope."
 ---
 
 # @studnicky/static-method-verbs
@@ -20,12 +20,17 @@ An entity namespace's `validate` type guard is exempt in every mode. [`entity-fi
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// Multi-statement body — flagged in every mode
-function compute(x: number): number { const y = x * 2; return y; }
+// Multi-statement body — flagged in "any" and "structural"; "typed" requires a named return type
+function compute(x: number): number {
+  const y = x * 2;
+  return y;
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // Expression-bodied arrow constructing a new object — not a trivial pass-through, flagged
 const build = (x: number) => ({ value: x });
@@ -34,16 +39,23 @@ const build = (x: number) => ({ value: x });
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Calculator {
-  static compute(x: number): number { const y = x * 2; return y; }
+  static compute(x: number): number {
+    const y = x * 2;
+    return y;
+  }
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Builder {
-  static build(x: number): { value: number } { return { value: x }; }
+  static build(x: number): { value: number } {
+    return { value: x };
+  }
 }
 ```
 
@@ -52,9 +64,12 @@ class Builder {
 Under the default `"structural"` mode, a trivial single-return pass-through is exempt — it is `inline-trivial-logic`'s concern, not this rule's:
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // Trivial pass-through — exempt under the default "structural" mode
-export function identity(x: string): string { return x; }
+export function identity(x: string): string {
+  return x;
+}
 ```
 
 ## Options
@@ -65,6 +80,6 @@ export function identity(x: string): string { return x; }
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| Option | Type                               | Default        | Description                                                                                                                                                                                                                                                            |
+| ------ | ---------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mode` | `"any" \| "structural" \| "typed"` | `"structural"` | Detection mode: `any` flags every module-scope function; `structural` exempts trivial pass-through bodies (already covered by `inline-trivial-logic`); `typed` flags only functions whose return type is a named type/interface (requires type-aware parser services). |

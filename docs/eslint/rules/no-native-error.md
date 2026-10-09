@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/no-native-error'
-description: 'Requires every emitted error to be a named BaseError subclass, never a native error constructor, a reasonless abort, a thrown, rejected, or aborted value that is not a BaseError, or an unguarded call to a platform API that throws a native error.'
+title: "@studnicky/no-native-error"
+description: "Requires every emitted error to be a named BaseError subclass, never a native error constructor, a reasonless abort, a thrown, rejected, or aborted value that is not a BaseError, or an unguarded call to a platform API that throws a native error."
 ---
 
 # @studnicky/no-native-error
@@ -32,22 +32,26 @@ This rule is opt-in and is not part of any exported suite.
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-export const failure = new TypeError('expected a string');
+export const failure = new TypeError("expected a string");
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export class NotFoundError extends Error {}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 const controller = new AbortController();
 controller.abort();
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export function rethrow(error: unknown): never {
   throw error;
@@ -55,27 +59,32 @@ export function rethrow(error: unknown): never {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export const pending = new Promise<void>((resolve, reject) => {
   const fail = (error: unknown): void => {
     reject(error);
   };
-  fail(new Error('x'));
+  fail(new Error("x"));
 });
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare const reason: unknown;
 new AbortController().abort(reason);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-export const value: unknown = JSON.parse('{}');
+declare const raw: string;
+export const value: unknown = JSON.parse(raw);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export function read(): void {
   try {
@@ -89,30 +98,34 @@ export function read(): void {
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare class BaseError {
   public constructor(message: string);
 }
 export class NotFoundError extends BaseError {}
-export const failure = new NotFoundError('missing');
+export const failure = new NotFoundError("missing");
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare class BaseError {
   public constructor(message: string);
 }
 class AbortedError extends BaseError {}
 const controller = new AbortController();
-controller.abort(new AbortedError('cancelled'));
+controller.abort(new AbortedError("cancelled"));
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export abstract class BaseError extends Error {}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export function isFailure(value: unknown): value is Error {
   return value instanceof Error;
@@ -120,6 +133,7 @@ export function isFailure(value: unknown): value is Error {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare abstract class BaseError extends Error {
   public constructor(message: string);
@@ -129,11 +143,12 @@ export function rethrow(error: unknown): never {
   if (error instanceof BaseError) {
     throw error;
   }
-  throw new PlatformFailedError('platform call failed');
+  throw new PlatformFailedError("platform call failed");
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 export class CallerFault {
   public static propagate(value: unknown): never {
@@ -143,17 +158,19 @@ export class CallerFault {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare abstract class BaseError extends Error {
   public constructor(message: string);
 }
 class RejectedError extends BaseError {}
 export const pending = new Promise<void>((resolve, reject) => {
-  reject(new RejectedError('rejected'));
+  reject(new RejectedError("rejected"));
 });
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare class CallerFault {
   public static propagate(value: unknown): never;
@@ -169,6 +186,7 @@ export function run(): void {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare abstract class BaseError extends Error {
   public constructor(message: string, options?: { cause?: unknown });
@@ -178,29 +196,42 @@ export function parse(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch (cause: unknown) {
-    throw new ParseFailedError('text is not valid JSON', { cause });
+    throw new ParseFailedError("text is not valid JSON", { cause });
   }
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-export const pending = fetch('https://example.test').catch(() => undefined);
+export const pending = fetch("https://example.test").catch(() => undefined);
 ```
 
 ## Options
 
 ```json
 {
-  "@studnicky/no-native-error": ["error", { "baseClassNames": ["BaseError"], "passThroughMethods": [{ "class": "CallerFault", "method": "propagate" }, { "class": "CallerFault", "method": "rejection" }], "platformCalls": [{ "kind": "call", "owner": "JSON", "member": "parse", "safeWhenLiteral": "never" }] }]
+  "@studnicky/no-native-error": [
+    "error",
+    {
+      "baseClassNames": ["BaseError"],
+      "passThroughMethods": [
+        { "class": "CallerFault", "method": "propagate" },
+        { "class": "CallerFault", "method": "rejection" }
+      ],
+      "platformCalls": [
+        { "kind": "call", "owner": "JSON", "member": "parse", "safeWhenLiteral": "never" }
+      ]
+    }
+  ]
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `baseClassNames` | `string[]` | `["BaseError"]` | Names of `abstract` class declarations permitted to extend a native error constructor; a value assignable to a class descending from one of them is a `BaseError`. |
-| `passThroughMethods` | `{ class: string; method: string }[]` | `[{ "class": "CallerFault", "method": "propagate" }, { "class": "CallerFault", "method": "rejection" }]` | Class and method pairs inside which a throw, executor `reject`, `PromiseWithResolvers` `reject`, or `Promise.reject` of a value that is not a `BaseError` is exempt. |
-| `platformCalls` | `{ kind: 'call' \| 'construct' \| 'read' \| 'iterate'; owner: string; member: string; safeWhenLiteral?: 'never' \| 'firstArgument' \| 'everyArgument' \| 'soleArgument' \| 'firstArgumentLength' \| 'always' }[]` | `PlatformCallDefaults.build()` | Platform APIs whose use must sit inside a `try` block with a `catch` clause or a promise chain ending in a rejection handler. Replaces the default list. |
+| Option               | Type                                                                                                                                                                                                              | Default                                                                                                  | Description                                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `baseClassNames`     | `string[]`                                                                                                                                                                                                        | `["BaseError"]`                                                                                          | Names of `abstract` class declarations permitted to extend a native error constructor; a value assignable to a class descending from one of them is a `BaseError`.   |
+| `passThroughMethods` | `{ class: string; method: string }[]`                                                                                                                                                                             | `[{ "class": "CallerFault", "method": "propagate" }, { "class": "CallerFault", "method": "rejection" }]` | Class and method pairs inside which a throw, executor `reject`, `PromiseWithResolvers` `reject`, or `Promise.reject` of a value that is not a `BaseError` is exempt. |
+| `platformCalls`      | `{ kind: 'call' \| 'construct' \| 'read' \| 'iterate'; owner: string; member: string; safeWhenLiteral?: 'never' \| 'firstArgument' \| 'everyArgument' \| 'soleArgument' \| 'firstArgumentLength' \| 'always' }[]` | `PlatformCallDefaults.build()`                                                                           | Platform APIs whose use must sit inside a `try` block with a `catch` clause or a promise chain ending in a rejection handler. Replaces the default list.             |
 
 ## Rationale
 

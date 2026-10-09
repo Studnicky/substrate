@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/no-reflect-argument-laundering'
-description: 'Disallows calling a typed function or constructor through Reflect.apply/Reflect.construct with arguments its signature does not accept, and its any-typed result flowing unchecked.'
+title: "@studnicky/no-reflect-argument-laundering"
+description: "Disallows calling a typed function or constructor through Reflect.apply/Reflect.construct with arguments its signature does not accept, and its any-typed result flowing unchecked."
 ---
 
 # @studnicky/no-reflect-argument-laundering
@@ -9,19 +9,23 @@ Disallows two related uses of `Reflect.apply`/`Reflect.construct` as a cast in o
 
 `Reflect.apply`/`Reflect.construct` also return `any`. Even a correctly-typed call launders that `any` back into typed code the moment its result is used directly — assigned without an annotation, member-accessed, or passed into an untyped position. This rule additionally requires the result to flow immediately into an `unknown`-typed binding, parameter, or return, so the caller is forced through a real narrowing guard before touching it.
 
-The subclass-aware `create()` factory pattern — `Reflect.construct(this, [options])` inside a static factory typed `this: new (options: X) => TInstance`, immediately bound to an `unknown`-typed local and guarded with `instanceof` before use — satisfies both checks and is not reported.
+The subclass-aware `create()` factory pattern — `Reflect.construct(this, [options])` inside a static factory typed `this: new (options: X) => TInstance`, with its result flowing immediately into an `unknown`-typed variable, return, or call argument — satisfies both checks and is not reported.
 
 **Fixable:** No · **Options:** No
 
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-function greet(name: string): string { return name; }
+function greet(name: string): string {
+  return name;
+}
 const result = Reflect.apply(greet, undefined, [42]);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Counter {
   public constructor(start: number) {}
@@ -32,17 +36,21 @@ console.log(Reflect.construct(Counter, [1]).toString());
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-function greet(name: string): string { return name; }
-const result: unknown = Reflect.apply(greet, undefined, ['world']);
+function greet(name: string): string {
+  return name;
+}
+const result: unknown = Reflect.apply(greet, undefined, ["world"]);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Base {
   public static create(
     this: new (config: { readonly value: string }) => Base,
-    config: { readonly value: string }
+    config: { readonly value: string },
   ): unknown {
     const result: unknown = Reflect.construct(this, [config]);
     return result;

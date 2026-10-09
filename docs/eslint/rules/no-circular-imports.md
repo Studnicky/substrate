@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/no-circular-imports'
-description: 'Disallow circular imports between package source files.'
+title: "@studnicky/no-circular-imports"
+description: "Disallow circular imports between package source files."
 ---
 
 # @studnicky/no-circular-imports
@@ -20,9 +20,10 @@ The two (or more) files in the cycle share a construct neither one should own al
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/A.ts
-import type { B } from './B.js';
+// filename: /repo/packages/foo/src/A.ts
+import type { B } from "./B.js";
 
 export class A {
   public sibling!: B;
@@ -30,9 +31,10 @@ export class A {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/B.ts
-import type { A } from './A.js';
+// filename: /repo/packages/foo/src/B.ts
+import type { A } from "./A.js";
 
 export class B {
   public constructor(private readonly owner: A) {}
@@ -42,26 +44,29 @@ export class B {
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/AInterface.ts
+// filename: /repo/packages/foo/src/AInterface.ts
 export interface AInterface {
   readonly sibling: BInterface;
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/BInterface.ts
+// filename: /repo/packages/foo/src/BInterface.ts
 export interface BInterface {
   ownerMethod(): void;
 }
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/A.ts
-import type { AInterface } from './AInterface.js';
-import type { BInterface } from './BInterface.js';
+// filename: /repo/packages/foo/src/A.ts
+import type { AInterface } from "./AInterface.js";
+import type { BInterface } from "./BInterface.js";
 
 export class A implements AInterface {
   public sibling!: BInterface;
@@ -69,10 +74,11 @@ export class A implements AInterface {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-// filename: /repo/src/B.ts
-import type { AInterface } from './AInterface.js';
-import type { BInterface } from './BInterface.js';
+// filename: /repo/packages/foo/src/B.ts
+import type { AInterface } from "./AInterface.js";
+import type { BInterface } from "./BInterface.js";
 
 export class B implements BInterface {
   public constructor(private readonly owner: AInterface) {}

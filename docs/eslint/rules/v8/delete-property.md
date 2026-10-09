@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/v8/delete-property'
-description: 'Reports property deletion except where type information proves the target has no fixed-property contract.'
+title: "@studnicky/v8/delete-property"
+description: "Reports property deletion except where type information proves the target has no fixed-property contract."
 ---
 
 # @studnicky/v8/delete-property
@@ -19,7 +19,7 @@ A type with a declared index signature (`Record<string, T>`, `{ [key: string]: T
 
 ## Known exemption sites
 
-Two sites in this repo delete because removal is the specified semantic, with no alternative spelling: `packages/json/src/json/Draft.ts:125`, the `deleteProperty` trap of a `Proxy` handler, where a rule banning property removal inside the trap whose entire purpose is implementing the `delete` operator would be self-contradictory; and `packages/json/src/json/Patch.ts:318`, RFC-6902 `remove`, which defines the operation as removing the member — `'x' in obj` must become `false`, which assigning `undefined` does not satisfy, and rebuilding the parent object would change identity and break in-place mutation. The exemption exists because the operation is mandatory at those two sites, not because it is free — both still pay the cost measured above.
+Two sites in this repo delete because removal is the specified semantic, with no alternative spelling: `packages/json/src/json/Draft.ts:63`, the `deleteProperty` trap of a `Proxy` handler, where a rule banning property removal inside the trap whose entire purpose is implementing the `delete` operator would be self-contradictory; and `packages/json/src/json/Patch.ts:233`, RFC-6902 `remove`, which defines the operation as removing the member — `'x' in obj` must become `false`, which assigning `undefined` does not satisfy, and rebuilding the parent object would change identity and break in-place mutation. The exemption exists because the operation is mandatory at those two sites, not because it is free — both still pay the cost measured above.
 
 ## Behavior without type services
 
@@ -28,9 +28,10 @@ Every supported deletion is reported when type services are unavailable — the 
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Session {
-  public token = 'secret';
+  public token = "secret";
 
   public clear(): void {
     delete this.token;
@@ -39,22 +40,25 @@ class Session {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const account: { id: string; temporary: boolean } = { 'id': '1', 'temporary': true };
+const account: { id: string; temporary: boolean } = { id: "1", temporary: true };
 delete account.temporary;
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const cache: Record<string, string> = { 'token': 'secret' };
+const cache: Record<string, string> = { token: "secret" };
 delete cache.token;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 function removeMember(target: object): boolean {
-  return Reflect.deleteProperty(target, 'temporary');
+  return Reflect.deleteProperty(target, "temporary");
 }
 ```

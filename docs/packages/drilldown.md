@@ -29,7 +29,7 @@ Requires `@studnicky:registry=https://npm.pkg.github.com` in `.npmrc`.
 
 ## Overview
 
-`DrillDown.group` builds a hierarchical grouping tree from an array of records, either from explicit `DrilldownRulesEntity.GroupRuleEntity.Type` rules (alphabetic, range, date, semver, CIDR, sequential, or string matchers) or from `DataAnalyzer`-recommended properties. `FacetedDiscovery` narrows a record set by concurrently-selectable facet dimensions. `DrilldownRulesEntity` and `DrillDownConfigEntity` are self-referential, schema-validated rule trees that can nest per-value grouping rules to unbounded depth.
+`DrillDown.group` builds a hierarchical grouping tree from an array of records, either from explicit `GroupRuleEntity.Type` rules (alphabetic, range, date, semver, CIDR, sequential, or string matchers) or from `DataAnalyzer`-recommended properties. `FacetedDiscovery` narrows a record set by concurrently-selectable facet dimensions. `DrilldownRulesEntity` and `DrillDownConfigEntity` are self-referential, schema-validated rule trees that can nest per-value grouping rules to unbounded depth.
 
 ## Usage
 
