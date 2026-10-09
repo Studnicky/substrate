@@ -110,8 +110,6 @@ export default [
 - contract interfaces reference named entity types for inline pure-data portions; and
 - canonical aliases have no path, package, test-file, namespace, or comment bypass.
 
-The suite also disables `@typescript-eslint/prefer-function-type`. Minimal callable contracts are intentionally interfaces under this declaration model, so enabling that upstream preference after `entityModelSuite` would produce contradictory advice for a valid callable interface.
-
 Import `FromSchema` and `JSONSchema` directly from `json-schema-to-ts` and declare that package as a direct dependency:
 
 ```ts

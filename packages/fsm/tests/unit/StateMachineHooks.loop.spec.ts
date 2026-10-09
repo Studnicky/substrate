@@ -106,12 +106,10 @@ class AsyncRejectingEnterStateMachine extends TrafficMachine {
   readonly failure = RuntimeError.create('async onEnterState boom', { 'cause': this.failureDetails });
 
   static make(): AsyncRejectingEnterStateMachine {
-    const machine = new AsyncRejectingEnterStateMachine();
-    Object.defineProperty(machine, 'onEnterState', { 'value': machine.rejectAfterTick });
-    return machine;
+    return new AsyncRejectingEnterStateMachine();
   }
 
-  private async rejectAfterTick(): Promise<void> {
+  protected override async onEnterState(): Promise<void> {
     await Promise.resolve();
     throw this.failure;
   }

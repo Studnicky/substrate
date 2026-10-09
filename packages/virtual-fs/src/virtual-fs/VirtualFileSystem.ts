@@ -116,7 +116,7 @@ export class VirtualFileSystem implements FileSystemInterface {
     }
   }
 
-  protected onCreate(_path: string): void {}
+  protected onCreate(_path: string): void | Promise<void> {}
   protected onDelete(_path: string): void {}
   protected onRead(_path: string): void {}
   protected onRename(_oldPath: string, _newPath: string): void {}

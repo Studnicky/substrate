@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import type { ScenarioCaseOfType } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RetryCallStateEntity } from '../../../../src/retry/entities/RetryCallStateEntity.js';
+import type { RetryConfigInterface } from '../../../../src/retry/interfaces/RetryConfigInterface.js';
 
 import { ScenarioSuite } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Retry } from '../../../../src/retry/retry/index.js';
@@ -126,11 +127,27 @@ class HookThrowRunners {
   static async 'on-retry-scheduled-async'(scenarioCase: ScenarioCaseOfType<HookThrowScenarioCaseEntity.Type, 'on-retry-scheduled-async'>): Promise<void> {
     const { expected, input } = scenarioCase;
 
-    const retry = Retry.create({
-      'errorClassifier': RetryClassifier.retryable,
-      ...input.retry
-    });
-    assert.strictEqual(Reflect.set(retry, 'onRetryScheduled', AsyncHook.rejecting(String(input.hookErrorMessage))), true);
+    class RejectingRetryScheduledRetry extends Retry {
+      readonly #message: string;
+
+      constructor(config: RetryConfigInterface, message: string) {
+        super(config);
+        this.#message = message;
+      }
+
+      protected override onRetryScheduled(): Promise<void> {
+        const result = AsyncHook.rejecting(this.#message)();
+        return result;
+      }
+    }
+
+    const retry = new RejectingRetryScheduledRetry(
+      {
+        'errorClassifier': RetryClassifier.retryable,
+        ...input.retry
+      },
+      String(input.hookErrorMessage)
+    );
     const { attempts, result } = await FlakyOperation.execute(retry, Number(input.batch?.failureCountBeforeSuccess ?? 0), String(input.firstErrorMessage), String(input.result));
 
     assert.strictEqual(result, String(expected.result));

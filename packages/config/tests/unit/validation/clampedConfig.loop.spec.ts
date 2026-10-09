@@ -18,15 +18,13 @@ class ClampedConfigRunners {
 
   static async 'async-throwing-hook-is-contained'(scenarioCase: ScenarioCaseOfType<ClampedConfigScenarioCaseEntity.Type, 'async-throwing-hook-is-contained'>): Promise<void> {
     let hookInvoked = false;
-    class AsyncOverrideClampedConfig extends ClampedConfig {}
-    // The base `onClamp` hook is typed `void`, so the asynchronous override is installed on the class.
-    Object.defineProperty(AsyncOverrideClampedConfig, 'onClamp', {
-      'value': (): Promise<void> => {
+    class AsyncOverrideClampedConfig extends ClampedConfig {
+      protected static override onClamp(): Promise<void> {
         hookInvoked = true;
         const rejection = Promise.reject(RuntimeError.create('async onClamp boom'));
         return rejection;
       }
-    });
+    }
 
     let rejectionCount = 0;
     const onUnhandledRejection = (): void => {

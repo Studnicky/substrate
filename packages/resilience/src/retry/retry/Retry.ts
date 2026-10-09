@@ -284,7 +284,7 @@ export class Retry implements RetryInterface {
   // ---------------------------------------------------------------------------
 
   /** Fires at the start of each attempt (0-indexed). */
-  protected onAttempt(_attemptNumber: number): void {}
+  protected onAttempt(_attemptNumber: number): void | Promise<void> {}
 
   /** Fires after a successful attempt, with elapsed time since execute() began. */
   protected onSuccess(_attemptNumber: number, _elapsedMs: number): void {}
@@ -326,7 +326,7 @@ export class Retry implements RetryInterface {
     _error: Error,
     _attemptNumber: number,
     _reason: 'aborted' | 'exhausted' | 'nonRetryable'
-  ): void {}
+  ): void | Promise<void> {}
 
   // ---------------------------------------------------------------------------
   // Per-call FSM hooks — called by RetryCallFsm on every transition.
@@ -362,7 +362,10 @@ export class Retry implements RetryInterface {
    * Hook called when the per-call FSM enters a new state.
    * No-op by default. Override to record or react to call-level transitions.
    */
-  protected enterCall(_to: RetryCallStateEntity.Type, _from: RetryCallStateEntity.Type): void {}
+  protected enterCall(
+    _to: RetryCallStateEntity.Type,
+    _from: RetryCallStateEntity.Type
+  ): void | Promise<void> {}
 
   /**
    * Execute an async operation with retry logic.

@@ -31,6 +31,10 @@
     {
       "code": "interface HandlerInterface<Fn extends () => void = () => void> { handler: Fn; }",
       "name": "a callable constraint laundered through a type parameter ending with Interface"
+    },
+    {
+      "code": "import type { FromSchema, JSONSchema } from 'json-schema-to-ts';\nexport namespace UserEntity {\n  export const Schema = { type: 'object' } as const satisfies JSONSchema;\n  export interface Type extends FromSchema<typeof Schema> {}\n}",
+      "name": "a canonical entity interface retains its required Type name"
     }
   ],
   "invalid": [

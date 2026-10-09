@@ -1,27 +1,28 @@
 ---
-title: '@studnicky/type-alias-invariants'
-description: 'Type aliases preserve schema-derived data identity while interfaces represent contracts and non-schema computations.'
+title: "@studnicky/type-alias-invariants"
+description: "Type aliases preserve schema-derived data identity while interfaces represent contracts and non-schema computations."
 ---
 
 # @studnicky/type-alias-invariants
 
 Enforces one ordered contract for type aliases and imported type identity.
 
-A retained alias is verified schema-derived pure data. Callable, constructor, runtime, brand, unknown-bearing, and other non-schema computations are interfaces or are redesigned into named schema data plus interface contracts. A generic conditional, mapped, or indexed-access alias is a type-level function and is retained as a type alias — TypeScript interfaces cannot express these shapes. Canonical, codebase-owned named types are also consumed whole: `Partial<X>`, `Pick<X, K>`, `Omit<X, K>`, and structurally equivalent subsetting forms are rejected wherever they appear, not only inside a type alias declaration.
+A retained local data alias is verified schema-derived pure data. Callable, constructor, runtime, object-brand, unknown-bearing, and other non-schema contracts use interfaces. Generic conditional, mapped, or indexed-access aliases remain type-level functions because interfaces cannot express these shapes. Canonical, codebase-owned named types are also consumed whole: `Partial<X>`, `Pick<X, K>`, `Omit<X, K>`, and structurally equivalent subsetting forms are rejected wherever they appear, not only inside a type alias declaration.
 
 **Fixable:** No · **Options:** No · **Suggested severity:** `error`
 
 ## Declaration contract
 
-| Declaration | Required representation |
-|---|---|
-| JSON-Schema-expressible data | `*Entity.Type = F<typeof Schema>` for a verified schema-deriving `F`, under the complete entity suite |
-| Callable or constructor | Interface call, method, or construct signature |
-| Runtime object or provider seam | Interface |
-| Readonly access policy | Interface |
-| Unique-symbol brand marker | Interface |
-| Generic conditional, mapped, or indexed-access type-level function | Retained as a type alias; interfaces cannot express the shape |
-| Non-generic conditional, mapped, indexed-access, or other non-schema computation | Interface where representable; otherwise named schema data plus a contract interface |
+| Declaration                                                                      | Required representation                                                                               |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| JSON-Schema-expressible data                                                     | `*Entity.Type = F<typeof Schema>` for a verified schema-deriving `F`, under the complete entity suite |
+| Callable or constructor                                                          | Interface call, method, or construct signature                                                        |
+| Runtime object or provider seam                                                  | Interface                                                                                             |
+| Readonly access policy                                                           | Interface                                                                                             |
+| Unique-symbol primitive brand                                                    | Type alias that intersects the runtime primitive with a unique-symbol marker                          |
+| Object brand or other runtime contract                                           | Interface                                                                                             |
+| Generic conditional, mapped, or indexed-access type-level function               | Retained as a type alias; interfaces cannot express the shape                                         |
+| Non-generic conditional, mapped, indexed-access, or other non-schema computation | Interface where representable; otherwise named schema data plus a contract interface                  |
 
 Primitive forwarding aliases, naked renames, generic forwarding aliases, import aliases, inline object aliases, unresolved references, contract-interface references, and non-JSON types do not establish canonical data.
 
@@ -29,20 +30,51 @@ A reference to a type-level function from another declaration still composes a c
 
 ## Schema provenance
 
-Recognition is library-agnostic: it inspects what a schema derivation produced, not the package that produced it. A retained alias satisfies four conditions:
+Schema-derived local data uses a verified derivation: canonical `FromSchema<typeof Schema>`, a derivation symbol marked with `@schemaDerivation`, or a derivation symbol paired with its schema builder in the same package. The schema value is a module-scope unannotated `const` created from a const-asserted object literal or a builder call, and the resolved result is JSON-plain.
 
-1. **Shape** — the alias body applies a type-level function to a value: `F<typeof Schema>`, `typeof Schema.inferred`, or `(typeof Schema)['inferred']`.
-2. **Deriving function** — `F` is recognized by structure, not by name or origin package. TypeBox's `Static`, Zod's `z.infer`, `json-schema-to-ts`'s `FromSchema`, `NodeStaticType`, and a project-local equivalent are all accepted identically, satisfied by any one of:
-   - `F` is a type alias declared with type parameters;
-   - `F` is declared in a `.d.ts` file;
-   - `F`'s declaration carries a `/** @schemaDerivation */` JSDoc tag — the one in-code extension point, for a project-local schema-to-type function whose declaration is not itself a generic type alias; or
-   - `F` and the builder function that produced `Schema` (see below) share the same owning package.
-3. **Value-first authoring** — `Schema` is a module-scope `const` with no explicit type annotation (an annotation means the type came first, so the value is not the source of truth), whose initializer is either a const-asserted object literal (`{ ... } as const`, optionally `satisfies`-wrapped) or a builder call (`Type.Object(...)`, `z.object(...)`, and so on). A `let` binding never qualifies.
-4. **Result plainness** — the *resolved* type that `F<typeof Schema>` produces is JSON-plain: no call or construct signatures, no class instances, no symbol, bigint, `never`, `void`, `undefined`, `any`, or `unknown`. Recognition stops recursing into `F`'s own implementation and checks only what it resolves to, which is what makes this library-agnostic.
+A declaration-file type, a generic type alias, or a matching structural shape is not schema provenance. Those facts do not establish which schema owns a local data model.
 
 Provenance resolution follows TypeScript symbols through local declarations and imports with deterministic cycle and depth protection. An unresolved source is non-canonical; matching field shapes do not substitute for verified provenance.
 
 The examples below use `NodeStaticType<typeof Node>`, the schema-deriving function this codebase builds entities with. It is one of many structurally-accepted forms, not the only one the rule recognizes — it is simply the mechanism a reader here will actually write.
+
+## External type composition
+
+Types exported by TypeScript or by a declared direct dependency are external contracts. Import their canonical names and compose them when a local type needs additional structure. A naked alias remains invalid because it creates a local synonym instead of using the exported type directly.
+
+<!-- inline-ts-ok: eslint rule example -->
+
+```ts
+import type { JSONSchema } from "json-schema-to-ts";
+
+export type SchemaInputType = JSONSchema | { label: string };
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+
+```ts
+import type { JSONSchema } from "json-schema-to-ts";
+
+export type LocalSchemaType = JSONSchema; // invalid: use JSONSchema directly
+```
+
+Only direct dependency exports participate in this rule boundary. Transitive packages and private declarations do not establish external provenance.
+
+## Branded primitives
+
+A primitive brand preserves its primitive runtime representation and uses a type alias, not an interface.
+
+<!-- inline-ts-ok: eslint rule example -->
+
+```ts
+declare const UserIdBrand: unique symbol;
+
+export type UserIdType = string & { readonly [UserIdBrand]: unique symbol };
+```
+
+## Rule coordination
+
+The `entityModelSuite` uses interfaces for callable contracts and sets `@typescript-eslint/prefer-function-type` to `off` so the suite applies one declaration model.
 
 ## Hand-written `Type` in an entity namespace
 
@@ -88,26 +120,30 @@ Pure-data portions inside a contract interface reference separately declared ent
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type HandlerType = (value: string) => void;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type InlineDataType = { value: string };
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type ListType<T> = Array<T>;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
-```ts
-import { SchemaNode } from '@studnicky/entity/types';
-import type { NodeStaticType } from '@studnicky/entity/types';
 
-const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+```ts
+import { SchemaNode } from "@studnicky/entity/types";
+import type { NodeStaticType } from "@studnicky/entity/types";
+
+const Node = SchemaNode.defineString({ minLength: 1, type: "string" } as const);
 type ValueType = NodeStaticType<typeof Node>;
 export type ValueListType = readonly ValueType[];
 ```
@@ -115,38 +151,46 @@ export type ValueListType = readonly ValueType[];
 `ValueType` is verified schema-derived data; `ValueListType` fails on `readonly`, not on provenance — pure-data aliases describe mutable data.
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-interface FooInterface { a: number; b: string; }
+interface FooInterface {
+  a: number;
+  b: string;
+}
 function accept(value: Partial<FooInterface>): void {}
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
-```ts
-import { SchemaNode } from '@studnicky/entity/types';
-import type { NodeStaticType } from '@studnicky/entity/types';
 
-const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+```ts
+import { SchemaNode } from "@studnicky/entity/types";
+import type { NodeStaticType } from "@studnicky/entity/types";
+
+const Node = SchemaNode.defineString({ minLength: 1, type: "string" } as const);
 export type ValueType = NodeStaticType<typeof Node>;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
-```ts
-import { SchemaNode } from '@studnicky/entity/types';
-import type { NodeStaticType } from '@studnicky/entity/types';
 
-const Node = SchemaNode.defineString({ 'minLength': 1, 'type': 'string' } as const);
+```ts
+import { SchemaNode } from "@studnicky/entity/types";
+import type { NodeStaticType } from "@studnicky/entity/types";
+
+const Node = SchemaNode.defineString({ minLength: 1, type: "string" } as const);
 type ValueType = NodeStaticType<typeof Node>;
 export type ValueCollectionType = ValueType[] | null;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type ConditionalType<T> = T extends string ? number : boolean;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 interface HandlerInterface {
   (value: string): void;
@@ -154,6 +198,7 @@ interface HandlerInterface {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 function accept<T>(value: Partial<T>): void {}
 ```
@@ -165,17 +210,17 @@ The rule takes no options and recognizes no comment, declaration-name, member-na
 ```js
 export default [
   {
-    files: ['src/**/*.ts'],
+    files: ["src/**/*.ts"],
     rules: {
-      '@studnicky/type-alias-invariants': 'error'
-    }
+      "@studnicky/type-alias-invariants": "error",
+    },
   },
   {
-    files: ['generated/**/*.ts'],
+    files: ["generated/**/*.ts"],
     rules: {
-      '@studnicky/type-alias-invariants': 'off'
-    }
-  }
+      "@studnicky/type-alias-invariants": "off",
+    },
+  },
 ];
 ```
 

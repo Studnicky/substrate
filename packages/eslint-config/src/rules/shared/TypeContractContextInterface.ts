@@ -40,6 +40,7 @@ export interface TypeContractContextInterface {
   isFromSchemaNamedReference(node: TypeNode): boolean;
   isIntrinsic(node: TypeNode, name: 'Array' | 'Function' | 'Readonly' | 'ReadonlyArray'): boolean;
   isRuntimeType(node: TypeNode): boolean;
+  isSchemaDerivationApplication(node: TypeNode): boolean;
   isSchemaDerivedApplication(node: TypeNode): boolean;
   isSchemaDerivedShape(shape: SchemaDerivationShapeInterface): boolean;
   isUniqueSymbol(node: TypeNode): boolean;

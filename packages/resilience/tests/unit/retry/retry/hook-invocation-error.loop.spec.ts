@@ -4,6 +4,7 @@ import { setImmediate } from 'node:timers/promises';
 
 import type { ScenarioCaseOfType } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import type { RetryCallStateEntity } from '../../../../src/retry/entities/RetryCallStateEntity.js';
+import type { RetryConfigEntity } from '../../../../src/retry/entities/RetryConfigEntity.js';
 
 import { ScenarioSuite } from '../../../../../../scripts/test-helpers/scenario-kit/dist/index.js';
 import { Retry } from '../../../../src/retry/retry/index.js';
@@ -21,8 +22,26 @@ class HookInvocationErrorRunners {
     process.on('unhandledRejection', onUnhandledRejection);
 
     try {
-      const retry = RetryFixture.create(input.retry);
-      assert.strictEqual(Reflect.set(retry, 'enterCall', AsyncHook.rejecting(String(input.message))), true);
+      class RejectingEnterCallRetry extends Retry {
+        readonly #message: string;
+
+        constructor(
+          options: { 'config'?: RetryConfigEntity.InputType; 'message'?: string } = {}
+        ) {
+          super(RetryFixture.options(options.config ?? {}));
+          this.#message = options.message ?? '';
+        }
+
+        protected override enterCall(): Promise<void> {
+          const result = AsyncHook.rejecting(this.#message)();
+          return result;
+        }
+      }
+
+      const retry = new RejectingEnterCallRetry({
+        'config': input.retry ?? {},
+        'message': String(input.message)
+      });
       const result = await retry.execute(ResolvingOperation.of(String(input.result)));
 
       await setImmediate();

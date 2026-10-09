@@ -62,7 +62,7 @@ export class RealTimeClockProvider implements ClockProviderInterface {
    * that was returned to the caller. A throwing override surfaces as a
    * `HookInvocationError` from `now()`.
    */
-  protected onNow(_timestamp: number): void {}
+  protected onNow(_timestamp: number): void | Promise<void> {}
 
   /**
    * Fires after each `hrtime()` call, with the final nanosecond bigint value

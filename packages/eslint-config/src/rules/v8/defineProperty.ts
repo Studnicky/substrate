@@ -233,13 +233,13 @@ class HazardEvaluator {
     descriptorArg: unknown,
     tracker: EstablishmentTracker
   ): boolean {
+    const isAccessor = DescriptorClassification.isAccessorDescriptor(descriptorArg);
     const target = PropertyIdentity.targetOf(targetArg);
 
     if (target === undefined) {
-      return false;
+      return isAccessor;
     }
 
-    const isAccessor = DescriptorClassification.isAccessorDescriptor(descriptorArg);
     const isRedefinition = tracker.wasEstablished(callNode, target, key);
 
     tracker.establish(callNode, target, key);

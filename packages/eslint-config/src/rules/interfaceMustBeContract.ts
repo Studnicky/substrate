@@ -47,14 +47,8 @@ class InterfaceContractReports {
     if (classification.analyzeInterface(declaration).classification === 'contract') {
       return;
     }
-    // D3 (see the eslint-config objectives) — PAIRED RULE `all-types-are-entities`: the
-    // schema-derived entity-interface pattern (`export interface Type extends
-    // FromSchema<typeof Schema> {}` inside a `*Entity` namespace, added in commit 04083ad) is
-    // pure data BY CONSTRUCTION, so `analyzeInterface` above always classifies it `pureData`,
-    // never `contract` — without this exemption every such interface was rejected
-    // unconditionally, even though `all-types-are-entities` requires and accepts exactly this
-    // shape. See `TypeContractClassification.isCanonicalEntityInterface`'s doc comment for the
-    // full VERIFIED probe and the unresolved `naming-convention` conflict this does not fix.
+    // Canonical entity interfaces represent schema-derived data and are owned by
+    // all-types-are-entities rather than this contract rule.
     if (classification.isCanonicalEntityInterface(declaration)) {
       return;
     }

@@ -73,6 +73,16 @@ class RenameLogFs extends VirtualFileSystem {
   }
 }
 
+class AsyncRejectingCreateFs extends VirtualFileSystem {
+  static override create(): AsyncRejectingCreateFs {
+    return new AsyncRejectingCreateFs({});
+  }
+  override async onCreate(): Promise<void> {
+    await Promise.resolve();
+    throw RuntimeError.create('async onCreate boom');
+  }
+}
+
 class FullTraceFs extends VirtualFileSystem {
   static override create(): FullTraceFs {
     return new FullTraceFs({});
@@ -103,14 +113,7 @@ class FullTraceFs extends VirtualFileSystem {
 class VirtualFileSystemSubclassRunners {
   static async 'async-create-hook'(scenarioCase: ScenarioCaseOfType<VirtualFileSystemSubclassScenarioCaseEntity.Type, 'async-create-hook'>): Promise<void> {
     const { expected, input } = scenarioCase;
-    const fs = VirtualFileSystem.create();
-    // The base `onCreate` hook is typed `void`, so the asynchronous override is installed on the instance.
-    Object.defineProperty(fs, 'onCreate', {
-      'value': (): Promise<void> => {
-        const rejection = Promise.reject(RuntimeError.create('async onCreate boom'));
-        return rejection;
-      }
-    });
+    const fs = AsyncRejectingCreateFs.create();
     let unhandledRejectionCount = 0;
     const onUnhandledRejection = (): void => {
       unhandledRejectionCount += 1;

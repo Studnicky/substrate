@@ -363,6 +363,22 @@ class ThrowingVirtualNowProvider extends VirtualClockProvider {
   }
 }
 
+class AsyncRejectingNowClock extends Clock {
+  readonly #message: string;
+
+  public constructor(provider: ClockProviderInterface, message: string) {
+    super(provider);
+    this.#message = message;
+  }
+
+  protected override onNow(): Promise<void> {
+    const rejection = Promise.resolve().then((): void => {
+      throw RuntimeError.create(this.#message);
+    });
+    return rejection;
+  }
+}
+
 class ClockRunners {
   static 'clamp-backwards-provider-values'(scenarioCase: ScenarioCaseOfType<ClockScenarioCaseEntity.Type, 'clamp-backwards-provider-values'>): void {
     const { expected, input } = scenarioCase;
@@ -381,15 +397,7 @@ class ClockRunners {
   static async 'clock-async-on-now-rejection-contained'(scenarioCase: ScenarioCaseOfType<ClockScenarioCaseEntity.Type, 'clock-async-on-now-rejection-contained'>): Promise<void> {
     const { expected, input } = scenarioCase;
     const counter = ClockOptionsFactory.createVirtualCounter(input.counterOptions);
-    const clock = HookedClock.create(VirtualClockProvider.create(counter));
-    Object.defineProperty(clock, 'onNow', {
-      'value': (): Promise<void> => {
-        const rejection = Promise.resolve().then((): void => {
-          throw RuntimeError.create(input.message);
-        });
-        return rejection;
-      }
-    });
+    const clock = new AsyncRejectingNowClock(VirtualClockProvider.create(counter), input.message);
     let rejectionEvents = 0;
     const onUnhandledRejection = (): void => {
       rejectionEvents += 1;

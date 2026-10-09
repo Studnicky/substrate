@@ -395,27 +395,27 @@ export class Semaphore {
    * `permitsBefore` is the available count before decrement.
    * A failure aborts the acquisition and returns the reserved permit.
    */
-  protected onAcquire(_permitsBefore: number): void {}
+  protected onAcquire(_permitsBefore: number): void | Promise<void> {}
 
   /**
    * Fires when the caller had to queue.
    * A failure cancels the queued acquisition.
    */
-  protected onAcquireWait(): void {}
+  protected onAcquireWait(): void | Promise<void> {}
 
   /**
    * Fires when a new waiter is added to the queue.
    * `queueLength` is the queue length after admission.
    * A failure cancels the queued acquisition.
    */
-  protected onContended(_queueLength: number): void {}
+  protected onContended(_queueLength: number): void | Promise<void> {}
 
   /**
    * Fires when a permit is returned to the pool with no waiting callers.
    * `permitsAfter` is the available count after increment.
    * A failure rejects release after the permit is restored.
    */
-  protected onRelease(_permitsAfter: number): void {}
+  protected onRelease(_permitsAfter: number): void | Promise<void> {}
 
   /**
    * Fires when a permit is handed to a queued waiter.

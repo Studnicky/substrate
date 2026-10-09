@@ -283,12 +283,10 @@ class AsyncRejectingFireScheduler extends VirtualScheduler {
   readonly #rejectionError: RuntimeError;
 
   public static make(injectedCounter: Readonly<VirtualTimeCounter>, hooks: HookInvoker, rejectionError: RuntimeError): AsyncRejectingFireScheduler {
-    const scheduler = new AsyncRejectingFireScheduler(injectedCounter, hooks, rejectionError);
-    Object.defineProperty(scheduler, 'onFire', { 'value': scheduler.rejectAfterTick });
-    return scheduler;
+    return new AsyncRejectingFireScheduler(injectedCounter, hooks, rejectionError);
   }
 
-  private async rejectAfterTick(): Promise<void> {
+  protected override async onFire(): Promise<void> {
     await Promise.resolve();
     throw this.#rejectionError;
   }

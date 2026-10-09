@@ -452,43 +452,43 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * Fires before a lock is acquired (immediately or queued).
    * Override in a subclass to add pre-acquisition observability.
    */
-  protected beforeAcquire(_key: K): void {}
+  protected beforeAcquire(_key: K): void | Promise<void> {}
 
   /**
    * Fires after a lock is acquired, with wait time in ms.
    * Override in a subclass to record wait-time metrics.
    */
-  protected afterAcquire(_key: K, _waitTimeMs: number): void {}
+  protected afterAcquire(_key: K, _waitTimeMs: number): void | Promise<void> {}
 
   /**
    * Fires when acquiring a lock finds contention (key is already locked).
    * Override in a subclass to track queue depth at contention time.
    */
-  protected onContended(_key: K, _queueSize: number): void {}
+  protected onContended(_key: K, _queueSize: number): void | Promise<void> {}
 
   /**
    * Fires before a lock is released, with hold time in ms.
    * Override in a subclass to record hold-time metrics.
    */
-  protected beforeRelease(_key: K, _holdTimeMs: number): void {}
+  protected beforeRelease(_key: K, _holdTimeMs: number): void | Promise<void> {}
 
   /**
    * Fires after a lock is fully released (queue processed or lock dropped).
    * Override in a subclass to react to the lock becoming free.
    */
-  protected afterRelease(_key: K): void {}
+  protected afterRelease(_key: K): void | Promise<void> {}
 
   /**
    * Fires when lock acquisition times out.
    * Override in a subclass to record timeout events.
    */
-  protected onTimeout(_key: K, _timeoutMs: number): void {}
+  protected onTimeout(_key: K, _timeoutMs: number): void | Promise<void> {}
 
   /**
    * Fires only when a queued waiter finally acquires the lock (never fires for immediate grants).
    * Override in a subclass to measure per-caller queue wait times.
    */
-  protected onAcquireWait(_key: K, _waitTimeMs: number): void {}
+  protected onAcquireWait(_key: K, _waitTimeMs: number): void | Promise<void> {}
 
   /**
    * Fires on every lock release by its holder, after the release's queue
@@ -496,13 +496,13 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
    * the same `release()` call, before it returns.
    * Override in a subclass to observe every release regardless of queue state.
    */
-  protected onRelease(_key: K): void {}
+  protected onRelease(_key: K): void | Promise<void> {}
 
   /**
    * Fires when the last waiter for a key leaves the queue (by acquiring or timing out).
    * Override in a subclass to react when contention for a key fully clears.
    */
-  protected onQueueDrain(_key: K): void {}
+  protected onQueueDrain(_key: K): void | Promise<void> {}
 
   // ── Per-key FSM ──────────────────────────────────────────────────────────
 
@@ -560,7 +560,7 @@ export class Mutex<K extends PropertyKey = string> implements MutexInterface<K> 
     _key: K,
     _to: MutexKeyStateEntity.Type,
     _from: MutexKeyStateEntity.Type
-  ): void {}
+  ): void | Promise<void> {}
 
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -50,7 +50,7 @@ export class PaginatorOwnedMachine<TPage, TCursor> extends PaginatorMachine<TPag
   protected override onEnterState(state: PaginatorExhaustedStateInterface<TPage>
     | PaginatorHasMoreStateInterface<TPage, TCursor>
     | PaginatorIdleStateEntity.Type): void {
-    super.onEnterState(state);
+    void super.onEnterState(state);
     const owner = this.requireOwner();
 
     this.consumerHooks.invoke('onEnterState', () => {

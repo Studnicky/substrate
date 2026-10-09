@@ -369,24 +369,6 @@ export default defineConfig({
                 return { 'link': `/eslint/rules/v8/${r}`, 'text': `@studnicky/v8/${r}` };
               }),
               'text': 'V8 performance rules'
-            },
-            {
-              'collapsed': true,
-              'items': [
-                {
-                  'link': '/eslint/known-issues/type-alias-invariants-prefer-function-type',
-                  'text': 'Callable contract interfaces'
-                },
-                {
-                  'link': '/eslint/known-issues/type-alias-invariants-primitive-brands',
-                  'text': 'Branded primitives'
-                },
-                {
-                  'link': '/eslint/known-issues/type-alias-invariants-v9.0.0',
-                  'text': 'Consumer constraints'
-                }
-              ],
-              'text': 'Known issues'
             }
           ],
           'text': 'ESLint Plugins'
