@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/resilience",
-  "version": "15.1.1",
+  "version": "15.2.0",
   "description": "Async resilience primitives: CircuitBreaker, TokenBucket, KeyedRateLimiter, SlidingWindowLimiter, DeadLetterQueue",
   "keywords": [
     "circuit-breaker",

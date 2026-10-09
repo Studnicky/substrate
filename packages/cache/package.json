@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/cache",
-  "version": "15.1.1",
+  "version": "15.2.0",
   "description": "In-process LRU + TTL cache and keyed single-flight memoization",
   "keywords": [
     "cache",

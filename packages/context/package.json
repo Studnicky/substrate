@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/context",
-  "version": "15.1.1",
+  "version": "15.2.0",
   "description": "Async context isolation for Node and browser code",
   "keywords": [
     "async",
