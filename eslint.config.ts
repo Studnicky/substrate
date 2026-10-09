@@ -163,7 +163,7 @@ export default [
       "@studnicky/layer-import-boundary": ["error", FILTERS_MATCHING_LAYERS],
     },
   },
-  { ignores: [".claude/**"] },
+  { ignores: [".claude/**", ".enginseer/**"] },
   ...defineConfig(
     {
       ignores: ["docs/.vitepress/cache/**", "**/dist/**", "**/node_modules/**", "**/*.d.ts"],
