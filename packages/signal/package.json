@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/signal",
-  "version": "15.1.1",
+  "version": "15.2.0",
   "description": "AbortSignal composition for caller signals, deadlines, and a never-aborting reference",
   "keywords": [
     "abort",
