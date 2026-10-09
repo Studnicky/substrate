@@ -3,6 +3,8 @@ import { describe, it } from 'node:test';
 
 import type { WorkerPoolContractHarnessInterface } from './WorkerPoolContractHarnessInterface.js';
 
+import { WorkerPoolError } from '../../../src/worker/errors/WorkerPoolError.js';
+
 /** Registers behavior shared by the Node and browser WorkerPool adapters. */
 export class WorkerPoolContract {
   static register(harness: WorkerPoolContractHarnessInterface): void {
@@ -53,7 +55,12 @@ export class WorkerPoolContract {
         const subject = harness.create({ 'maximumWorkers': 1 });
         subject.abort();
 
-        await assert.rejects(subject.pool.run([{ 'value': 'cancelled' }]));
+        await assert.rejects(subject.pool.run([{ 'value': 'cancelled' }]), (error) => {
+          const caught: unknown = error;
+          assert.ok(caught instanceof WorkerPoolError);
+          assert.equal(caught.code, 'workerPool.cancelled');
+          return true;
+        });
         assert.equal(subject.getErrorCount(), 1);
 
         await subject.pool.close();
