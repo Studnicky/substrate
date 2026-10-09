@@ -50,7 +50,7 @@ export class Memoize<TArgumentList extends unknown[], TResult> {
     }
 
     protected override onCoalesceStart(key: string): void {
-      super.onCoalesceStart(key);
+      void super.onCoalesceStart(key);
       const argumentList = this.#owner.#pendingArgumentListByKey.get(key);
       if (argumentList === undefined) {
         return;

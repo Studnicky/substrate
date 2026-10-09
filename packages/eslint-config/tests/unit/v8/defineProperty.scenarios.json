@@ -50,6 +50,11 @@
       "name": "accessor descriptor via Reflect.defineProperty - same hazard, different spelling",
       "code": "const target = {}; Reflect.defineProperty(target, 'alpha', { get() { return 1; } });",
       "errors": [{ "messageId": "forbidden" }]
+    },
+    {
+      "name": "accessor descriptor on an object-literal target - untrackable target still flags the accessor hazard",
+      "code": "Object.defineProperty({}, 'name', { get() { return 'Ada'; } });",
+      "errors": [{ "messageId": "forbidden" }]
     }
   ]
 }

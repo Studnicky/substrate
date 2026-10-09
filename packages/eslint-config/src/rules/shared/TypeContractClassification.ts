@@ -89,6 +89,12 @@ export class TypeContractClassification {
     return result;
   }
 
+  public isSchemaDerivationApplication(node: TypeNode): boolean {
+    const result = this.context.isSchemaDerivationApplication(node);
+
+    return result;
+  }
+
   public analyzeAlias(declaration: TypeAliasDeclaration): AliasClassificationResultInterface {
     const result = this.context.analyzeAlias(declaration);
 

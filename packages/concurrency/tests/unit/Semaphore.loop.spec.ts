@@ -35,12 +35,10 @@ class AsyncRejectingAcquireSemaphore extends Semaphore {
   }
 
   static make(permits: number, message: string): AsyncRejectingAcquireSemaphore {
-    const semaphore = new AsyncRejectingAcquireSemaphore(permits, message);
-    Object.defineProperty(semaphore, 'onAcquire', { 'value': semaphore.rejectAfterTick });
-    return semaphore;
+    return new AsyncRejectingAcquireSemaphore(permits, message);
   }
 
-  private async rejectAfterTick(): Promise<void> {
+  protected override async onAcquire(): Promise<void> {
     await new Promise((resolve) => { setImmediate(resolve); });
     throw RuntimeError.create(this.#message);
   }
@@ -58,12 +56,10 @@ class RejectFirstAcquireSemaphore extends Semaphore {
   }
 
   static make(permits: number, message: string): RejectFirstAcquireSemaphore {
-    const semaphore = new RejectFirstAcquireSemaphore(permits, message);
-    Object.defineProperty(semaphore, 'onAcquire', { 'value': semaphore.rejectFirst });
-    return semaphore;
+    return new RejectFirstAcquireSemaphore(permits, message);
   }
 
-  private async rejectFirst(): Promise<void> {
+  protected override async onAcquire(): Promise<void> {
     this.#count += 1;
     if (this.#count === 1) {
       this.entered.resolve();
@@ -85,12 +81,10 @@ class RejectFirstWaitSemaphore extends Semaphore {
   }
 
   static make(permits: number, message: string): RejectFirstWaitSemaphore {
-    const semaphore = new RejectFirstWaitSemaphore(permits, message);
-    Object.defineProperty(semaphore, 'onAcquireWait', { 'value': semaphore.rejectFirst });
-    return semaphore;
+    return new RejectFirstWaitSemaphore(permits, message);
   }
 
-  private async rejectFirst(): Promise<void> {
+  protected override async onAcquireWait(): Promise<void> {
     this.#count += 1;
     if (this.#count === 1) {
       this.entered.resolve();
@@ -112,12 +106,10 @@ class RejectFirstContendedSemaphore extends Semaphore {
   }
 
   static make(permits: number, message: string): RejectFirstContendedSemaphore {
-    const semaphore = new RejectFirstContendedSemaphore(permits, message);
-    Object.defineProperty(semaphore, 'onContended', { 'value': semaphore.rejectFirst });
-    return semaphore;
+    return new RejectFirstContendedSemaphore(permits, message);
   }
 
-  private async rejectFirst(): Promise<void> {
+  protected override async onContended(): Promise<void> {
     this.#count += 1;
     if (this.#count === 1) {
       this.entered.resolve();
@@ -137,12 +129,10 @@ class SuspendedFirstWaitSemaphore extends Semaphore {
   }
 
   static make(): SuspendedFirstWaitSemaphore {
-    const semaphore = new SuspendedFirstWaitSemaphore();
-    Object.defineProperty(semaphore, 'onAcquireWait', { 'value': semaphore.suspendFirst });
-    return semaphore;
+    return new SuspendedFirstWaitSemaphore();
   }
 
-  private async suspendFirst(): Promise<void> {
+  protected override async onAcquireWait(): Promise<void> {
     this.#count += 1;
     if (this.#count === 1) {
       this.firstWaitEntered.resolve();
@@ -161,12 +151,10 @@ class SuspendedContentionSemaphore extends Semaphore {
   }
 
   static make(): SuspendedContentionSemaphore {
-    const semaphore = new SuspendedContentionSemaphore();
-    Object.defineProperty(semaphore, 'onContended', { 'value': semaphore.suspendFirst });
-    return semaphore;
+    return new SuspendedContentionSemaphore();
   }
 
-  private async suspendFirst(): Promise<void> {
+  protected override async onContended(): Promise<void> {
     this.#count += 1;
     if (this.#count === 1) {
       this.contentionEntered.resolve();

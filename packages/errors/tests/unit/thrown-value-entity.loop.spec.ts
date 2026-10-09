@@ -6,6 +6,7 @@ import {
 
 import { ThrownValueEntity } from '../../src/entities/ThrownValueEntity.js';
 import { RuntimeError } from '../../src/errors/RuntimeError.js';
+import { PlatformErrors } from '../fixtures/PlatformErrors.js';
 
 class HostileErrorAccessors {
   static describe(): PropertyDescriptorMap {
@@ -126,7 +127,7 @@ class ThrownValueEntitySuite {
 
   static declaresProjectsHostileErrorAccessorsWithout(): void {
     void it('projects hostile Error accessors without throwing and stops at an unreadable cause', () => {
-      const hostile = RuntimeError.create('ignored');
+      const hostile = PlatformErrors.create('ignored');
       Object.defineProperties(hostile, HostileErrorAccessors.describe());
 
       assert.doesNotThrow(() => {

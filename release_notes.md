@@ -1,11 +1,5 @@
-### browser-testing-changesets-security
+### eslint-rule-contract-async-hooks
 
-*Affects: @studnicky/concurrency, @studnicky/fetch*
+*Affects: @studnicky/eslint-config, @studnicky/clock, @studnicky/concurrency, @studnicky/config, @studnicky/fetch, @studnicky/fsm, @studnicky/resilience, @studnicky/scheduler, @studnicky/virtual-fs, @studnicky/visible-range, @studnicky/cache, @studnicky/paginator, @studnicky/errors*
 
-Adds a real-browser test harness (Playwright-driven Chromium, Firefox, WebKit) alongside the existing Node-simulated `--conditions=browser` suite, and splits `@studnicky/fetch`'s `FetchTransport` browser spec so its plain client-contract tests run in real browsers while its `ScenarioSuite`-driven table tests stay on the Node path. Fixes a check-then-write race in `@studnicky/concurrency`'s `exitWorker` test fixture, closing a CodeQL file-system-race finding. Removes every package's `CHANGELOG.md`: changesets are now the only changelog mechanism. Pins `shell-quote`, `source-map-js`, and `katex` to patched versions, resolving the open Dependabot advisories.
-
-### minimize-dependency-overrides
-
-*Affects: @studnicky/types*
-
-Removes the `shell-quote` and `source-map-js` entries from `pnpm.overrides`: both already resolve to their patched versions through the existing dependency tree's own declared ranges (`launch-editor`'s `^1.10.0` and `@vue/compiler-core`'s `^1.2.1`), so forcing them was unnecessary. Keeps the `katex` override, which genuinely exceeds what `mermaid`/`@mermaid-js/mermaid-cli` currently declare support for — no newer release of either exists yet.
+Widens every overridable lifecycle hook with a test-only async override to `void | Promise<void>` across `clock`, `concurrency`, `config`, `fetch`, `fsm`, `resilience`, `scheduler`, `virtual-fs`, and `visible-range`, additively — an existing `void`-returning override remains valid. Fixes two `@studnicky/eslint-config` rules: `type-alias-invariants` now accepts a type alias composing a direct-dependency-exported type or a unique-symbol-branded primitive without requiring schema derivation, and `v8/define-property` now checks for an accessor descriptor regardless of whether `Object.defineProperty`'s target can be tracked for redefinition. Restores platform-error and cancellation-code test coverage in `@studnicky/errors` and `@studnicky/concurrency`'s shared worker-pool contract.

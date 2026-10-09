@@ -4,12 +4,16 @@ import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 
+import { NodeProjectHost } from '../../src/node/NodeProjectHost.js';
 import { interfaceMustBeContract } from '../../src/rules/interfaceMustBeContract.js';
 import { typeAliasInvariants } from '../../src/rules/typeAliasInvariants.js';
+import { ProjectHostRegistry } from '../../src/runtime/ProjectHostRegistry.js';
 import scenarioGroups from './typeAliasInvariants.scenarios.json' with { 'type': 'json' };
 
 RuleTester.describe = describe;
 RuleTester.it = it;
+
+ProjectHostRegistry.setDefaultHost(new NodeProjectHost());
 
 const repositoryRoot = resolve(import.meta.dirname, '../../../..');
 
@@ -18,7 +22,7 @@ const languageOptions = {
   'parserOptions': {
     'projectService': {
       'allowDefaultProject': ['*.ts', 'packages/eslint-config/*.ts', 'src/entities/*.ts'],
-      'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 30
+      'maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING': 45
     },
     'tsconfigRootDir': repositoryRoot
   }

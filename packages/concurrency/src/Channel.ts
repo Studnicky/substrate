@@ -173,7 +173,7 @@ export class Channel<T> {
    * Fires after publish() stages an item in the per-key buffer. A failure
    * cancels the staged item and rejects publish().
    */
-  protected onEnqueue(_key: string, _item: T): void {}
+  protected onEnqueue(_key: string, _item: T): void | Promise<void> {}
 
   /**
    * Fires in subscribe() right after buffer.shift() succeeds — item dequeued.

@@ -576,7 +576,7 @@ export class FetchClient implements FetchClientInterface {
     _path: string,
     _requestId: string,
     _url: string
-  ): void {}
+  ): void | Promise<void> {}
 
   /** Fires when an HTTP request fails. */
   protected onRequestError(

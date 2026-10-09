@@ -1,11 +1,13 @@
 ---
-title: '@studnicky/all-types-are-entities'
+title: "@studnicky/all-types-are-entities"
 description: "Requires canonical pure-data declarations to use the exact schema-derived '*Entity.Type' form."
 ---
 
 # @studnicky/all-types-are-entities
 
 Requires declarations classified through TypeScript type services as canonical pure data to use an exported `Type` or `InputType` member in an exported namespace whose name ends in `Entity`. The namespace must export its own `Schema`/`Node`, and the declaration must derive directly from that value.
+
+External and platform types remain external contracts; their public export provenance does not make them local entity declarations.
 
 The rule accepts both canonical spellings:
 
@@ -23,6 +25,7 @@ Since [`type-alias-invariants`](./type-alias-invariants.md) also retains a hand-
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 export type User = {
   readonly id: string;
@@ -30,11 +33,12 @@ export type User = {
 ```
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
-import type { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace UserEntity {
-  export const Schema = { type: 'object' } as const;
+  export const Schema = { type: "object" } as const;
   export type User = FromSchema<typeof Schema>;
 }
 ```
@@ -42,21 +46,23 @@ export namespace UserEntity {
 ## ✓ Correct
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
-import type { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace UserEntity {
-  export const Schema = { type: 'object' } as const;
+  export const Schema = { type: "object" } as const;
   export type Type = FromSchema<typeof Schema>;
 }
 ```
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
-import type { FromSchema } from 'json-schema-to-ts';
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace UserEntity {
-  export const Schema = { type: 'object' } as const;
+  export const Schema = { type: "object" } as const;
   export interface Type extends FromSchema<typeof Schema> {}
 }
 ```

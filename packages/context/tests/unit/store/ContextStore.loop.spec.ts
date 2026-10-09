@@ -145,7 +145,7 @@ class ContextStoreTests {
       const scope = context.initialize();
 
       scope.execute((): void => {
-        const wrongValue = Object.defineProperty({}, 'clear', {
+        const wrongValue = new Proxy({}, {
           'get': (): never => {
             throw new StoreTestError(
               'ContextStore must not invoke accessors while validating a context value'

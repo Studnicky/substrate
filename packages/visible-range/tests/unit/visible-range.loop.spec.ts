@@ -67,18 +67,18 @@ class FixedModeRunners {
   }
 }
 
+class AsyncRejectingOnRangeChangeRange extends VisibleRange {
+  protected override onRangeChange(_range: VisibleRangeEntity.Type): Promise<void> {
+    const rejection = Promise.resolve().then((): void => {
+      throw RuntimeError.create('async onRangeChange boom');
+    });
+    return rejection;
+  }
+}
+
 class OnRangeChangeRunners {
   static async 'async-rejecting-hook'(scenarioCase: ScenarioCaseOfType<OnRangeChangeScenarioCaseEntity.Type, 'async-rejecting-hook'>): Promise<void> {
-    const original = RuntimeError.create('async onRangeChange boom');
-    const range = VisibleRangeScenarioFactory.createRange(scenarioCase.input);
-    Object.defineProperty(range, 'onRangeChange', {
-      'value': (): Promise<void> => {
-        const rejection = Promise.resolve().then((): void => {
-          throw original;
-        });
-        return rejection;
-      }
-    });
+    const range = VisibleRangeScenarioFactory.createRange(scenarioCase.input, AsyncRejectingOnRangeChangeRange);
 
     const rejectionEvents: unknown[] = [];
     const onUnhandledRejection = (reason: unknown): void => { rejectionEvents.push(reason); };

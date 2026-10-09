@@ -166,73 +166,57 @@ class AllHooksMutex extends Mutex<string> {
 class AsyncRejectingHooksMutex extends Mutex<string> {
   static build(config?: Parameters<typeof Mutex.create>[0]): AsyncRejectingHooksMutex {
     const built = new AsyncRejectingHooksMutex(config);
-    const installed = new Set([
-      Reflect.set(
-        built,
-        'afterAcquire',
-        AsyncRejectingHooksMutex.createRejectingHook('afterAcquire async boom')
-      ),
-      Reflect.set(
-        built,
-        'afterRelease',
-        AsyncRejectingHooksMutex.createRejectingHook('afterRelease async boom')
-      ),
-      Reflect.set(
-        built,
-        'beforeAcquire',
-        AsyncRejectingHooksMutex.createRejectingHook('beforeAcquire async boom')
-      ),
-      Reflect.set(
-        built,
-        'beforeRelease',
-        AsyncRejectingHooksMutex.createRejectingHook('beforeRelease async boom')
-      ),
-      Reflect.set(
-        built,
-        'onAcquireWait',
-        AsyncRejectingHooksMutex.createRejectingHook('onAcquireWait async boom')
-      ),
-      Reflect.set(
-        built,
-        'onContended',
-        AsyncRejectingHooksMutex.createRejectingHook('onContended async boom')
-      ),
-      Reflect.set(
-        built,
-        'onEnterKey',
-        AsyncRejectingHooksMutex.createRejectingHook('onEnterKey async boom')
-      ),
-      Reflect.set(
-        built,
-        'onQueueDrain',
-        AsyncRejectingHooksMutex.createRejectingHook('onQueueDrain async boom')
-      ),
-      Reflect.set(
-        built,
-        'onRelease',
-        AsyncRejectingHooksMutex.createRejectingHook('onRelease async boom')
-      ),
-      Reflect.set(
-        built,
-        'onTimeout',
-        AsyncRejectingHooksMutex.createRejectingHook('onTimeout async boom')
-      )
-    ]);
-    assert.strictEqual(installed.has(false), false);
     return built;
   }
 
-  private static createRejectingHook(message: string): () => Promise<void> {
-    const hook = async (): Promise<void> => {
-      await Promise.resolve();
-      throw RuntimeError.create(message);
-    };
-    return hook;
+  protected override async afterAcquire(): Promise<void> {
+    await this.#rejectWith('afterAcquire async boom');
+  }
+
+  protected override async afterRelease(): Promise<void> {
+    await this.#rejectWith('afterRelease async boom');
+  }
+
+  protected override async beforeAcquire(): Promise<void> {
+    await this.#rejectWith('beforeAcquire async boom');
+  }
+
+  protected override async beforeRelease(): Promise<void> {
+    await this.#rejectWith('beforeRelease async boom');
+  }
+
+  protected override async onAcquireWait(): Promise<void> {
+    await this.#rejectWith('onAcquireWait async boom');
+  }
+
+  protected override async onContended(): Promise<void> {
+    await this.#rejectWith('onContended async boom');
+  }
+
+  protected override async onEnterKey(): Promise<void> {
+    await this.#rejectWith('onEnterKey async boom');
+  }
+
+  protected override async onQueueDrain(): Promise<void> {
+    await this.#rejectWith('onQueueDrain async boom');
+  }
+
+  protected override async onRelease(): Promise<void> {
+    await this.#rejectWith('onRelease async boom');
+  }
+
+  protected override async onTimeout(): Promise<void> {
+    await this.#rejectWith('onTimeout async boom');
   }
 
   getHookErrors(): readonly HookInvocationError[] {
     const hookErrors = this.hooks.getHookErrors();
     return hookErrors;
+  }
+
+  async #rejectWith(message: string): Promise<void> {
+    await Promise.resolve();
+    throw RuntimeError.create(message);
   }
 }
 

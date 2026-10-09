@@ -112,7 +112,7 @@ export class Coalesce<T> {
    * Fires when this is the leader caller — factory is about to be invoked.
    * Overrides must not throw or block.
    */
-  protected onCoalesceStart(_key: string): void {}
+  protected onCoalesceStart(_key: string): void | Promise<void> {}
 
   /**
    * Fires when this caller joined an in-flight call.
@@ -135,5 +135,5 @@ export class Coalesce<T> {
    * The in-flight entry and other waiting callers are unaffected. Never fires
    * when timeout is left unconfigured.
    */
-  protected onTimeout(_key: string, _timeoutMs: number): void {}
+  protected onTimeout(_key: string, _timeoutMs: number): void | Promise<void> {}
 }

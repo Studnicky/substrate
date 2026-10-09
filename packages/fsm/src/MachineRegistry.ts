@@ -74,7 +74,7 @@ export class MachineRegistry<
   // ---------------------------------------------------------------------------
 
   /** Fires after a named interpreter is successfully registered. */
-  protected onRegister(_id: string): void {}
+  protected onRegister(_id: string): void | Promise<void> {}
 
   /** Fires after a named interpreter is unregistered (whether or not it existed). */
   protected onUnregister(_id: string): void {}

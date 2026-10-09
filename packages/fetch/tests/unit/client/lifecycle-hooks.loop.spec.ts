@@ -267,19 +267,21 @@ class LifecycleHooksRunners {
 
   static async 'fast-hook'(scenarioCase: ScenarioCaseOfType<LifecycleHooksScenarioCaseEntity.Type, 'fast-hook', 'operation'>): Promise<void> {
     using _ = LifecycleFakeFetch.install();
-    const client = FetchClient.create({
-      'baseURL': BASE_URL,
-      'hookTimeoutMs': scenarioCase.input.hookTimeoutMs
-    });
     const events: string[] = [];
     // Settles across a handful of microtask hops rather than a real timer: HookInvoker races this
     // against a real `setTimeout(hookTimeoutMs)`, and Node always drains the microtask queue before
     // running any timer, so this deterministically wins the race regardless of system load.
-    Reflect.set(client, 'onRequestStart', async (): Promise<void> => {
-      for (let tick = 0; tick < scenarioCase.input.settleMs; tick += 1) {
-        await Promise.resolve();
+    class FastHookClient extends FetchClient {
+      protected override async onRequestStart(): Promise<void> {
+        for (let tick = 0; tick < scenarioCase.input.settleMs; tick += 1) {
+          await Promise.resolve();
+        }
+        events.push('onRequestStart');
       }
-      events.push('onRequestStart');
+    }
+    const client = FastHookClient.create({
+      'baseURL': BASE_URL,
+      'hookTimeoutMs': scenarioCase.input.hookTimeoutMs
     });
 
     try {
@@ -294,14 +296,16 @@ class LifecycleHooksRunners {
 
   static async 'hook-timeout'(scenarioCase: ScenarioCaseOfType<LifecycleHooksScenarioCaseEntity.Type, 'hook-timeout', 'operation'>): Promise<void> {
     using _ = LifecycleFakeFetch.install();
-    const client = FetchClient.create({
+    class NeverResolvingClient extends FetchClient {
+      protected override onRequestStart(): Promise<void> {
+        return new Promise(() => {
+          // Deliberately never resolves or rejects.
+        });
+      }
+    }
+    const client = NeverResolvingClient.create({
       'baseURL': BASE_URL,
       'hookTimeoutMs': scenarioCase.input.hookTimeoutMs
-    });
-    Reflect.set(client, 'onRequestStart', (): Promise<void> => {
-      return new Promise(() => {
-        // Deliberately never resolves or rejects.
-      });
     });
 
     try {
@@ -321,12 +325,14 @@ class LifecycleHooksRunners {
 
   static async 'never-settles'(scenarioCase: ScenarioCaseOfType<LifecycleHooksScenarioCaseEntity.Type, 'never-settles', 'operation'>): Promise<void> {
     using _ = LifecycleFakeFetch.install();
-    const client = FetchClient.create({ 'baseURL': BASE_URL });
     const events: string[] = [];
-    Reflect.set(client, 'onRequestStart', async (): Promise<void> => {
-      await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.settleMs); });
-      events.push('onRequestStart');
-    });
+    class NeverSettlesClient extends FetchClient {
+      protected override async onRequestStart(): Promise<void> {
+        await new Promise((resolve) => { setTimeout(resolve, scenarioCase.input.settleMs); });
+        events.push('onRequestStart');
+      }
+    }
+    const client = NeverSettlesClient.create({ 'baseURL': BASE_URL });
 
     try {
       const response = await client.get(scenarioCase.input.path);

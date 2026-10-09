@@ -73,7 +73,7 @@ export abstract class StateMachine<
   protected onTransition(_from: TState, _to: TState, _event: TEvent): void {}
 
   /** Fires when entering a new state variant (not called when variant is unchanged). */
-  protected onEnterState(_state: TState): void {}
+  protected onEnterState(_state: TState): void | Promise<void> {}
 
   /** Fires when exiting a state variant (not called when variant is unchanged). */
   protected onExitState(_state: TState): void {}

@@ -41,11 +41,7 @@ export class NodeProjectHost implements ProjectHostInterface {
     return result;
   }
   public findPackageRoot(filename: string): string | undefined {
-    const canonicalFilename = this.realPath(filename);
-
-    if (canonicalFilename === undefined) {
-      return undefined;
-    }
+    const canonicalFilename = this.realPath(filename) ?? filename;
 
     let directory = dirname(canonicalFilename);
 
