@@ -129,39 +129,40 @@ import type { ModuleErrorInterface } from "@studnicky/errors/interfaces";
 
 ## Exports
 
-| Symbol                              | Purpose                                                      | Import path                    |
-| ----------------------------------- | ------------------------------------------------------------ | ------------------------------ |
-| `CliExitError`                      | Represents a command-line exit failure.                      | `@studnicky/errors/node`       |
-| `DomainErrorArgumentList`           | Builds typed constructor arguments for domain errors.        | `@studnicky/errors/node`       |
-| `HookInvocationError`               | Represents a lifecycle-hook failure.                         | `@studnicky/errors/node`       |
-| `HookInvoker`                       | Invokes lifecycle hooks with diagnostic handling.            | `@studnicky/errors/node`       |
-| `HookTimeoutError`                  | Represents a timed-out asynchronous hook.                    | `@studnicky/errors/node`       |
-| `ModuleError`                       | Creates structured errors from named scenario defaults.      | `@studnicky/errors/node`       |
-| `ReentrantHookInvocationError`      | Represents synchronous hook reentrancy.                      | `@studnicky/errors/node`       |
-| `RuntimeError`                      | Represents a generic package-owned runtime failure.          | `@studnicky/errors/node`       |
-| `ValidationError`                   | Represents a single validation failure.                      | `@studnicky/errors/node`       |
-| `ValidationErrors`                  | Collects and reports validation failures.                    | `@studnicky/errors/node`       |
-| `ErrorClassifier`                   | Base class for custom error classifiers.                     | `@studnicky/errors/node`       |
-| `matchers`                          | Provides runtime error-classification predicates.            | `@studnicky/errors/node`       |
-| `EventRecorder`                     | Records detached event projections for observers.            | `@studnicky/errors/node`       |
-| `ErrorCode`                         | Provides standard error-code values.                         | `@studnicky/errors/node`       |
-| `ErrorDefaults`                     | Provides named default error scenarios.                      | `@studnicky/errors/node`       |
-| `HttpStatus`                        | Provides common HTTP status-code values.                     | `@studnicky/errors/node`       |
-| `HTTP_INFORMATIONAL_START`          | Marks the lower bound of informational HTTP responses.       | `@studnicky/errors/node`       |
-| `HTTP_INFORMATIONAL_END`            | Marks the upper bound of informational HTTP responses.       | `@studnicky/errors/node`       |
-| `HTTP_SUCCESS_START`                | Marks the lower bound of successful HTTP responses.          | `@studnicky/errors/node`       |
-| `HTTP_SUCCESS_END`                  | Marks the upper bound of successful HTTP responses.          | `@studnicky/errors/node`       |
-| `HTTP_REDIRECT_START`               | Marks the lower bound of redirect HTTP responses.            | `@studnicky/errors/node`       |
-| `HTTP_REDIRECT_END`                 | Marks the upper bound of redirect HTTP responses.            | `@studnicky/errors/node`       |
-| `HTTP_CLIENT_ERROR_START`           | Marks the lower bound of client-error HTTP responses.        | `@studnicky/errors/node`       |
-| `HTTP_CLIENT_ERROR_END`             | Marks the upper bound of client-error HTTP responses.        | `@studnicky/errors/node`       |
-| `HTTP_REQUEST_TIMEOUT`              | Provides the HTTP request-timeout status code.               | `@studnicky/errors/node`       |
-| `HTTP_SERVER_ERROR_START`           | Marks the lower bound of server-error HTTP responses.        | `@studnicky/errors/node`       |
-| `HTTP_SERVER_ERROR_END`             | Marks the upper bound of server-error HTTP responses.        | `@studnicky/errors/node`       |
-| `DomainErrorOptionsInterface`       | Defines options passed to `DomainErrorArgumentList.build()`. | `@studnicky/errors/interfaces` |
-| `ErrorClassifierFunctionInterface`  | Defines a callable custom error classifier.                  | `@studnicky/errors/interfaces` |
-| `ErrorClassifierInterface`          | Defines a class-based custom error classifier.               | `@studnicky/errors/interfaces` |
-| `ModuleErrorCreateOptionsInterface` | Defines options passed to `ModuleError.create()`.            | `@studnicky/errors/interfaces` |
-| `ModuleErrorOptionsInterface`       | Defines options passed to `ModuleError` subclasses.          | `@studnicky/errors/interfaces` |
+| Symbol                              | Purpose                                                                        | Import path                    |
+| ----------------------------------- | ------------------------------------------------------------------------------ | ------------------------------ |
+| `CliExitError`                      | Represents a command-line exit failure.                                        | `@studnicky/errors/node`       |
+| `DomainErrorArgumentList`           | Builds typed constructor arguments for domain errors.                          | `@studnicky/errors/node`       |
+| `HookInvocationError`               | Represents a lifecycle-hook failure.                                           | `@studnicky/errors/node`       |
+| `HookInvoker`                       | Invokes lifecycle hooks with diagnostic handling.                              | `@studnicky/errors/node`       |
+| `HookTimeoutError`                  | Represents a timed-out asynchronous hook.                                      | `@studnicky/errors/node`       |
+| `ModuleError`                       | Creates structured errors from named scenario defaults.                        | `@studnicky/errors/node`       |
+| `ReentrantHookInvocationError`      | Represents synchronous hook reentrancy.                                        | `@studnicky/errors/node`       |
+| `RuntimeError`                      | Represents a generic package-owned runtime failure.                            | `@studnicky/errors/node`       |
+| `ValidationError`                   | Represents a single validation failure.                                        | `@studnicky/errors/node`       |
+| `ValidationErrors`                  | Collects and reports validation failures.                                      | `@studnicky/errors/node`       |
+| `ErrorClassifier`                   | Base class for custom error classifiers.                                       | `@studnicky/errors/node`       |
+| `matchers`                          | Provides runtime error-classification predicates.                              | `@studnicky/errors/node`       |
+| `EventRecorder`                     | Records detached event projections for observers.                              | `@studnicky/errors/node`       |
+| `ErrorCode`                         | Provides standard error-code values.                                           | `@studnicky/errors/node`       |
+| `ErrorDefaults`                     | Provides named default error scenarios.                                        | `@studnicky/errors/node`       |
+| `HttpStatus`                        | Provides common HTTP status-code values.                                       | `@studnicky/errors/node`       |
+| `HTTP_INFORMATIONAL_START`          | Marks the lower bound of informational HTTP responses.                         | `@studnicky/errors/node`       |
+| `HTTP_INFORMATIONAL_END`            | Marks the upper bound of informational HTTP responses.                         | `@studnicky/errors/node`       |
+| `HTTP_SUCCESS_START`                | Marks the lower bound of successful HTTP responses.                            | `@studnicky/errors/node`       |
+| `HTTP_SUCCESS_END`                  | Marks the upper bound of successful HTTP responses.                            | `@studnicky/errors/node`       |
+| `HTTP_REDIRECT_START`               | Marks the lower bound of redirect HTTP responses.                              | `@studnicky/errors/node`       |
+| `HTTP_REDIRECT_END`                 | Marks the upper bound of redirect HTTP responses.                              | `@studnicky/errors/node`       |
+| `HTTP_CLIENT_ERROR_START`           | Marks the lower bound of client-error HTTP responses.                          | `@studnicky/errors/node`       |
+| `HTTP_CLIENT_ERROR_END`             | Marks the upper bound of client-error HTTP responses.                          | `@studnicky/errors/node`       |
+| `HTTP_REQUEST_TIMEOUT`              | Provides the HTTP request-timeout status code.                                 | `@studnicky/errors/node`       |
+| `HTTP_SERVER_ERROR_START`           | Marks the lower bound of server-error HTTP responses.                          | `@studnicky/errors/node`       |
+| `HTTP_SERVER_ERROR_END`             | Marks the upper bound of server-error HTTP responses.                          | `@studnicky/errors/node`       |
+| `DomainErrorOptionsInterface`       | Defines options passed to `DomainErrorArgumentList.build()`.                   | `@studnicky/errors/interfaces` |
+| `ErrorClassifierFunctionInterface`  | Defines a callable custom error classifier.                                    | `@studnicky/errors/interfaces` |
+| `ErrorClassifierInterface`          | Defines a class-based custom error classifier.                                 | `@studnicky/errors/interfaces` |
+| `ErrorConstructorOptionsInterface`  | Defines shared optional construction parameters for domain-error leaf classes. | `@studnicky/errors/interfaces` |
+| `ModuleErrorCreateOptionsInterface` | Defines options passed to `ModuleError.create()`.                              | `@studnicky/errors/interfaces` |
+| `ModuleErrorOptionsInterface`       | Defines options passed to `ModuleError` subclasses.                            | `@studnicky/errors/interfaces` |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/errors)

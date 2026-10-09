@@ -164,7 +164,7 @@ Picture two Northstar Books readers opening different book-detail pages at nearl
 
 ## Scope and lookup behavior
 
-`Context.initialize(initial?)` creates a reusable scope, while `Context.run(initial, operation)`/`Context.runAsync(initial, operation)` create, execute, terminate, and return `{ value, snapshot }`. `ContextScopeInterface` provides `execute(fn)`, `await(value)`, `bind(callback)`, and `terminate()`. On Node, ordinary `await` retains Context; browser code uses the transform or the explicit scope methods. `tryGet` returns `undefined` when no scope is active or a key is absent; `get` throws `ContextError` in either case.
+`Context.initialize(initial?)` creates a reusable scope, while `Context.run(initial, operation)`/`Context.runAsync(initial, operation)` create, execute, terminate, and return `{ value, snapshot }`. `ContextScopeInterface` provides `execute(fn)`, `await(value)`, `bind(callback)`, and `terminate()`. On Node, ordinary `await` retains Context; browser code uses the transform or the explicit scope methods. `tryGet` always returns a `ContextLookupEntity.Type` lookup object (`{ found: boolean; value: unknown }`); when no scope is active or the key is absent, it returns `{ found: false, value: undefined }` rather than a bare `undefined`. `get` throws `ContextError` in either case.
 
 ## Public API
 

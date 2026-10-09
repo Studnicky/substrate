@@ -54,7 +54,7 @@ Every package page uses the same reader contract: **What it is** identifies the 
 | Package                                     | Description                                                                                             |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | [@studnicky/cache](/packages/cache)         | LRU cache with optional TTL and capacity bounds                                                         |
-| [@studnicky/json](/packages/json)           | JSON/object value-tools: deep merge, clone, equal, freeze, patch, hash, path, sort                      |
+| [@studnicky/json](/packages/json)           | JSON/object value-tools: deep merge, clone, immutable snapshots, freeze, path access, sort, patch       |
 | [@studnicky/types](/packages/types)         | Shared runtime type guards, predicate composition, JSON boundaries, and Date/Map/Set operand validation |
 | [@studnicky/drilldown](/packages/drilldown) | Deterministic multi-level grouping, faceting, and sorting over arbitrary record data                    |
 | [@studnicky/filters](/packages/filters)     | Composable declarative filters with matching-score threshold adapters at the `matching` entrypoint      |
@@ -72,7 +72,7 @@ Every package page uses the same reader contract: **What it is** identifies the 
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [@studnicky/event-bus](/packages/event-bus)   | Publish/subscribe event bus with backpressure-aware queues                                                             |
 | [@studnicky/fetch](/packages/fetch)           | Professional HTTP client with timeout, override hooks, and configured clients                                          |
-| [@studnicky/logger](/packages/logger)         | Pluggable logging interface with Pino wrapper, child loggers, and structured metadata                                  |
+| [@studnicky/logger](/packages/logger)         | Pluggable logging interface with portable transport architecture, child loggers, and structured metadata               |
 | [@studnicky/errors](/packages/errors)         | Standardized error hierarchy serializing to RFC 9457 Problem Details                                                   |
 | [@studnicky/resilience](/packages/resilience) | Retry/backoff, circuit breaker, token bucket, keyed and sliding-window rate limiters, and dead-letter queue primitives |
 

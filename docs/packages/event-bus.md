@@ -138,13 +138,13 @@ Where the first hooks example explains what each hook means, this one shows the 
 
 ### `EventBus<TTopicMap>`
 
-| Member      | Signature                                                              | Description                                          |
-| ----------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
-| `create`    | `static create<T>(config?: BusQueueOptionsEntity.Type) => EventBus<T>` | Constructs a bus; constructor is protected           |
-| `subscribe` | `(topic, handler, options?) => UnsubscribeInterface`                   | Registers a subscriber; returns unsubscribe function |
-| `publish`   | `(topic, payload) => Promise<void>`                                    | Enqueues payload to all topic subscribers            |
-| `drain`     | `() => Promise<void>`                                                  | Waits for all subscriber queues to empty             |
-| `close`     | `() => Promise<void>`                                                  | Aborts all subscribers and drains                    |
+| Member      | Signature                                                                   | Description                                          |
+| ----------- | --------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `create`    | `static create<T>(config?: BusQueueOptionsEntity.InputType) => EventBus<T>` | Constructs a bus; constructor is protected           |
+| `subscribe` | `(topic, handler, options?) => UnsubscribeInterface`                        | Registers a subscriber; returns unsubscribe function |
+| `publish`   | `(topic, payload) => Promise<void>`                                         | Enqueues payload to all topic subscribers            |
+| `drain`     | `() => Promise<void>`                                                       | Waits for all subscriber queues to empty             |
+| `close`     | `() => Promise<void>`                                                       | Aborts all subscribers and drains                    |
 
 [Source on GitHub](https://github.com/Studnicky/substrate/tree/main/packages/event-bus)
 

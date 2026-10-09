@@ -51,7 +51,7 @@ A `WorkQueue` that hard-codes `VirtualScheduler` can never be swapped to real ti
 
 ## Observability hooks
 
-`VirtualScheduler` and `RealTimeScheduler` expose the exact same set of protected lifecycle hooks, so a subclass written against one works the same way against the other. Override any of them to add logging, metrics, or alerting without wiring the scheduler itself to any particular library.
+`VirtualScheduler` and `RealTimeScheduler` expose the same named set of protected lifecycle hooks, so a subclass written against one carries over to the other. One hook's declared return type differs between the two: `VirtualScheduler.onFire` is `(id: string): void | Promise<void>`, while `RealTimeScheduler.onFire` remains `(id: string): void`. Override any of them to add logging, metrics, or alerting without wiring the scheduler itself to any particular library.
 
 ### VirtualScheduler hooks
 

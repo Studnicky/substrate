@@ -354,18 +354,18 @@ import type { SemaphoreAcquireOptionsInterface } from "@studnicky/concurrency/in
 
 ### `Channel<T>`
 
-| Member      | Signature                                                             | Description                                              |
-| ----------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
-| `create`    | `static create<T>(options?: ChannelOptionsEntity.Type) => Channel<T>` | Constructs a channel from optional configuration         |
-| `publish`   | `(key: string, item: T) => Promise<void>`                             | Sends an item to `key` and completes its admission hooks |
-| `subscribe` | `(key: string) => AsyncGenerator<T>`                                  | Yields items published to `key`                          |
-| `close`     | `() => Promise<void>`                                                 | Closes all channels; subscribers stop after draining     |
+| Member      | Signature                                                                  | Description                                              |
+| ----------- | -------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `create`    | `static create<T>(options?: ChannelOptionsEntity.InputType) => Channel<T>` | Constructs a channel from optional configuration         |
+| `publish`   | `(key: string, item: T) => Promise<void>`                                  | Sends an item to `key` and completes its admission hooks |
+| `subscribe` | `(key: string) => AsyncGenerator<T>`                                       | Yields items published to `key`                          |
+| `close`     | `() => Promise<void>`                                                      | Closes all channels; subscribers stop after draining     |
 
 ### `Semaphore`
 
 | Member             | Signature                                                                      | Description                                                                     |
 | ------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| `create`           | `static create(options: SemaphoreOptionsEntity.Type) => Semaphore`             | Constructs a semaphore with the required permit count                           |
+| `create`           | `static create(options: SemaphoreOptionsEntity.InputType) => Semaphore`        | Constructs a semaphore with the required permit count                           |
 | `acquire`          | `(options?: SemaphoreAcquireOptionsInterface) => Promise<() => Promise<void>>` | Waits for a permit; `signal` cancels or bounds the wait                         |
 | `withPermit`       | `<T>(callback: () => Promise<T>) => Promise<T>`                                | Acquires, runs callback, releases                                               |
 | `setPermits`       | `(permits: number) => Promise<void>`                                           | Changes capacity; work already holding permits continues                        |
@@ -392,7 +392,7 @@ import type { SemaphoreAcquireOptionsInterface } from "@studnicky/concurrency/in
 
 | Member                       | Signature                                                                                           | Description                            |
 | ---------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `create`                     | `static create<K>(options: SemaphoreOptionsEntity.Type) => KeyedSemaphore<K>`                       | Constructs one permit policy per key   |
+| `create`                     | `static create<K>(options: SemaphoreOptionsEntity.InputType) => KeyedSemaphore<K>`                  | Constructs one permit policy per key   |
 | `acquire`                    | `(key: K, options?: SemaphoreAcquireOptionsInterface) => Promise<() => Promise<void>>`              | Acquires a permit for `key`            |
 | `withPermit`                 | `<T>(key: K, callback: () => Promise<T>, options?: SemaphoreAcquireOptionsInterface) => Promise<T>` | Runs work within `key`’s permit limit  |
 | `waitForIdle`                | `(key?: K) => Promise<void>`                                                                        | Waits for one key or all keys to drain |
@@ -400,11 +400,11 @@ import type { SemaphoreAcquireOptionsInterface } from "@studnicky/concurrency/in
 
 ### `Coalesce<T>`
 
-| Member       | Signature                                                               | Description                                                |
-| ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `create`     | `static create<T>(options?: CoalesceOptionsEntity.Type) => Coalesce<T>` | Constructs a coalescer from optional timeout configuration |
-| `run`        | `(key: string, factory: () => Promise<T>) => Promise<T>`                | Shares in-flight promise for `key`                         |
-| `isInflight` | `(key: string) => boolean`                                              | True if a promise for `key` is pending                     |
+| Member       | Signature                                                                    | Description                                                |
+| ------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `create`     | `static create<T>(options?: CoalesceOptionsEntity.InputType) => Coalesce<T>` | Constructs a coalescer from optional timeout configuration |
+| `run`        | `(key: string, factory: () => Promise<T>) => Promise<T>`                     | Shares in-flight promise for `key`                         |
+| `isInflight` | `(key: string) => boolean`                                                   | True if a promise for `key` is pending                     |
 
 ### `AsyncIter`
 

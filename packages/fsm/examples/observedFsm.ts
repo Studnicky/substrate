@@ -33,7 +33,7 @@ class ObservedTrafficMachine extends StateMachine<TrafficStateEntity.Type, Traff
     console.log(`[fsm:machine] transition  ${from.variant} --[${event.type}]--> ${to.variant}`);
   }
 
-  protected override onEnterState(state: TrafficStateEntity.Type): void {
+  protected override onEnterState(state: TrafficStateEntity.Type): void | Promise<void> {
     console.log(`[fsm:machine] enter       state=${state.variant}`);
   }
 
@@ -76,7 +76,7 @@ class ObservedInterpreter extends EffectInterpreter<TrafficStateEntity.Type, Tra
     console.log(`[fsm:interp]  transition  ${from.variant} --[${event.type}]--> ${to.variant}`);
   }
 
-  protected override onEnterState(state: TrafficStateEntity.Type): void {
+  protected override onEnterState(state: TrafficStateEntity.Type): void | Promise<void> {
     console.log(`[fsm:interp]  enter       state=${state.variant}`);
   }
 
@@ -104,7 +104,7 @@ class ObservedRegistry extends MachineRegistry<TrafficStateEntity.Type, TrafficE
     return new ObservedRegistry();
   }
 
-  protected override onRegister(id: string): void {
+  protected override onRegister(id: string): void | Promise<void> {
     console.log(`[fsm:registry] register   id=${id}`);
   }
 
