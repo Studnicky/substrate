@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/v8/try-catch-in-loops'
-description: 'Requires per-iteration error handling to live in a separately named method.'
+title: "@studnicky/v8/try-catch-in-loops"
+description: "Requires per-iteration error handling to live in a separately named method."
 ---
 
 # @studnicky/v8/try-catch-in-loops
@@ -16,6 +16,7 @@ The helper analysis is deliberately bounded to same-file, direct calls: a helper
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 for (const value of values) {
   try {
@@ -27,6 +28,7 @@ for (const value of values) {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 function attempt(value: string): void {
   try {
@@ -36,12 +38,15 @@ function attempt(value: string): void {
   }
 }
 
-values.forEach(attempt);
+for (const value of values) {
+  attempt(value);
+}
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 class Processor {
   public static attempt(value: string): void {

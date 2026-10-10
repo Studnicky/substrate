@@ -77,6 +77,8 @@ Every stateful class exposes `protected` hook methods that fire at each signific
 
 `onTransition`, `onEnterState`, and `onExitState` are only called when the state **variant** changes. Self-loops (same variant returned) fire none of them.
 
+`onEnterState` may return `void` or a `Promise<void>`. The other `StateMachine` hooks — `onTransition`, `onExitState`, `onTransitionRejected` — remain synchronous (`void`).
+
 ### `EffectInterpreter` hooks
 
 | Hook                            | When it fires                                                   | Args                                          |
@@ -91,6 +93,8 @@ Every stateful class exposes `protected` hook methods that fire at each signific
 | `onEffectSuccess(effect)`       | After an effect handler resolves successfully                   | `effect: TEffect`                             |
 | `onEffectError(effect, error)`  | When an effect handler throws                                   | `effect: TEffect`, `error: Error`             |
 
+`onEnterState` may return `void` or a `Promise<void>`. The other `EffectInterpreter` hooks remain synchronous (`void`).
+
 ### `MachineRegistry` hooks
 
 `MachineRegistry` exposes protected instance hooks. Override them in a subclass and call `register`, `unregister`, and `get` on that registry instance.
@@ -100,6 +104,8 @@ Every stateful class exposes `protected` hook methods that fire at each signific
 | `onRegister(id)`    | After a named interpreter is successfully registered                 | `id: string` |
 | `onUnregister(id)`  | After `unregister()` is called (fires even if the key did not exist) | `id: string` |
 | `onResolveMiss(id)` | When `get()` returns `undefined` for an unknown id                   | `id: string` |
+
+`onRegister` may return `void` or a `Promise<void>`. `onUnregister` and `onResolveMiss` remain synchronous (`void`).
 
 ### Example — traced traffic light
 

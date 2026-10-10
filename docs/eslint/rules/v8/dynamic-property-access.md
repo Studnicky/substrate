@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/v8/dynamic-property-access'
-description: 'Reports variable-keyed access on non-indexed receivers when TypeScript can prove it is not collection element access.'
+title: "@studnicky/v8/dynamic-property-access"
+description: "Reports variable-keyed access on non-indexed receivers when TypeScript can prove it is not collection element access."
 ---
 
 # @studnicky/v8/dynamic-property-access
@@ -64,42 +64,48 @@ Neither primitive removes the hazard; each localises it to one audited implement
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 const values: { [key: string]: string } = {};
-const key = 'name';
-values[key] = 'Ada';
+const key = "name";
+values[key] = "Ada";
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
-```ts
-const settings = { 'theme': 'dark' };
-const key = 'theme';
-const value = settings[key];
-```
 
-<!-- inline-ts-ok: eslint rule example -->
 ```ts
 const values: { [key: string]: string } = {};
-const key = 'name';
-Reflect.set(values, key, 'Ada');
+const key = "name";
+Reflect.set(values, key, "Ada");
 ```
 
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const settings = { 'theme': 'dark' };
+const settings = { theme: "dark" };
 const value = settings.theme;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const values = new Map<string, string>();
-values.set('name', 'Ada');
-const value = values.get('name');
+const settings = { theme: "dark" };
+const key = "theme";
+const value = settings[key];
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
+```ts
+const values = new Map<string, string>();
+values.set("name", "Ada");
+const value = values.get("name");
+```
+
+<!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 const numbers = [3, 5, 8];
 const index = 1;
@@ -107,15 +113,17 @@ const value = numbers[index];
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 const values = new Map<string, string>();
-values.set('name', 'Ada');
+values.set("name", "Ada");
 const settings = JsonObject.fromEntries(values);
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const settings: Record<string, string> = { 'theme': 'dark' };
-const key = 'theme';
-JsonObject.write(settings, key, 'light');
+const settings: Record<string, string> = { theme: "dark" };
+const key = "theme";
+JsonObject.write(settings, key, "light");
 ```

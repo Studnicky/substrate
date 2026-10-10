@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/store",
-  "version": "15.2.0",
+  "version": "15.2.1",
   "description": "Observable state stores with interchangeable persistence adapters",
   "keywords": [
     "browser",

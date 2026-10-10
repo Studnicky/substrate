@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/fetch",
-  "version": "15.2.0",
+  "version": "15.2.1",
   "description": "Professional HTTP client with timeout, interceptors, and configured clients for Node.js",
   "keywords": [
     "abort-controller",

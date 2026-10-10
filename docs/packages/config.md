@@ -51,7 +51,7 @@ Sometimes a configuration only breaks after it's already been parsed — an envi
 
 ## Clamping
 
-`ClampedConfig` applies declarative `{min, max, reason}` rules to a flat configuration object. `apply` returns a new object with out-of-range numeric fields clamped into range. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
+`ClampedConfig` applies declarative `{minimum, maximum, reason}` rules to a flat configuration object. `apply` returns a new object with out-of-range numeric fields clamped into range. Fields not present in the rule table, not numeric, or already in range are copied through unchanged; the input is never mutated.
 
 <!-- inline-ts-ok: conceptual call-site pattern; no example file demonstrates clamping -->
 
@@ -65,8 +65,8 @@ interface WorkerConfig {
 }
 
 const rules: Record<string, ClampRuleEntity.Type> = {
-  timeoutMs: { min: 100, max: 5000, reason: "timeout must stay within safe bounds" },
-  concurrency: { min: 1, max: 8, reason: "concurrency must stay within pool capacity" },
+  timeoutMs: { minimum: 100, maximum: 5000, reason: "timeout must stay within safe bounds" },
+  concurrency: { minimum: 1, maximum: 8, reason: "concurrency must stay within pool capacity" },
 };
 
 const raw: WorkerConfig = { timeoutMs: 10, concurrency: 4 };
@@ -83,7 +83,7 @@ import { ClampedConfig } from "@studnicky/config/node";
 import { ClampEventEntity } from "@studnicky/config/entities";
 
 class LoggingClampedConfig extends ClampedConfig {
-  protected static override onClamp(event: ClampEventEntity.Type): void {
+  protected static override onClamp(event: ClampEventEntity.Type): void | Promise<void> {
     console.warn(
       `[config] clamped ${event.field}: ${event.raw} -> ${event.clamped} (${event.reason})`,
     );

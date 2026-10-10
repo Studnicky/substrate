@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/entity-file-shape'
-description: 'Constrains entity boundaries, declaration folders, top-level data constants, and inline regex literals.'
+title: "@studnicky/entity-file-shape"
+description: "Constrains entity boundaries, declaration folders, top-level data constants, and inline regex literals."
 ---
 
 # @studnicky/entity-file-shape
@@ -23,20 +23,21 @@ A node-support module is exempt only when its filename and sole exported namespa
 
 `validate` narrows in place, while `intake` returns a new value whose type proves it crossed the unparsed-input boundary. `create` accepts locally produced partial object data, fills declared defaults, and validates the result. Neither entry point coerces a value's type. Scalars do not require `create`; `Partial<'healthy' | 'degraded'>` has no useful meaning.
 
-`Type` derives from `typeof Schema` via `FromSchema` (`json-schema-to-ts`) or from `typeof Node` via `NodeStaticType` (`packages/entity/src/types/`); both engines are accepted during the migration between them. A hand-written `Type` (no derivation-shaped wrapper, or a derivation-shaped wrapper carrying an override argument that replaces the derived type) is accepted only when the schema itself proves no structural derivation exists: it contains `not`/`if`/`then`/`else` anywhere, is an empty object (`{}`, matches any value), or refines with `anyOf` alongside `properties`/`required` in the same object (a value discriminant, not a plain union). A schema composing another file's schema (a spread or a property referencing another entity's `Schema`) permits a hand-written `Type` only when `Type` itself composes that entity's `.Type` — an array, `readonly`, or union of `SomeEntity.Type` references. Nothing here is a marker; every acceptance traces to a property the schema or the composed reference itself proves.
+`Type` is accepted when it is any named generic whose sole type argument is `typeof Schema` or `typeof Node` (e.g. `FromSchema<typeof Schema>`, `NodeStaticType<typeof Node>`, or `Static<typeof Schema>`) — the wrapper's own name is never inspected; only the `typeof Schema`/`typeof Node` argument matters. A hand-written `Type` (no derivation-shaped wrapper, or a derivation-shaped wrapper carrying an override argument that replaces the derived type) is accepted only when the schema itself proves no structural derivation exists: it contains `not`/`if`/`then`/`else` anywhere, is an empty object (`{}`, matches any value), or refines with `anyOf` alongside `properties`/`required` in the same object (a value discriminant, not a plain union). A schema composing another file's schema (a spread or a property referencing another entity's `Schema`) permits a hand-written `Type` only when `Type` itself composes that entity's `.Type` — an array, `readonly`, or union of `SomeEntity.Type` references. Nothing here is a marker; every acceptance traces to a property the schema or the composed reference itself proves.
 
 The object-only decision reads the `Schema` declarator's own top-level `type` property. A nested property schema does not count. When a builder call, spread, or composition does not expose a literal root type, the rule does not require `create`, avoiding a false positive.
 
 The rule reports a missing namespace and every namespace export that does not match the entity filename. It checks every exported namespace rather than silently choosing one.
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 // src/entities/UserEntity.ts
-import { EntityCompiler } from '@studnicky/entity/node';
-import type { FromSchema } from 'json-schema-to-ts';
+import { EntityCompiler } from "@studnicky/entity/node";
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace UserEntity {
-  export const Schema = { type: 'object' } as const;
+  export const Schema = { type: "object" } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
@@ -45,13 +46,14 @@ export namespace UserEntity {
 ```
 
 <!-- inline-ts-ok: scalar entity example -->
+
 ```ts
 // src/entities/HealthStatusEntity.ts
-import { EntityCompiler } from '@studnicky/entity/node';
-import type { FromSchema } from 'json-schema-to-ts';
+import { EntityCompiler } from "@studnicky/entity/node";
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace HealthStatusEntity {
-  export const Schema = { enum: ['healthy', 'degraded'], type: 'string' } as const;
+  export const Schema = { enum: ["healthy", "degraded"], type: "string" } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
@@ -63,6 +65,7 @@ export namespace HealthStatusEntity {
 Outside entity files, a top-level `type` alias under an `interfaces/` path segment is reported, as is a top-level `interface` under a `types/` path segment. A declaration remains top-level when wrapped by export declarations or TypeScript namespaces; declarations inside functions, classes, and ordinary blocks are out of scope. For paths in `packages/<package>/…`, the package name itself does not count as a convention-folder segment.
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 // src/interfaces/UserInterface.ts
 export interface UserInterface {
@@ -71,6 +74,7 @@ export interface UserInterface {
 ```
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 // src/types/UserType.ts
 export type UserType = {
@@ -93,6 +97,7 @@ The report directs authors to isolate a flagged group in a `constants/` folder, 
 Folder names and declaration names do not grant an exemption. Moving a mixed module into `constants/`, renaming its directory, or naming declarations `Schema`, `validate`, or `ajv` does not change its parsed structure.
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 // A pure constants module is exempt regardless of its path.
 export const TIMEOUT_MS = 1000;
@@ -100,6 +105,7 @@ export const MAX_RETRIES = 3;
 ```
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 // A data-constant group mixed with another top-level declaration is reported.
 export const MAX_RETRIES = 3;
@@ -112,6 +118,7 @@ export function run(): void {}
 Regex literals and `new RegExp(...)` calls whose first argument is a static string are reported outside the structural exemptions above. A static pattern is a string literal, a template literal without expressions, or a `+` expression composed only of static strings. One inline pattern is sufficient to report; there is no two-constant threshold for regexes.
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 export function isEmail(value: string): boolean {
   return /^[^@]+@[^@]+$/u.test(value);
@@ -119,6 +126,7 @@ export function isEmail(value: string): boolean {
 ```
 
 <!-- inline-ts-ok: conceptual rule example -->
+
 ```ts
 export function matches(value: string, pattern: string): boolean {
   return new RegExp(pattern).test(value);
@@ -128,13 +136,14 @@ export function matches(value: string, pattern: string): boolean {
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/FooEntity.ts
-import { EntityCompiler } from '@studnicky/entity/node';
-import type { FromSchema } from 'json-schema-to-ts';
+import { EntityCompiler } from "@studnicky/entity/node";
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace FooEntity {
-  export const Schema = { type: 'object' } as const;
+  export const Schema = { type: "object" } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const create = EntityCompiler.compileCreate<Type>(Schema);
@@ -142,12 +151,14 @@ export namespace FooEntity {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/interfaces/FooType.ts
 export type FooType = { readonly id: string };
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/http/mixedWithFunction.ts
 export const MAX_RETRIES = 3;
@@ -156,6 +167,7 @@ export const onClick = (): void => {};
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/validation/normalize.ts
 export function normalize(value: string): string {
@@ -166,13 +178,18 @@ export function normalize(value: string): string {
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/FooEntity.ts
-import { EntityCompiler } from '@studnicky/entity/node';
-import type { FromSchema } from 'json-schema-to-ts';
+import { EntityCompiler } from "@studnicky/entity/node";
+import type { FromSchema } from "json-schema-to-ts";
 
 export namespace FooEntity {
-  export const Schema = { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } as const;
+  export const Schema = {
+    type: "object",
+    properties: { id: { type: "string" } },
+    required: ["id"],
+  } as const;
   export type Type = FromSchema<typeof Schema>;
   export const validate = EntityCompiler.compile<Type>(Schema);
   export const intake = EntityCompiler.compileIntake<Type>(Schema);
@@ -181,6 +198,7 @@ export namespace FooEntity {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/http/client.ts
 export const TIMEOUT_MS = 1000;
@@ -188,13 +206,15 @@ export const MAX_RETRIES = 3;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/aggregate.ts
-export * from './helpers.js';
-export * from './other.js';
+export * from "./helpers.js";
+export * from "./other.js";
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: /project/src/validation/matches.ts
 export function matches(value: string, pattern: string): boolean {

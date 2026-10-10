@@ -35,7 +35,7 @@ The runnable active-products example evaluates published and in-stock catalogue 
 
 Northstar Books keeps one declarative sellability rule for its storefront, catalogue exports, and reservation jobs: a title must be published and have available inventory. `FilterEngine` evaluates that shared rule against every catalogue record, so each consumer applies the same admission decision. When a shopper enters an approximate title, matching plugins from `@studnicky/filters/matching` turn a text-similarity threshold into another declared condition rather than a second ad-hoc search path.
 
-The guarantee is explicit: JSON-safe filter configuration is validated at the boundary, and every evaluation uses the same condition tree and registered operators. The matching entrypoint validates its filter values before it delegates scoring to `@studnicky/matching/browser`; it does not make fuzzy matching an implicit global policy.
+The guarantee is explicit: JSON-safe filter configuration is validated at the boundary, and every evaluation uses the same condition tree and registered operators. The matching entrypoint validates its filter values before it delegates scoring to `@studnicky/matching` through the `#runtime` conditional subpath import, which Node resolves to the `node` or `browser` export condition rather than to which `@studnicky/filters` entrypoint the consumer imported; it does not make fuzzy matching an implicit global policy.
 
 ## Install
 
@@ -86,7 +86,7 @@ Northstar Books runs the same sellability check in three places — the storefro
 
 ## Matching plugins
 
-A shopper searching for "The Dispossessed" who types "The Dispossed" should still find it — but a search for an unrelated book shouldn't quietly slip through on a loose match either. Rather than bolting on a separate fuzzy-search code path, this example adds `LevenshteinAtLeastPlugin` straight into the same filter engine as one more declared condition on the title field. The plugin validates the filter values before delegating the actual scoring to `@studnicky/matching/browser`, so the example can confirm the near-miss spelling passes at an 0.8 similarity threshold while a genuinely different title, "A Wizard of Earthsea", does not.
+A shopper searching for "The Dispossessed" who types "The Dispossed" should still find it — but a search for an unrelated book shouldn't quietly slip through on a loose match either. Rather than bolting on a separate fuzzy-search code path, this example adds `LevenshteinAtLeastPlugin` straight into the same filter engine as one more declared condition on the title field. The plugin validates the filter values before delegating the actual scoring to `@studnicky/matching` via the package's `#runtime` conditional export — resolved to `@studnicky/matching/node` or `@studnicky/matching/browser` by Node's export-condition resolution, not by the `@studnicky/filters` entrypoint the consumer imported — so the example can confirm the near-miss spelling passes at an 0.8 similarity threshold while a genuinely different title, "A Wizard of Earthsea", does not.
 
 <RunnableExample src="packages/filters/examples/fuzzyFilter" title="Fuzzy title filter with a matching plugin" />
 

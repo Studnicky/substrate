@@ -20,7 +20,7 @@ pnpm add @studnicky/system
 
 ## Usage
 
-Read host facts through the static `System` API: `System.cpu`, `System.memory`, `System.platform`, `System.gpu()`, and `System.optimalWorkerCount`. Each property returns a fresh value validated against its entity schema.
+Read host facts through the static `System` API: `System.cpu`, `System.memory`, `System.platform`, `System.gpu()`, and `System.optimalWorkerCount`. Each property returns a fresh value typed to its entity's `Type`.
 
 ## Public entrypoints
 

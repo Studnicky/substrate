@@ -49,7 +49,7 @@ One slow-moving supplier account shouldn't be able to starve every other supplie
 
 ### SlidingWindowLimiter
 
-Use a sliding window when a limit is a fixed number of requests over a rolling interval. Select `log` for exact accounting or `counter` for a constant-space approximation. Both `consume` and `waitForToken` return the same `RateLimitConsumptionEntity.Type` admission shape as `TokenBucket`.
+Use a sliding window when a limit is a fixed number of requests over a rolling interval. Select `log` for exact accounting or `counter` for a constant-space approximation. Both `consume` and `waitForToken` return the same `RateLimitConsumptionInterface` admission shape as `TokenBucket`.
 
 <!-- inline-ts-ok: Documents the consumer runtime import for the sliding-window limiter. -->
 
@@ -244,18 +244,18 @@ import type { DeadLetterQueueEntryInterface } from "@studnicky/resilience/interf
 
 ### `TokenBucket`
 
-| Member         | Signature                                                                                           | Description                                                                                                          |
-| -------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `consume`      | `(tokens?: number) => RateLimitConsumptionEntity.Type`                                              | Consumes a positive finite token count and returns the admission; throws `TokenBucketExhaustedError` if insufficient |
-| `waitForToken` | `(options?: { tokens?: number; signal?: AbortSignal }) => Promise<RateLimitConsumptionEntity.Type>` | Waits until a positive finite token count is available, then returns the admission                                   |
-| `available`    | `number`                                                                                            | Current token count (triggers a refill calculation)                                                                  |
+| Member         | Signature                                                                                          | Description                                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `consume`      | `(tokens?: unknown) => RateLimitConsumptionInterface`                                              | Consumes a positive finite token count and returns the admission; throws `TokenBucketExhaustedError` if insufficient |
+| `waitForToken` | `(options?: { tokens?: unknown; signal?: AbortSignal }) => Promise<RateLimitConsumptionInterface>` | Waits until a positive finite token count is available, then returns the admission                                   |
+| `available`    | `number`                                                                                           | Current token count (triggers a refill calculation)                                                                  |
 
 ### `SlidingWindowLimiter`
 
-| Member         | Signature                                                                                           | Description                                                       |
-| -------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `consume`      | `(tokens?: number) => RateLimitConsumptionEntity.Type`                                              | Consumes a positive count when it fits within the rolling window. |
-| `waitForToken` | `(options?: { tokens?: number; signal?: AbortSignal }) => Promise<RateLimitConsumptionEntity.Type>` | Waits until the requested count fits within the rolling window.   |
+| Member         | Signature                                                                                         | Description                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `consume`      | `(tokens?: number) => RateLimitConsumptionInterface`                                              | Consumes a positive count when it fits within the rolling window. |
+| `waitForToken` | `(options?: { tokens?: number; signal?: AbortSignal }) => Promise<RateLimitConsumptionInterface>` | Waits until the requested count fits within the rolling window.   |
 
 ### `DeadLetterQueue<T>`
 

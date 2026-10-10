@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/known-types-outside-adapters'
-description: 'Bans any and unknown types outside a configured adapters layer.'
+title: "@studnicky/known-types-outside-adapters"
+description: "Bans any and unknown types outside a configured adapters layer."
 ---
 
 # @studnicky/known-types-outside-adapters
@@ -25,11 +25,11 @@ Layers resolve through the shared ordered `bindings` configuration described by 
     layers: ['domain', 'ports', 'application', 'adapters', 'infrastructure'],
     sourceRoot: 'src',
     bindings: [
-      { kind: 'folder', layer: 'domain', pattern: 'domain' },
-      { kind: 'folder', layer: 'ports', pattern: 'ports' },
-      { kind: 'folder', layer: 'application', pattern: 'application' },
-      { kind: 'folder', layer: 'adapters', pattern: 'adapters' },
-      { kind: 'folder', layer: 'infrastructure', pattern: 'infrastructure' }
+      { unit: 'folder', layer: 'domain', pattern: 'domain' },
+      { unit: 'folder', layer: 'ports', pattern: 'ports' },
+      { unit: 'folder', layer: 'application', pattern: 'application' },
+      { unit: 'folder', layer: 'adapters', pattern: 'adapters' },
+      { unit: 'folder', layer: 'infrastructure', pattern: 'infrastructure' }
     ]
   }]
 }
@@ -38,12 +38,14 @@ Layers resolve through the shared ordered `bindings` configuration described by 
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: src/domain/user/User.ts
 function parse(input: any): void {}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: src/domain/user/User.ts
 function parse(input: unknown): void {}
@@ -52,12 +54,16 @@ function parse(input: unknown): void {}
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: src/adapters/HttpAdapter.ts
-function parse(input: any): unknown { return input; }
+function parse(input: any): unknown {
+  return input;
+}
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 // filename: scripts/build.ts
 function parse(input: any): void {}

@@ -1,6 +1,6 @@
 ---
-title: '@studnicky/no-unparsed-assertion'
-description: 'Disallows assertions from unknown or any to a named type outside an entity intake member.'
+title: "@studnicky/no-unparsed-assertion"
+description: "Disallows assertions from unknown or any to a named type outside an entity intake member."
 ---
 
 # @studnicky/no-unparsed-assertion
@@ -13,13 +13,14 @@ Assertions inside an entity namespace’s `intake` member are allowed, because `
 
 ## Options
 
-| Name | Type | Default | Description |
-|---|---|---|---|
+| Name             | Type       | Default                                                                 | Description                                           |
+| ---------------- | ---------- | ----------------------------------------------------------------------- | ----------------------------------------------------- |
 | `exemptPackages` | `string[]` | `['@studnicky/types', '@studnicky/eslint-config', '@studnicky/entity']` | Package names whose files are excluded from the rule. |
 
 ## ✗ Incorrect
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type Payload = { readonly value: string };
 declare const raw: unknown;
@@ -27,6 +28,7 @@ const payload = raw as Payload;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type Payload = { readonly value: string };
 declare const raw: unknown;
@@ -36,6 +38,7 @@ const payload = <Payload>raw;
 ## ✓ Correct
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 namespace PayloadEntity {
   export type Type = { readonly value: string };
@@ -46,17 +49,20 @@ namespace PayloadEntity {
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
-const payload = { value: 'parsed' } as const;
+const payload = { value: "parsed" } as const;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 declare const raw: unknown;
 const widened = raw as unknown;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
 type Payload = { readonly value: string };
 declare const parsed: Payload;
@@ -64,7 +70,9 @@ const repeated = parsed as Payload;
 ```
 
 <!-- inline-ts-ok: eslint rule example -->
+
 ```ts
+// filename: /repo/packages/eslint-config/src/ForeignNode.ts
 type ForeignNode = { readonly kind: string };
 declare const raw: unknown;
 const node = raw as ForeignNode;
