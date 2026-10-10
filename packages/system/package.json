@@ -1,6 +1,6 @@
 {
   "name": "@studnicky/system",
-  "version": "15.2.0",
+  "version": "15.2.1",
   "description": "Hardware and platform information for runtime decisions about worker pool sizes and hardware-accelerated code paths",
   "keywords": [
     "cpu",

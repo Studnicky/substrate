@@ -1,5 +1,5 @@
-### eslint-rule-contract-async-hooks
+### docs-accuracy-audit
 
-*Affects: @studnicky/eslint-config, @studnicky/clock, @studnicky/concurrency, @studnicky/config, @studnicky/fetch, @studnicky/fsm, @studnicky/resilience, @studnicky/scheduler, @studnicky/virtual-fs, @studnicky/visible-range, @studnicky/cache, @studnicky/paginator, @studnicky/errors*
+*Affects: @studnicky/fsm*
 
-Widens every overridable lifecycle hook with a test-only async override to `void | Promise<void>` across `clock`, `concurrency`, `config`, `fetch`, `fsm`, `resilience`, `scheduler`, `virtual-fs`, and `visible-range`, additively — an existing `void`-returning override remains valid. Fixes two `@studnicky/eslint-config` rules: `type-alias-invariants` now accepts a type alias composing a direct-dependency-exported type or a unique-symbol-branded primitive without requiring schema derivation, and `v8/define-property` now checks for an accessor descriptor regardless of whether `Object.defineProperty`'s target can be tracked for redefinition. Restores platform-error and cancellation-code test coverage in `@studnicky/errors` and `@studnicky/concurrency`'s shared worker-pool contract.
+Corrects 32 documentation pages (ESLint rule docs and package reference pages) found inaccurate by a full audit against their actual source. Widens the `observedFsm` example's `onEnterState`/`onRegister` overrides to the hook's documented `void | Promise<void>` signature.
