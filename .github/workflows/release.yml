@@ -3,11 +3,12 @@ name: Release
 on:
   workflow_run:
     workflows: [ci]
-    branches: [main, develop]
+    branches: [main]
     types: [completed]
+  workflow_dispatch: {}
 
 concurrency:
-  group: release-${{ github.event.workflow_run.head_branch }}
+  group: release-${{ github.event.workflow_run.head_branch || 'manual' }}
   cancel-in-progress: false
 
 jobs:
@@ -19,6 +20,7 @@ jobs:
       pull-requests: read
     outputs:
       action: ${{ steps.detect.outputs.action }}
+      trusted_sha: ${{ steps.detect.outputs.trusted_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -31,6 +33,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
           WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WORKFLOW_RUN_EVENT: ${{ github.event.workflow_run.event }}
           TRUSTED_BRANCH: ${{ github.event.workflow_run.head_branch }}
@@ -39,18 +42,47 @@ jobs:
           set -euo pipefail
 
           action=none
-          if [ "$WORKFLOW_RUN_CONCLUSION" != "success" ] || [ "$WORKFLOW_RUN_EVENT" != "push" ]; then
+
+          # Preparing a release off develop is never a side effect of a develop CI
+          # run completing — it only happens when a human explicitly dispatches this
+          # workflow. A green develop merge never auto-opens a release PR.
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            git fetch --no-tags origin develop
+            actual_sha=$(git rev-parse origin/develop)
+            git checkout --detach "$actual_sha"
+
+            git fetch origin main --tags
+            if ! git merge-base --is-ancestor origin/main HEAD; then
+              echo "::error::develop must contain the current main history before release preparation."
+              exit 1
+            fi
+
+            open_release_count=$(gh pr list \
+              --repo "$GITHUB_REPOSITORY" \
+              --base main \
+              --state open \
+              --json headRefName \
+              --jq '[.[] | select(.headRefName | startswith("release/"))] | length')
+            if [ "$open_release_count" -gt 0 ]; then
+              echo "::error::A release PR is already open against main. Merge or close it before preparing another release."
+              exit 1
+            fi
+
+            if ! find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
+              echo "::error::No pending changesets on develop. Nothing to release."
+              exit 1
+            fi
+
+            action=prepare
+            echo "trusted_sha=$actual_sha" >> "$GITHUB_OUTPUT"
             echo "action=$action" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          case "$TRUSTED_BRANCH" in
-            develop|main) ;;
-            *)
-              echo "action=$action" >> "$GITHUB_OUTPUT"
-              exit 0
-              ;;
-          esac
+          if [ "$WORKFLOW_RUN_CONCLUSION" != "success" ] || [ "$WORKFLOW_RUN_EVENT" != "push" ] || [ "$TRUSTED_BRANCH" != "main" ]; then
+            echo "action=$action" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           git fetch --no-tags origin "$TRUSTED_BRANCH"
           actual_sha=$(git rev-parse "origin/$TRUSTED_BRANCH")
@@ -61,43 +93,17 @@ jobs:
 
           git checkout --detach "$actual_sha"
 
-          git fetch origin main --tags
-          case "$TRUSTED_BRANCH" in
-            develop)
-              if ! git merge-base --is-ancestor origin/main HEAD; then
-                echo "::error::develop must contain the current main history before release preparation."
-                exit 1
-              fi
-
-              open_release_count=$(gh pr list \
-                --repo "$GITHUB_REPOSITORY" \
-                --base main \
-                --state open \
-                --json headRefName \
-                --jq '[.[] | select(.headRefName | startswith("release/"))] | length')
-              if [ "$open_release_count" -gt 0 ]; then
-                echo "action=$action" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-
-              if find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' -size +0c -print -quit | grep -q .; then
-                action=prepare
-              fi
-              ;;
-            main)
-              version=$(node -p "require('./package.json').version")
-              tag="v${version}"
-              if git rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null; then
-                tag_target=$(git rev-parse "refs/tags/${tag}^{commit}")
-                if ! git merge-base --is-ancestor "$tag_target" "$actual_sha"; then
-                  echo "::error::${tag} already exists outside the current main history. Release tags are immutable."
-                  exit 1
-                fi
-              else
-                action=tag
-              fi
-              ;;
-          esac
+          version=$(node -p "require('./package.json').version")
+          tag="v${version}"
+          if git rev-parse --verify --quiet "refs/tags/${tag}^{commit}" >/dev/null; then
+            tag_target=$(git rev-parse "refs/tags/${tag}^{commit}")
+            if ! git merge-base --is-ancestor "$tag_target" "$actual_sha"; then
+              echo "::error::${tag} already exists outside the current main history. Release tags are immutable."
+              exit 1
+            fi
+          else
+            action=tag
+          fi
 
           echo "action=$action" >> "$GITHUB_OUTPUT"
 
@@ -136,7 +142,7 @@ jobs:
       - name: Verify the trusted develop revision
         shell: bash
         env:
-          TRUSTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          TRUSTED_SHA: ${{ needs.plan.outputs.trusted_sha }}
         run: |
           set -euo pipefail
           if [ "$(git rev-parse HEAD)" != "$TRUSTED_SHA" ]; then
