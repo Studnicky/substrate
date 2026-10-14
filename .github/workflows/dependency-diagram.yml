@@ -57,7 +57,7 @@ jobs:
             DEPENDENCY_DIAGRAM_COMMENT_ARTIFACT=".orchestration/dependency-diagram/blast-radius-comment.md" \
             bash scripts/ci-suite.sh diagram-blast-radius
       - name: Upload blast-radius diagram
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: dependency-blast-radius
           path: |
