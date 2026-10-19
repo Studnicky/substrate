@@ -95,7 +95,7 @@
     "@studnicky/json": "workspace:*",
     "@studnicky/store": "workspace:*",
     "@studnicky/types": "workspace:*",
-    "rollup": "^4.63.1",
+    "rollup": "^4.64.5",
     "typescript": "^6.0.3"
   },
   "devDependencies": {
