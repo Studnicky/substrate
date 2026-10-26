@@ -85,7 +85,7 @@
     "@studnicky/types": "workspace:*"
   },
   "devDependencies": {
-    "fake-indexeddb": "^6.2.5"
+    "fake-indexeddb": "^6.2.6"
   },
   "engines": {
     "node": ">=24.0.0",
